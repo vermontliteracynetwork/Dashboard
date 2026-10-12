@@ -16,6 +16,7 @@ import Passport from './components/Passport';
 import PetFinder from './routes/student/PetFinder';
 import BuffDogeGym from './routes/student/BuffDogeGym';
 import PetShowRing from './routes/student/PetShowRing';
+import DinerDash from './routes/student/DinerDash';
 import IdleTycoon from './routes/student/IdleTycoon';
 import CrossyHopper from './routes/student/CrossyHopper';
 import PlinkoDrop from './routes/student/PlinkoDrop';
@@ -229,6 +230,7 @@ export default function App() {
           <Route path="/student/pet-finder" element={<PetFinder />} />
           <Route path="/student/gym" element={<BuffDogeGym />} />
           <Route path="/student/pet-show" element={<PetShowRing />} />
+          <Route path="/student/diner" element={<DinerDash />} />
           <Route path="/student/cupcake-tycoon" element={<IdleTycoon />} />
           <Route path="/student/crossy" element={<CrossyHopper />} />
           <Route path="/student/plinko" element={<PlinkoDrop />} />

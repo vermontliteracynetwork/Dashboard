@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-diner",
+    date: "2026-10-12",
+    icon: "🍔",
+    title: "New game: Diner Dash",
+    body: "Run a busy diner! Cook each customer's order, then serve them in ticket order: first come, first served. Answer a question to serve each meal and earn tip stars.",
+  },
+  {
     id: "2026-10-12-cupcake-tycoon",
     date: "2026-10-12",
     icon: "🧁",

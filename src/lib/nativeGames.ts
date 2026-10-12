@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'whackAMole' | 'constructionSite' | 'dungeonRooms' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dinerDash' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'whackAMole' | 'constructionSite' | 'dungeonRooms' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -65,6 +65,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'crossyHopper', title: "Crossy Road Hopper", route: '/student/crossy', cover: '/games/covers/crossy-hopper.svg', blurb: "Answer to earn hops, then cross the busy roads when the way is clear.", versus: false, cabinet: { marquee: '#2f6b12', panel: '#8fd16a', trim: '#ffd23f', icon: '🐔' } },
   // Idle Tycoon (Build Queue 46, her genres list: the farm or bakery shop; answers boost a running business).
   { id: 'idleTycoon', title: "Cupcake Tycoon", route: '/student/cupcake-tycoon', cover: '/games/covers/idle-tycoon.svg', blurb: "Run a cupcake shop that bakes by itself. Answer for Golden Whisk boosts and buy upgrades.", versus: false, cabinet: { marquee: '#d63a6a', panel: '#f0a8c4', trim: '#ffd23f', icon: '🧁' } },
+  // Time-Management Diner (Build Queue 47, her genres list: restaurant; answers serve customers in order).
+  { id: 'dinerDash', title: "Diner Dash", route: '/student/diner', cover: '/games/covers/diner-dash.svg', blurb: "Cook orders and serve customers in ticket order. First come, first served!", versus: false, cabinet: { marquee: '#c0392b', panel: '#e8735f', trim: '#fff3c4', icon: '🍔' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

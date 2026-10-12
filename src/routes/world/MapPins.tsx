@@ -23,7 +23,7 @@ export const ROLE_ICON: Partial<Record<WorldObjectRole, string>> = {
   bank: '🏦', store: '🛍️', 'post-office': '📮', 'welcome-center': '🛂', 'computer-desk': '💻', home: '🏠', 'pet-shelter': '🐾',
   'island-dock': '⛵', cinema: '🎬', arcade: '🕹️', 'farmers-market': '🧺', 'gas-pump': '⛽', bakery: '🧁', castle: '🏰', chess: '♟️',
   seamstress: '👗', 'space-bowling': '🎳', 'game-dashboard': '🎮', 'grammar-machine': '⚙️', library: '📚', 'shape-dash': '🟦',
-  'bubble-shooter': '🫧', 'pet-gym': '🏋️', 'pet-show': '🏅', 'idle-tycoon': '🧁', 'crossy-hopper': '🐔', 'plinko-drop': '🎯', 'word-search': '🔤', 'memory-match': '🃏', 'whack-a-mole': '🔨', 'construction-site': '🏗️', 'dungeon-rooms': '🏰', 'library-quest': '📚', 'gem-mine': '💎', 'train-dispatch': '🚉', 'mine-cart-run': '🛤️', 'kitchen-cook-off': '🍳', 'lighthouse-signal': '🗼', 'post-office-sort': '📮', 'farm-grow': '🌱', 'fishing-dock': '🎣', 'rescue-shelter': '🐶', closed: '🚧', custom: '📍',
+  'bubble-shooter': '🫧', 'pet-gym': '🏋️', 'pet-show': '🏅', 'diner-dash': '🍔', 'idle-tycoon': '🧁', 'crossy-hopper': '🐔', 'plinko-drop': '🎯', 'word-search': '🔤', 'memory-match': '🃏', 'whack-a-mole': '🔨', 'construction-site': '🏗️', 'dungeon-rooms': '🏰', 'library-quest': '📚', 'gem-mine': '💎', 'train-dispatch': '🚉', 'mine-cart-run': '🛤️', 'kitchen-cook-off': '🍳', 'lighthouse-signal': '🗼', 'post-office-sort': '📮', 'farm-grow': '🌱', 'fishing-dock': '🎣', 'rescue-shelter': '🐶', closed: '🚧', custom: '📍',
 };
 
 export interface MapPlace { id: string; name: string; icon: string; x: number; z: number }
