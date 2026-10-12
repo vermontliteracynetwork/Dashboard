@@ -117,8 +117,18 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
         {step === 'music' && (
           <div className="cop-boombox">
             <div className="cop-boombox-head">📻 Boom Box</div>
+            {/* Her rules (2026-10-12): music is audio only, never a video, and it comes from the
+                youtube-nocookie.com address (the same one the music player uses) instead of youtube.com,
+                so it still plays where youtube.com is blocked. The player is a hidden 1 pixel frame. */}
             {ytId ? (
-              <iframe title="Music" className="cop-yt" src={`https://www.youtube.com/embed/${ytId}?autoplay=1&playsinline=1`} allow="autoplay; encrypted-media" />
+              <>
+                <div className="cop-nowplaying" aria-live="polite">
+                  <span className="cop-eq" aria-hidden><i /><i /><i /><i /></span>
+                  <span>Now playing: <b>{musicTracks.find((t) => t.url === track)?.title ?? 'a song'}</b></span>
+                </div>
+                <iframe title="Music" src={`https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1&playsinline=1&controls=0`} allow="autoplay; encrypted-media"
+                  style={{ position: 'fixed', width: 1, height: 1, opacity: 0, pointerEvents: 'none', border: 'none', left: 0, bottom: 0 }} />
+              </>
             ) : <p>{musicTracks.length ? 'Tap a song to play it.' : 'No songs yet. Ask your teacher to add some!'}</p>}
             <div className="cop-tracks">
               {musicTracks.slice(0, 12).map((t) => (
