@@ -12,6 +12,10 @@ import { useGym, learnedTricks, trickDef, STAND_STAY } from '../../lib/petGym';
 import { usePoseSetup, usePetTricks } from '../../lib/usePetTricks';
 import { trickSeconds } from '../../lib/petPoses';
 import { useGameQuestions } from '../../games/mini/useAsk';
+import { useRoundSettings } from '../../lib/gameRounds';
+import RoundSettings from '../../components/RoundSettings';
+// Her rule (2026-10-08): kids choose the questions per round; an assignment locks it.
+const PER_OBSTACLE = { per: { min: 1, max: 5, def: 1 } };
 import { payForAnswers } from '../../lib/gameEarnings';
 import { playCheer } from '../../lib/petSounds';
 import { sayInPetVoice, petVoiceLine } from '../../lib/petSpeak';
@@ -199,16 +203,19 @@ export default function PetShowRing() {
   const [cheer, setCheer] = useState(0);
   const sessionsOf = (id: string) => (styleLooks.find((r) => r.ownerId === `pettricks:${id}`)?.look as { sessions?: Record<string, number> } | undefined)?.sessions ?? {};
   const ribbonsOf = (id: string) => (styleLooks.find((r) => r.ownerId === `petshow:${id}`)?.look as { ribbons?: number } | undefined)?.ribbons ?? 0;
-  const { next, right: countRight, notice } = useGameQuestions('petShow');
+  const { next, right: countRight, notice, assignment } = useGameQuestions('petShow');
+  const rs = useRoundSettings('petShow', PER_OBSTACLE, assignment?.task);
+  const [qLeft, setQLeft] = useState(1);
 
   const start = (p: StudentPet) => {
     setPet(p); setCourse(buildCourse(learnedTricks(sessionsOf(p.id)))); setAt(0); right.current = 0; setPhase('walk');
   };
-  const arrive = () => { if (phase === 'walk') { setQ(next()); setPhase('question'); } };
+  const arrive = () => { if (phase === 'walk') { setQ(next()); setQLeft(rs.perRound); setPhase('question'); } };
   const answered = () => {
     if (!pet) return;
     right.current += 1;
     if (q) countRight(q);
+    if (qLeft > 1) { setQLeft(qLeft - 1); setQ(next(q?.id)); return; }
     setQ(null);
     const st = course[at];
     const name = st.trick === 'Weave' ? null : st.trick;
@@ -241,6 +248,7 @@ export default function PetShowRing() {
           <button type="button" className="btn" onClick={back.go}>← {back.label}</button>
           <h1>🏅 Pet Show Ring</h1>
         </header>
+        <RoundSettings ranges={PER_OBSTACLE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions at each obstacle" />
         <p className="psr-intro">Pick a pet for the show! Your pet runs an obstacle course using the tricks it learned at Buff Doge's Gym. Answer a question at each obstacle and your pet clears it. Every finished course earns a rosette.</p>
         {pets.length === 0 ? (
           <div className="psr-empty">
@@ -294,7 +302,7 @@ export default function PetShowRing() {
       {announce && <div className="pet-announce" role="status" aria-live="polite">{announce}</div>}
       {phase === 'question' && q && (
         <QuestionScreen
-          key={`${at}-${q.id}`}
+          key={`${at}-${q.id}-${qLeft}`}
           whoLabel={`🏅 ${pet.customName} is at the ${STATION_LABEL[st.kind]} (${at + 1} of ${COURSE})`}
           prompt={q.prompt}
           choices={q.choices}
