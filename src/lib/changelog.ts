@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-lighthouse",
+    date: "2026-10-12",
+    icon: "🗼",
+    title: "New game: Lighthouse Signal",
+    body: "Be the lighthouse keeper! Answer a question to light the lamp, then tap a boat to guide it safely home through the fog. Keep watch all night and fill your Harbor Log. Watch out for a lost duck!",
+  },
+  {
     id: "2026-10-12-post-office",
     date: "2026-10-12",
     icon: "📮",

@@ -6755,3 +6755,38 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 @keyframes po-drive { 0%, 100% { transform: translateX(-20px); } 50% { transform: translateX(20px); } }
 @media (max-width: 560px) { .po-bins { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .po * { animation: none !important; } }
+
+/* Lighthouse Signal (native game, Build Queue 32) */
+.lh { position: fixed; inset: 0; overflow: hidden; color: #12203a; background: #0d1b3a; }
+.lh-sky { position: absolute; inset: 0 0 52% 0; background: linear-gradient(#0a1530, #23386b); }
+.lh-sky i { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #fff; animation: lh-twinkle 2.4s ease-in-out infinite; }
+.lh-moon { position: absolute; right: 10%; top: 16%; font-size: 52px; }
+.lh-sea { position: absolute; left: 0; right: 0; bottom: 0; top: 48%; background: linear-gradient(#1d3f73, #0c2347); }
+.lh-fog { position: absolute; left: 0; right: 0; top: 46%; bottom: 0; pointer-events: none; }
+.lh-fog i { position: absolute; left: 30%; width: 90%; height: 40%; border-radius: 50%; background: radial-gradient(rgba(200,215,240,0.35), transparent 70%); animation: lh-fog 14s ease-in-out infinite alternate; }
+.lh-fog i:nth-child(1) { top: 5%; } .lh-fog i:nth-child(2) { top: 40%; left: 10%; animation-delay: -7s; }
+.lh-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+.lh-beam { fill: rgba(255,236,150,0.42); }
+.lh-beam.sweep { transform-box: view-box; transform-origin: 15% 30%; animation: lh-sweep 3s ease-in-out infinite alternate; }
+.lh-beam.aimed { fill: rgba(255,236,150,0.6); animation: lh-flash 0.6s ease-out both; }
+.lh-tower { position: absolute; left: 15%; top: 30%; bottom: 8%; width: 0; z-index: 2; }
+.lh-lamp { position: absolute; left: -16px; top: -16px; width: 32px; height: 32px; border-radius: 50%; background: #5c6788; border: 4px solid #2a2f45; transition: background 0.4s, box-shadow 0.4s; }
+.lh.lit .lh-lamp { background: #ffec96; box-shadow: 0 0 30px 12px rgba(255,236,150,0.8); }
+.lh-body { position: absolute; left: -26px; top: 18px; bottom: 30px; width: 52px; background: repeating-linear-gradient(180deg, #f4f1ea 0 34px, #d64545 34px 68px); clip-path: polygon(22% 0, 78% 0, 100% 100%, 0 100%); }
+.lh-rock { position: absolute; left: -60px; bottom: 0; width: 120px; height: 40px; border-radius: 50% 50% 10px 10px; background: #3a3f52; }
+.lh-harbor { position: absolute; left: 26%; top: 88%; transform: translate(-50%, -50%); font-size: 32px; z-index: 2; }
+.lh-boat { position: absolute; transform: translate(-50%, -50%); width: 84px; height: 84px; border-radius: 50%; border: 0; background: transparent; font-size: 54px; cursor: pointer; z-index: 3; touch-action: manipulation; transition: left 2s ease-in-out, top 2s ease-in-out, opacity 0.4s; animation: lh-bob 2.2s ease-in-out infinite; filter: brightness(0.55) saturate(0.6); }
+.lh-boat span { display: block; line-height: 84px; }
+.lh-boat:disabled { cursor: default; }
+.lh-boat.pick { filter: none; box-shadow: 0 0 0 4px rgba(255,236,150,0.7); background: rgba(255,236,150,0.12); }
+.lh-boat.safe { filter: drop-shadow(0 0 12px #ffec96); opacity: 0.9; }
+.lh-boat:focus-visible { outline: 4px solid #ffd23f; outline-offset: 2px; }
+.lh-head h1 { color: #ffec96; text-shadow: 0 2px 0 #0a1530; }
+.lh .fd-panel { z-index: 4; }
+.lh-page { background: #eef3ff; border-color: #5b7fd0; }
+@keyframes lh-twinkle { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes lh-fog { from { transform: translateX(-10%); } to { transform: translateX(10%); } }
+@keyframes lh-sweep { from { transform: rotate(-12deg); } to { transform: rotate(14deg); } }
+@keyframes lh-flash { from { opacity: 0; } to { opacity: 1; } }
+@keyframes lh-bob { 0%, 100% { margin-top: 0; } 50% { margin-top: -6px; } }
+@media (prefers-reduced-motion: reduce) { .lh * { animation: none !important; transition: none !important; } }
