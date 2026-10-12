@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-cupcake-tycoon",
+    date: "2026-10-12",
+    icon: "🧁",
+    title: "New game: Cupcake Tycoon",
+    body: "Run your own cupcake shop! The oven bakes and customers buy cupcakes all by themselves. Answer questions for a Golden Whisk boost that makes everything super fast, and spend shop coins on upgrades to earn five stars.",
+  },
+  {
     id: "2026-10-12-crossy",
     date: "2026-10-12",
     icon: "🐔",

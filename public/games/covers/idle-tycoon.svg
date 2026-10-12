@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <rect width="640" height="360" fill="#ffd0e2"/>
+  <rect x="110" y="110" width="420" height="230" rx="16" fill="#fffaf3" stroke="#d63a6a" stroke-width="6"/>
+  <g fill="#d63a6a"><rect x="110" y="110" width="52" height="40"/><rect x="214" y="110" width="52" height="40"/><rect x="318" y="110" width="52" height="40"/><rect x="422" y="110" width="52" height="40"/></g>
+  <rect x="140" y="190" width="100" height="110" rx="12" fill="#f3e1d0"/><text x="190" y="262" text-anchor="middle" font-size="48">🔥</text>
+  <rect x="260" y="190" width="150" height="110" rx="12" fill="#e8f6ff" stroke="#9ccbe8" stroke-width="4"/>
+  <g font-size="34"><text x="270" y="240">🧁</text><text x="315" y="240">🧁</text><text x="360" y="240">🧁</text><text x="270" y="288">🧁</text><text x="315" y="288">🧁</text></g>
+  <text x="440" y="270" font-size="44">👧</text><text x="480" y="270" font-size="44">🐶</text><text x="560" y="100" font-size="50">🪙</text>
+  <text x="320" y="82" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="58" font-weight="900" fill="#fff" stroke="#d63a6a" stroke-width="10" paint-order="stroke">CUPCAKE TYCOON</text>
+</svg>
