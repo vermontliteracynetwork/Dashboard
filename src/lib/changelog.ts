@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-dungeon",
+    date: "2026-10-12",
+    icon: "🏰",
+    title: "New game: Dungeon Rooms",
+    body: "Explore the dungeon under the castle! Answer questions to unlock the doors, find the Gold Key and the Torch in hidden chests, and sneak past the sleeping dragon to grab the treasure for your Relic Shelf.",
+  },
+  {
     id: "2026-10-12-library-quest",
     date: "2026-10-12",
     icon: "📚",

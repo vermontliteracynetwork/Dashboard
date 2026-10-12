@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dungeonRooms' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -49,6 +49,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'gemMine', title: "Gem Mine", route: '/student/gem-mine', cover: '/games/covers/gem-mine.svg', blurb: "Answer for pickaxe swings, dig the cave wall, and fill your Gem Pages with 18 gems.", versus: false, cabinet: { marquee: '#3a2a1e', panel: '#8a4fd0', trim: '#ffd27a', icon: '💎' } },
   // Library Quest (Build Queue 37, her list: library; answers reveal hidden books on shelves, completing a shelf fills the Finds Book).
   { id: 'libraryQuest', title: "Library Quest", route: '/student/library-quest', cover: '/games/covers/library-quest.svg', blurb: "Answer to charge your flashlight, find the hidden books, and fill your Finds Book shelf by shelf.", versus: false, cabinet: { marquee: '#7a3e1d', panel: '#b06a3a', trim: '#ffd23f', icon: '📚' } },
+  // Dungeon Rooms (Build Queue 39, her list: castle cellar or ruins; each door is a puzzle locked by a question set, with item-gated progress).
+  { id: 'dungeonRooms', title: "Dungeon Rooms", route: '/student/dungeon', cover: '/games/covers/dungeon-rooms.svg', blurb: "Answer to unlock each door, find the key and the torch, and sneak past the sleeping dragon to the treasure.", versus: false, cabinet: { marquee: '#3a3146', panel: '#6d6378', trim: '#d6a21e', icon: '🏰' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

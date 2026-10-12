@@ -6923,3 +6923,32 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .lq-secrets small { font-size: 0.8rem; font-weight: 700; }
 @keyframes lq-pull { from { transform: translateY(10px) scaleX(0.6); } to { transform: translateY(0) scaleX(1); } }
 @media (prefers-reduced-motion: reduce) { .lq * { animation: none !important; } }
+
+/* Dungeon Rooms (native game, Build Queue 39) */
+.dg { position: fixed; inset: 0; overflow: hidden auto; color: #241c2e; background: radial-gradient(ellipse at 50% 20%, #4a4058, #1b1622 75%); }
+.dg-head h1 { color: #e9d8ff; text-shadow: 0 2px 0 #000; }
+.dg-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 96px 16px max(24px, env(safe-area-inset-bottom)); }
+.dg-msg { text-align: center; max-width: 640px; }
+.dg-bag { display: flex; gap: 8px; align-items: center; background: #fff; border-radius: 999px; padding: 4px 14px; font-size: 28px; }
+.dg-bag span:not(.got):not(:first-child) { opacity: 0.4; }
+.dg-bag span.got { animation: fg-pop 0.5s cubic-bezier(.2,1.6,.4,1) both; }
+.dg-map { position: relative; width: min(600px, 100%, calc(100vh - 290px)); min-width: 300px; aspect-ratio: 1; }
+.dg-room { position: absolute; width: 33.333%; height: 33.333%; padding: 7px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; }
+.dg-room::before { content: ''; position: absolute; inset: 7px; border-radius: 14px; background: #2a2333; border: 4px solid #3a3146; }
+.dg-room.near::before { background: #3a3146; border-color: #5a4d6c; }
+.dg-room.seen::before { background: repeating-linear-gradient(0deg, #6d6378 0 22px, #625a6c 22px 24px), #6d6378; border-color: #8a7f96; }
+.dg-room.gold::before { border-color: #d6a21e; box-shadow: 0 0 18px rgba(214,162,30,0.6); }
+.dg-room.here::before { border-color: #ffd23f; }
+.dg-deco, .dg-fog, .dg-chest, .dg-hero { position: relative; }
+.dg-deco { font-size: 36px; opacity: 0.9; }
+.dg-fog { font-size: 34px; font-weight: 900; color: rgba(255,255,255,0.25); }
+.dg-chest { position: absolute; right: 18px; bottom: 16px; font-size: 30px; animation: kc-glow 1.2s ease-in-out infinite; border-radius: 8px; }
+.dg-hero { position: absolute; left: 16px; bottom: 12px; font-size: 44px; animation: fg-pop 0.4s cubic-bezier(.2,1.6,.4,1) both; }
+.dg-door { position: absolute; transform: translate(-50%, -50%); width: 58px; height: 58px; border-radius: 50%; border: 4px solid #3a3146; background: #8a5a2b; font-size: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2; padding: 0; touch-action: manipulation; }
+.dg-door.item { background: #5b3f8a; }
+.dg-door.open { background: #c9a46a; opacity: 0.85; }
+.dg-door.next { border-color: #ffd23f; box-shadow: 0 0 0 4px rgba(255,210,63,0.35); }
+.dg-door:not(.next) { opacity: 0.6; }
+.dg-door:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+.dg-page { background: #f4eeff; border-color: #8a4fd0; }
+@media (prefers-reduced-motion: reduce) { .dg * { animation: none !important; } }
