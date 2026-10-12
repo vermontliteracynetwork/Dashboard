@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-memory",
+    date: "2026-10-12",
+    icon: "🃏",
+    title: "New game: Memory Match",
+    body: "Flip the cards to find the pairs! Every blue question card has a green answer card. Match them all in as few flips as you can. Tap Read the cards to hear them.",
+  },
+  {
     id: "2026-10-12-whack",
     date: "2026-10-12",
     icon: "🔨",

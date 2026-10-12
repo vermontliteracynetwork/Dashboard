@@ -7013,3 +7013,28 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 @keyframes wm-bonk { 0% { transform: translateY(0) scaleY(1); } 25% { transform: translateY(10%) scaleY(0.8); } 100% { transform: translateY(120%) scaleY(0.8); } }
 @media (max-width: 560px) { .wm-garden { grid-template-columns: repeat(2, minmax(0, 1fr)); } .wm-hole { height: 170px; } }
 @media (prefers-reduced-motion: reduce) { .wm-mole, .wm-mole.duck, .wm-mole.bonk { animation: none !important; } .wm-mole.duck, .wm-mole.bonk { visibility: hidden; } }
+
+/* Memory Match (native game, Build Queue 42) */
+.mm { position: fixed; inset: 0; overflow: hidden auto; color: #2a1f3a; background: radial-gradient(ellipse at 50% 0%, #fbeccf, #e6c99a); }
+.mm-head h1 { color: #7a3e8a; text-shadow: 0 2px 0 #fff; }
+.mm-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 90px 16px max(24px, env(safe-area-inset-bottom)); }
+.mm-top { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+.mm-msg { text-align: center; max-width: 560px; }
+.mm-listen { min-height: 44px; }
+.mm-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; width: min(820px, 100%); }
+.mm-card { min-height: 130px; aspect-ratio: 4 / 3; border: 0; padding: 0; background: none; cursor: pointer; perspective: 800px; touch-action: manipulation; }
+.mm-inner { position: relative; display: block; width: 100%; height: 100%; transition: transform 0.45s; transform-style: preserve-3d; }
+.mm-card.open .mm-inner { transform: rotateY(180deg); }
+.mm-back, .mm-front { position: absolute; inset: 0; border-radius: 14px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.mm-back { background: repeating-linear-gradient(45deg, #7a3e8a 0 10px, #8f52a0 10px 20px); border: 5px solid #f6d27a; color: #f6d27a; font-size: 40px; }
+.mm-front { transform: rotateY(180deg); flex-direction: column; gap: 4px; padding: 8px; background: #fff; border: 5px solid; overflow: hidden; }
+.mm-card.q .mm-front { border-color: #5b8def; background: #eef4ff; }
+.mm-card.a .mm-front { border-color: #2fa36b; background: #eefaf3; }
+.mm-front small { font-weight: 800; font-size: 0.8rem; color: #555; }
+.mm-front b { font-size: 1.05rem; line-height: 1.2; overflow-wrap: anywhere; text-align: center; }
+.mm-front img { max-height: 50px; max-width: 80%; object-fit: contain; }
+.mm-card.matched .mm-front { box-shadow: 0 0 0 4px #ffd23f; }
+.mm-card.matched { cursor: default; }
+.mm-card:focus-visible { outline: 4px solid #ffd23f; outline-offset: 2px; border-radius: 14px; }
+@media (max-width: 600px) { .mm-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (prefers-reduced-motion: reduce) { .mm-inner { transition: none; } }
