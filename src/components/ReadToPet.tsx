@@ -36,8 +36,8 @@ export default function ReadToPet({ passage }: { passage: string }) {
   return (
     <div className="rtp">
       {state === 'rec'
-        ? <button type="button" className="rtp-btn rec" onClick={stop}>⏹ Stop reading</button>
-        : <button type="button" className="rtp-btn" onClick={start} disabled={state === 'scoring'}>{state === 'scoring' ? 'Listening back...' : `🎙️ Read it to ${pet.customName} (Speak training)`}</button>}
+        ? <button type="button" className="rtp-btn rec" onClick={stop}>Stop reading</button>
+        : <button type="button" className="rtp-btn" onClick={start} disabled={state === 'scoring'}>{state === 'scoring' ? 'Listening back...' : `Read it to ${pet.customName} (Speak training)`}</button>}
       {state === 'rec' && <span className="rtp-live" aria-live="polite">🔴 Recording. Read the passage out loud.</span>}
       {result && <div className="rtp-result" role="status"><span className="rtp-stars" aria-label={`${result.stars} of 3 stars`}>{'⭐'.repeat(result.stars)}{'☆'.repeat(3 - result.stars)}</span> {result.text}</div>}
       {err && <div className="rtp-result">{err}</div>}

@@ -538,7 +538,7 @@ function TextBoxWidget({ item, onPointerDown, onPointerMove, onPointerUp, onText
           <button type="button" className="btn btn-sm" style={{ minWidth: 34, padding: '2px 8px' }} onClick={() => onFontSizeChange(2)} aria-label="Bigger text">A+</button>
           {stt.supported && (
             <button type="button" className={`btn btn-sm ${stt.listening ? 'btn-primary' : ''}`} onClick={stt.toggle}>
-              {stt.listening ? '🎙️ Listening…' : '🎤 Speak'}
+              {stt.listening ? 'Listening…' : 'Speak'}
             </button>
           )}
           <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>Done</button>
@@ -613,7 +613,7 @@ function SyllableTapperWidget({ item, onPointerDown, onPointerMove, onPointerUp,
         ))}
       </div>
       <div className="row-wrap" style={{ gap: 4 }}>
-        <button type="button" className="btn btn-sm" onClick={() => onTapCountChange(Math.min(8, taps + 1))}>👏 Tap</button>
+        <button type="button" className="btn btn-sm" onClick={() => onTapCountChange(Math.min(8, taps + 1))}>Tap</button>
         <button type="button" className="btn btn-sm" onClick={() => onTapCountChange(0)} disabled={taps === 0}>↺ Reset</button>
       </div>
     </div>
@@ -673,7 +673,7 @@ function DictationWidget({ item, wordOptions, onPointerDown, onPointerMove, onPo
         style={{ width: '100%', boxSizing: 'border-box', border: '2px solid var(--ink)', borderRadius: 6, padding: '6px 8px', fontSize: '0.85rem', marginBottom: 6 }}
       />
       <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
-        <button type="button" className="btn btn-sm" onClick={() => setRevealed((v) => !v)} disabled={!prompt}>{revealed ? '🙈 Hide' : '👁️ Reveal'}</button>
+        <button type="button" className="btn btn-sm" onClick={() => setRevealed((v) => !v)} disabled={!prompt}>{revealed ? 'Hide' : 'Reveal'}</button>
         {revealed && prompt && <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{prompt}</span>}
       </div>
     </div>
@@ -1660,25 +1660,25 @@ export default function GrammarSandbox() {
         {topBarOpen ? (
           <>
             <span className="lm-sidebar-title" style={{ marginRight: 8 }}>🧩 Literacy Manipulatives</span>
-            <button className="btn btn-sm" onClick={() => setShowHelp(true)} aria-label="Help">🧘 Help</button>
+            <button className="btn btn-sm" onClick={() => setShowHelp(true)} aria-label="Help">Help</button>
             <button className="btn btn-sm" onClick={() => setConfirmExit(true)}>✕ Exit</button>
             <button className="btn btn-sm" onClick={() => setSidebarOpen((v) => !v)} aria-label={sidebarOpen ? 'Hide materials' : 'Show materials'}>{sidebarOpen ? '⟨⟨' : '⟩⟩'}</button>
             <span className="lm-toolbar-divider" />
-            <button className={`btn btn-sm ${drawOn ? 'btn-primary' : ''}`} onClick={() => setDrawOn((v) => !v)}>🖍️ Draw</button>
+            <button className={`btn btn-sm ${drawOn ? 'btn-primary' : ''}`} onClick={() => setDrawOn((v) => !v)}>Draw</button>
             <button className="btn btn-sm" onClick={addTextBoxAtDefault}>⌨️ Text</button>
             <button className="btn btn-sm" onClick={undo} disabled={!canUndo}>↩️ Undo</button>
             <button className="btn btn-sm" onClick={redo} disabled={!canRedo}>↪️ Redo</button>
-            <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>🗑️ Clear</button>
+            <button className="btn btn-sm" onClick={clearBoard} disabled={placed.length === 0}>Clear</button>
             <span className="lm-toolbar-divider" />
             <button className="btn btn-sm" onClick={zoomOut} disabled={zoom <= 0.5} aria-label="Zoom out">➖</button>
             <button className="btn btn-sm" onClick={zoomReset} aria-label="Reset zoom">{Math.round(zoom * 100)}%</button>
             <button className="btn btn-sm" onClick={zoomIn} disabled={zoom >= 2} aria-label="Zoom in">➕</button>
             <span className="lm-toolbar-divider" />
-            <button className="btn btn-sm" onClick={() => setShowSaveModal(true)}>💾 Save</button>
-            <button className="btn btn-sm" onClick={() => setShowLoadModal(true)}>📂 My Boards</button>
+            <button className="btn btn-sm" onClick={() => setShowSaveModal(true)}>Save</button>
+            <button className="btn btn-sm" onClick={() => setShowLoadModal(true)}>My Boards</button>
             <span className="lm-toolbar-divider" />
-            <button className="btn btn-sm" onClick={() => window.print()}>🖨️ Print</button>
-            <button className={`btn btn-sm ${projectorMode ? 'btn-primary' : ''}`} onClick={toggleProjectorMode}>🖥️ Projector Mode</button>
+            <button className="btn btn-sm" onClick={() => window.print()}>Print</button>
+            <button className={`btn btn-sm ${projectorMode ? 'btn-primary' : ''}`} onClick={toggleProjectorMode}>Projector Mode</button>
             <span style={{ flex: 1 }} />
             <button className="btn btn-sm" onClick={() => setTopBarOpen(false)} aria-label="Hide toolbar">▲ Hide bar</button>
           </>
@@ -1688,8 +1688,8 @@ export default function GrammarSandbox() {
       </div>
       {topBarOpen && drawOn && (
         <div className="lm-toolbar" style={{ flex: '0 0 auto', paddingTop: 0 }}>
-          <button className={`btn btn-sm ${drawMode === 'pen' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('pen')}>✏️ Pen</button>
-          <button className={`btn btn-sm ${drawMode === 'highlight' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('highlight')}>🖊️ Highlight</button>
+          <button className={`btn btn-sm ${drawMode === 'pen' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('pen')}>Pen</button>
+          <button className={`btn btn-sm ${drawMode === 'highlight' ? 'btn-primary' : ''}`} onClick={() => setDrawModeAndColor('highlight')}>Highlight</button>
           <span className="lm-toolbar-divider" />
           {activePalette.map((hex, i) => (
             <button
@@ -1700,7 +1700,7 @@ export default function GrammarSandbox() {
             />
           ))}
           <span className="lm-toolbar-divider" />
-          <button className="btn btn-sm" onClick={clearDrawing}>🗑️ Clear marks</button>
+          <button className="btn btn-sm" onClick={clearDrawing}>Clear marks</button>
         </div>
       )}
 
@@ -1887,7 +1887,7 @@ export default function GrammarSandbox() {
             </div>
             <div className="stack" style={{ gap: 2, marginTop: 8 }}>
               {SENTENCE_FORMULAS.filter((f) => f.category === sfCategoryId).map((f) => (
-                <button key={f.id} className="btn btn-sm" style={{ textAlign: 'left', fontSize: '0.78rem', minHeight: 32 }} onClick={() => addSentenceFrame(f.id)}>➕ {f.name}</button>
+                <button key={f.id} className="btn btn-sm" style={{ textAlign: 'left', fontSize: '0.78rem', minHeight: 32 }} onClick={() => addSentenceFrame(f.id)}>{f.name}</button>
               ))}
             </div>
           </Category>
@@ -2466,7 +2466,7 @@ export default function GrammarSandbox() {
                         {ownedVoices.map((v) => (
                           <button key={v.id} className="btn btn-sm" onClick={() => tts.speakSynced(`sf-${item.instanceId}`, sentenceText, student.ttsSettings, v.id)}>{v.name}</button>
                         ))}
-                        <button className="btn btn-sm" onClick={() => pasteSentenceToTextBox(displaySentenceText)} title="Add this sentence to your paragraph text box">📋 Add to paragraph</button>
+                        <button className="btn btn-sm" onClick={() => pasteSentenceToTextBox(displaySentenceText)} title="Add this sentence to your paragraph text box">Add to paragraph</button>
                       </div>
                     </div>
                   )}
@@ -2620,7 +2620,7 @@ export default function GrammarSandbox() {
                     {assembled && (
                       <SyncedSpeakButton id={speakId} text={assembled} tts={tts} settings={student.ttsSettings} voiceSkinId={student.equippedVoiceId} style={{ padding: '2px 8px', minHeight: 26 }} />
                     )}
-                    <button type="button" className="btn btn-sm" onClick={() => pasteSentenceToTextBox(assembled)} disabled={!assembled} title="Add this to your paragraph text box">📋 Add to paragraph</button>
+                    <button type="button" className="btn btn-sm" onClick={() => pasteSentenceToTextBox(assembled)} disabled={!assembled} title="Add this to your paragraph text box">Add to paragraph</button>
                   </div>
                 </div>
               );

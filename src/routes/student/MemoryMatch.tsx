@@ -121,7 +121,7 @@ export default function MemoryMatch() {
                 <span className="mm-inner">
                   <span className="mm-back" aria-hidden>✦</span>
                   <span className="mm-front">
-                    <small>{c.kind === 'q' ? '❓ Question' : '✅ Answer'}</small>
+                    <small>{c.kind === 'q' ? 'Question' : 'Answer'}</small>
                     {c.img && <img src={c.img} alt="" />}
                     <b>{c.text}</b>
                   </span>
@@ -137,7 +137,7 @@ export default function MemoryMatch() {
             <div className="fd-fish" aria-hidden>🏆</div>
             <h2>You matched them all!</h2>
             <p>All {pairs} questions found their answers in {flips} flips. {saved.best && saved.best <= flips ? `Your best is ${saved.best} flips.` : 'That is your best board yet!'}</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={again}>🃏 New cards</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={again}>New cards</button>
           </div>
         </div>
       )}
@@ -147,7 +147,7 @@ export default function MemoryMatch() {
             <h2 style={{ marginTop: 0 }}>Game settings</h2>
             <RoundSettings ranges={PAIR_RANGE} rounds={0} perRound={rs.perRound} onRounds={() => {}} onPerRound={rs.setPerRound} locked={rs.locked} perLabel="Questions on each board" />
             <p>The new number starts with your next board.</p>
-            <div className="pf-detail-actions"><button type="button" className="btn btn-lg" onClick={() => setGear(false)}>Done</button><button type="button" className="btn btn-primary btn-lg" onClick={() => { setGear(false); again(); }}>🃏 Start a new board</button></div>
+            <div className="pf-detail-actions"><button type="button" className="btn btn-lg" onClick={() => setGear(false)}>Done</button><button type="button" className="btn btn-primary btn-lg" onClick={() => { setGear(false); again(); }}>Start a new board</button></div>
           </div>
         </div>
       )}

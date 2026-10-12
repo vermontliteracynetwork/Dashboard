@@ -105,13 +105,13 @@ export default function LighthouseSignal() {
         <SfxToggle />
         {settings}
         <MyBest game="lighthouse" unit="boats guided" />
-        <button type="button" className="btn" onClick={() => setLog(true)}>📘 Harbor Log ({Object.keys(seen).length} / {BOATS.length})</button>
+        <button type="button" className="btn" onClick={() => setLog(true)}>Harbor Log ({Object.keys(seen).length} / {BOATS.length})</button>
       </header>
       <div className="fd-panel">
         <p className="fd-msg" aria-live="polite">
           {!lit ? `Boats are waiting in the fog. Guided home: ${guided % ROUND} of ${ROUND} this night.` : aim === null ? '💡 The lamp is lit! Tap a boat to guide it home.' : 'Follow the light! Sailing safely into the harbor...'}
         </p>
-        {!lit && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={light}>💡 Light the lamp</button>}
+        {!lit && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={light}>Light the lamp</button>}
       </div>
       {news && (
         <div className="pf-overlay">
@@ -120,7 +120,7 @@ export default function LighthouseSignal() {
             <div className="fd-fish" aria-hidden>{news.kind.icon}</div>
             <h2>The {news.kind.name} is safe!</h2>
             <p>{news.kind.fact}</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => setNews(null)}>🗼 Back to the lighthouse</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => setNews(null)}>Back to the lighthouse</button>
           </div>
         </div>
       )}
@@ -130,7 +130,7 @@ export default function LighthouseSignal() {
             <div className="fd-fish" aria-hidden>🌅</div>
             <h2>Good morning, lighthouse keeper!</h2>
             <p>You guided {ROUND} boats home safely through the night.</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => setDawn(false)}>🌙 Keep watch another night</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => setDawn(false)}>Keep watch another night</button>
           </div>
         </div>
       )}

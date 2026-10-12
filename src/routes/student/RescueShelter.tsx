@@ -259,8 +259,8 @@ export default function RescueShelter() {
                 if (!id) return;
                 mergeStyleRow(`rescue:${student.id}`, { lastAdopt: new Date().toISOString() });
                 setCertPetId(id); setPhase('cert');
-              }}>🏠 Adopt {stray.name} (free rescue)</button>}
-              <button type="button" className="btn btn-lg" onClick={() => { setSay(`A loving family adopted ${stray.name}, thanks to you!`); setStray(newStray()); setTrust(0); setPhase('intro'); }}>💌 Find {stray.name} a loving family</button>
+              }}>Adopt {stray.name} (free rescue)</button>}
+              <button type="button" className="btn btn-lg" onClick={() => { setSay(`A loving family adopted ${stray.name}, thanks to you!`); setStray(newStray()); setTrust(0); setPhase('intro'); }}>Find {stray.name} a loving family</button>
             </div>
             {!canAdopt && <p className="pf-detail-stay">{mine >= PET_CAP ? 'Your home is full, so another family will adopt this pet.' : 'You can adopt one rescue a week. This time, another family will adopt this pet.'}</p>}
           </div>
@@ -271,8 +271,8 @@ export default function RescueShelter() {
           <Celebration />
           <div className="pf-panel">
             <AdoptionCertificate cert={{ petId: certPetId, studentName: student.name, petName: stray.name, breed: def.name, sex: stray.sex, date: new Date().toISOString(), via: 'stray' }} defId={stray.defId}>
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => navigate('/world/home-room')}>🏠 Take {stray.name} home</button>
-              <button type="button" className="btn btn-lg" onClick={() => { setStray(newStray()); setTrust(0); setPhase('intro'); }}>🐶 Help another stray</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => navigate('/world/home-room')}>Take {stray.name} home</button>
+              <button type="button" className="btn btn-lg" onClick={() => { setStray(newStray()); setTrust(0); setPhase('intro'); }}>Help another stray</button>
             </AdoptionCertificate>
           </div>
         </div>

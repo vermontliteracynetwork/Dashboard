@@ -511,7 +511,7 @@ export default function BubbleShooter() {
             {!activeGameplayTask && usableSets.length > 0 && <div className="bs-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>}
             <div className="bs-row">
               <button type="button" className={`bs-chip${sound ? ' on' : ''}`} onClick={() => setSound((v) => !v)} aria-pressed={sound}>{sound ? '🔊 Sounds on' : '🔇 Sounds off'}</button>
-              <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? '🎵 Music on' : '🎵 Music off'}</button>
+              <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? 'Music on' : 'Music off'}</button>
             </div>
             <button type="button" className="bs-play" onClick={startGame}>▶ Play</button>
             {bestGames.length > 0 && (
@@ -576,7 +576,7 @@ export default function BubbleShooter() {
             <h2>Settings</h2>
             <div className="bs-row">
               <button type="button" className={`bs-chip${sound ? ' on' : ''}`} onClick={() => setSound((v) => !v)} aria-pressed={sound}>{sound ? '🔊 Sounds on' : '🔇 Sounds off'}</button>
-              <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? '🎵 Music on' : '🎵 Music off'}</button>
+              <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? 'Music on' : 'Music off'}</button>
             </div>
             <p className="bs-note">Power-ups: one at the start of each turn. Pop ⭐ bubbles and answer questions to earn more.</p>
             <button type="button" className="bs-play" onClick={() => setShowSettings(false)} autoFocus>Back to the game</button>
@@ -600,7 +600,7 @@ export default function BubbleShooter() {
           <div className="bs-modal">
             <h2>{timeUp ? `⏰ Round ${round} is over!` : `🎉 Round ${round} cleared!`}</h2>
             <p>⭐ {g.current.xp} XP. Time for your Plinko bonus drop!</p>
-            <button type="button" className="bs-play" onClick={() => setPhase('plinko')} autoFocus>🎯 Plinko bonus</button>
+            <button type="button" className="bs-play" onClick={() => setPhase('plinko')} autoFocus>Plinko bonus</button>
           </div>
         </div>
       )}
@@ -615,7 +615,7 @@ export default function BubbleShooter() {
             <p>Your total XP: ⭐ {lifetimeXp}</p>
             {sessionRight.current > 0 && <p>✅ {sessionRight.current} right answer{sessionRight.current === 1 ? '' : 's'}: {formatMoney(sessionRight.current * perRight)} for your bank!</p>}
             <div className="bs-row">
-              <button type="button" className="bs-play" onClick={startGame}>🔁 Play again</button>
+              <button type="button" className="bs-play" onClick={startGame}>Play again</button>
               <button type="button" className="bs-chip" onClick={() => back.go()}>⬅️ Back</button>
             </div>
           </div>

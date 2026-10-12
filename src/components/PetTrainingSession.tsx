@@ -149,7 +149,7 @@ export default function PetTrainingSession({ pet, def, onClose, onCue }: { pet: 
                 )}
                 {phase.step === 'doing' && <div className="pet-train-wait">Watch {name}...</div>}
                 {phase.step === 'treat' && (
-                  <button className="btn btn-primary pet-train-big pet-train-treat" onClick={giveTreat}>🦴 Give a treat</button>
+                  <button className="btn btn-primary pet-train-big pet-train-treat" onClick={giveTreat}>Give a treat</button>
                 )}
                 <button className="btn pet-train-small" onClick={() => setPhase(null)}>Stop for now</button>
               </div>
@@ -172,7 +172,7 @@ export default function PetTrainingSession({ pet, def, onClose, onCue }: { pet: 
                       >
                         <span className="pet-train-trick-icon">{open ? t.icon : '🔒'}</span>
                         <span>{t.label}</span>
-                        <small>{known ? '⭐ Do it!' : open ? 'Teach' : `At ${t.unlockAt} training`}</small>
+                        <small>{known ? 'Do it!' : open ? 'Teach' : `At ${t.unlockAt} training`}</small>
                       </button>
                     );
                   })}

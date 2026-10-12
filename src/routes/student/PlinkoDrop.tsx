@@ -103,7 +103,7 @@ export default function PlinkoDrop() {
         <h1>Plinko Drop</h1>
         <SfxToggle />
         <MyBest game="plinkoDrop" unit="tickets won" />
-        <button type="button" className="btn" onClick={() => setCounter(true)}>🎟️ {tickets} · Prize Counter</button>
+        <button type="button" className="btn" onClick={() => setCounter(true)}>{tickets} · Prize Counter</button>
       </header>
       <div className="pk-main">
         <div className="wm-sign pk-sign">
@@ -142,7 +142,7 @@ export default function PlinkoDrop() {
                   <span className="fd-page-icon">{p.icon}</span>
                   <strong>{p.name}</strong>
                   <small>{prizes[p.id] ? `You have ${prizes[p.id]}` : 'Not won yet'}</small>
-                  <button type="button" className="btn btn-primary" onClick={() => buy(p)} disabled={tickets < p.cost}>🎟️ {p.cost}</button>
+                  <button type="button" className="btn btn-primary" onClick={() => buy(p)} disabled={tickets < p.cost}>{p.cost}</button>
                 </div>
               ))}
             </div>

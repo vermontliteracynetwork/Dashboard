@@ -113,7 +113,7 @@ export default function GemMine() {
         <SfxToggle />
         {settings}
         <MyBest game="gemMine" unit="gems found" />
-        <button type="button" className="btn" onClick={() => setPages(true)}>📔 Gem Pages ({Object.keys(have).length} / {GEMS.length})</button>
+        <button type="button" className="btn" onClick={() => setPages(true)}>Gem Pages ({Object.keys(have).length} / {GEMS.length})</button>
       </header>
       <div className="gm-main">
         <p className="fd-msg gm-msg" aria-live="polite">
@@ -131,8 +131,8 @@ export default function GemMine() {
           })}
         </div>
         {left === 0
-          ? <button type="button" className="btn btn-primary btn-lg fd-big gm-go" onClick={fresh}>🪨 Dig a new wall</button>
-          : <button type="button" className="btn btn-primary btn-lg fd-big gm-go" onClick={getSwings}>⛏️ Get pickaxe swings{swings > 0 ? ` (you have ${swings})` : ''}</button>}
+          ? <button type="button" className="btn btn-primary btn-lg fd-big gm-go" onClick={fresh}>Dig a new wall</button>
+          : <button type="button" className="btn btn-primary btn-lg fd-big gm-go" onClick={getSwings}>Get pickaxe swings{swings > 0 ? ` (you have ${swings})` : ''}</button>}
       </div>
       {found && (
         <div className="pf-overlay">
@@ -142,7 +142,7 @@ export default function GemMine() {
             <h2>You dug up {/^[AEIOU]/.test(found.gem.name) ? 'an' : 'a'} {found.gem.name}!</h2>
             <span className="fd-tier" style={{ background: TIER_COLOR[found.gem.tier] }}>{TIER_NAME[found.gem.tier]}</span>
             <p>{found.gem.fact}</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => setFound(null)}>⛏️ Keep digging</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => setFound(null)}>Keep digging</button>
           </div>
         </div>
       )}

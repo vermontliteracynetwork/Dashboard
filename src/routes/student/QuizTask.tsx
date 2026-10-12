@@ -346,7 +346,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
 
           {answered && (
             <button className="btn btn-primary btn-lg pulse-cta" onClick={goNext} style={{ marginTop: 8 }}>
-              {remainingCount <= 1 ? '✅ Finish' : '➡️ Next Question'}
+              {remainingCount <= 1 ? 'Finish' : 'Next Question'}
             </button>
           )}
         </div>

@@ -138,8 +138,8 @@ export default function WordSearch() {
                 </li>
               ))}
             </ul>
-            {shown < board.placed.length && <button type="button" className="btn btn-primary btn-lg ws-go" onClick={reveal}>🔍 Reveal a word</button>}
-            {waiting.length > 0 && <button type="button" className="btn ws-hint" onClick={() => setHint(waiting[0].word)}>💡 Show the first letter of {waiting[0].word}</button>}
+            {shown < board.placed.length && <button type="button" className="btn btn-primary btn-lg ws-go" onClick={reveal}>Reveal a word</button>}
+            {waiting.length > 0 && <button type="button" className="btn ws-hint" onClick={() => setHint(waiting[0].word)}>Show the first letter of {waiting[0].word}</button>}
           </div>
         </div>
       </div>
@@ -150,7 +150,7 @@ export default function WordSearch() {
             <h2>You found every {theme.name} word!</h2>
             <p>{board.placed.map((p) => `${p.icon} ${p.word}`).join('  ')}</p>
             <p>Word puzzles finished: {THEMES.filter((t) => doneThemes[t.id]).length} of {THEMES.length} themes.</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={nextPuzzle}>🔤 Next puzzle</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={nextPuzzle}>Next puzzle</button>
           </div>
         </div>
       )}

@@ -59,7 +59,7 @@ export default function GymWatcher() {
             </p>
             <div className="bdg-modal-row">
               <button type="button" className="btn btn-primary btn-lg" disabled={student.coins < DROP_FEE_CENTS} onClick={() => {
-                recordTransaction(student.id, -DROP_FEE_CENTS, `🏋️ Buff Doge's drop-off fee (${feePet?.customName ?? 'pet'})`, '🏋️', 'purchase-pet');
+                recordTransaction(student.id, -DROP_FEE_CENTS, `Buff Doge's drop-off fee (${feePet?.customName ?? 'pet'})`, '🏋️', 'purchase-pet');
                 playCashRegister(); clearFee(student.id); setShowFee(false);
               }}>Pay {formatMoney(DROP_FEE_CENTS)}</button>
               <button type="button" className="btn btn-primary btn-lg" onClick={() => { setShowFee(false); navigate('/student/gym'); }}>Answer {DROP_FEE_QUESTIONS} questions</button>

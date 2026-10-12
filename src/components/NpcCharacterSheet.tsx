@@ -41,7 +41,7 @@ export default function NpcCharacterSheet({ profile, onClose, onPlay }: { profil
             <p className="npc-sheet-empty">No games yet. Tap {profile.name} and pick Play a game!</p>
           )}
           <div className="row-wrap" style={{ gap: 8 }}>
-            {onPlay && <button type="button" className="btn btn-lg" onClick={onPlay}>🎮 Play a game with {profile.name}</button>}
+            {onPlay && <button type="button" className="btn btn-lg" onClick={onPlay}>Play a game with {profile.name}</button>}
             <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>Done</button>
           </div>
         </div>

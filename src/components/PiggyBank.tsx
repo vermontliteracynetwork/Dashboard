@@ -126,8 +126,8 @@ export default function PiggyBank() {
         <SavingsGoal studentId={student.id} coins={student.coins} label={student.savingsGoalLabel} goalCents={student.savingsGoalCents} />
 
         <div className="row-wrap">
-          <button className={`btn btn-sm ${view === 'register' ? 'btn-primary' : ''}`} onClick={() => setView('register')}>📒 Register</button>
-          <button className={`btn btn-sm ${view === 'charts' ? 'btn-primary' : ''}`} onClick={() => setView('charts')}>📊 Charts</button>
+          <button className={`btn btn-sm ${view === 'register' ? 'btn-primary' : ''}`} onClick={() => setView('register')}>Register</button>
+          <button className={`btn btn-sm ${view === 'charts' ? 'btn-primary' : ''}`} onClick={() => setView('charts')}>Charts</button>
         </div>
 
         {view === 'charts' ? (

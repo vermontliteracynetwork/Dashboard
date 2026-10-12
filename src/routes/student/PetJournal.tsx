@@ -54,9 +54,9 @@ function PetJournalInner() {
             <span className="shop-balance-chip" title="Species discovered so far">
               {discoveredCount} / {PET_CATALOG.length} discovered
             </span>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/pet-finder')}>🐾 Pet Finder</button>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/pet-finder')}>Pet Finder</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">Town Square</button>
+            <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>Home</button>
           </div>
         </div>
 

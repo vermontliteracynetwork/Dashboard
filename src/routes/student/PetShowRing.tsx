@@ -253,7 +253,7 @@ export default function PetShowRing() {
         {pets.length === 0 ? (
           <div className="psr-empty">
             <p>You need a pet to enter the show.</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => navigate('/student/pet-finder')}>🐾 Open the Pet Finder</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => navigate('/student/pet-finder')}>Open the Pet Finder</button>
           </div>
         ) : (
           <div className="psr-pets">
@@ -264,8 +264,8 @@ export default function PetShowRing() {
                   <PetPortrait defId={p.petDefId} size={120} alt={p.customName} />
                   <strong>{p.customName}</strong>
                   <span>{AGE_LABEL[ageForTraining(p.trainingProgress)]} {petDefById(p.petDefId)?.name}</span>
-                  <span>🎪 {tricks.length ? `${tricks.length} trick${tricks.length === 1 ? '' : 's'}` : 'No tricks yet (Weave Poles and tables)'}</span>
-                  <span>🏅 {ribbonsOf(p.id)} rosette{ribbonsOf(p.id) === 1 ? '' : 's'}</span>
+                  <span>{tricks.length ? `${tricks.length} trick${tricks.length === 1 ? '' : 's'}` : 'No tricks yet (Weave Poles and tables)'}</span>
+                  <span>{ribbonsOf(p.id)} rosette{ribbonsOf(p.id) === 1 ? '' : 's'}</span>
                 </button>
               );
             })}
@@ -324,8 +324,8 @@ export default function PetShowRing() {
             <h2>{pet.customName} finished the course!</h2>
             <p>{COURSE} of {COURSE} obstacles cleared. {pet.customName} earned a rosette. That makes {ribbonsOf(pet.id)} in all!</p>
             <div className="pf-detail-actions">
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => start(pet)}>🔁 Run again</button>
-              <button type="button" className="btn btn-lg" onClick={() => { setPhase('pick'); setPet(null); }}>🐾 Pick another pet</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => start(pet)}>Run again</button>
+              <button type="button" className="btn btn-lg" onClick={() => { setPhase('pick'); setPet(null); }}>Pick another pet</button>
               <button type="button" className="btn btn-lg" onClick={back.go}>Leave the ring</button>
             </div>
           </div>

@@ -170,7 +170,7 @@ export default function BakeryTreatWheel({ studentId, onClose }: Props) {
                 <p style={{ fontWeight: 800, fontSize: '1.2rem', margin: 0 }}>🎉 You won a {wonArt.label}!</p>
                 <p style={{ fontSize: '0.85rem', opacity: 0.75, margin: '-4px 0 0' }}>Eat it yourself, or share it with a pet?</p>
                 <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
-                  <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={onClose}>🍽️ Eat it!</button>
+                  <button className="btn btn-lg btn-primary" style={{ minHeight: 44 }} onClick={onClose}>Eat it!</button>
                 </div>
                 {myPets.length > 0 && (
                   <div className="stack" style={{ gap: 6, width: '100%' }}>

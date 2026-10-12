@@ -582,8 +582,8 @@ function SoundWall({ student }: { student: Student }) {
   return (
     <div className="stack" style={{ gap: 16, overflowY: 'auto', flex: 1, minHeight: 0 }}>
       <div className="row-wrap" style={{ gap: 6 }}>
-        <button className={`btn btn-sm ${tab === 'consonants' ? 'btn-primary' : ''}`} onClick={() => setTab('consonants')}>🔤 Consonants</button>
-        <button className={`btn btn-sm ${tab === 'vowels' ? 'btn-primary' : ''}`} onClick={() => setTab('vowels')}>🔡 Vowels</button>
+        <button className={`btn btn-sm ${tab === 'consonants' ? 'btn-primary' : ''}`} onClick={() => setTab('consonants')}>Consonants</button>
+        <button className={`btn btn-sm ${tab === 'vowels' ? 'btn-primary' : ''}`} onClick={() => setTab('vowels')}>Vowels</button>
       </div>
       {categories.map((cat) => {
         const items = bank.filter((p) => p.category === cat);
@@ -703,7 +703,7 @@ function WordProcessor({ student }: { student: Student }) {
             same word processor, not a separate tool — a journal entry is
             just a Note with kind 'journal', pre-titled with today's date
             like a real diary's date header. */}
-        <button className="btn btn-sm" onClick={() => handleNew('journal')}>📔 New Journal Entry</button>
+        <button className="btn btn-sm" onClick={() => handleNew('journal')}>New Journal Entry</button>
         {myNotes.length === 0 && <p style={{ fontSize: '0.78rem', opacity: 0.65 }}>No notes yet!</p>}
         {myNotes.map((n) => (
           <div key={n.id} className="stack" style={{ gap: 2 }}>

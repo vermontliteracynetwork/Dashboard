@@ -270,7 +270,7 @@ export default function BuffDogeGym() {
     if (!pet) return null;
     if (t === STAND_STAY.name) return <button key={t} type="button" className="bdg-chip done" onClick={() => useTrick(pet, t)}>{STAND_STAY.icon} Stand/Stay</button>;
     const d = trickDef(t)!, n = sessions[t] ?? 0;
-    if (isLearned(sessions, t)) return <button key={t} type="button" className="bdg-chip done" onClick={() => useTrick(pet, t)} aria-label={`${t}, learned. Do this trick`}>✓ {t}</button>;
+    if (isLearned(sessions, t)) return <button key={t} type="button" className="bdg-chip done" onClick={() => useTrick(pet, t)} aria-label={`${t}, learned. Do this trick`}>{t}</button>;
     if (locked) return <span key={t} className="bdg-chip lock" aria-label={`${t}, locked`}>🔒 {t}</span>;
     return <span key={t} className="bdg-chip" aria-label={`${t}, ${n} of ${d.sessions} sessions`}>{t} <em>{n}/{d.sessions}</em></span>;
   };
@@ -372,7 +372,7 @@ export default function BuffDogeGym() {
             <div className="bdg-modal-row">
               <button type="button" className="btn btn-primary btn-lg" onClick={() => setQuitAsk(false)}>Keep going</button>
               {quiz.kind === 'fee'
-                ? <button type="button" className="btn btn-lg" disabled={student.coins < DROP_FEE_CENTS} onClick={() => { setQuitAsk(false); setQuiz(null); recordTransaction(student.id, -DROP_FEE_CENTS, `🏋️ Buff Doge's drop-off fee`, '🏋️', 'purchase-pet'); playCashRegister(); settleFee(); }}>Pay {formatMoney(DROP_FEE_CENTS)} instead</button>
+                ? <button type="button" className="btn btn-lg" disabled={student.coins < DROP_FEE_CENTS} onClick={() => { setQuitAsk(false); setQuiz(null); recordTransaction(student.id, -DROP_FEE_CENTS, `Buff Doge's drop-off fee`, '🏋️', 'purchase-pet'); playCashRegister(); settleFee(); }}>Pay {formatMoney(DROP_FEE_CENTS)} instead</button>
                 : <button type="button" className="btn btn-lg" onClick={() => { setQuitAsk(false); const q = quiz; setQuiz(null); if (q.paid) desk(q.petId); else picker(); }}>Stop the session</button>}
             </div>
           </div>
@@ -412,8 +412,8 @@ function DogeQuiz({ quiz, tts, onRight, onWrong, onSkip }: { quiz: Quiz; tts: Pa
         ))}
       </div>
       <div className="bdg-qtools">
-        {wrong.size > 0 && !right && <button type="button" className="bdg-btn" onClick={onSkip}>🔀 A different question</button>}
-        <button type="button" className="bdg-btn" onClick={() => openCheckOnPet('break')}>🐾 Take a break</button>
+        {wrong.size > 0 && !right && <button type="button" className="bdg-btn" onClick={onSkip}>A different question</button>}
+        <button type="button" className="bdg-btn" onClick={() => openCheckOnPet('break')}>Take a break</button>
       </div>
     </>
   );

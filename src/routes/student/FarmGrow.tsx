@@ -328,7 +328,7 @@ export default function FarmGrow() {
             <img src={`${ART}farmer/idle00.png`} alt="" className="fgx-px fgx-hero" />
             <p>Tap plots to give the farmer jobs: plant, water and harvest. When the sun sets, the farmer goes home and watered crops grow overnight. Questions come between the days.</p>
             <RoundSettings ranges={ranges} rounds={rs.rounds} perRound={rs.perRound} onRounds={rs.setRounds} onPerRound={rs.setPerRound} locked={rs.locked} roundsLabel="Days to farm" perLabel="Questions between days" />
-            <button type="button" className="btn btn-primary btn-lg fd-big" onClick={() => startDay(true)}>🌅 Start day 1</button>
+            <button type="button" className="btn btn-primary btn-lg fd-big" onClick={() => startDay(true)}>Start day 1</button>
           </div>
         </div>
       )}
@@ -345,8 +345,8 @@ export default function FarmGrow() {
               <button type="button" className="btn btn-lg" onClick={() => addDays(5)}>Add 5 days</button>
             </div>
             <div className="pf-detail-actions">
-              <button type="button" className="btn btn-lg" onClick={() => back.go()}>🏠 Leave</button>
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => { g.stage = 'start'; tell('Pick how many days to farm and how many questions come between days.'); }}>🌱 Farm again</button>
+              <button type="button" className="btn btn-lg" onClick={() => back.go()}>Leave</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { g.stage = 'start'; tell('Pick how many days to farm and how many questions come between days.'); }}>Farm again</button>
             </div>
           </div>
         </div>

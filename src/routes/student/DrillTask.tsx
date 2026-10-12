@@ -54,7 +54,7 @@ export default function DrillTask({ student, task, onDone }: Props) {
             }
           }}
         >
-          {isLast ? '✅ Finish' : '➡️ Next card'}
+          {isLast ? 'Finish' : 'Next card'}
         </button>
       </div>
     </div>

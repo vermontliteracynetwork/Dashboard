@@ -191,7 +191,7 @@ export default function PetFinder() {
           <p>Always a pet inside. Which one is the surprise! One box a day.</p>
         </div>
         <button type="button" className="btn btn-primary btn-lg pf-box-btn" disabled={full || mysteryToday || student.coins < MYSTERY_BOX_CENTS} onClick={() => setFlow({ kind: 'box', stage: 'confirm' })}>
-          {mysteryToday ? 'Come back tomorrow!' : full ? 'Home is full' : `🎁 Open for ${formatMoney(MYSTERY_BOX_CENTS)}`}
+          {mysteryToday ? 'Come back tomorrow!' : full ? 'Home is full' : `Open for ${formatMoney(MYSTERY_BOX_CENTS)}`}
         </button>
       </section>
 
@@ -200,7 +200,7 @@ export default function PetFinder() {
           {(['all', ...PET_AGES] as const).map((a) => <button key={a} type="button" className={`pf-pill${age === a ? ' on' : ''}`} onClick={() => setAge(a)}>{a === 'all' ? 'All' : AGE_LABEL[a]}</button>)}
         </div>
         <div className="pf-filter-row"><span>Animal</span>
-          {(['all', 'dog', 'cat'] as const).map((a) => <button key={a} type="button" className={`pf-pill${animal === a ? ' on' : ''}`} onClick={() => setAnimal(a)}>{a === 'all' ? 'All' : a === 'dog' ? '🐶 Dogs' : '🐱 Cats'}</button>)}
+          {(['all', 'dog', 'cat'] as const).map((a) => <button key={a} type="button" className={`pf-pill${animal === a ? ' on' : ''}`} onClick={() => setAnimal(a)}>{a === 'all' ? 'All' : a === 'dog' ? 'Dogs' : 'Cats'}</button>)}
         </div>
         <div className="pf-filter-row"><span>Fur color</span>
           {['all', ...colorsPresent].map((c) => <button key={c} type="button" className={`pf-pill${color === c ? ' on' : ''}`} onClick={() => setColor(c)}>{c === 'all' ? 'All' : c}</button>)}
@@ -231,7 +231,7 @@ export default function PetFinder() {
               {isAdopted
                 ? <div className="pf-adopted-stamp">💕 Adopted!</div>
                 : <button type="button" className="btn btn-primary pf-adopt" disabled={full || (!hasCoupon && student.coins < PET_PRICE_CENTS)} onClick={() => startAdopt(p)}>
-                    {hasCoupon ? '🎟️ Adopt free' : `Adopt ${formatMoney(PET_PRICE_CENTS)}`}
+                    {hasCoupon ? 'Adopt free' : `Adopt ${formatMoney(PET_PRICE_CENTS)}`}
                   </button>}
             </article>
           );
@@ -253,7 +253,7 @@ export default function PetFinder() {
                     {def && <p>{p.name} {bioFor(def).slice(def.name.length + 1)}</p>}
                     <p className="pf-detail-stay">{p.leavesDay - day === 1 ? `${p.name} has an adoption pending. Adopt ${p.name} soon if you want this pet!` : `${p.name} will be at the shelter for ${p.leavesDay - day} more days.`}</p>
                     <div className="pf-detail-actions">
-                      <button type="button" className="btn btn-primary btn-lg" disabled={full || (!hasCoupon && student.coins < PET_PRICE_CENTS)} onClick={() => startAdopt(p)}>{hasCoupon ? `🎟️ Adopt ${p.name} free` : `Adopt ${p.name} for ${formatMoney(PET_PRICE_CENTS)}`}</button>
+                      <button type="button" className="btn btn-primary btn-lg" disabled={full || (!hasCoupon && student.coins < PET_PRICE_CENTS)} onClick={() => startAdopt(p)}>{hasCoupon ? `Adopt ${p.name} free` : `Adopt ${p.name} for ${formatMoney(PET_PRICE_CENTS)}`}</button>
                       <button type="button" className="btn btn-lg" onClick={() => setFlow(null)}>Keep looking</button>
                     </div>
                     {!full && !hasCoupon && student.coins < PET_PRICE_CENTS && <p className="pf-detail-stay">You need {formatMoney(PET_PRICE_CENTS - student.coins)} more to adopt.</p>}
@@ -268,7 +268,7 @@ export default function PetFinder() {
                 <h2>What will you name your new {flow.age === 'baby' ? (petDefById(flow.defId)?.category === 'cat' ? 'kitten' : 'puppy') : 'friend'}?</h2>
                 <input id="pf-pet-name" className="pf-name-input" value={flow.name} maxLength={16} onChange={(e) => setFlow({ ...flow, name: e.target.value })} aria-label="Pet name" autoFocus />
                 <div className="pf-detail-actions">
-                  <button type="submit" className="btn btn-primary btn-lg" disabled={!flow.name.trim()}>{flow.petId ? `Name my pet ${flow.name.trim() || '...'}` : flow.price > 0 ? `Adopt for ${formatMoney(flow.price)}` : flow.via === 'coupon' ? '🎟️ Use my coupon' : 'Adopt!'}</button>
+                  <button type="submit" className="btn btn-primary btn-lg" disabled={!flow.name.trim()}>{flow.petId ? `Name my pet ${flow.name.trim() || '...'}` : flow.price > 0 ? `Adopt for ${formatMoney(flow.price)}` : flow.via === 'coupon' ? 'Use my coupon' : 'Adopt!'}</button>
                   {flow.via !== 'mystery' && <button type="button" className="btn btn-lg" onClick={() => setFlow(null)}>Not yet</button>}
                 </div>
               </form>
@@ -276,7 +276,7 @@ export default function PetFinder() {
 
             {flow.kind === 'cert' && (
               <AdoptionCertificate cert={flow.cert} defId={flow.defId}>
-                <button type="button" className="btn btn-primary btn-lg" onClick={() => navigate('/world/home-room')}>🏠 Take {flow.cert.petName} home</button>
+                <button type="button" className="btn btn-primary btn-lg" onClick={() => navigate('/world/home-room')}>Take {flow.cert.petName} home</button>
                 <button type="button" className="btn btn-lg" onClick={() => setFlow(null)}>Keep looking</button>
               </AdoptionCertificate>
             )}
@@ -287,7 +287,7 @@ export default function PetFinder() {
                 <h2>Open a Mystery Adoption Box for {formatMoney(MYSTERY_BOX_CENTS)}?</h2>
                 <p>There is always a baby pet inside.</p>
                 <div className="pf-detail-actions">
-                  <button type="button" className="btn btn-primary btn-lg" onClick={openBox}>🎁 Open it!</button>
+                  <button type="button" className="btn btn-primary btn-lg" onClick={openBox}>Open it!</button>
                   <button type="button" className="btn btn-lg" onClick={() => setFlow(null)}>Not yet</button>
                 </div>
               </div>

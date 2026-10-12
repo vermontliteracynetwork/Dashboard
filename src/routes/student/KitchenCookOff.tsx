@@ -100,7 +100,7 @@ export default function KitchenCookOff() {
         <SfxToggle />
         {settings}
         <MyBest game="kitchenCookOff" unit="dishes served" />
-        <button type="button" className="btn" onClick={() => setBook(true)}>📕 Recipe Book ({Object.keys(cooked).length} / {RECIPES.length})</button>
+        <button type="button" className="btn" onClick={() => setBook(true)}>Recipe Book ({Object.keys(cooked).length} / {RECIPES.length})</button>
       </header>
       <div className="kc-main">
         <div className="kc-top">
@@ -125,7 +125,7 @@ export default function KitchenCookOff() {
           {cooking ? 'Sizzle sizzle! Cooking...' : done ? 'Ready to serve!' : canPick ? `${WORDS[step]}, what goes in? Look at the recipe card and tap it.` : `${WORDS[step]} step. Answer a question to get the next ingredient.`}
           {canPick && misses > 0 ? ' Check the recipe card for this step!' : ''}
         </p>
-        {!canPick && !done && <button type="button" className="btn btn-primary btn-lg fd-big kc-go" onClick={getNext}>🧑‍🍳 Get the {WORDS[step].toLowerCase()} ingredient</button>}
+        {!canPick && !done && <button type="button" className="btn btn-primary btn-lg fd-big kc-go" onClick={getNext}>Get the {WORDS[step].toLowerCase()} ingredient</button>}
         <div className={`kc-pantry${canPick ? ' live' : ''}`}>
           {order.pantry.map((id) => (
             <button key={id} type="button" className={`kc-item${shake === id ? ' oops' : ''}${canPick && misses >= 2 && id === want ? ' hint' : ''}`} onClick={() => pick(id)} disabled={!canPick} aria-label={ITEMS[id].name}>
@@ -142,7 +142,7 @@ export default function KitchenCookOff() {
             <h2>{order.guest} Yum! Thank you, chef!</h2>
             <p>You made {order.recipe.name}: first {ITEMS[order.recipe.steps[0]].name.toLowerCase()}, next {ITEMS[order.recipe.steps[1]].name.toLowerCase()}, then {ITEMS[order.recipe.steps[2]].name.toLowerCase()}, and last {ITEMS[order.recipe.steps[3]].name.toLowerCase()}.</p>
             <div className="kc-stars" aria-label="Three stars">⭐⭐⭐</div>
-            <button type="button" className="btn btn-primary btn-lg" onClick={nextGuest}>🔔 Next customer</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={nextGuest}>Next customer</button>
           </div>
         </div>
       )}

@@ -58,7 +58,7 @@ export default function SentenceEditTask({ student, task, onDone }: Props) {
           ✅ Check my work
         </button>
         {content.hint && attempts >= 2 && !showHint && (
-          <button className="btn btn-sm" onClick={() => setShowHint(true)}>💡 Show a hint</button>
+          <button className="btn btn-sm" onClick={() => setShowHint(true)}>Show a hint</button>
         )}
       </div>
       {showHint && content.hint && <p className="tag-pill">💡 {content.hint}</p>}

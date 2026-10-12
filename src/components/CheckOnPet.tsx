@@ -142,8 +142,8 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
         {step !== 'hello' && (
           <div className="cop-actions">
             {zone && <div className="cop-zone" style={{ background: SEL_ZONE_COLORS[zone] }}>You checked in: {SEL_ZONE_LABELS[zone]} Zone</div>}
-            <button type="button" className="btn btn-lg" onClick={() => { setStep('music'); setSaid(canDance ? `Pick a song! I'll dance with you.` : `Pick a song and we'll listen together.`); }}>📻 Listen to music with {pet?.customName ?? 'me'}</button>
-            <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>✅ I'm ready to go back</button>
+            <button type="button" className="btn btn-lg" onClick={() => { setStep('music'); setSaid(canDance ? `Pick a song! I'll dance with you.` : `Pick a song and we'll listen together.`); }}>Listen to music with {pet?.customName ?? 'me'}</button>
+            <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>I'm ready to go back</button>
           </div>
         )}
         {step === 'music' && (
@@ -166,7 +166,7 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
               {musicTracks.slice(0, 12).map((t) => (
                 <button key={t.id} type="button" className={`btn${track === t.url ? ' btn-primary' : ''}`} onClick={() => setTrack(t.url)}>{t.title}</button>
               ))}
-              {track && <button type="button" className="btn" onClick={() => setTrack(null)}>⏹ Stop</button>}
+              {track && <button type="button" className="btn" onClick={() => setTrack(null)}>Stop</button>}
             </div>
           </div>
         )}
@@ -176,8 +176,8 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
         <div className="cop-ready" role="dialog" aria-label="Ready to go back?">
           <p>{pet ? `${pet.customName}: ` : ''}Are you ready to go back to what you were doing?</p>
           <div className="cop-actions">
-            <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>✅ I'm ready</button>
-            <button type="button" className="btn btn-lg" onClick={armReadyCheck}>🐾 Stay with {pet?.customName ?? 'my pet'}</button>
+            <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>I'm ready</button>
+            <button type="button" className="btn btn-lg" onClick={armReadyCheck}>Stay with {pet?.customName ?? 'my pet'}</button>
           </div>
         </div>
       )}

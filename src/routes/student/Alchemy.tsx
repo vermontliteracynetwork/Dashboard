@@ -268,12 +268,12 @@ export default function Alchemy() {
                 ❓ in {every - sinceQ} · 💵 {formatMoney(earned)}
               </button>
             )}
-            {mode === 'explore' && <button type="button" className="alc-btn" onClick={() => setMode('ask')}>🧭 Exploring</button>}
-            <button type="button" className="alc-btn" onClick={saveGame} aria-label="Save my progress">{!played && savedSig ? '✅ Saved' : '💾 Save'}</button>
-            <button type="button" className="alc-btn" onClick={hint}>💡 Hint</button>
-            <button type="button" className="alc-btn" onClick={() => setTiles([])}>🧹 Clear board</button>
+            {mode === 'explore' && <button type="button" className="alc-btn" onClick={() => setMode('ask')}>Exploring</button>}
+            <button type="button" className="alc-btn" onClick={saveGame} aria-label="Save my progress">{!played && savedSig ? 'Saved' : 'Save'}</button>
+            <button type="button" className="alc-btn" onClick={hint}>Hint</button>
+            <button type="button" className="alc-btn" onClick={() => setTiles([])}>Clear board</button>
             <button type="button" className="alc-btn" onClick={() => { setSoundOn((s) => { try { localStorage.setItem('alchemy.sound', s ? '0' : '1'); } catch { /* fine */ } return !s; }); }} aria-label={soundOn ? 'Sound on. Tap to mute' : 'Sound off. Tap to turn on'}>{soundOn ? '🔊' : '🔇'}</button>
-            <button type="button" className="alc-btn" onClick={() => setConfirmReset(true)}>♻️ Start over</button>
+            <button type="button" className="alc-btn" onClick={() => setConfirmReset(true)}>Start over</button>
           </div>
           {tiles.length === 0 && <div className="alc-empty">Drag an element onto another to combine them.<br />Tap an element to drop it on the board.</div>}
           {toast && <div className="alc-toast" role="status">{toast}</div>}
@@ -308,8 +308,8 @@ export default function Alchemy() {
             <strong style={{ fontSize: '1.3rem', textAlign: 'center' }}>⚗️ How do you want to play?</strong>
             {saved?.disc?.length && savedSig === null ? (
               <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }} role="radiogroup" aria-label="Saved game">
-                <button type="button" role="radio" aria-checked={resume} className={`btn${resume ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setResume(true)}>📂 Continue my saved game ({saved.disc.length} found)</button>
-                <button type="button" role="radio" aria-checked={!resume} className={`btn${!resume ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setResume(false)}>✨ Start fresh</button>
+                <button type="button" role="radio" aria-checked={resume} className={`btn${resume ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setResume(true)}>Continue my saved game ({saved.disc.length} found)</button>
+                <button type="button" role="radio" aria-checked={!resume} className={`btn${!resume ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setResume(false)}>Start fresh</button>
               </div>
             ) : null}
             <label className="alc-slider">
@@ -328,7 +328,7 @@ export default function Alchemy() {
             <p style={{ margin: 0, textAlign: 'center', fontWeight: 700 }}>💵 {formatMoney(PER_RIGHT_CENTS)} for every right answer</p>
             <div className="row-wrap" style={{ gap: 10, justifyContent: 'center' }}>
               <button type="button" className="btn btn-primary btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('play')}>▶ Play with questions</button>
-              {!fromGames && <button type="button" className="btn btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('explore')}>🧭 Just explore</button>}
+              {!fromGames && <button type="button" className="btn btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('explore')}>Just explore</button>}
             </div>
           </div>
         </div>
@@ -357,7 +357,7 @@ export default function Alchemy() {
             <p style={{ margin: 0 }}>{savedSig ? 'You have changes you did not save. Leaving deletes them.' : disc.length > START.length ? `Leaving deletes your board and your ${disc.length - START.length} new discoveries.` : 'Leaving clears your board.'}{earned > 0 ? ` Your ${formatMoney(earned)} for right answers is yours to keep.` : ''} Tap Save and leave to keep it all for next time.</p>
             <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
               <button type="button" className="btn" style={{ minHeight: 44 }} onClick={() => setLeaving(null)} autoFocus>Stay and keep playing</button>
-              <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => { saveGame(); const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>💾 Save and leave</button>
+              <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => { saveGame(); const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>Save and leave</button>
               <button type="button" className="btn btn-danger" style={{ minHeight: 44 }} onClick={() => { const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>Leave and delete</button>
             </div>
           </div>

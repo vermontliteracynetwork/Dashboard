@@ -283,8 +283,8 @@ export default function SubjectDashboard() {
               <Icon name="close" size={16} fallback="✕" />
             </button>
           )}
-          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>🖥️ Computer</button>
-          <button className="btn btn-sm" onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
+          <button className="btn btn-sm" onClick={() => navigate('/student/home')}>Computer</button>
+          <button className="btn btn-sm" onClick={() => navigate('/world/town')} aria-label="Go to Town Square">Town Square</button>
         </div>
       </div>
 

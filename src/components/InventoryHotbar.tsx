@@ -82,10 +82,10 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
       >
         <div className="row space-between" style={{ alignItems: 'center', marginBottom: 6 }}>
           <div className="row" style={{ gap: 6 }}>
-            <button className={`btn btn-sm${tab === 'stuff' ? ' btn-primary' : ''}`} onClick={() => setTab('stuff')}>🎒 My Stuff</button>
-            <button className={`btn btn-sm${tab === 'jokes' ? ' btn-primary' : ''}`} onClick={() => setTab('jokes')}>📖 Joke Book ({heardJokes.length})</button>
-            {!PETS_PAUSED && <button className={`btn btn-sm${tab === 'pets' ? ' btn-primary' : ''}`} onClick={() => setTab('pets')}>🐾 Pet Book ({myPets.length})</button>}
-            <button className={`btn btn-sm${tab === 'friends' ? ' btn-primary' : ''}`} onClick={() => setTab('friends')}>🧑‍🤝‍🧑 Friends ({metNpcs.length})</button>
+            <button className={`btn btn-sm${tab === 'stuff' ? ' btn-primary' : ''}`} onClick={() => setTab('stuff')}>My Stuff</button>
+            <button className={`btn btn-sm${tab === 'jokes' ? ' btn-primary' : ''}`} onClick={() => setTab('jokes')}>Joke Book ({heardJokes.length})</button>
+            {!PETS_PAUSED && <button className={`btn btn-sm${tab === 'pets' ? ' btn-primary' : ''}`} onClick={() => setTab('pets')}>Pet Book ({myPets.length})</button>}
+            <button className={`btn btn-sm${tab === 'friends' ? ' btn-primary' : ''}`} onClick={() => setTab('friends')}>Friends ({metNpcs.length})</button>
           </div>
           <button className="btn btn-sm" onClick={onClose} aria-label="Close"><Icon name="close" size={16} fallback="✕" /></button>
         </div>
@@ -239,7 +239,7 @@ export default function InventoryHotbar({ student, onClose }: { student: Student
                         return <p style={{ margin: '0 0 6px', fontSize: '0.8rem' }}>🎪 Tricks: Stand/Stay{tricks.length ? `, ${tricks.join(', ')}` : ''}</p>;
                       })()}
                       {styleLooks.some((r) => r.ownerId === `petcert:${pet.id}`) && (
-                        <button type="button" className="btn btn-sm" style={{ minHeight: 44, marginBottom: 6 }} onClick={() => setCertPetId(pet.id)}>📜 Adoption certificate</button>
+                        <button type="button" className="btn btn-sm" style={{ minHeight: 44, marginBottom: 6 }} onClick={() => setCertPetId(pet.id)}>Adoption certificate</button>
                       )}
                       {reached.length > 0 && (
                         <p style={{ margin: 0, fontSize: '0.78rem' }}>{reached.map((m) => `${m.icon} ${m.label}`).join('  ')}</p>

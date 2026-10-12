@@ -420,7 +420,7 @@ export default function FishingDock() {
               <input id="fdk-minutes" type="range" min={1} max={10} step={1} value={chosen} onChange={(e) => setMinutes(Number(e.target.value))} />
               <small><span>1 min</span><span>10 min</span></small>
             </label>
-            <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startGame}>🎣 Start fishing</button>
+            <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startGame}>Start fishing</button>
           </div>
         </div>
       )}
@@ -436,8 +436,8 @@ export default function FishingDock() {
               {run.current.best && <p>📏 Biggest: <b>{run.current.best.size} cm {run.current.best.name}</b></p>}
             </div>
             <div className="pf-detail-actions">
-              <button type="button" className="btn btn-lg" onClick={() => back.go()}>🏠 Leave</button>
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => { setStage('start'); doc('Want to fish some more? Pick your time and tap Start fishing.'); }}>🎣 Fish again</button>
+              <button type="button" className="btn btn-lg" onClick={() => back.go()}>Leave</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { setStage('start'); doc('Want to fish some more? Pick your time and tap Start fishing.'); }}>Fish again</button>
             </div>
           </div>
         </div>
@@ -473,16 +473,16 @@ export default function FishingDock() {
         </div>
         {stage === 'play' && freeCasts > 0 && diamondLeft <= 0 && phase === 'ready' && <p className="fd-msg">🧪 Free casts with no question: {freeCasts}</p>}
         {stage === 'play' && timeLeft <= 0 && phase !== 'ready' && <p className="fd-msg">⏰ Time is up! Finish this cast.</p>}
-        {stage === 'play' && phase === 'ready' && timeLeft > 0 && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startPower}>🎣 Cast your line</button>}
+        {stage === 'play' && phase === 'ready' && timeLeft > 0 && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startPower}>Cast your line</button>}
         {phase === 'power' && (
           <>
             <div className="fd-meter" aria-label="Cast power"><i className="fd-sweet" style={{ left: `${sweetLo * 100}%`, width: `${(sweetHi - sweetLo) * 100}%` }} /><b style={{ left: `${power * 100}%` }} /></div>
-            <button type="button" className="btn btn-primary btn-lg fd-big" onClick={release}>🎣 Cast! (stop in the green)</button>
+            <button type="button" className="btn btn-primary btn-lg fd-big" onClick={release}>Cast! (stop in the green)</button>
           </>
         )}
         {phase === 'wait' && <p className="fd-msg">Waiting for a bite... 🤫</p>}
-        {phase === 'bite' && <button type="button" className="btn btn-primary btn-lg fd-big fd-pulse" onClick={reel}>❗ A bite! Reel it in!</button>}
-        {phase === 'away' && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startPower}>🎣 Cast again</button>}
+        {phase === 'bite' && <button type="button" className="btn btn-primary btn-lg fd-big fd-pulse" onClick={reel}>A bite! Reel it in!</button>}
+        {phase === 'away' && <button type="button" className="btn btn-primary btn-lg fd-big" onClick={startPower}>Cast again</button>}
       </div>
       {phase === 'caught' && caughtNow && (
         <div className="pf-overlay">
@@ -508,7 +508,7 @@ export default function FishingDock() {
               </>
             )}
             <div className="pf-detail-actions">
-              <button type="button" className="btn btn-primary btn-lg" onClick={closeCatch}>{caughtNow.kind === 'power' ? '🧪 Use it!' : '🎣 Fish again'}</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={closeCatch}>{caughtNow.kind === 'power' ? 'Use it!' : 'Fish again'}</button>
             </div>
           </div>
         </div>

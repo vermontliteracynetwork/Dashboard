@@ -526,7 +526,7 @@ export default function Marketplace() {
                 aria-label={`Your bank balance is ${formatMoney(student.coins)}. Open your bank`}
                 onClick={() => navigate('/student/piggy-bank', { state: { from: 'marketplace', back: { from: cameFrom, tab } } })}
               >
-                <Icon name="coins" size={18} fallback="🐷" /> {formatMoney(student.coins)} <span style={{ fontSize: '0.75em', opacity: 0.8 }}>🏦 Bank</span>
+                <Icon name="coins" size={18} fallback="🐷" /> {formatMoney(student.coins)} <span style={{ fontSize: '0.75em', opacity: 0.8 }}>Bank</span>
               </button>
               <button className="btn btn-sm" style={{ minHeight: 44, position: 'relative' }} onClick={() => setShowCart(true)} aria-label={`Cart, ${cart.length} items`}>
                 🛒 Cart

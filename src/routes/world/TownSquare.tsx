@@ -4626,7 +4626,7 @@ export default function TownSquare() {
           <>
             <div className="map-head">
               <span>🗺️ Map of {regions.base}</span>
-              <button type="button" className={`btn btn-sm${mapGrid ? ' btn-primary' : ''}`} onClick={() => setMapGrid((g) => !g)} aria-pressed={mapGrid}>📐 Grid</button>
+              <button type="button" className={`btn btn-sm${mapGrid ? ' btn-primary' : ''}`} onClick={() => setMapGrid((g) => !g)} aria-pressed={mapGrid}>Grid</button>
               <button type="button" className="btn btn-sm btn-primary" onClick={() => { setMapView(false); setMapPick(null); }}>✕ Close map</button>
             </div>
             <div className="map-places" aria-label="Places">
@@ -4646,8 +4646,8 @@ export default function TownSquare() {
                   walkTarget.current = null; pendingApproach.current = null; hoverTarget.current = null;
                   teleportTarget.current = { x: bx, z: bz, facing: Math.atan2(-dx, -dz) };
                   setMapView(false); setMapPick(null);
-                }}>🚶 Go there</button>
-                <button type="button" className="btn" onClick={() => { setMapView(false); setMapPick(null); openRoleObject(picked); }}>🚪 Open</button>
+                }}>Go there</button>
+                <button type="button" className="btn" onClick={() => { setMapView(false); setMapPick(null); openRoleObject(picked); }}>Open</button>
                 <button type="button" className="btn" onClick={() => setMapPick(null)}>Close</button>
               </div>
             )}
@@ -4718,7 +4718,7 @@ export default function TownSquare() {
           <Celebration />
           <div className="pf-panel" onClick={(e) => e.stopPropagation()}>
             <AdoptionCertificate cert={strayCert.cert} defId={strayCert.defId}>
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => { setStrayCert(null); navigate('/world/home-room'); }}>🏠 Take {strayCert.cert.petName} home</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { setStrayCert(null); navigate('/world/home-room'); }}>Take {strayCert.cert.petName} home</button>
               <button type="button" className="btn btn-lg" onClick={() => setStrayCert(null)}>Stay in town</button>
             </AdoptionCertificate>
           </div>
@@ -5092,9 +5092,9 @@ export default function TownSquare() {
               <>
                 <span style={{ fontSize: 13 }}>{isLocked ? '🔒 Your lot is locked. Only you can come in.' : '🔓 Your lot is open. Others can walk into your yard.'}</span>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                  {kind === 'mailbox' && <button type="button" style={btn} onClick={() => { setLotCard(null); navigate('/student/mailbox'); }}>📬 Open my mail</button>}
-                  <button type="button" style={btn} onClick={() => navigate('/world/home-room')}>🚪 Go inside</button>
-                  <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(lot.student.id, !isLocked)}>{isLocked ? '🔓 Open my lot' : '🔒 Lock my lot'}</button>
+                  {kind === 'mailbox' && <button type="button" style={btn} onClick={() => { setLotCard(null); navigate('/student/mailbox'); }}>Open my mail</button>}
+                  <button type="button" style={btn} onClick={() => navigate('/world/home-room')}>Go inside</button>
+                  <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(lot.student.id, !isLocked)}>{isLocked ? 'Open my lot' : '🔒 Lock my lot'}</button>
                 </div>
               </>
             ) : (
@@ -5565,7 +5565,7 @@ export default function TownSquare() {
                         onClick={() => startDriving(obj)}
                         style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
                       >
-                        {isBoat ? '⛵ Board!' : isTrain ? '🚂 Board!' : isDrone ? '🚁 Fly!' : isPlane ? '✈️ Fly!' : '🚗 Drive!'}
+                        {isBoat ? 'Board!' : isTrain ? 'Board!' : isDrone ? 'Fly!' : isPlane ? 'Fly!' : 'Drive!'}
                       </button>
                       <button
                         onClick={() => setDriveConfirmId(null)}

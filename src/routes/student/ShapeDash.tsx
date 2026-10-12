@@ -290,7 +290,7 @@ export default function ShapeDash() {
               )}
               <div className="sd-seg" role="group" aria-label="Mode">
                 <button type="button" className={`sd-btn${!practice ? ' on' : ''}`} onClick={() => setPractice(false)} aria-pressed={!practice}>❤️❤️❤️ 3 hearts</button>
-                <button type="button" className={`sd-btn${practice ? ' on' : ''}`} onClick={() => setPractice(true)} aria-pressed={practice}>🧸 Practice</button>
+                <button type="button" className={`sd-btn${practice ? ' on' : ''}`} onClick={() => setPractice(true)} aria-pressed={practice}>Practice</button>
               </div>
               <div className="sd-seg" role="group" aria-label="Start at level">
                 <span>Start at level</span>
@@ -303,7 +303,7 @@ export default function ShapeDash() {
               <RoundSettings ranges={SD_RANGES} perLabel="Questions in each question break" rounds={0} perRound={roundSet.perRound} onRounds={() => {}} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
               <div className="sd-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>
               <div className="sd-seg">
-                <button type="button" className={`sd-btn${music ? ' on' : ''}`} onClick={() => setMusic((m) => !m)} aria-pressed={music}>🎵 Music {music ? 'on' : 'off'}</button>
+                <button type="button" className={`sd-btn${music ? ' on' : ''}`} onClick={() => setMusic((m) => !m)} aria-pressed={music}>Music {music ? 'on' : 'off'}</button>
                 <button type="button" className={`sd-btn${effects ? ' on' : ''}`} onClick={() => setEffects((m) => !m)} aria-pressed={effects}>🔊 Sounds {effects ? 'on' : 'off'}</button>
               </div>
               <button type="button" className="sd-btn sd-go" onClick={startRun}>▶ Play</button>
@@ -337,7 +337,7 @@ export default function ShapeDash() {
               <p>⭐ {hud.stars} stars so far. Next level is a little faster.</p>
               <div className="sd-row">
                 <button type="button" className="sd-btn sd-go" onClick={() => beginLevel(hud.level + 1, true)}>▶ Next level</button>
-                <button type="button" className="sd-btn" onClick={() => { finishRun('over'); }}>🏁 Finish here</button>
+                <button type="button" className="sd-btn" onClick={() => { finishRun('over'); }}>Finish here</button>
               </div>
             </div>
           )}
@@ -348,9 +348,9 @@ export default function ShapeDash() {
               {summary.right > 0 && <p>✅ {summary.right} right answer{summary.right === 1 ? '' : 's'}: ${summary.right} for your bank!</p>}
               {rival && <div className="sd-rival-end"><div className="sd-rival-stage small"><Suspense fallback={null}><NpcPortrait3D look={rival.look} talkKey="over" talking facing="right" /></Suspense></div><p><strong>{rival.name}:</strong> That was awesome! Again?</p></div>}
               <div className="sd-row">
-                <button type="button" className="sd-btn sd-go" onClick={() => beginLevel(summary.level, false)}>🔁 Try level {summary.level} again</button>
-                <button type="button" className="sd-btn" onClick={() => setPhase('launch')}>🎨 Change my shape</button>
-                <button type="button" className="sd-btn" onClick={() => back.go()}>🏠 Leave</button>
+                <button type="button" className="sd-btn sd-go" onClick={() => beginLevel(summary.level, false)}>Try level {summary.level} again</button>
+                <button type="button" className="sd-btn" onClick={() => setPhase('launch')}>Change my shape</button>
+                <button type="button" className="sd-btn" onClick={() => back.go()}>Leave</button>
               </div>
             </div>
           )}

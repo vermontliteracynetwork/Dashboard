@@ -84,21 +84,21 @@ function StreakView({ studentId, onClose }: { studentId: string; onClose: () => 
           <div className="streak-box warn">
             <strong>Oh no! Your {r.lost.count} day streak ended.</strong>
             {freezesOf(r) > 0
-              ? <button className="btn btn-lg btn-primary" onClick={() => { if (restoreStreak(studentId)) setMsg('🧊 Phew! Your streak is back.'); }}>🧊 Use a freeze to get it back</button>
+              ? <button className="btn btn-lg btn-primary" onClick={() => { if (restoreStreak(studentId)) setMsg('Phew! Your streak is back.'); }}>Use a freeze to get it back</button>
               : <span>Buy a Streak Freeze below, then come back here to get it back.</span>}
           </div>
         )}
         <div className="streak-box">
           <strong>🧊 Streak Freezes: {freezesOf(r)}</strong>
           <span>A freeze keeps your streak safe on a day you can't play. If you miss a day, one is used for you.</span>
-          <button className="btn btn-lg" disabled={coins < freezePriceCents()} onClick={() => setMsg(buyFreeze(studentId) ? '🧊 You bought a Streak Freeze!' : "You don't have enough money yet.")}>
+          <button className="btn btn-lg" disabled={coins < freezePriceCents()} onClick={() => setMsg(buyFreeze(studentId) ? 'You bought a Streak Freeze!' : "You don't have enough money yet.")}>
             Buy a freeze for {formatMoney(freezePriceCents())}
           </button>
           {coins < freezePriceCents() && <span>You need {formatMoney(freezePriceCents() - coins)} more.</span>}
           <span>Going to miss a day? Freeze it ahead of time:</span>
           <div className="row-wrap" style={{ gap: 8 }}>
             {upcoming.map((d) => (
-              <button key={d} className={`btn${frozen.has(d) ? ' btn-primary' : ''}`} style={{ minHeight: 48 }} disabled={frozen.has(d) || freezesOf(r) <= 0} onClick={() => { if (freezeDay(studentId, d)) setMsg('🧊 That day is frozen. Your streak is safe!'); }}>
+              <button key={d} className={`btn${frozen.has(d) ? ' btn-primary' : ''}`} style={{ minHeight: 48 }} disabled={frozen.has(d) || freezesOf(r) <= 0} onClick={() => { if (freezeDay(studentId, d)) setMsg('That day is frozen. Your streak is safe!'); }}>
                 {frozen.has(d) ? '🧊 ' : ''}{new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long' })}
               </button>
             ))}
@@ -262,7 +262,7 @@ function Meter({ r, onOpen }: { r: StreakRow; onOpen: () => void }) {
       {!min && (
         <button type="button" className="streak-pill-body" onPointerDown={down} onPointerUp={(e) => up(e, false)} onClick={() => { if (!pointerHandled.current) onOpen(); }} aria-label={saved ? 'Today is saved. Open my streak' : `${correct} of ${streakGoal()} right answers today. Open my streak`}>
           <span className="streak-pill-bar"><span style={{ width: `${Math.min(100, (correct / streakGoal()) * 100)}%` }} /></span>
-          <span className="streak-pill-text">{saved ? '✅ Saved!' : `${Math.min(correct, streakGoal())}/${streakGoal()}`}</span>
+          <span className="streak-pill-text">{saved ? 'Saved!' : `${Math.min(correct, streakGoal())}/${streakGoal()}`}</span>
         </button>
       )}
       {hint && !min && <span className="streak-pill-hint">Drag me anywhere. Double tap the 🔥 to shrink me.</span>}

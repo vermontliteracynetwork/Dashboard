@@ -978,7 +978,7 @@ export default function CastleDefense() {
                     <img src={TOWER_SPRITE(current.type, (current.tier + 1) as 1 | 2 | 3)} alt="" className={TOWER_META[current.type].smooth ? 'cd-smooth' : undefined} />
                     <span>
                       <span className="castle-tower-picker-label" style={{ display: 'block' }}>Upgrade to Tier {current.tier + 1}</span>
-                      <span className="castle-tower-picker-cost">💎 {TOWER_META[current.type].cost[current.tier]}</span>
+                      <span className="castle-tower-picker-cost">{TOWER_META[current.type].cost[current.tier]}</span>
                     </span>
                   </button>
                 ) : (
@@ -988,7 +988,7 @@ export default function CastleDefense() {
                   className={`cd-remove-btn${removeArmed ? ' armed' : ''}`}
                   onClick={() => (removeArmed ? removeTower(pickerSlot) : setRemoveArmed(true))}
                 >
-                  {removeArmed ? `Tap again to remove it and get 💎 ${spentOn(current)} back` : '🗑️ Remove this tower'}
+                  {removeArmed ? `Tap again to remove it and get 💎 ${spentOn(current)} back` : 'Remove this tower'}
                 </button>
               </>
             ) : (
@@ -1007,7 +1007,7 @@ export default function CastleDefense() {
                     <span>
                       <span className="castle-tower-picker-label" style={{ display: 'block' }}>{TOWER_META[type].label}{TOWER_META[type].isNew && <span className="cd-new-tag">NEW</span>}</span>
                       <span className="castle-tower-picker-blurb" style={{ display: 'block' }}>{TOWER_META[type].blurb}</span>
-                      <span className="castle-tower-picker-cost">💎 {TOWER_META[type].cost[0]}</span>
+                      <span className="castle-tower-picker-cost">{TOWER_META[type].cost[0]}</span>
                     </span>
                   </button>
                 ))}
@@ -1054,7 +1054,7 @@ export default function CastleDefense() {
             <p className="bakery-earnings-amount">{formatMoney(sessionEarningsCents)}</p>
             <p className="bakery-modal-note">answering questions today. It's already in your Piggy Bank! You also earned a Bonus Spin.</p>
             <button className="bakery-play-btn" onClick={() => setShowEarnings(false)}>Nice!</button>
-            <button className="bakery-text-link" onClick={() => navigate('/student/piggy-bank')}>🐷 View Piggy Bank</button>
+            <button className="bakery-text-link" onClick={() => navigate('/student/piggy-bank')}>View Piggy Bank</button>
           </div>
         </div>
       )}

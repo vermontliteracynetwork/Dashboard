@@ -154,7 +154,7 @@ export default function DinerDash() {
             <p>Customers sit at the counter with a ticket number and an order. Tap a food to cook it onto your tray. Then tap the customer with the lowest ticket number and answer a question to serve them. First come, first served!</p>
             <p>Customers served so far: {saved.served ?? 0} · Best tips: ⭐ {saved.bestTips ?? 0}</p>
             {settingsPanel}
-            <button type="button" className="btn btn-primary btn-lg" onClick={start}>🔔 Open the diner</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={start}>Open the diner</button>
           </div>
         </div>
       )}
@@ -164,7 +164,7 @@ export default function DinerDash() {
             <div className="fd-fish" aria-hidden>🔔</div>
             <h2>Shift complete!</h2>
             <p>You served {served} of {SHIFT} customers and earned ⭐ {tips} tip stars.{left ? ` ${left} had to go, and they will come back another day.` : ' Every customer got their food!'}</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={start}>🍔 Work another shift</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={start}>Work another shift</button>
           </div>
         </div>
       )}

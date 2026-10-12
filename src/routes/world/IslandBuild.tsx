@@ -702,11 +702,11 @@ export default function IslandBuild() {
           style={{ minHeight: 44, background: mode === 'view' ? '#3e7c6b' : '#fff', color: mode === 'view' ? '#fff' : undefined, fontWeight: 800 }}
           onClick={() => { setMode((m) => (m === 'build' ? 'view' : 'build')); setArmedAsset(null); setSelectedId(null); setViewSelectedRoleId(null); }}
         >
-          {mode === 'build' ? '🚶 Walk My Island' : '🏗️ Back to Build'}
+          {mode === 'build' ? 'Walk My Island' : 'Back to Build'}
         </button>
         {mode === 'build' && (
           <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} onClick={() => setCatalogOpen((v) => !v)}>
-            {catalogOpen ? '📦 Hide Catalog' : '📦 Show Catalog'}
+            {catalogOpen ? 'Hide Catalog' : 'Show Catalog'}
           </button>
         )}
         {mode === 'build' && islandObjects.length > 0 && (

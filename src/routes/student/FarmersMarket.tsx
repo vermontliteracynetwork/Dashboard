@@ -126,8 +126,8 @@ export default function FarmersMarket() {
       )}
 
       <div className="row" style={{ gap: 8, justifyContent: 'center' }}>
-        <button className={`btn btn-sm ${tab === 'board' ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('board')}>📋 Trade Board</button>
-        <button className={`btn btn-sm ${tab === 'mine' ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('mine')}>🙋 My Offers</button>
+        <button className={`btn btn-sm ${tab === 'board' ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('board')}>Trade Board</button>
+        <button className={`btn btn-sm ${tab === 'mine' ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setTab('mine')}>My Offers</button>
         <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => setPosting(true)}>+ Post a Trade</button>
       </div>
 
@@ -177,7 +177,7 @@ export default function FarmersMarket() {
                     </div>
                     <div style={{ marginTop: 10 }}>
                       {canAccept ? (
-                        <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => handleAcceptPet(o)}>🤝 Accept Trade</button>
+                        <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => handleAcceptPet(o)}>Accept Trade</button>
                       ) : (
                         <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>You need a {RARITY_LABEL[o.wantsPetRarity ?? '']?.replace(/⭐/g, '').trim()} pet to accept this trade.</p>
                       )}
@@ -199,7 +199,7 @@ export default function FarmersMarket() {
                   </div>
                   <div style={{ marginTop: 10 }}>
                     {canAccept ? (
-                      <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => handleAcceptCatalog(o)}>🤝 Accept Trade</button>
+                      <button className="btn btn-sm btn-success" style={{ minHeight: 44 }} onClick={() => handleAcceptCatalog(o)}>Accept Trade</button>
                     ) : (
                       <p style={{ fontSize: '0.78rem', opacity: 0.7, margin: 0 }}>You need "{wants.name}" to accept this trade.</p>
                     )}
@@ -334,7 +334,7 @@ function PostTradeModal({
             <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={onClose}><Icon name="close" size={14} fallback="✕" /> Close</button>
           </div>
           <div className="stack" style={{ gap: 8 }}>
-            <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('item')}>🎁 A font, color, or voice</button>
+            <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setKindChoice('item')}>A font, color, or voice</button>
             {/* Pet-for-pet trades were removed (her Pets v2 spec, 2026-10-11). */}
           </div>
         </div>

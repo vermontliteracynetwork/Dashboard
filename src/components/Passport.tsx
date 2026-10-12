@@ -26,8 +26,8 @@ export default function Passport() {
             Center, so it needs a direct way back to Town Square, not just
             the 2D task list. */}
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">🌳 Town Square</button>
-          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>🏠 Home</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/world/town')} aria-label="Go to Town Square">Town Square</button>
+          <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/student/home')}>Home</button>
         </div>
       </div>
 

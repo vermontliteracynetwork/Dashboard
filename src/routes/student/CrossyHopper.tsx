@@ -111,9 +111,9 @@ export default function CrossyHopper() {
         </div>
         <p className="fd-msg cr-msg" aria-live="polite">{note ?? (hops > 0 ? `You have ${hops} hop${hops === 1 ? '' : 's'}. Hop when the road is clear!` : 'Answer a question to earn a hop.')}</p>
         <div className="cr-controls">
-          <button type="button" className="btn btn-primary btn-lg cr-btn" onClick={getHop}>❓ Earn a hop</button>
+          <button type="button" className="btn btn-primary btn-lg cr-btn" onClick={getHop}>Earn a hop</button>
           <button type="button" className={`btn btn-lg cr-btn cr-hop${hops > 0 ? (safe ? ' safe' : ' wait') : ''}`} onClick={hop} disabled={hops <= 0}>
-            {hops > 0 ? (safe ? `🟢 Hop! (${hops})` : `🔴 Wait... (${hops})`) : '⬆️ Hop'}
+            {hops > 0 ? (safe ? `Hop! (${hops})` : `Wait... (${hops})`) : 'Hop'}
           </button>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function CrossyHopper() {
             <div className="fd-fish" aria-hidden>{done}</div>
             <h2>You made it to the park!</h2>
             <p>You crossed all {ROADS} roads safely. A new friend came to play in the park!</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={again}>🐔 Cross again</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={again}>Cross again</button>
           </div>
         </div>
       )}

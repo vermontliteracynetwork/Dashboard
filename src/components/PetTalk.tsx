@@ -68,21 +68,21 @@ export default function PetTalk({ pet, onClose, onCue }: { pet: StudentPet; onCl
           <div className="pet-talk-bubble" aria-live="polite">{said}</div>
           {step === 'menu' && (
             <div className="pet-talk-choices">
-              <button type="button" className="btn btn-lg" onClick={() => { setSaid(feel.says); setStep('feeling'); counted(); }}>💬 How are you feeling?</button>
-              <button type="button" className="btn btn-lg" onClick={() => { setSaid(`Thanks for asking! How are YOU feeling?`); setStep('you'); counted(); }}>🙋 Tell {name} how I feel</button>
-              <button type="button" className="btn btn-lg" onClick={() => act('feed', `Yum! Thank you for the snack!`)}>🍗 Feed</button>
-              <button type="button" className="btn btn-lg" onClick={() => act('pet', `That feels so nice. I love you!`)}>🤗 Pet</button>
-              <button type="button" className="btn btn-lg" onClick={() => act('play', `Woohoo! That was so much fun!`)}>🎾 Play</button>
-              {canSpeak && <button type="button" className={`btn btn-lg${recording ? ' btn-primary' : ''}`} onClick={talkToPet}>{recording ? '⏹ Done talking' : `🎤 Talk to ${name}`}</button>}
+              <button type="button" className="btn btn-lg" onClick={() => { setSaid(feel.says); setStep('feeling'); counted(); }}>How are you feeling?</button>
+              <button type="button" className="btn btn-lg" onClick={() => { setSaid(`Thanks for asking! How are YOU feeling?`); setStep('you'); counted(); }}>Tell {name} how I feel</button>
+              <button type="button" className="btn btn-lg" onClick={() => act('feed', `Yum! Thank you for the snack!`)}>Feed</button>
+              <button type="button" className="btn btn-lg" onClick={() => act('pet', `That feels so nice. I love you!`)}>Pet</button>
+              <button type="button" className="btn btn-lg" onClick={() => act('play', `Woohoo! That was so much fun!`)}>Play</button>
+              {canSpeak && <button type="button" className={`btn btn-lg${recording ? ' btn-primary' : ''}`} onClick={talkToPet}>{recording ? 'Done talking' : `Talk to ${name}`}</button>}
             </div>
           )}
           {step === 'feeling' && (
             <div className="pet-talk-choices">
-              {feel.need === 'feed' && <button type="button" className="btn btn-lg btn-primary" onClick={() => act('feed', `Thank you! My tummy feels much better. I am back in the Green Zone.`)}>🍗 Here's a snack</button>}
-              {feel.need === 'pet' && <button type="button" className="btn btn-lg btn-primary" onClick={() => act('pet', `Thank you. That cuddle helped a lot.`)}>🤗 Give a cuddle</button>}
-              {feel.need === 'play' && <button type="button" className="btn btn-lg btn-primary" onClick={() => act('play', `Yay! Playing with you always cheers me up!`)}>🎾 Let's play!</button>}
-              <button type="button" className="btn btn-lg" onClick={() => { setSaid(`Thanks for asking! How are YOU feeling?`); setStep('you'); }}>🙋 Tell {name} how I feel</button>
-              <button type="button" className="btn btn-lg" onClick={() => { setSaid(`Thanks for talking with me!`); setStep('done'); }}>👋 Bye for now</button>
+              {feel.need === 'feed' && <button type="button" className="btn btn-lg btn-primary" onClick={() => act('feed', `Thank you! My tummy feels much better. I am back in the Green Zone.`)}>Here's a snack</button>}
+              {feel.need === 'pet' && <button type="button" className="btn btn-lg btn-primary" onClick={() => act('pet', `Thank you. That cuddle helped a lot.`)}>Give a cuddle</button>}
+              {feel.need === 'play' && <button type="button" className="btn btn-lg btn-primary" onClick={() => act('play', `Yay! Playing with you always cheers me up!`)}>Let's play!</button>}
+              <button type="button" className="btn btn-lg" onClick={() => { setSaid(`Thanks for asking! How are YOU feeling?`); setStep('you'); }}>Tell {name} how I feel</button>
+              <button type="button" className="btn btn-lg" onClick={() => { setSaid(`Thanks for talking with me!`); setStep('done'); }}>Bye for now</button>
             </div>
           )}
           {step === 'you' && (
@@ -96,7 +96,7 @@ export default function PetTalk({ pet, onClose, onCue }: { pet: StudentPet; onCl
           )}
           {(step === 'reply' || step === 'done') && (
             <div className="pet-talk-choices">
-              <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>💛 Thanks, {name}!</button>
+              <button type="button" className="btn btn-lg btn-primary" onClick={onClose}>Thanks, {name}!</button>
               {step === 'reply' && <button type="button" className="btn btn-lg" onClick={() => { setSaid(`What else should we do?`); setStep('menu'); }}>More</button>}
             </div>
           )}

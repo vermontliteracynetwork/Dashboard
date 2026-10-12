@@ -128,7 +128,7 @@ export default function IdleTycoon() {
             {pops.filter((p) => p.line === 'tap').map((p) => <i key={p.id} className="ty2-pop" aria-hidden>{p.text}</i>)}
           </button>
           <button type="button" className={`btn btn-primary btn-lg fd-big ty-go${boost > 0 ? ' on' : ''}`} onClick={getBoost} disabled={boost > 0}>
-            {boost > 0 ? `✨ Golden Whisk: ${Math.ceil(boost)} seconds, three times as fast!` : '⭐ Answer for a Golden Whisk'}
+            {boost > 0 ? `Golden Whisk: ${Math.ceil(boost)} seconds, three times as fast!` : 'Answer for a Golden Whisk'}
           </button>
         </div>
         <div className="ty2-lines">
@@ -139,7 +139,7 @@ export default function IdleTycoon() {
                 <div key={l.id} className="ty2-line locked">
                   <span className="ty2-icon" aria-hidden>{l.icon}</span>
                   <b>{l.name} counter</b>
-                  <button type="button" className="btn ty2-buy" disabled={shop.coins < l.open} onClick={() => spend(l.open, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ovens: 1, baker: false } } }))}>🔓 Open for 🪙 {fmt(l.open)}</button>
+                  <button type="button" className="btn ty2-buy" disabled={shop.coins < l.open} onClick={() => spend(l.open, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ovens: 1, baker: false } } }))}>Open for 🪙 {fmt(l.open)}</button>
                 </div>
               );
             }
@@ -151,12 +151,12 @@ export default function IdleTycoon() {
                   <span className="ty2-info">
                     <b>{l.name} <small>× {o.ovens}</small></b>
                     <span className="ty2-bar"><i style={{ width: `${(p ?? 0) * 100}%` }} /></span>
-                    <small>{o.baker ? '🧑‍🍳 Baker runs it' : p !== undefined ? 'Baking...' : 'Tap to bake a batch'} · 🪙 {fmt(l.income * o.ovens)} a batch</small>
+                    <small>{o.baker ? 'Baker runs it' : p !== undefined ? 'Baking...' : 'Tap to bake a batch'} · 🪙 {fmt(l.income * o.ovens)} a batch</small>
                   </span>
                   {pops.filter((x) => x.line === l.id).map((x) => <i key={x.id} className="ty2-pop" aria-hidden>{x.text}</i>)}
                 </button>
-                <button type="button" className="btn ty2-buy" disabled={shop.coins < c} onClick={() => spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))}>➕ Oven 🪙 {fmt(c)}</button>
-                {!o.baker && <button type="button" className="btn ty2-buy" disabled={shop.coins < l.baker} onClick={() => { spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } })); playCheer(); }}>🧑‍🍳 Hire a baker 🪙 {fmt(l.baker)}</button>}
+                <button type="button" className="btn ty2-buy" disabled={shop.coins < c} onClick={() => spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))}>Oven 🪙 {fmt(c)}</button>
+                {!o.baker && <button type="button" className="btn ty2-buy" disabled={shop.coins < l.baker} onClick={() => { spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } })); playCheer(); }}>Hire a baker 🪙 {fmt(l.baker)}</button>}
               </div>
             );
           })}
@@ -168,7 +168,7 @@ export default function IdleTycoon() {
             <div className="fd-fish" aria-hidden>🧁</div>
             <h2>Welcome back!</h2>
             <p>While you were away, your bakers kept baking and earned <b>🪙 {fmt(away)}</b> shop coins.</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => setAway(null)}>🧁 Open the bakery</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => setAway(null)}>Open the bakery</button>
           </div>
         </div>
       )}

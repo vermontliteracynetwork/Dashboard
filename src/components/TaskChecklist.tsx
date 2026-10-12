@@ -231,7 +231,7 @@ export default function TaskChecklist({
                     : locked
                       ? 'Not unlocked yet'
                       : !opened
-                        ? '👈 Open this activity first'
+                        ? 'Open this activity first'
                         : directComplete
                           ? 'Tap when finished'
                           : 'Finish the activity below to check this off'
@@ -252,7 +252,7 @@ export default function TaskChecklist({
             <button className="checklist-title-btn2" disabled={locked} onClick={() => !locked && onOpen(t.id)}>
               {taskDisplayTitle(t) || '(untitled)'}
               {t.isFinalCheck && <span title="Final Check"> 🏁</span>}
-              {skipped && <span className="tag-pill" style={{ marginLeft: 6, fontSize: '0.7rem', background: 'var(--orange)' }}>⏭️ Skipped</span>}
+              {skipped && <span className="tag-pill" style={{ marginLeft: 6, fontSize: '0.7rem', background: 'var(--orange)' }}>Skipped</span>}
               {t.studentDescription && (
                 <span style={{ display: 'block', fontSize: '0.72rem', fontWeight: 500, opacity: 0.7 }}>{t.studentDescription}</span>
               )}

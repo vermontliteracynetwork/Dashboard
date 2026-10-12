@@ -34,7 +34,7 @@ export default function PassageTask({ student, subject, task, onDone, onExit }: 
         style={{ alignSelf: 'center' }}
         onClick={() => (hasQuestions ? setPhase('questions') : onDone())}
       >
-        {hasQuestions ? "✅ I'm ready for the questions" : "✅ I'm done reading"}
+        {hasQuestions ? "I'm ready for the questions" : "I'm done reading"}
       </button>
     </div>
   );

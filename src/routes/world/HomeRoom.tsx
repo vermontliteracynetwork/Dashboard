@@ -578,9 +578,9 @@ function PetCareCard({
         </div>
       ); })()}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, margin: '6px 0' }}>
-        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('feed')}>🍗 Feed</button>
-        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('pet')}>🤗 Pet</button>
-        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('play')}>🎾 Play</button>
+        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('feed')}>Feed</button>
+        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('pet')}>Pet</button>
+        <button className="btn btn-sm" style={{ minHeight: 48, fontSize: 13, padding: '2px 4px' }} onClick={() => care('play')}>Play</button>
       </div>
       {reaction && (
         <div role="status" style={{ fontSize: 13, fontWeight: 800, color: '#7c3aed', marginBottom: 4 }}>{reaction}</div>
@@ -657,7 +657,7 @@ function PetCareCard({
           disabled={!canFollow}
           onClick={() => setFollowingPet(studentId, pet.following ? null : pet.id)}
         >
-          {pet.following ? '🚶 Stop walking with me' : '🚶 Walk with me'}
+          {pet.following ? 'Stop walking with me' : 'Walk with me'}
         </button>
         <button
           className="btn btn-sm"
@@ -667,7 +667,7 @@ function PetCareCard({
             else { setConfirmSell(true); setTimeout(() => setConfirmSell(false), 2500); }
           }}
         >
-          {confirmSell ? 'Sure? Tap again' : '💰 Sell'}
+          {confirmSell ? 'Sure? Tap again' : 'Sell'}
         </button>
       </div>
     </div>
@@ -1409,10 +1409,10 @@ export default function HomeRoom() {
             <strong>{homeCard === 'mailbox' ? '📬 My mailbox' : '🚪 My door'}</strong>
             {!visiting && <span style={{ fontSize: 13 }}>{isLocked ? '🔒 Your lot is locked. Only you can come in.' : '🔓 Your lot is open. Others can walk into your yard.'}</span>}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-              {homeCard === 'mailbox' && <button type="button" style={btn} onClick={() => { setHomeCard(null); navigate('/student/mailbox'); }}>📬 Open my mail</button>}
-              {homeCard === 'door' && yardRoom && <button type="button" style={btn} onClick={() => { setHomeCard(null); switchRoom(yardRoom.id); }}>🌳 Go out to the yard</button>}
-              <button type="button" style={btn} onClick={() => { setHomeCard(null); goToTown(); }}>🏘️ Walk to town</button>
-              {!visiting && <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(student.id, !isLocked)}>{isLocked ? '🔓 Open my lot' : '🔒 Lock my lot'}</button>}
+              {homeCard === 'mailbox' && <button type="button" style={btn} onClick={() => { setHomeCard(null); navigate('/student/mailbox'); }}>Open my mail</button>}
+              {homeCard === 'door' && yardRoom && <button type="button" style={btn} onClick={() => { setHomeCard(null); switchRoom(yardRoom.id); }}>Go out to the yard</button>}
+              <button type="button" style={btn} onClick={() => { setHomeCard(null); goToTown(); }}>Walk to town</button>
+              {!visiting && <button type="button" style={{ ...btn, background: isLocked ? '#dcfce7' : '#fee2e2' }} onClick={() => setLotLocked(student.id, !isLocked)}>{isLocked ? 'Open my lot' : '🔒 Lock my lot'}</button>}
             </div>
             <button type="button" style={btn} onClick={() => setHomeCard(null)}>Close</button>
           </div>
@@ -1463,7 +1463,7 @@ export default function HomeRoom() {
         <div style={{ position: 'fixed', top: 68, right: 16, zIndex: 60, background: 'rgba(255,255,255,0.97)', borderRadius: 12, padding: '10px 12px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', fontFamily: 'system-ui, sans-serif', width: 'min(320px, calc(100vw - 32px))', maxHeight: 'calc(100vh - 90px)', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
             <div style={{ fontSize: 15, fontWeight: 800 }}>🐾 Your Pets ({myPets.length}/{PET_OWNERSHIP_CAP})</div>
-            <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 13, padding: '2px 10px' }} onClick={() => navigate('/student/pet-journal')}>📖 Journal</button>
+            <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 13, padding: '2px 10px' }} onClick={() => navigate('/student/pet-journal')}>Journal</button>
           </div>
           {myPets.length === 0 ? (
             <p style={{ fontSize: 14, opacity: 0.75 }}>No pets yet. Adopt one at the 🐾 Pet Shelter in Town Square!</p>
@@ -1644,8 +1644,8 @@ export default function HomeRoom() {
           <div className="hb-catalog" data-open={catOpen}>
             <div className="hb-cat-head">
               <div className="hb-tabs" role="tablist" aria-label="Catalog">
-                <button type="button" role="tab" aria-selected={catTab === 'mine'} className={catTab === 'mine' ? 'on' : ''} onClick={() => { setCatTab('mine'); setCatFilter('all'); }}>📦 My Items <b>{mineList.length}</b></button>
-                <button type="button" role="tab" aria-selected={catTab === 'shop'} className={catTab === 'shop' ? 'on' : ''} onClick={() => { setCatTab('shop'); setCatFilter('all'); }}>🛍️ Shop <b>{shopList.length}</b></button>
+                <button type="button" role="tab" aria-selected={catTab === 'mine'} className={catTab === 'mine' ? 'on' : ''} onClick={() => { setCatTab('mine'); setCatFilter('all'); }}>My Items <b>{mineList.length}</b></button>
+                <button type="button" role="tab" aria-selected={catTab === 'shop'} className={catTab === 'shop' ? 'on' : ''} onClick={() => { setCatTab('shop'); setCatFilter('all'); }}>Shop <b>{shopList.length}</b></button>
               </div>
               {catOpen && <input className="hb-search" type="search" placeholder="Search..." value={catSearch} onChange={(e) => setCatSearch(e.target.value)} aria-label="Search the catalog" />}
               <span className="hb-cash">💵 {formatMoney(student.coins)}</span>
@@ -1730,7 +1730,7 @@ export default function HomeRoom() {
                 <strong>{buyItem.label}</strong>
                 <span>{formatMoney(buyItem.shopPriceCents ?? 0)} · you have {formatMoney(student.coins)}</span>
                 {student.coins >= (buyItem.shopPriceCents ?? 0)
-                  ? <button type="button" className="btn btn-primary" style={{ minHeight: 48 }} onClick={confirmBuy} autoFocus>🛍️ Buy and place it</button>
+                  ? <button type="button" className="btn btn-primary" style={{ minHeight: 48 }} onClick={confirmBuy} autoFocus>Buy and place it</button>
                   : <span style={{ fontWeight: 700, color: '#c0392b' }}>You need {formatMoney((buyItem.shopPriceCents ?? 0) - student.coins)} more. Answer questions in games to earn it!</span>}
                 <button type="button" className="btn" style={{ minHeight: 44 }} onClick={() => setBuyItem(null)}>Not now</button>
               </div>
@@ -1779,7 +1779,7 @@ export default function HomeRoom() {
                 style={{ minHeight: 44, background: confirmDeleteId === selected.id ? '#c0392b' : undefined, color: confirmDeleteId === selected.id ? '#fff' : undefined }}
                 onClick={() => requestDelete(selected.id)}
               >
-                {confirmDeleteId === selected.id ? 'Sure? Tap again' : '🗑️ Remove'}
+                {confirmDeleteId === selected.id ? 'Sure? Tap again' : 'Remove'}
               </button>
               <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setSelectedId(null)}>Done</button>
             </div>
@@ -1814,7 +1814,7 @@ export default function HomeRoom() {
                       />
                     ))}
                   </div>
-                  <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>🪣 Floor</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>Floor</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                     {FLOOR_TEXTURE_OPTIONS.map((opt) => (
                       <button
@@ -1833,7 +1833,7 @@ export default function HomeRoom() {
                       style={{ minHeight: 32, fontSize: 11, width: '100%', background: confirmDeleteRoom ? '#c0392b' : undefined, color: confirmDeleteRoom ? '#fff' : undefined }}
                       onClick={handleDeleteRoom}
                     >
-                      {confirmDeleteRoom ? 'Sure? Tap again' : '🗑️ Delete Room'}
+                      {confirmDeleteRoom ? 'Sure? Tap again' : 'Delete Room'}
                     </button>
                   )}
                 </>

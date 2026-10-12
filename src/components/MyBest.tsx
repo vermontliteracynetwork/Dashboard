@@ -25,7 +25,7 @@ export function MyBest({ game, unit, format }: { game: string; unit?: string; fo
   const show = format ?? ((e: BoardEntry) => `${e.score} ${unit ?? ''}${e.detail ? ` ${e.detail}` : ''}`.trim());
   return (
     <>
-      <button type="button" className="btn my-best-btn" onClick={() => setOpen(true)}>🏆 My best</button>
+      <button type="button" className="btn my-best-btn" onClick={() => setOpen(true)}>My best</button>
       {open && (
         <div className="pf-overlay" onClick={() => setOpen(false)}>
           <div className="pf-panel my-best" onClick={(e) => e.stopPropagation()}>

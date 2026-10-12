@@ -298,21 +298,21 @@ export default function ScienceLab() {
       <div className="lab-top">
         <h1>{magic ? '🔮 Potion Lab' : '🔬 Science Lab'}</h1>
         <div className="lab-mode" role="radiogroup" aria-label="Lab mode">
-          <button type="button" role="radio" aria-checked={!magic} className={!magic ? 'on' : ''} onClick={() => setMode('science')}>🔬 Science</button>
-          <button type="button" role="radio" aria-checked={magic} className={magic ? 'on' : ''} onClick={() => setMode('magic')}>🔮 Magic</button>
+          <button type="button" role="radio" aria-checked={!magic} className={!magic ? 'on' : ''} onClick={() => setMode('science')}>Science</button>
+          <button type="button" role="radio" aria-checked={magic} className={magic ? 'on' : ''} onClick={() => setMode('magic')}>Magic</button>
         </div>
         <div className="lab-mode lab-view" role="radiogroup" aria-label="Lab area">
-          <button type="button" role="radio" aria-checked={view === 'bench'} className={view === 'bench' ? 'on' : ''} onClick={() => setView('bench')}>🧪 Bench</button>
-          <button type="button" role="radio" aria-checked={view === 'atom'} className={view === 'atom' ? 'on' : ''} onClick={() => setView('atom')}>⚛️ Atom Builder</button>
+          <button type="button" role="radio" aria-checked={view === 'bench'} className={view === 'bench' ? 'on' : ''} onClick={() => setView('bench')}>Bench</button>
+          <button type="button" role="radio" aria-checked={view === 'atom'} className={view === 'atom' ? 'on' : ''} onClick={() => setView('atom')}>Atom Builder</button>
         </div>
-        <button type="button" className="lab-btn" onClick={() => setJournal(true)}>{magic ? '📜 Spellbook' : '📓 Science Journal'} <b>{discoveredCount}/{ALL_RECIPES.length}</b></button>
+        <button type="button" className="lab-btn" onClick={() => setJournal(true)}>{magic ? 'Spellbook' : 'Science Journal'} <b>{discoveredCount}/{ALL_RECIPES.length}</b></button>
         <button type="button" className="lab-btn" onClick={() => setSound((v) => { try { localStorage.setItem('lab.sound', v ? '0' : '1'); } catch { /* fine */ } return !v; })} aria-label={sound ? 'Sound on. Tap to mute' : 'Sound off. Tap to turn on'}>{sound ? '🔊' : '🔇'}</button>
       </div>
 
       <div className="lab-room">
         <div className="lab-wall">
           <div className="lab-board" onClick={() => setTableBig(true)}>
-            <button type="button" className="lab-board-title" onClick={(e) => { e.stopPropagation(); setTableBig(true); }}>{magic ? '✨ Table of Elements ✨' : 'Periodic Table of the Elements'} <small>{learned.size} learned · ⤢ open</small></button>
+            <button type="button" className="lab-board-title" onClick={(e) => { e.stopPropagation(); setTableBig(true); }}>{magic ? 'Table of Elements ✨' : 'Periodic Table of the Elements'} <small>{learned.size} learned · ⤢ open</small></button>
             <Table big={false} />
           </div>
         </div>
@@ -351,9 +351,9 @@ export default function ScienceLab() {
                 </button>
                 <div className="lab-contents">{c.length ? c.map((x, k) => <span key={k} className="lab-chip">{SUB.get(x)?.formula}</span>) : <span className="lab-chip empty">{magic ? 'empty cauldron' : 'empty'}</span>}</div>
                 <div className="lab-station-btns">
-                  <button type="button" className={`lab-btn small${pourFrom === i ? ' on' : ''}`} disabled={!c.length} onClick={() => { setSel(i); setPourFrom((p) => (p === i ? null : i)); }}>🫗 {pourFrom === i ? 'Pick where' : 'Pour into...'}</button>
-                  <button type="button" className={`lab-btn small${heating === i ? ' on' : ''}`} disabled={!c.length || heating !== null} onClick={() => heat(i)}>🔥 Heat</button>
-                  <button type="button" className="lab-btn small" disabled={!c.length} onClick={() => empty(i)}>🚰 Empty</button>
+                  <button type="button" className={`lab-btn small${pourFrom === i ? ' on' : ''}`} disabled={!c.length} onClick={() => { setSel(i); setPourFrom((p) => (p === i ? null : i)); }}>{pourFrom === i ? 'Pick where' : 'Pour into...'}</button>
+                  <button type="button" className={`lab-btn small${heating === i ? ' on' : ''}`} disabled={!c.length || heating !== null} onClick={() => heat(i)}>Heat</button>
+                  <button type="button" className="lab-btn small" disabled={!c.length} onClick={() => empty(i)}>Empty</button>
                 </div>
               </div>
             );

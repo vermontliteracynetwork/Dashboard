@@ -292,7 +292,7 @@ export default function StudentHome() {
           onClick={() => navigate('/student/piggy-bank')}
           aria-label={`Piggy Bank, balance ${formatMoney(student.coins)}`}
         >
-          <div className="widget-webpage-titlebar">🏦 Bank</div>
+          <div className="widget-webpage-titlebar">Bank</div>
           <div className="widget-webpage-body">
             <span className="widget-webpage-big">{formatMoney(student.coins)}</span>
             {bankDayTotals.length > 1 ? (
@@ -347,7 +347,7 @@ export default function StudentHome() {
           onClick={() => setShowChat(true)}
           aria-label="Chat with your teacher"
         >
-          <div className="widget-webpage-titlebar">💬 Chat</div>
+          <div className="widget-webpage-titlebar">Chat</div>
           <div className="widget-webpage-body">
             {lastChatMessage ? (
               <div className="widget-im-bubble">
@@ -368,7 +368,7 @@ export default function StudentHome() {
           onClick={() => navigate('/student/cinema')}
           aria-label={latestVideo ? `Cinema, now showing ${latestVideo.title}` : 'Cinema'}
         >
-          <div className="widget-webpage-titlebar">🎬 Now Showing</div>
+          <div className="widget-webpage-titlebar">Now Showing</div>
           <div className="widget-webpage-body" style={{ padding: 0 }}>
             {latestVideo && latestVideoCover ? (
               <>
@@ -388,7 +388,7 @@ export default function StudentHome() {
           onClick={() => navigate('/student/games')}
           aria-label="Arcade"
         >
-          <div className="widget-webpage-titlebar">🕹️ Arcade</div>
+          <div className="widget-webpage-titlebar">Arcade</div>
           <div className="widget-webpage-body widget-games-covers" style={{ padding: 4 }}>
             <GamesCoverCycle calm={!!student.worldReduceMotion} />
           </div>

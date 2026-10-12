@@ -1141,7 +1141,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                       says so instead of falsely promising "back to the game." */}
                   {pendingCorrect && !(pauseReason === 'gauntlet' && gauntletStreak + 1 < GAUNTLET_RECOVERY_STREAK)
                     ? '▶️ Back to the game!'
-                    : '➡️ Next question'}
+                    : 'Next question'}
                 </button>
               )}
             </div>

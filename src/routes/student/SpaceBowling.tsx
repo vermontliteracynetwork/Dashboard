@@ -435,7 +435,7 @@ export default function SpaceBowling() {
           <header className="sb-top">
             <button className="sb-btn ghost" onClick={leave}>← {backLabel}</button>
             <h1 className="sb-title">Space Bowling</h1>
-            <button className="sb-btn ghost" onClick={() => setShowSettings(true)} aria-label="Sound settings">⚙️ Sound</button>
+            <button className="sb-btn ghost" onClick={() => setShowSettings(true)} aria-label="Sound settings">Sound</button>
           </header>
           <div className="sb-launch-grid">
             <section className="sb-panel sb-prize">
@@ -472,8 +472,8 @@ export default function SpaceBowling() {
               <h2>Who's playing?</h2>
               {rivalId && npcProfiles[rivalId] && playerCount === 1 && <p className="sb-prize-text">🏡 You're playing {npcProfiles[rivalId].name}!</p>}
               <div className="sb-chips">
-                <button className={`sb-chip${playerCount === 1 ? ' on' : ''}`} onClick={() => setPlayerCount(1)}>🏡 Me vs {rivalId && npcProfiles[rivalId] ? npcProfiles[rivalId].name : 'a Neighbor'}</button>
-                {[2, 3, 4].map((n) => <button key={n} className={`sb-chip${playerCount === n ? ' on' : ''}`} onClick={() => setPlayerCount(n)}>👥 {n} players</button>)}
+                <button className={`sb-chip${playerCount === 1 ? ' on' : ''}`} onClick={() => setPlayerCount(1)}>Me vs {rivalId && npcProfiles[rivalId] ? npcProfiles[rivalId].name : 'a Neighbor'}</button>
+                {[2, 3, 4].map((n) => <button key={n} className={`sb-chip${playerCount === n ? ' on' : ''}`} onClick={() => setPlayerCount(n)}>{n} players</button>)}
               </div>
               <div className="sb-player-rows">
                 {Array.from({ length: playerCount }, (_, i) => (
@@ -492,7 +492,7 @@ export default function SpaceBowling() {
               {!activeGameplayTask && usableSets.length > 0 && (
                 <div className="sb-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>
               )}
-              <button className="sb-btn big" onClick={startGame}>🚀 Blast off!</button>
+              <button className="sb-btn big" onClick={startGame}>Blast off!</button>
             </section>
           </div>
         </div>

@@ -60,7 +60,7 @@ export default function SpeakAnswer({ q, disabled, onResult }: { q: SpeakQuestio
       )}
       {wrong && !disabled && (
         <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
-          <button className="btn btn-lg" onClick={() => { setHeard(null); toggle(); }}>🎤 Try again</button>
+          <button className="btn btn-lg" onClick={() => { setHeard(null); toggle(); }}>Try again</button>
           <button className="btn btn-lg" onClick={() => onResult(false)}>Next question</button>
           <button className="btn btn-lg btn-primary" onClick={() => onResult(true, true)}>That's what I said!</button>
         </div>

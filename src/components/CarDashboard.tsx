@@ -116,7 +116,7 @@ export default function CarDashboard({ speedRef, maxSpeed, gasDashes, gasSeconds
       <div className="dash-center">
         <div className="dash-stereo">
           <button type="button" className="dash-screen" onClick={onPickSong} aria-label={song ? `Now playing ${song.title}. Tap to change the song` : 'Radio off. Tap to pick a song'}>
-            <span className="dash-screen-kicker">📻 {song ? 'NOW PLAYING' : 'RADIO'}</span>
+            <span className="dash-screen-kicker">{song ? 'NOW PLAYING' : 'RADIO'}</span>
             <span className="dash-screen-title"><span className={song && song.title.length > 22 ? 'dash-marquee' : undefined}>{song ? song.title : 'Tap to pick a song'}</span></span>
           </button>
           <VolumeKnob value={volume} onChange={setVolume} onTap={onPickSong} />
