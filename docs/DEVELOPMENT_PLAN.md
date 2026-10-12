@@ -66,6 +66,19 @@ How it works: every new request, idea or "queue:" message goes on this list the 
 25. ~~❓ Her question: native mini game ideas~~ ANSWERED 2026-10-12 (her words: "claudia, what game ideas do we have for the native mini games?"); the lists are under "Native question-set-fueled games per building/asset" and in the Gameplay roadmap.
 26. ~~❓ Her question: can every pet do every trick~~ ANSWERED 2026-10-12 (her words, with Buff Doge's trick table: "are any pets full able to do all the animations i wanted"). Answer: 11 of the 12 breeds do every trick on their skeletons; the Husky and Shiba Inu's Down reads as a play bow; the Black Cat's skeleton is a different kind, so it does the leg tricks as whole-body moves for now.
 27. ~~🏅 Pet Show Ring~~ SHIPPED 2026-10-12 (see Done and Part A). Her words (verbatim): "build the pet show ring next" (game 6 on her 2026-09-30 native game list: "Pet Show Ring: pet-care building; answers power obstacle-course runs for your trained pet, using its unlocked tricks. Not competitive, so no rankings.").
+
+**Her instruction (2026-10-12, verbatim): "build the rescue shelter game next, claudia - you are in charge of keeping the queue going continuously for the next four hours. i will check back in then".** Claudia's plan for the four hours: build Rescue Shelter, then keep going down her own native game list (2026-09-30) in this order, each shipped on its own with a game card, cover, building role, $1 a right answer and What's New: 
+28. 🐶 **Rescue Shelter** (her list: "animal shelter; a stray-pet intro game where questions gently build trust before adoption"). IN PROGRESS.
+29. 🎣 **Fishing Dock** (her list: "pier or boat asset; answers power a timing-based cast; fish go in a collection book").
+30. 🌱 **Farm Grow** (her list: "farm plots; answers plant and tend crops through growth stages; harvest for currency").
+31. 📮 **Post Office Sort** (her list: "post office; sort letters and parcels into the right bins by answering").
+32. 🗼 **Lighthouse Signal** (her list: "lighthouse; answers light the beam to guide boats safely in").
+33. 🍳 **Kitchen Cook-Off** (her list: "restaurant; answers pick ingredients in order to cook recipes (sequencing practice)").
+34. 🛤️ **Mine Cart Run** (her list: "mine entrance; a Mario-style auto-runner where answers choose the track switch").
+35. 🚉 **Train Station Dispatch** (her list: "train station; answers route trains to the right platforms").
+36. 💎 **Gem Mine** (her list: "cave or shop; answers dig up gems that fill collection pages").
+37. 📚 **Library Quest** (her list: "library; answers reveal hidden books on shelves, completing a shelf fills the Finds Book").
+Not in this run (waiting on her): Tappy Plane (her "go"), the quest-only pets and fur colors, the Torbie and Black Lab models.
 7. ~~🧭 Fluid view and build between regions~~ SHIPPED 2026-10-10 (see Done and Part A, A4). Her words (verbatim): "allow me to fluidly view and build between regions".
 8. ~~🟩 Region color borders on the map~~ SHIPPED 2026-10-10 (see Done and Part A, A4). Her words (verbatim): "regions should be defined by color border boundary on map".
 9. ~~🗑️ Right-click to delete a catalog item for good~~ SHIPPED 2026-10-10 (see Done and Part A, A4). Her words (verbatim): "as a teacher, allow me to right click and delete object sperminetly from the catelog".
