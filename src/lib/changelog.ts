@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-game-progress",
+    date: "2026-10-12",
+    icon: "🏆",
+    title: "See your progress on game cards",
+    body: "The Game Dashboard now shows how far you have gotten in each new game, like how many fish are in your Fish Book or how many relics are on your shelf.",
+  },
+  {
     id: "2026-10-12-assignments-in-games",
     date: "2026-10-12",
     icon: "📋",

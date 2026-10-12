@@ -7,6 +7,7 @@ import { GameCardGrid } from '../../components/GameDashboard';
 import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from '../../lib/nativeGames';
 import { findActiveGameplayTask, gameplayProgress, gameplayTarget } from '../../lib/gameplayAssignment';
 import { useBestGames } from '../../lib/personalBoard';
+import { gameProgressLabels } from '../../lib/gameProgressLabels';
 import type { NativeGameId } from '../../types';
 
 // The Game Dashboard (teacher direction 2026-10-04): every native game as a
@@ -40,7 +41,9 @@ export default function GamesHub() {
   const chessGames = useStore((s) => s.chessGames);
   const chessBest = Math.max(0, ...chessGames.filter((g) => g.studentId === student?.id).map((g) => g.xp));
   const bakeryBest = Math.max(0, ...(student?.bakeryLeaderboard ?? []).map((e) => e.xp));
+  const styleLooks = useStore((s) => s.styleLooks);
   const bests = {
+    ...gameProgressLabels(styleLooks, student?.id),
     ...(bowling[0] ? { spaceBowling: `${bowling[0].score} pins` } : {}),
     ...(chessBest > 0 ? { chess: `${chessBest} XP` } : {}),
     ...(bakeryBest > 0 ? { bakery: `${bakeryBest} XP` } : {}),
