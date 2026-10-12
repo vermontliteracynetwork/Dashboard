@@ -15,7 +15,9 @@ import { playCashRegister } from '../../lib/chime';
 import { playCheer } from '../../lib/petSounds';
 import { sayInPetVoice, petVoiceLine } from '../../lib/petSpeak';
 import { useBack } from '../../lib/navTrail';
-import QuestionScreen from '../../components/QuestionScreen';
+import { speak } from '../../components/ReadAloud';
+import { recordStreakCorrect } from '../../lib/streak';
+import { openCheckOnPet } from '../../components/CheckOnPet';
 import PetStage3D, { type TrickCue } from '../../components/PetStage3D';
 
 // Buff Doge's Gym (her Pets v2 spec and her own prototype, 2026-10-11). Rebuilt from her
@@ -31,7 +33,7 @@ const W = 1920, H = 1080;
 const ART = '/pets/gym/';
 const DICE = [4, 6, 8, 10, 12, 20];
 type Opt = { label: string; sub?: string; disabled?: boolean; go: () => void; tone?: 'right' | 'wrong' };
-type Mode = 'picker' | 'tricks' | 'pay' | 'desk' | 'result' | 'barter' | 'nopets';
+type Mode = 'lobby' | 'picker' | 'tricks' | 'pay' | 'desk' | 'result' | 'barter' | 'nopets';
 interface Quiz { kind: 'train' | 'fee'; petId: string; trick: string; target: number; n: number; block: number; blockWrong: boolean; q: MCQuestion; paid?: boolean }
 
 const reduceMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -107,6 +109,11 @@ export default function BuffDogeGym() {
   const options = (list: Opt[], two = false) => setOpts({ list, two, page: 0 });
 
   // ---- screens ----
+  // Her lobby art (2026-10-12 zip): the gym full of pets working out, Buff Doge greeting you.
+  const lobby = () => {
+    setMode('lobby'); setDogeBig(false); setQuiz(null); setOpts({ list: [], page: 0 });
+    talk(pets.length ? `Welcome to Buff Doge's Gym! I'm Buff Doge, personal trainer for pets. Ready to train?` : `Welcome to Buff Doge's Gym! I'm Buff Doge, personal trainer for pets.`);
+  };
   const picker = (index = sel) => {
     setMode('picker'); setDogeBig(false); setQuiz(null); setOpts({ list: [], page: 0 });
     if (!pets.length) { setMode('nopets'); setDogeBig(true); talk(`Welcome to Buff Doge's Gym! You need a pet before we can train. Adopt one in the Pet Finder, then come pump some iron with me.`, true); options([{ label: '🐾 Open the Pet Finder', go: () => navigate('/student/pet-finder') }, { label: '← Leave the gym', go: back.go }], true); return; }
@@ -237,7 +244,7 @@ export default function BuffDogeGym() {
     firstLoad.current = false;
     if (fee.petId) { barter(); return; }
     if (gym.petId) { desk(gym.petId); return; }
-    picker(0);
+    lobby();
   }, [studentId]); // eslint-disable-line react-hooks/exhaustive-deps
   // Keep the desk countdown fresh.
   useEffect(() => {
@@ -281,17 +288,25 @@ export default function BuffDogeGym() {
   return (
     <div className="bdg-wrap" ref={wrap}>
       <div className="bdg-stage" style={{ transform: `translate(${fit.x}px, ${fit.y}px) scale(${fit.s})` }}>
-        <img className="bdg-layer" src={`${ART}bg.jpg`} alt="" style={{ left: 0, top: 0, width: 1920, height: 1080 }} />
-        <img className="bdg-layer" src={`${ART}sign.jpg`} alt="Buff Doge's Gym" style={{ left: 26, top: 0, width: 480, height: 212 }} />
-        <img key={flex} className={`bdg-layer bdg-doge${dogeBig ? ' big' : ''}${flex ? ' flex' : ''}`} src={`${ART}doge.png`} alt="Buff Doge" />
+        {mode === 'lobby'
+          ? <img className="bdg-layer" src={`${ART}lobby.jpg`} alt="Buff Doge's Gym, full of pets working out" style={{ left: 0, top: 0, width: 1920, height: 1080 }} />
+          : <>
+            <img className="bdg-layer" src={`${ART}bg.jpg`} alt="" style={{ left: 0, top: 0, width: 1920, height: 1080 }} />
+            <img className="bdg-layer" src={`${ART}sign.jpg`} alt="Buff Doge's Gym" style={{ left: 26, top: 0, width: 480, height: 212 }} />
+            <img key={flex} className={`bdg-layer bdg-doge${dogeBig || quiz ? ' big' : ''}${flex ? ' flex' : ''}`} src={`${ART}doge.png`} alt="Buff Doge" />
+          </>}
 
-        {stagePet && stagePetDef && (
+        {!quiz && stagePet && stagePetDef && (
           <div className={`bdg-pet ${mode === 'picker' ? 'center' : 'corner'}`}>
             <PetStage3D modelPath={stagePetDef.modelPath} ageScale={AGE_SCALE[ageForTraining(stagePet.trainingProgress)]} trick={cue} idleSpin={mode === 'picker'} />
           </div>
         )}
 
-        {say && <div className={`bdg-bubble ${sayBig ? 'big' : 'small'}`} role="status" aria-live="polite"><p>{typed}</p></div>}
+        {say && !quiz && <div className={`bdg-bubble ${sayBig ? 'big' : 'small'}`} role="status" aria-live="polite"><p>{typed}</p><button type="button" className="bdg-listen" onClick={() => speak(say, student.ttsSettings)} aria-label="Listen to Buff Doge">🔊</button></div>}
+        {mode === 'lobby' && <button type="button" className="bdg-btn bdg-arrow bdg-lobby-go" aria-label="Let's go, pick a pet to train" onClick={() => picker(0)}>▶</button>}
+        {quiz && <DogeQuiz key={`${quiz.n}-${quiz.q.id}`} quiz={quiz} tts={student.ttsSettings} onRight={onRight}
+          onWrong={() => setQuiz((q) => (q ? { ...q, blockWrong: true } : q))}
+          onSkip={() => setQuiz((q) => (q ? { ...q, blockWrong: true, q: nextQuestion(q.q.id) } : q))} />}
 
         {showCard && pet && (
           <div className="bdg-card">
@@ -323,11 +338,12 @@ export default function BuffDogeGym() {
           </div>
         )}
 
-        <button type="button" className="bdg-btn bdg-arrow bdg-back" aria-label={mode === 'picker' || mode === 'nopets' ? `Leave the gym, back to ${back.label}` : 'Back to my pets'} onClick={() => {
-          if (mode === 'picker' || mode === 'nopets' || mode === 'barter') { back.go(); return; }
+        <button type="button" className="bdg-btn bdg-arrow bdg-back" aria-label={quiz ? 'Stop answering' : mode === 'picker' || mode === 'nopets' || mode === 'lobby' ? `Leave the gym, back to ${back.label}` : 'Back to my pets'} onClick={() => {
+          if (quiz) { setQuitAsk(true); return; }
+          if (mode === 'picker' || mode === 'nopets' || mode === 'barter' || mode === 'lobby') { back.go(); return; }
           if (mode === 'pay') { signIn(); return; }
           picker();
-        }}>{mode === 'picker' || mode === 'nopets' || mode === 'barter' ? '⏏' : '◀'}</button>
+        }}>{quiz ? '✕' : mode === 'picker' || mode === 'nopets' || mode === 'barter' || mode === 'lobby' ? '⏏' : '◀'}</button>
 
         <div className="bdg-hud"><span className="bdg-cash" aria-label="Money">{formatMoney(student.coins)}</span><img src={`${ART}bone.png`} alt="Treats" /><span>{treats}</span></div>
 
@@ -344,24 +360,6 @@ export default function BuffDogeGym() {
         )}
       </div>
 
-      {quiz && (
-        <QuestionScreen
-          key={`${quiz.n}-${quiz.q.id}`}
-          whoLabel={quiz.kind === 'fee' ? `🏋️ Drop-off fee: question ${quiz.n + 1} of ${quiz.target}` : `🏋️ Training ${petName(quiz.petId)}: ${quiz.trick}`}
-          prompt={quiz.q.prompt}
-          choices={quiz.q.choices}
-          correctIndex={quiz.q.correctIndex}
-          imageUrl={quiz.q.imageUrl}
-          imageAlt={quiz.q.imageAlt}
-          done={quiz.n}
-          total={quiz.target}
-          onCorrectAnswer={onRight}
-          onWrongAnswer={() => setQuiz((q) => (q ? { ...q, blockWrong: true } : q))}
-          onSkip={() => setQuiz((q) => (q ? { ...q, blockWrong: true, q: nextQuestion(q.q.id) } : q))}
-          onExit={() => setQuitAsk(true)}
-          ttsSettings={student.ttsSettings}
-        />
-      )}
       {quitAsk && quiz && (
         <div className="bdg-modal-back">
           <div className="bdg-modal">
@@ -377,5 +375,42 @@ export default function BuffDogeGym() {
         </div>
       )}
     </div>
+  );
+}
+
+// Buff Doge asks the training questions himself (her 2026-10-12 art: Buff Doge big on the left,
+// the question in his speech bubble, the answers in 4 boxes, or 2 when there are only 2). Her
+// style sheet: "Use this font for Buff Doge's text bubble and options". Wrong answers just try again.
+function DogeQuiz({ quiz, tts, onRight, onWrong, onSkip }: { quiz: Quiz; tts: Parameters<typeof speak>[1]; onRight: () => void; onWrong: () => void; onSkip: () => void }) {
+  const q = quiz.q;
+  const order = useMemo(() => { const o = q.choices.map((_, i) => i); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o; }, [q]);
+  const [wrong, setWrong] = useState<Set<number>>(() => new Set());
+  const [right, setRight] = useState(false);
+  const listen = () => speak(`${q.prompt} ${order.map((i) => q.choices[i]).join(', ')}`, tts);
+  const pick = (i: number) => {
+    if (right || wrong.has(i)) return;
+    if (i === q.correctIndex) { setRight(true); recordStreakCorrect(); window.setTimeout(onRight, 800); }
+    else { setWrong((w) => new Set(w).add(i)); onWrong(); }
+  };
+  return (
+    <>
+      <div className="bdg-bubble big bdg-qbubble" role="group" aria-label="Buff Doge's question">
+        {q.imageUrl && <img src={q.imageUrl} alt={q.imageAlt ?? ''} className="bdg-qimg" />}
+        <p>{q.prompt}</p>
+        <div className="bdg-qside">
+          <button type="button" className="bdg-listen" onClick={listen} aria-label="Listen to the question">🔊</button>
+          <span className="bdg-qcount">{quiz.kind === 'fee' ? 'Fee' : 'Training'} {quiz.n + 1} / {quiz.target}</span>
+        </div>
+      </div>
+      <div className={`bdg-options bdg-qopts${q.choices.length <= 2 ? ' two' : ''}`}>
+        {order.map((i) => (
+          <button key={i} type="button" className={`bdg-btn${wrong.has(i) ? ' wrong' : ''}${right && i === q.correctIndex ? ' right' : ''}`} disabled={wrong.has(i)} onClick={() => pick(i)}>{q.choices[i]}</button>
+        ))}
+      </div>
+      <div className="bdg-qtools">
+        {wrong.size > 0 && !right && <button type="button" className="bdg-btn" onClick={onSkip}>🔀 A different question</button>}
+        <button type="button" className="bdg-btn" onClick={() => openCheckOnPet('break')}>🐾 Take a break</button>
+      </div>
+    </>
   );
 }

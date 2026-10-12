@@ -7215,3 +7215,19 @@ body.calm-games .pf-overlay .fd-fish { animation-duration: 0.01ms !important; an
 .rs-say-listen { margin-left: auto; flex: none; min-width: 44px; min-height: 44px; border-radius: 12px; border: 2px solid #f0a030; background: #fff3d6; font-size: 20px; cursor: pointer; }
 /* Scratch games inside the Arcade (2026-10-12: the Game Dashboard and the Arcade are one page) */
 .games-hub-scratch h2 { margin: 6px 0 10px; text-shadow: 0 2px 10px rgba(0,0,0,0.35); }
+
+/* Buff Doge's Gym v2 (2026-10-12, her new art): the lobby, Buff Doge asks the questions himself, her font */
+.bdg-bubble, .bdg-options .bdg-btn, .bdg-qtools .bdg-btn { font-family: 'Lexend', "M PLUS Rounded 1c", system-ui, sans-serif; }
+.bdg-bubble .bdg-listen { position: absolute; right: 18px; bottom: 14px; width: 76px; height: 76px; border-radius: 18px; border: 5px solid #D98C1E; background: #fff; font-size: 38px; cursor: pointer; }
+.bdg-bubble.small { padding-right: 110px; }
+.bdg-lobby-go { left: 1230px; top: 200px; width: 130px; height: 130px; font-size: 64px; }
+.bdg-qbubble { gap: 24px; padding-right: 140px; }
+.bdg-qbubble p { flex: 1; }
+.bdg-qimg { max-height: 220px; max-width: 320px; border-radius: 14px; flex: none; }
+.bdg-qside { position: absolute; right: 18px; top: 14px; bottom: 14px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+.bdg-qside .bdg-listen { position: static; }
+.bdg-qcount { font-size: 26px; font-weight: 800; color: #A9650F; white-space: nowrap; }
+.bdg-qopts .bdg-btn.wrong { opacity: .45; text-decoration: line-through; animation: po-shake .4s ease both; }
+.bdg-qopts .bdg-btn.right { background: #d8f5d0; border-color: #2fa36b; box-shadow: 0 8px 0 #1f7a4d; }
+.bdg-qtools { position: absolute; left: 860px; top: 1010px; display: flex; gap: 20px; }
+.bdg-qtools .bdg-btn { font-size: 26px; padding: 6px 22px; box-shadow: 0 5px 0 #A9650F; border-width: 5px; }

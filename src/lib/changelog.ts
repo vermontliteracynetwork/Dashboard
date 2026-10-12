@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-gym-lobby",
+    date: "2026-10-12",
+    icon: "🏋️",
+    title: "Buff Doge's new gym",
+    body: "Buff Doge's Gym has a new lobby full of pets working out. Buff Doge asks your training questions in his own speech bubble, and you can tap 🔊 to hear him. Find the gym in Town Square, in your Home Room, or on the second page of your menu.",
+  },
+  {
     id: "2026-10-12-rescue-arcade",
     date: "2026-10-12",
     icon: "🕹️",
