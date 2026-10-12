@@ -7177,3 +7177,7 @@ body.calm-games :is(.fd, .fg, .po, .lh, .kc, .mc, .td, .gm, .lq, .dg, .cs, .wm, 
 body.calm-games :is(.fd, .fg, .po, .lh, .kc, .mc, .td, .gm, .lq, .dg, .cs, .wm, .mm, .ws, .pk, .cr, .ty, .dd) *::before,
 body.calm-games :is(.fd, .fg, .po, .lh, .kc, .mc, .td, .gm, .lq, .dg, .cs, .wm, .mm, .ws, .pk, .cr, .ty, .dd) *::after,
 body.calm-games .pf-overlay .fd-fish { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; animation-delay: 0s !important; transition-duration: 0.01ms !important; }
+
+/* "✨ New" ribbon on a game picker cabinet for two weeks after the game ships (Build Queue 52) */
+.arcade-cab { position: relative; }
+.arcade-new { position: absolute; top: 44px; right: 8px; z-index: 3; background: #ffd23f; color: #3a2a00; font-weight: 900; font-size: 0.85rem; padding: 3px 10px; border-radius: 8px; box-shadow: 0 3px 0 rgba(0,0,0,0.25); transform: rotate(4deg); pointer-events: none; }

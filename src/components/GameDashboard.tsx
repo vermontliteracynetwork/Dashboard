@@ -9,6 +9,8 @@ import { useEffect, useRef, useState } from 'react';
 // and right arrows"). Swipe works too. Used for "Play a game" with a
 // Neighbor, the Game Dashboard page (Build Mode role and the computer app,
 // /student/games) and pick-your-game assignments.
+const NEW_FOR_MS = 14 * 24 * 3600 * 1000; // a new game's ribbon shows for two weeks
+
 export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick, bests }: { games?: NativeGameCard[]; onPick: (g: NativeGameCard) => void; bests?: Partial<Record<NativeGameCard['id'], string>> }) {
   const track = useRef<HTMLDivElement>(null);
   const [edge, setEdge] = useState({ start: true, end: games.length <= 1, index: 0 });
@@ -35,6 +37,7 @@ export function GameCardGrid({ games = NATIVE_GAME_CARDS, onPick, bests }: { gam
         {games.map((g) => (
           <button key={g.id} type="button" className="arcade-cab" onClick={() => onPick(g)} aria-label={`Play ${g.title}`}
             style={{ ['--cab-marquee' as string]: g.cabinet.marquee, ['--cab-panel' as string]: g.cabinet.panel, ['--cab-trim' as string]: g.cabinet.trim }}>
+            {g.added && Date.now() - Date.parse(g.added) < NEW_FOR_MS && <span className="arcade-new">✨ New</span>}
             <span className="arcade-marquee"><span aria-hidden>{g.cabinet.icon}</span> {g.title}</span>
             <span className="arcade-screen"><img src={g.cover} alt="" draggable={false} /></span>
             <span className="arcade-panel" aria-hidden><span className="arcade-stick" /><span className="arcade-btns"><i /><i /><i /></span></span>
