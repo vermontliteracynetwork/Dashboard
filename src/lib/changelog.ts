@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-rescue-shelter",
+    date: "2026-10-12",
+    icon: "🐶",
+    title: "New game: Rescue Shelter",
+    body: "A scared stray is hiding at the Rescue Shelter! Sit quietly, talk softly, offer treats and play to help it learn to trust you. Watch how it feels and pick the right kind of help. When it trusts you, you can give it a forever home.",
+  },
+  {
     id: '2026-10-12-pet-show-ring',
     date: '2026-10-12',
     icon: '🏅',
