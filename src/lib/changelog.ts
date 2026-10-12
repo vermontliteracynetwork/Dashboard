@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-kitchen",
+    date: "2026-10-12",
+    icon: "🍳",
+    title: "New game: Kitchen Cook-Off",
+    body: "Be the chef! Animal customers order food. Answer a question to get each ingredient, then follow the recipe card: first, next, then, last. Cook all 8 dishes for your Recipe Book!",
+  },
+  {
     id: "2026-10-12-lighthouse",
     date: "2026-10-12",
     icon: "🗼",

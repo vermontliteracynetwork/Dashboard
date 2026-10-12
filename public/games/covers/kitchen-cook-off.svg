@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <defs><pattern id="t" width="48" height="48" patternUnits="userSpaceOnUse"><rect width="48" height="48" fill="#fff6e6"/><rect width="24" height="24" fill="#ffeccc"/><rect x="24" y="24" width="24" height="24" fill="#ffeccc"/></pattern></defs>
+  <rect width="640" height="360" fill="url(#t)"/>
+  <rect x="40" y="110" width="200" height="200" rx="16" fill="#fffdf6" stroke="#d2553a" stroke-width="6"/>
+  <g font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="24" font-weight="800" fill="#d2553a"><text x="60" y="155">First</text><text x="60" y="200">Next</text><text x="60" y="245">Then</text><text x="60" y="290">Last</text></g>
+  <g font-size="34"><text x="150" y="160">🫓</text><text x="150" y="205">🍅</text><text x="150" y="250">🧀</text><text x="150" y="295">🔥</text></g>
+  <path d="M300 230 h240 a120 90 0 0 1 -240 0z" fill="#8a94a6"/><rect x="290" y="222" width="260" height="14" rx="7" fill="#c3cad6"/>
+  <g fill="#fff" opacity="0.85"><ellipse cx="380" cy="190" rx="8" ry="22"/><ellipse cx="420" cy="175" rx="8" ry="24"/><ellipse cx="460" cy="190" rx="8" ry="22"/></g>
+  <text x="560" y="140" font-size="70">🍕</text>
+  <text x="320" y="78" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="56" font-weight="900" fill="#fff" stroke="#d2553a" stroke-width="10" paint-order="stroke">KITCHEN COOK-OFF</text>
+</svg>
