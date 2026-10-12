@@ -241,6 +241,9 @@ const PLANE_ALTITUDE_RATE = 3.5; // units/s, student-controlled while flying
 const CAMERA_HEIGHT = 2.1;
 const CAMERA_DISTANCE = 3.3;
 const ZOOM_MAX = 1.6;
+// Steering with the arrows (radians a second), and how fast stepping back is.
+const TURN_SPEED = 2.6;
+const BACK_STEP = 0.6;
 // Camera zoom (teacher direction 2026-10-04: "give me ability to zoom in on
 // my student camera view so im closer to the back of the character if i
 // want"). k = 1 is the normal chase camera; smaller k pulls the camera in
@@ -929,7 +932,7 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
   // from the Companion menu.
   const trickGroup = useRef<THREE.Group>(null);
   usePetMove(trickGroup, cue, targetHeight);
-  usePetTricks(poseSetup, cloned, trickGroup, cue, targetHeight * 1.2, scale);
+  usePetTricks(poseSetup, cloned, trickGroup, cue, targetHeight * 1.2, scale, isMovingRef);
   return (
     <group ref={group}>
       <group ref={trickGroup}>
@@ -1967,8 +1970,22 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       soundRef?.current?.setIntensity(carRatio);
     } else if (!frozen) {
       const k = keys.current;
-      let dx = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
-      let dz = (k['s'] || k['arrowdown'] ? 1 : 0) - (k['w'] || k['arrowup'] ? 1 : 0) + touchDir.current.z;
+      // Teacher 2026-10-12: "left and right keyboard arrows are broken". The arrows used to move
+      // along the map's own directions while the camera swung around behind the student, so a
+      // left or right turned the whole view and the next press went somewhere unexpected. Now
+      // they steer like a game character: left and right turn, up walks forward the way the
+      // student faces, down steps back. The on-screen arrows work the same way.
+      const turn = (k['d'] || k['arrowright'] ? 1 : 0) - (k['a'] || k['arrowleft'] ? 1 : 0) + touchDir.current.x;
+      const drive = (k['w'] || k['arrowup'] ? 1 : 0) - (k['s'] || k['arrowdown'] ? 1 : 0) - touchDir.current.z;
+      if (Math.abs(turn) > 0.001) {
+        facing.current -= Math.max(-1, Math.min(1, turn)) * TURN_SPEED * dt;
+        walkTarget.current = null;
+        cameraLook.current = 0;
+        cameraPitch.current = 0;
+      }
+      const fwd = Math.max(-1, Math.min(1, drive));
+      let dx = Math.abs(fwd) > 0.001 ? Math.sin(facing.current) * fwd * (fwd < 0 ? BACK_STEP : 1) : 0;
+      let dz = Math.abs(fwd) > 0.001 ? Math.cos(facing.current) * fwd * (fwd < 0 ? BACK_STEP : 1) : 0;
       const len = Math.hypot(dx, dz);
       if (len > 0.001) {
         // Direct keyboard/D-pad input always wins over a pending
@@ -1993,8 +2010,9 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         // one more pass catches that without needing the clamp and the
         // building push-out to somehow run as a single combined step.
         [pos.current.x, pos.current.z] = blockBuildings(cx, cz);
-        facing.current = Math.atan2(dx, dz);
         moved = true;
+      } else if (Math.abs(turn) > 0.001) {
+        moved = true; // turning in place still animates the walk
       } else if (walkTarget.current) {
         // Click-to-walk (mouse click or a tap on the ground) — the main
         // move method for touchpad/mouse users and the simplest one for
@@ -2161,10 +2179,13 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
       {!hideAvatar && <SwimRipples swimming={swimming} />}
       {!hideAvatar && onSelfClick && !mapView && (
         <mesh
-          position={[0, 0.7, 0]}
+          position={[0, 0.95, 0]}
           onClick={(e) => { e.stopPropagation(); onSelfClick(); }}
         >
-          <cylinderGeometry args={[0.45, 0.45, 1.4, 12]} />
+          {/* Teacher 2026-10-12: "if you click on the grass, the menu open". With the closer camera
+              this invisible tap target (it was 0.9 wide and reached the ground) covered the grass
+              around the student's feet. It is now a slimmer target on the body only. */}
+          <cylinderGeometry args={[0.3, 0.3, 0.9, 12]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} colorWrite={false} />
         </mesh>
       )}
@@ -4627,6 +4648,36 @@ export default function TownSquare() {
           </>
         );
       })()}
+      {/* Teacher 2026-10-12: "if a student taps on a building with a role, make sure the
+          confirmation to enter/view is always immediately within the students sight lines so they
+          dont have to pan the camera anywhere ot see the mesasge". The card used to float over the
+          building in 3D (off screen when the building was beside or behind the camera); it is now
+          pinned in the middle of the screen. */}
+      {selectedRoleObjectId && !mapView && (() => {
+        const obj = worldObjects.find((o) => o.id === selectedRoleObjectId);
+        if (!obj) return null;
+        return (
+          <div className="role-confirm" role="dialog" aria-label={obj.customName || obj.label}>
+            <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
+                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{obj.role === 'gas-pump' ? '⛽ Get gas?' : `View ${obj.customName || obj.label}?`}</div>
+                    <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
+                      <button
+                        onClick={() => { setSelectedRoleObjectId(null); openRoleObject(obj); }}
+                        style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        <Icon name="check" size={16} fallback="✅" /> Confirm
+                      </button>
+                      <button
+                        onClick={() => setSelectedRoleObjectId(null)}
+                        style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+                      >
+                        Not now
+                      </button>
+                    </div>
+                  </div>
+          </div>
+        );
+      })()}
       {petAnnounce && <div className="pet-announce" role="status" aria-live="polite">{petAnnounce}</div>}
       {strayMenu && student && (() => {
         const n = strayCount(strayMenu.objId);
@@ -5459,27 +5510,6 @@ export default function TownSquare() {
                 <Html center position={[obj.position[0], 3.7, obj.position[2]]} style={{ pointerEvents: 'none' }}>
                   <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#ffb020', border: '2px solid var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 900, color: '#1f4238', boxShadow: '0 2px 6px rgba(0,0,0,0.25)' }}>
                     !
-                  </div>
-                </Html>
-              )}
-              {selectedRoleObjectId === obj.id && (
-                <Html center position={[obj.position[0], 3.7, obj.position[2]]}>
-                  <div style={{ background: '#fff', borderRadius: 14, padding: '10px 16px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 170, fontFamily: 'system-ui, sans-serif' }}>
-                    <div style={{ fontWeight: 800, fontSize: 13, marginBottom: 8, color: '#1f4238' }}>{obj.role === 'gas-pump' ? '⛽ Get gas?' : `View ${obj.customName || obj.label}?`}</div>
-                    <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
-                      <button
-                        onClick={() => { setSelectedRoleObjectId(null); openRoleObject(obj); }}
-                        style={{ background: '#3e7c6b', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
-                      >
-                        <Icon name="check" size={16} fallback="✅" /> Confirm
-                      </button>
-                      <button
-                        onClick={() => setSelectedRoleObjectId(null)}
-                        style={{ background: '#eee', color: '#333', border: 'none', borderRadius: 10, padding: '10px 16px', minHeight: 44, fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
-                      >
-                        Not now
-                      </button>
-                    </div>
                   </div>
                 </Html>
               )}

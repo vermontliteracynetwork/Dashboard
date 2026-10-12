@@ -4,7 +4,7 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import { ModelBoundary } from '../routes/world/WorldObjectRenderer';
-import { setupPoseRig, filterClip, markAnimated, applyPose, lowestFootY, trickFrame, trickSeconds } from '../lib/petPoses';
+import { setupPoseRig, markAnimated, applyPose, lowestFootY, trickFrame, trickSeconds, startFeetFollow, applyFeetFollow, stopFeetFollow } from '../lib/petPoses';
 
 // One pet standing on a round platform, for 2D screens (Buff Doge's Gym, Check on your pet).
 // Tricks are real poses on each breed's skeleton (src/lib/petPoses.ts, Build Queue 19d) plus the
@@ -17,10 +17,9 @@ export function usePetPoser(scene: THREE.Object3D, animations: THREE.AnimationCl
   return useMemo(() => {
     const c = cloneSkinned(scene) as THREE.Object3D;
     c.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.frustumCulled = false; });
-    const { rig, dropTracks } = setupPoseRig(c);
+    const { rig } = setupPoseRig(c);
     const clips = animations.filter((a) => a.tracks.length);
-    const idle = clips.find((a) => a.name === 'Idle') ?? clips.find((a) => a.name.toLowerCase().includes('idle')) ?? clips[0] ?? null;
-    const clip = idle ? filterClip(idle, dropTracks) : null;
+    const clip = clips.find((a) => a.name === 'Idle') ?? clips.find((a) => a.name.toLowerCase().includes('idle')) ?? clips[0] ?? null;
     if (rig) markAnimated(rig, clip);
     const mixer = new THREE.AnimationMixer(c);
     if (clip) mixer.clipAction(clip).play();
@@ -43,7 +42,7 @@ function PetModel({ path, ageScale, trick, idleSpin }: { path: string; ageScale:
   const motion = useRef<THREE.Group>(null);
   const ball = useRef<THREE.Mesh>(null);
   useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
-  const t = useRef({ spin: 0, trickT: 99, cueAt: 0, grow: ageScale });
+  const t = useRef({ spin: 0, trickT: 99, cueAt: 0, grow: ageScale, posed: false });
   useFrame((_, dtRaw) => {
     const dt = Math.min(dtRaw, 0.05), g = motion.current, h = holder.current;
     if (!g || !h) return;
@@ -56,16 +55,15 @@ function PetModel({ path, ageScale, trick, idleSpin }: { path: string; ageScale:
     if (active) st.trickT += dt;
     const f = active && trick ? trickFrame(trick.name, Math.min(1, st.trickT / D), st.trickT) : trickFrame('', 0, 0);
     if (idleSpin && !active) { st.spin += dt * 0.5; f.body.ry = Math.sin(st.spin) * 0.6; }
-    if (rig) applyPose(rig, f.angles);
+    if (rig) {
+      if (active && !st.posed) { startFeetFollow(rig); st.posed = true; }
+      if (!active && st.posed) { stopFeetFollow(rig); st.posed = false; }
+      applyPose(rig, f.angles);
+      if (active) applyFeetFollow(rig);
+    }
     let lift = 0;
     if (rig && f.ground && active) lift = (restFoot - lowestFootY(rig, model)) * fitT.k;
     h.position.set(fitT.pos.x, fitT.pos.y + lift, fitT.pos.z);
-    // Pets without a skeleton fall back to her prototype's whole-body moves for the leg tricks.
-    if (!rig && active && trick) {
-      const e = Math.sin(Math.PI * Math.min(1, st.trickT / D));
-      if (trick.name === 'Sit' || trick.name === 'Shake a Paw' || trick.name === 'High Five') { f.body.rx -= 0.35 * e; f.body.py += 0.09 * e; }
-      if (trick.name === 'Down') f.body.py -= 0.05 * e;
-    }
     if (ball.current) {
       ball.current.visible = !!f.ball;
       if (f.ball) ball.current.position.set(f.ball.x, f.ball.y, f.ball.z);

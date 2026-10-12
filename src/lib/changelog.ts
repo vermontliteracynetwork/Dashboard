@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: '2026-10-12-steering-pets',
+    date: '2026-10-12',
+    icon: '🕹️',
+    title: 'Easier steering and happier pets',
+    body: 'In Town Square, the left and right arrows now turn you, and up walks the way you are facing. Tapping the grass next to you walks there instead of opening the menu. Tap a building and its Open card pops up right in the middle of your screen. Pets now walk with real leg steps and stand up straight.',
+  },
+  {
     id: '2026-10-11-new-map',
     date: '2026-10-11',
     icon: '🗺️',

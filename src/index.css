@@ -6583,3 +6583,6 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .map-card .btn { min-height: 52px; flex: 1 1 140px; }
 @media (max-width: 700px) { .map-places { top: auto; bottom: 110px; left: 16px; right: 16px; width: auto; max-height: 30vh; } }
 @media (prefers-reduced-motion: reduce) { .map-pin.on .map-pin-dot { animation: none; } }
+.role-confirm { position: fixed; left: 50%; top: 42%; transform: translate(-50%, -50%); z-index: 180; }
+.role-confirm > div { min-width: 240px !important; padding: 16px 20px !important; border: 3px solid #3e7c6b; }
+.role-confirm > div > div:first-child { font-size: 16px !important; }

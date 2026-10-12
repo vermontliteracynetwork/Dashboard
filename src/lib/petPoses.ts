@@ -66,9 +66,11 @@ export interface PoseRig {
   bones: Partial<Record<Canon, { bone: THREE.Bone; restWorld: THREE.Quaternion; restWorldInv: THREE.Quaternion; restLocal: THREE.Quaternion; animated: boolean }>>;
   feet: THREE.Object3D[];
   adjust: Partial<Record<Canon, number>>;
+  // IK foot controls (Husky, Shiba Inu, Pug) and the leg each one follows while the pet is posed.
+  follow: { foot: THREE.Object3D; leg: THREE.Object3D; off: THREE.Matrix4 | null }[];
 }
 
-// Finds the skeleton type, moves IK feet onto the legs, and remembers each mapped bone's resting
+// Finds the skeleton type and remembers each mapped bone's resting
 // turn relative to the model. Returns null for a model with no matching skeleton (the pet then
 // does its tricks as whole-body moves only).
 export function setupPoseRig(model: THREE.Object3D): { rig: PoseRig | null; dropTracks?: RegExp } {
@@ -77,10 +79,14 @@ export function setupPoseRig(model: THREE.Object3D): { rig: PoseRig | null; drop
   const rigDef = RIGS.find((r) => all.some((o) => r.test.test(o.name)));
   if (!rigDef) return { rig: null };
   const find = (re: RegExp) => all.find((o) => re.test(o.name));
-  model.updateMatrixWorld(true);
+  // Teacher 2026-10-12 ("some of them dont move thier legs when walking, tilt thier whole body
+  // back when standing"): the IK feet used to be moved onto the legs for good and their
+  // animation dropped, which broke the Husky, Shiba Inu and Pug's own walk and idle. The pets now
+  // keep their own animations untouched; the feet only follow the legs while a pose is playing.
+  const follow: PoseRig['follow'] = [];
   for (const [footRe, legRe] of rigDef.spec.reparent ?? []) {
     const foot = find(footRe), leg = find(legRe);
-    if (foot && leg) leg.attach(foot);
+    if (foot && leg) follow.push({ foot, leg, off: null });
   }
   model.updateMatrixWorld(true);
   const rootInv = new THREE.Quaternion();
@@ -95,7 +101,7 @@ export function setupPoseRig(model: THREE.Object3D): { rig: PoseRig | null; drop
     bones[canon] = { bone: b as THREE.Bone, restWorld: w, restWorldInv: w.clone().invert(), restLocal: b.quaternion.clone(), animated: false };
   }
   const feet = (['FP_L', 'FP_R', 'BP_L', 'BP_R', 'FLL_L', 'FLL_R', 'BLL_L', 'BLL_R'] as Canon[]).map((c) => bones[c]?.bone).filter(Boolean) as THREE.Object3D[];
-  return { rig: { bones, feet, adjust: rigDef.spec.adjust ?? {} }, dropTracks: rigDef.spec.dropTracks };
+  return { rig: { bones, feet, adjust: rigDef.spec.adjust ?? {}, follow } };
 }
 
 // Marks which mapped bones the idle animation drives; the rest are reset each frame before posing.
@@ -184,4 +190,33 @@ export function lowestFootY(rig: PoseRig, model: THREE.Object3D): number {
   let min = Infinity;
   for (const f of rig.feet) { f.getWorldPosition(_p); _p.applyMatrix4(inv); if (_p.y < min) min = _p.y; }
   return min;
+}
+
+// While posed, each IK foot keeps the place it had on its leg when the pose began.
+const _m = new THREE.Matrix4(), _pi = new THREE.Matrix4(), _pos = new THREE.Vector3(), _rot = new THREE.Quaternion(), _scl = new THREE.Vector3();
+export function startFeetFollow(rig: PoseRig) {
+  for (const f of rig.follow) { f.leg.updateWorldMatrix(true, false); f.foot.updateWorldMatrix(true, false); f.off = new THREE.Matrix4().copy(f.leg.matrixWorld).invert().multiply(f.foot.matrixWorld); }
+}
+export function applyFeetFollow(rig: PoseRig) {
+  for (const f of rig.follow) {
+    if (!f.off || !f.foot.parent) continue;
+    f.leg.updateWorldMatrix(true, false);
+    _m.copy(f.leg.matrixWorld).multiply(f.off);
+    f.foot.parent.updateWorldMatrix(true, false);
+    _pi.copy(f.foot.parent.matrixWorld).invert();
+    _m.premultiply(_pi).decompose(_pos, _rot, _scl);
+    f.foot.position.copy(_pos); f.foot.quaternion.copy(_rot);
+  }
+}
+export function stopFeetFollow(rig: PoseRig) { for (const f of rig.follow) f.off = null; }
+
+// A walking step for pets whose model has no walk animation: legs swing in a trot.
+export function gaitAngles(phase: number, amount = 1): PoseAngles {
+  const s = Math.sin(phase), c = Math.cos(phase);
+  const a = 28 * amount, k = 30 * amount;
+  return {
+    FUL_L: -a * s, FUL_R: a * s, BUL_L: a * s, BUL_R: -a * s,
+    FLL_L: k * Math.max(0, c), FLL_R: k * Math.max(0, -c), BLL_L: k * 0.6 * Math.max(0, -c), BLL_R: k * 0.6 * Math.max(0, c),
+    head: 4 * Math.sin(phase * 2) * amount, tail1: 10 * Math.sin(phase) * amount,
+  };
 }

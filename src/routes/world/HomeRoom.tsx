@@ -18,6 +18,7 @@ import { usePetMove, type PetMoveCue } from '../../lib/petMoves';
 import PetTalk from '../../components/PetTalk';
 import { petFeeling } from '../../lib/petsV2';
 import { useGym } from '../../lib/petGym';
+import { usePoseSetup, usePetTricks } from '../../lib/usePetTricks';
 import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import type { PetDef } from '../../lib/petCatalog';
 import { formatMoney } from '../../lib/money';
@@ -728,6 +729,7 @@ function HomePetPresence({ pet, def, position, cue, onTap, roam }: { pet: Studen
   useFrame((_, dtRaw) => {
     const g = root.current; if (!g) return;
     const dt = Math.min(dtRaw, 0.05), w = wander.current;
+    walkingRef.current = !!roam && w.walking;
     if (roam) {
       if (!w.walking) {
         w.wait -= dt;
@@ -742,12 +744,17 @@ function HomePetPresence({ pet, def, position, cue, onTap, roam }: { pet: Studen
       if (walkA && !w.walking && walkA.isRunning()) { walkA.fadeOut(0.2); idleA?.reset().fadeIn(0.2).play(); }
       g.rotation.y += (((w.yaw - g.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 6);
     }
-    g.position.set(w.x, position[1] + (roam && w.walking && !clipKeys.walk ? Math.abs(Math.sin(performance.now() / 120)) * 0.04 : 0), w.z);
+    g.position.set(w.x, position[1] + (roam && w.walking && !clipKeys.walk && !poseSetup.rig ? Math.abs(Math.sin(performance.now() / 120)) * 0.04 : 0), w.z);
   });
   // Pets review (2026-10-06): care taps and tricks play here too, and a
   // tap on the pet itself opens its training session.
   const move = useRef<THREE.Group>(null);
   usePetMove(move, cue, def.targetHeight * growthScaleFactor(stage));
+  // Pets with a skeleton but no walk animation trot their legs while they stroll (teacher
+  // 2026-10-12: "some of them dont move thier legs when walking").
+  const walkingRef = useRef(false);
+  const poseSetup = usePoseSetup(cloned, animations);
+  usePetTricks(poseSetup, cloned, move, null, def.targetHeight, scale, walkingRef);
   return (
     <group ref={root} position={position}>
       <group
