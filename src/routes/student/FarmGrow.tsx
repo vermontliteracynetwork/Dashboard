@@ -41,7 +41,6 @@ const iso = (c: number, r: number) => ({ x: OX + (c - r) * 16, y: OY + (c + r) *
 // Nine plots in a 3 by 3 field, front right of the house.
 const PLOT_CELLS: [number, number][] = [];
 for (let r = 4; r <= 6; r++) for (let c = 5; c <= 7; c++) PLOT_CELLS.push([c, r]);
-const PLOTS = PLOT_CELLS.map(([c, r]) => iso(c, r));
 // The house covers cells 0 to 3; its picture is 128 by 112 with the door low on its left face.
 const HOUSE = { x: OX - 64, y: OY - 47 };
 const HOME = { x: HOUSE.x + 60, y: HOUSE.y + 104 };
@@ -60,11 +59,16 @@ const cropOf = (id: string) => CROPS.find((c) => c.id === id) ?? CROPS[0];
 const STAGE_NAME = ['Seeds', 'Sprout', 'Growing', 'Ripe'];
 
 interface Plot { crop: string; stage: 0 | 1 | 2 | 3; watered: boolean }
-interface Farm { plots9?: (Plot | null)[]; harvested?: Record<string, number> }
-type Kind = 'plant' | 'water' | 'harvest';
-interface Job { plot: number; kind: Kind; crop?: string }
-const JOB_ICON: Record<Kind, string> = { plant: 'seeds', water: 'can', harvest: 'hoe' };
-const JOB_WORD: Record<Kind, string> = { plant: 'Plant', water: 'Water', harvest: 'Harvest' };
+interface Farm { plots9?: (Plot | null)[]; cells?: [number, number][]; harvested?: Record<string, number> }
+type Kind = 'plant' | 'water' | 'harvest' | 'dig';
+interface Job { plot: number; kind: Kind; crop?: string; cell?: [number, number] }
+const JOB_ICON: Record<Kind, string> = { plant: 'seeds', water: 'can', harvest: 'hoe', dig: 'hoe' };
+const JOB_WORD: Record<Kind, string> = { plant: 'Plant', water: 'Water', harvest: 'Harvest', dig: 'Dig' };
+// Her rule (2026-10-12): double-tap grass to make a new plot, free (no money in this game). Not under the
+// house (cells 0 to 3 both ways) or the rocks; up to 30 plots.
+const MAX_PLOTS = 30;
+const ROCKS = ['8,1', '1,7'];
+const canDig = (c: number, r: number) => !(c <= 3 && r <= 3) && !ROCKS.includes(`${c},${r}`);
 type Stage = 'start' | 'day' | 'dusk' | 'night' | 'questions' | 'end';
 
 const mix = (a: string, b: string, t: number) => {
@@ -92,7 +96,9 @@ export default function FarmGrow() {
   const [fit, setFit] = useState(2);
   const G = useRef({
     stage: 'start' as Stage, round: 1, dayT: 0, paused: false,
-    plots: Array.from({ length: PLOTS.length }, (_, i) => farm.plots9?.[i] ?? null) as (Plot | null)[],
+    cells: (farm.cells ?? PLOT_CELLS).map(([c, r]) => [c, r]) as [number, number][],
+    plots: (farm.cells ?? PLOT_CELLS).map((_, i) => farm.plots9?.[i] ?? null) as (Plot | null)[],
+    total: 1, lastTap: { key: '', at: 0 },
     harvested: { ...(farm.harvested ?? {}) } as Record<string, number>,
     queue: [] as Job[], cur: null as null | { job: Job; phase: 'walk' | 'work'; t: number },
     me: { x: HOME.x, y: HOME.y, face: 1, walking: false, inside: true, anim: 0 },
@@ -100,9 +106,10 @@ export default function FarmGrow() {
   });
   const g = G.current;
   // A saved farm that arrives after the screen opened replaces the empty one.
-  if (!g.loaded && farm.plots9) { g.plots = Array.from({ length: PLOTS.length }, (_, i) => farm.plots9?.[i] ?? null); g.harvested = { ...(farm.harvested ?? {}) }; g.loaded = true; }
+  if (!g.loaded && farm.plots9) { g.cells = (farm.cells ?? PLOT_CELLS).map(([c, r]) => [c, r]); g.plots = g.cells.map((_, i) => farm.plots9?.[i] ?? null); g.harvested = { ...(farm.harvested ?? {}) }; g.loaded = true; }
 
-  const save = () => { if (owner) mergeStyleRow(owner, { plots9: g.plots, harvested: g.harvested }); };
+  const save = () => { if (owner) mergeStyleRow(owner, { plots9: g.plots, cells: g.cells, harvested: g.harvested }); };
+  const spot = (i: number) => iso(G.current.cells[i][0], G.current.cells[i][1]);
   const pay = () => { if (student && g.unpaid > 0) payForAnswers(student.id, g.unpaid, 'Farm Grow', '🌱'); g.unpaid = 0; };
   const tell = (text: string) => setSay(text);
 
@@ -123,6 +130,10 @@ export default function FarmGrow() {
     window.setTimeout(startQuestions, 2200);
   };
   const finishJob = (job: Job) => {
+    if (job.kind === 'dig' && job.cell) {
+      if (!g.cells.some(([c, r]) => c === job.cell![0] && r === job.cell![1])) { g.cells = [...g.cells, job.cell]; g.plots = [...g.plots, null]; }
+      sfx.thud(); tell('Dug a new plot! Tap it to plant seeds.'); save(); return;
+    }
     const p = g.plots[job.plot];
     if (job.kind === 'plant' && !p && job.crop) { g.plots[job.plot] = { crop: job.crop, stage: 0, watered: false }; sfx.thud(); tell(`Planted ${cropOf(job.crop).name} seeds. Tap them to water them!`); }
     else if (job.kind === 'water' && p && !p.watered) { g.plots[job.plot] = { ...p, watered: true }; sfx.splash(); tell(`Watered the ${cropOf(p.crop).name}. It will grow tonight.`); }
@@ -144,7 +155,8 @@ export default function FarmGrow() {
         if (s.dayT >= DAY_S) { s.dayT = DAY_S; s.stage = 'dusk'; s.queue = []; s.cur = null; sfx.horn(); setPicker(null); tell('The sun is setting. The farmer is heading home.'); }
       }
       if (s.stage === 'day' && !s.cur && s.queue.length) s.cur = { job: s.queue.shift()!, phase: 'walk', t: 0 };
-      const target = s.stage === 'dusk' ? HOME : s.cur?.phase === 'walk' ? { x: PLOTS[s.cur.job.plot].x - 9, y: PLOTS[s.cur.job.plot].y + 3 } : null;
+      const at = s.cur ? (s.cur.job.cell ? iso(s.cur.job.cell[0], s.cur.job.cell[1]) : iso(s.cells[s.cur.job.plot][0], s.cells[s.cur.job.plot][1])) : null;
+      const target = s.stage === 'dusk' ? HOME : s.cur?.phase === 'walk' && at ? { x: at.x - 9, y: at.y + 3 } : null;
       me.walking = false;
       if (s.cur?.phase === 'work') {
         s.cur.t -= dt;
@@ -178,11 +190,11 @@ export default function FarmGrow() {
   if (!student) return null;
 
   const startDay = (first: boolean) => {
-    if (first) { g.round = 1; g.stats = { harvested: 0, right: 0, days: 0 }; }
+    if (first) { g.round = 1; g.total = rs.rounds; g.stats = { harvested: 0, right: 0, days: 0 }; }
     g.stage = 'day'; g.dayT = 0; g.queue = []; g.cur = null;
     g.me = { ...g.me, x: HOME.x, y: HOME.y, inside: false, face: 1 };
     sfx.chime();
-    tell(`Good morning! Day ${g.round} of ${rs.rounds}. Tap a plot: plant seeds, water crops, or harvest ripe ones.`);
+    tell(`Good morning! Day ${g.round} of ${g.total}. Tap a plot: plant seeds, water crops, or harvest ripe ones. Double-tap grass to dig a new plot.`);
   };
   const endGame = () => {
     g.stage = 'end'; setBlock(null); setPicker(null); pay(); playCheer();
@@ -190,7 +202,7 @@ export default function FarmGrow() {
   };
   const blockDone = () => {
     setBlock(null);
-    if (g.round < rs.rounds) { g.round += 1; startDay(false); } else endGame();
+    if (g.round < g.total) { g.round += 1; startDay(false); } else endGame();
   };
   const tap = (i: number) => {
     if (g.stage !== 'day') return;
@@ -202,6 +214,18 @@ export default function FarmGrow() {
     if (!p.watered) { g.queue.push({ plot: i, kind: 'water' }); sfx.pop(); tell(`Job added: water the ${cropOf(p.crop).name}.`); return; }
     tell(`The ${cropOf(p.crop).name} is watered for today. It will grow tonight.`);
   };
+  const tapGrass = (c: number, r: number) => {
+    if (g.stage !== 'day') return;
+    const key = `${c},${r}`, now = Date.now();
+    const twice = g.lastTap.key === key && now - g.lastTap.at < 450;
+    g.lastTap = { key, at: now };
+    if (!twice) { tell('Double-tap the grass to dig a new plot there.'); return; }
+    if (g.cells.length + g.queue.filter((j) => j.kind === 'dig').length >= MAX_PLOTS) { tell('Your farm is as big as it can get!'); return; }
+    if (g.queue.some((j) => j.cell?.[0] === c && j.cell?.[1] === r) || (g.cur?.job.cell?.[0] === c && g.cur?.job.cell?.[1] === r)) { tell('The farmer will dig there soon!'); return; }
+    if (g.queue.length >= 6) { tell('The job list is full. Let the farmer catch up!'); return; }
+    g.queue.push({ plot: -1, kind: 'dig', cell: [c, r] }); sfx.pop(); tell('Job added: dig a new plot.');
+  };
+  const addDays = (n: number) => { g.total += n; g.round += 1; startDay(false); };
   const pickSeed = (crop: Crop) => {
     if (picker !== null) { g.queue.push({ plot: picker, kind: 'plant', crop: crop.id }); sfx.pop(); tell(`Job added: plant ${crop.name}.`); }
     g.paused = false; setPicker(null);
@@ -234,27 +258,39 @@ export default function FarmGrow() {
           <img src={`${ART}tiles/rocks-big.png`} alt="" className="fgx-px fgx-sprite" style={{ left: iso(8, 1).x - 32, top: iso(8, 1).y - 22, zIndex: iso(8, 1).y }} />
           <img src={`${ART}tiles/rock1.png`} alt="" className="fgx-px fgx-tile" style={{ left: iso(1, 7).x - 16, top: iso(1, 7).y - 8 }} />
           <img src={`${ART}house.png`} alt="The farmer's house" className="fgx-px fgx-sprite" style={{ left: HOUSE.x, top: HOUSE.y, zIndex: HOUSE.y + 100 }} />
-          {PLOTS.map((p, i) => {
+          {g.cells.map(([cc, rr], i) => {
+            const p = iso(cc, rr);
             const pl = g.plots[i];
             const tile = !pl ? 'plot' : pl.watered ? 'wet' : pl.stage === 0 ? 'seeded' : 'tilled';
             return <img key={`t${i}`} src={`${ART}tiles/${tile}.png`} alt="" className="fgx-px fgx-tile" style={{ left: p.x - 16, top: p.y - 8 }} />;
           })}
-          {PLOTS.map((p, i) => {
+          {g.cells.map(([cc, rr], i) => {
+            const p = iso(cc, rr);
             const pl = g.plots[i];
             return pl && pl.stage > 0 ? (
               <img key={`c${i}`} src={`${ART}crops/${pl.crop}${pl.stage}.png`} alt="" className={`fgx-px fgx-crop${pl.stage === 3 ? ' ripe' : ''}`} style={{ left: p.x, top: p.y + 4, zIndex: p.y + 4 }} />
             ) : null;
           })}
-          {jobs.map((j, k) => (
-            <span key={`j${j.plot}`} className={`fgx-job${k === 0 && g.cur ? ' now' : ''}`} style={{ left: PLOTS[j.plot].x, top: PLOTS[j.plot].y - 30, zIndex: 900 }} aria-hidden>
+          {jobs.map((j, k) => {
+            const jp = j.cell ? iso(j.cell[0], j.cell[1]) : spot(j.plot);
+            return (
+            <span key={`j${j.cell ? j.cell.join('-') : j.plot}`} className={`fgx-job${k === 0 && g.cur ? ' now' : ''}`} style={{ left: jp.x, top: jp.y - 30, zIndex: 900 }} aria-hidden>
               <img src={`${ART}ui/${JOB_ICON[j.kind]}.png`} alt="" className="fgx-px" /><b>{k + 1}</b>
             </span>
-          ))}
+            );
+          })}
           {!me.inside && (
             <img src={`${ART}farmer/${frameName}.png`} alt="The farmer" className="fgx-px fgx-farmer" style={{ left: me.x - 8, top: me.y - 15, zIndex: Math.round(me.y) + 5, transform: me.face < 0 ? 'scaleX(-1)' : undefined }} />
           )}
           {g.cur?.phase === 'work' && <span className="fgx-work" style={{ left: me.x, top: me.y - 24, zIndex: 950 }} aria-hidden><img src={`${ART}ui/${JOB_ICON[g.cur.job.kind]}.png`} alt="" className="fgx-px" /></span>}
-          {PLOTS.map((p, i) => {
+          {Array.from({ length: N * N }, (_, k) => {
+            const c = k % N, r = Math.floor(k / N);
+            if (!canDig(c, r) || g.cells.some(([cc, rr]) => cc === c && rr === r)) return null;
+            const p = iso(c, r);
+            return <button key={`g${k}`} type="button" className="fgx-hit grass" style={{ left: p.x - 16, top: p.y - 10, zIndex: 990 }} onClick={() => tapGrass(c, r)} aria-label="Grass. Double-tap to dig a new plot." disabled={g.stage !== 'day'} />;
+          })}
+          {g.cells.map(([cc, rr], i) => {
+            const p = iso(cc, rr);
             const pl = g.plots[i];
             const label = !pl ? 'Empty plot. Tap to plant seeds.' : `${cropOf(pl.crop).name}, ${STAGE_NAME[pl.stage]}${pl.watered ? ', watered' : ''}. ${pl.stage === 3 ? 'Tap to harvest.' : pl.watered ? '' : 'Tap to water.'}`;
             return <button key={`b${i}`} type="button" className="fgx-hit" style={{ left: p.x - 16, top: p.y - 18, zIndex: 1000 }} onClick={() => tap(i)} aria-label={label} disabled={g.stage !== 'day'} />;
@@ -267,9 +303,9 @@ export default function FarmGrow() {
         <SfxToggle />
         <MyBest game="farmGrow" unit="crops harvested" />
         <button type="button" className="btn fgx-btn" onClick={() => setBook(true)}><img src={`${ART}ui/seeds.png`} alt="" className="fgx-px" /> Harvest Book ({harvestedKinds} / {CROPS.length})</button>
-        {g.stage !== 'start' && g.stage !== 'end' && <span className="fgx-day">☀️ Day {g.round} of {rs.rounds}</span>}
       </header>
       <div className="fgx-bar">
+        {g.stage !== 'start' && g.stage !== 'end' && <span className="fgx-day">Day {g.round} of {g.total}</span>}
         <p aria-live="polite">{say}</p>
         <button type="button" className="btn fgx-listen" onClick={() => speak(say, student.ttsSettings)} aria-label="Listen">🔊</button>
         {jobs.length > 0 && (
@@ -297,6 +333,12 @@ export default function FarmGrow() {
             <h2>Harvest time is over!</h2>
             <p>{say}</p>
             <button type="button" className="btn fgx-listen" onClick={() => speak(say, student.ttsSettings)} aria-label="Listen">🔊</button>
+            <p><b>Want to keep farming?</b></p>
+            <div className="pf-detail-actions">
+              <button type="button" className="btn btn-lg" onClick={() => addDays(1)}>Add 1 day</button>
+              <button type="button" className="btn btn-lg" onClick={() => addDays(3)}>Add 3 days</button>
+              <button type="button" className="btn btn-lg" onClick={() => addDays(5)}>Add 5 days</button>
+            </div>
             <div className="pf-detail-actions">
               <button type="button" className="btn btn-lg" onClick={() => back.go()}>🏠 Leave</button>
               <button type="button" className="btn btn-primary btn-lg" onClick={() => { g.stage = 'start'; tell('Pick how many days to farm and how many questions come between days.'); }}>🌱 Farm again</button>
