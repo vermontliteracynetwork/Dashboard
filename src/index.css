@@ -6838,3 +6838,28 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .mc-head h1 { color: #ffd27a; text-shadow: 0 2px 0 #000; }
 .mc-hud { background: rgba(255,255,255,0.92); border-radius: 999px; padding: 8px 14px; font-weight: 900; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
 .mc-jump { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(20px, env(safe-area-inset-bottom)); min-width: 120px; min-height: 72px; font-size: 1.3rem; z-index: 3; }
+
+/* Train Station Dispatch (native game, Build Queue 35) */
+.td { position: fixed; inset: 0; overflow: hidden auto; color: #1f2a36; background: linear-gradient(#cfe8f7 0 30%, #b9d99a 30%); }
+.td-head h1 { color: #2a5d8f; }
+.td-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 96px 16px max(24px, env(safe-area-inset-bottom)); }
+.td-board { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: center; background: #1f2a36; color: #ffe58a; border: 5px solid; border-radius: 14px; padding: 8px 16px; font-weight: 800; font-size: 1.15rem; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+.td-board-train { font-size: 36px; }
+.td-count { background: #ffe58a; color: #1f2a36; border-radius: 999px; padding: 2px 10px; font-variant-numeric: tabular-nums; }
+.td-map { width: min(900px, 100%); height: auto; background: #a8cf86; border-radius: 18px; border: 4px solid #7fae5e; }
+.td-track { fill: none; stroke: #6b5a48; stroke-width: 12; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2 14; }
+.td-track.on { stroke: #ffd23f; stroke-dasharray: none; stroke-width: 14; filter: drop-shadow(0 0 4px rgba(255,210,63,0.8)); }
+.td-plat text, .td-switch text, .td-train text { text-anchor: middle; dominant-baseline: middle; font-size: 22px; font-weight: 900; fill: #fff; }
+.td-plat.picked rect { stroke: #ffd23f; stroke-width: 5; }
+.td-switch { cursor: pointer; }
+.td-switch circle { fill: #fff; stroke: #2a5d8f; stroke-width: 5; transition: transform 0.2s; transform-box: fill-box; transform-origin: center; }
+.td-switch:active circle { transform: scale(0.9); }
+.td-switch:focus-visible { outline: none; } .td-switch:focus-visible circle { stroke: #ffd23f; stroke-width: 8; }
+.td-switch text { font-size: 28px; }
+.td-train text { font-size: 30px; }
+.td-train circle { stroke: #fff; stroke-width: 3; }
+.td-msg { text-align: center; max-width: 680px; }
+.td-msg.oops { background: #fff2d6; }
+.td-go { width: min(560px, 100%); }
+.td-page { background: #eef6ff; border-color: #2a5d8f; }
+@media (prefers-reduced-motion: reduce) { .td * { transition: none !important; } }

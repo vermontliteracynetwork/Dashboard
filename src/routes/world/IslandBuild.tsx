@@ -343,6 +343,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
   { value: 'pet-gym', label: `Buff Doge's Gym → ${ROLE_VIEWS['pet-gym']}` },
   { value: 'pet-show', label: `Pet Show Ring → ${ROLE_VIEWS['pet-show']}` },
+  { value: 'train-dispatch', label: `Train Station Dispatch → ${ROLE_VIEWS['train-dispatch']}` },
   { value: 'mine-cart-run', label: `Mine Cart Run → ${ROLE_VIEWS['mine-cart-run']}` },
   { value: 'kitchen-cook-off', label: `Kitchen Cook-Off → ${ROLE_VIEWS['kitchen-cook-off']}` },
   { value: 'lighthouse-signal', label: `Lighthouse Signal → ${ROLE_VIEWS['lighthouse-signal']}` },

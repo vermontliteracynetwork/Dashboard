@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-train-dispatch",
+    date: "2026-10-12",
+    icon: "🚉",
+    title: "New game: Train Dispatch",
+    body: "Run the train station! Tap the track switches until the yellow track leads to the right platform, answer a question to turn the signal green, and watch the train roll in. Spot all 8 trains for your Train Spotter Book.",
+  },
+  {
     id: "2026-10-12-mine-cart",
     date: "2026-10-12",
     icon: "🛤️",
