@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-post-office",
+    date: "2026-10-12",
+    icon: "📮",
+    title: "New game: Post Office Sort",
+    body: "Help at the post office! Answer a question to stamp the mail, then drop it in the bin with the matching picture. Fill the mail truck to win a stamp for your Stamp Album.",
+  },
+  {
     id: "2026-10-12-farm-grow",
     date: "2026-10-12",
     icon: "🌱",

@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -35,6 +35,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'fishingDock', title: "Fishing Dock", route: '/student/fishing-dock', cover: '/games/covers/fishing-dock.svg', blurb: "Cast, wait, reel! Fill your Fish Book.", versus: false, cabinet: { marquee: '#1f6fa8', panel: '#5bb0e0', trim: '#ffd23f', icon: '🎣' } },
   // Farm Grow (Build Queue 30, her list: farm plots; answers plant and tend crops through growth stages; harvest for currency).
   { id: 'farmGrow', title: "Farm Grow", route: '/student/farm-grow', cover: '/games/covers/farm-grow.svg', blurb: "Answer to plant, water and tend crops, then harvest them at the farm stand.", versus: false, cabinet: { marquee: '#3d7a1e', panel: '#8fd16a', trim: '#ffd23f', icon: '🌱' } },
+  // Post Office Sort (Build Queue 31, her list: post office; sort letters and parcels into the right bins by answering).
+  { id: 'postOffice', title: "Post Office Sort", route: '/student/post-office', cover: '/games/covers/post-office-sort.svg', blurb: "Answer to stamp the mail, then sort it into the right bin to fill the mail truck.", versus: false, cabinet: { marquee: '#c0392b', panel: '#e8735f', trim: '#ffe14d', icon: '📮' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 
