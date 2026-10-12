@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-word-search",
+    date: "2026-10-12",
+    icon: "🔤",
+    title: "New game: Word Search",
+    body: "Find the hidden words! Answer a question to reveal a word and its picture, then tap its first letter and its last letter in the grid. Stuck? Tap the light bulb to see where the word starts.",
+  },
+  {
     id: "2026-10-12-memory",
     date: "2026-10-12",
     icon: "🃏",

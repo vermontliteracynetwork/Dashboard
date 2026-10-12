@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" width="640" height="360">
+  <rect width="640" height="360" fill="#dbe8fa"/>
+  <rect x="150" y="110" width="340" height="230" rx="18" fill="#fff" stroke="#2a5d8f" stroke-width="6"/>
+  <g font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-weight="900" font-size="30" fill="#1f2a3a" text-anchor="middle">
+  <text x="190" y="155">Q</text><text x="240" y="155">F</text><text x="290" y="155">R</text><text x="340" y="155">O</text><text x="390" y="155">G</text><text x="440" y="155">T</text>
+  <text x="190" y="205">C</text><text x="240" y="205">A</text><text x="290" y="205">T</text><text x="340" y="205">L</text><text x="390" y="205">M</text><text x="440" y="205">B</text>
+  <text x="190" y="255">S</text><text x="240" y="255">U</text><text x="290" y="255">N</text><text x="340" y="255">E</text><text x="390" y="255">O</text><text x="440" y="255">W</text>
+  <text x="190" y="305">D</text><text x="240" y="305">K</text><text x="290" y="305">P</text><text x="340" y="305">H</text><text x="390" y="305">I</text><text x="440" y="305">Y</text></g>
+  <rect x="220" y="125" width="190" height="42" rx="21" fill="#2fa36b" opacity="0.3"/><rect x="170" y="225" width="140" height="42" rx="21" fill="#ffd23f" opacity="0.45"/>
+  <text x="560" y="230" font-size="64" text-anchor="middle">🔍</text><text x="80" y="240" font-size="56" text-anchor="middle">🐸</text>
+  <text x="320" y="84" text-anchor="middle" font-family="Fredoka, 'Arial Rounded MT Bold', Verdana, sans-serif" font-size="62" font-weight="900" fill="#fff" stroke="#2a5d8f" stroke-width="10" paint-order="stroke">WORD SEARCH</text>
+</svg>

@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'memoryMatch' | 'whackAMole' | 'constructionSite' | 'dungeonRooms' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'wordSearch' | 'memoryMatch' | 'whackAMole' | 'constructionSite' | 'dungeonRooms' | 'libraryQuest' | 'gemMine' | 'trainDispatch' | 'mineCart' | 'kitchenCookOff' | 'lighthouse' | 'postOffice' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -57,6 +57,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'whackAMole', title: "Whack-a-Mole", route: '/student/whack-a-mole', cover: '/games/covers/whack-a-mole.svg', blurb: "Moles pop up holding answers. Bonk the one with the right answer!", versus: false, cabinet: { marquee: '#6b3f1f', panel: '#7cc45a', trim: '#ffd23f', icon: '🔨' } },
   // Memory Match (Build Queue 42, her genres list: library or curio shop; questions pair with answers).
   { id: 'memoryMatch', title: "Memory Match", route: '/student/memory-match', cover: '/games/covers/memory-match.svg', blurb: "Flip the cards and match each question with its answer.", versus: false, cabinet: { marquee: '#7a3e8a', panel: '#b07ac0', trim: '#f6d27a', icon: '🃏' } },
+  // Word Search (Build Queue 43, her genres list: library or post office; answers reveal hidden words).
+  { id: 'wordSearch', title: "Word Search", route: '/student/word-search', cover: '/games/covers/word-search.svg', blurb: "Answer to reveal each hidden word, then find it in the letter grid.", versus: false, cabinet: { marquee: '#2a5d8f', panel: '#5b8def', trim: '#ffd23f', icon: '🔤' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

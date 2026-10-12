@@ -81,13 +81,14 @@ export default function MemoryMatch() {
   };
   const again = () => { setWon(false); setCards(deal()); setUp([]); setFlips(0); setNote(null); };
   const matched = cards.filter((c) => c.matched).length / 2;
+  const pairs = cards.length / 2; // fewer than 6 when her starred sets have fewer than 6 different questions
 
   return (
     <div className="mm">
       <header className="fd-head mm-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🃏 Memory Match</h1>
-        <span className="mc-hud">✨ {matched} / {PAIRS} · 🔄 {flips}</span>
+        <span className="mc-hud">✨ {matched} / {pairs} · 🔄 {flips}</span>
       </header>
       <div className="mm-main">
         <div className="mm-top">
@@ -117,7 +118,7 @@ export default function MemoryMatch() {
           <div className="pf-panel fd-catch">
             <div className="fd-fish" aria-hidden>🏆</div>
             <h2>You matched them all!</h2>
-            <p>All {PAIRS} questions found their answers in {flips} flips. {saved.best && saved.best <= flips ? `Your best is ${saved.best} flips.` : 'That is your best board yet!'}</p>
+            <p>All {pairs} questions found their answers in {flips} flips. {saved.best && saved.best <= flips ? `Your best is ${saved.best} flips.` : 'That is your best board yet!'}</p>
             <button type="button" className="btn btn-primary btn-lg" onClick={again}>🃏 New cards</button>
           </div>
         </div>
