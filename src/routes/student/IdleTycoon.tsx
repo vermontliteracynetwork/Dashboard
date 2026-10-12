@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Idle Tycoon (her student-favorite genres list, 2026-09-30: "the farm or bakery shop; answers boost a
 // running business"). A cupcake shop that runs by itself: the oven bakes, cupcakes fill the display
@@ -82,7 +83,7 @@ export default function IdleTycoon() {
         if (n > 0) {
           queueRef.current = queueRef.current.slice(n); stockRef.current -= n;
           const next = { ...shopRef.current, coins: shopRef.current.coins + n * PRICE, total: shopRef.current.total + n * PRICE };
-          shopRef.current = next; setShop(next); setPop((p) => p + 1);
+          shopRef.current = next; setShop(next); setPop((p) => p + 1); sfx.tick();
         }
       }
       setBake(bakeRef.current); setStock(stockRef.current); setQueue(queueRef.current);
@@ -108,6 +109,7 @@ export default function IdleTycoon() {
       <header className="fd-head ty-head">
         <button type="button" className="btn" onClick={() => { save(); pay(); back.go(); }}>✕ Leave</button>
         <h1>🧁 Cupcake Tycoon</h1>
+        <SfxToggle />
         <span className="mc-hud"><span key={pop} className="ty-coin">🪙</span> {shop.coins} shop coins</span>
       </header>
       <div className="ty-main">

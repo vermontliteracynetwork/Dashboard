@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Time-Management Diner (her student-favorite genres list, 2026-09-30: "restaurant; answers serve
 // customers in order"). Customers sit at the counter with numbered tickets and an order. The student
@@ -79,12 +80,12 @@ export default function DinerDash() {
     const x = g.current;
     if (x.cooking) { setNote('The grill is busy. One thing at a time!'); return; }
     if (x.tray.length >= TRAY) { setNote('The tray is full. Serve a customer first.'); return; }
-    x.cooking = { id, left: COOK }; sync(); setNote(null);
+    x.cooking = { id, left: COOK }; sync(); setNote(null); sfx.sizzle();
   };
   const serve = (guest: Guest) => {
     const x = g.current, first = x.guests[0];
     if (!first) return;
-    if (guest.ticket !== first.ticket) { setNote(`First come, first served! Serve ticket #${first.ticket} first.`); return; }
+    if (guest.ticket !== first.ticket) { sfx.boing(); setNote(`First come, first served! Serve ticket #${first.ticket} first.`); return; }
     const have = [...x.tray];
     for (const id of guest.order) { const i = have.indexOf(id); if (i < 0) { setNote(`Ticket #${guest.ticket} wants ${guest.order.map((o) => food(o).icon).join(' and ')}. Make it in the kitchen first.`); return; } have.splice(i, 1); }
     ask(`🍔 Answer to serve ticket #${guest.ticket}!`, () => {
@@ -92,7 +93,7 @@ export default function DinerDash() {
       const stars = now.patience > PATIENCE * 0.66 ? 3 : now.patience > PATIENCE * 0.33 ? 2 : 1;
       g.current.tray = have; g.current.guests = g.current.guests.filter((q) => q.ticket !== guest.ticket); sync();
       setServed((n) => n + 1); setTips((t) => t + stars);
-      setNote(`${guest.face} Yum, thank you! ${'⭐'.repeat(stars)}`);
+      sfx.chime(); setNote(`${guest.face} Yum, thank you! ${'⭐'.repeat(stars)}`);
     });
   };
   const start = () => { g.current = { guests: [], tray: [], cooking: null, arrived: 0, left: 0, next: 0.5 }; sync(); setServed(0); setTips(0); setNote(null); setPhase('play'); };
@@ -102,6 +103,7 @@ export default function DinerDash() {
       <header className="fd-head dd-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🍔 Diner Dash</h1>
+        <SfxToggle />
         <span className="mc-hud">🧾 {served} served · ⭐ {tips}</span>
       </header>
       <div className="dd-main">

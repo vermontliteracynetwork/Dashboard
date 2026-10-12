@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Dungeon Rooms (her native game list, 2026-09-30: "castle cellar or ruins; each door is a puzzle
 // locked by a question set, with item-gated progress"). A 3 by 3 dungeon under the castle. Most
@@ -78,7 +79,7 @@ export default function DungeonRooms() {
     const it = dg.items[r];
     if (it && !bag.has(it)) {
       setBag((b) => new Set(b).add(it));
-      playCheer();
+      playCheer(); sfx.chime();
       setMsg(`You opened a chest and found the ${ITEM[it].icon} ${ITEM[it].name}! Now find the door it opens.`);
     } else if (r === TREASURE) {
       const fresh = RELICS.filter((x) => !relics[x.id]);
@@ -91,10 +92,11 @@ export default function DungeonRooms() {
   const tryDoor = (d: Door) => {
     if (d.a !== at && d.b !== at) { setMsg('Walk to a room next to that door first.'); return; }
     const to = d.a === at ? d.b : d.a;
-    const openIt = () => { setDg((g) => ({ ...g, doors: g.doors.map((x) => (x === d ? { ...x, open: true } : x)) })); enter(to); };
+    const openIt = () => { sfx.creak(); setDg((g) => ({ ...g, doors: g.doors.map((x) => (x === d ? { ...x, open: true } : x)) })); enter(to); };
     if (d.open) { enter(to); return; }
     if (d.lock === 'q') { ask('🔒 Answer to unlock the door!', openIt); return; }
     if (bag.has(d.lock)) { setMsg(`You used the ${ITEM[d.lock].icon} ${ITEM[d.lock].name}. The door creaks open!`); openIt(); return; }
+    sfx.boing();
     setMsg(`This door needs the ${ITEM[d.lock].icon} ${ITEM[d.lock].name}. It is hidden in a chest in another room!`);
   };
   const again = () => { setWon(null); setDg((g) => makeDungeon(g.n + 1)); setAt(START); setVisited(new Set([START])); setBag(new Set()); setMsg('A new dungeon! Find your way to the treasure room.'); };
@@ -104,6 +106,7 @@ export default function DungeonRooms() {
       <header className="fd-head dg-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🏰 Dungeon Rooms</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setShelf(true)}>🏺 Relic Shelf ({Object.keys(relics).length} / {RELICS.length})</button>
       </header>
       <div className="dg-main">

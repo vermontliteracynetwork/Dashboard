@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Crossy Road Hopper (her student-favorite genres list, 2026-09-30: "town roads; correct answers hop
 // you across"). A chicken crosses four roads of town traffic to reach the park. Each right answer
@@ -64,12 +65,12 @@ export default function CrossyHopper() {
     if (hops <= 0 || spot >= ROADS) return;
     const t = (performance.now() - t0.current) / 1000;
     if (!clearAt(cars, spot, t)) {
-      setBump((b) => b + 1);
+      setBump((b) => b + 1); sfx.beep();
       setNote('Beep beep! 🚗 Wait for the cars to pass, then hop. You still have your hop.');
       return;
     }
     const s = spot + 1;
-    setSpot(s); setHops((h) => h - 1); setNote(null); setBump(0);
+    setSpot(s); setHops((h) => h - 1); setNote(null); setBump(0); sfx.boing();
     if (s >= ROADS) {
       const friend = FRIENDS[crossings % FRIENDS.length];
       mergeStyleRow(owner, { crossings: crossings + 1 });
@@ -90,6 +91,7 @@ export default function CrossyHopper() {
       <header className="fd-head cr-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🐔 Crossy Road Hopper</h1>
+        <SfxToggle />
         <span className="mc-hud">🏞️ {crossings} crossing{crossings === 1 ? '' : 's'}</span>
       </header>
       <div className="cr-main">

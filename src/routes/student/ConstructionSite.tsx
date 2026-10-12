@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Construction Site (her native game list, 2026-09-30: "building-site asset; answers supply blocks
 // for the town's next building, tied to the Builder Plot idea"). Pick a blueprint, then each right
@@ -56,11 +57,11 @@ export default function ConstructionSite() {
   // Bottom up: a block needs a block under it. Where the blueprint has nothing underneath (a roof
   // edge, the tree house's leaves) it can hang off a block beside it instead.
   const canPlace = (x: number, y: number) => !!plan && !filled.has(k(x, y)) && (y === H - 1 || filled.has(k(x, y + 1)) || (!inPlan(x, y + 1) && (filled.has(k(x - 1, y)) || filled.has(k(x + 1, y)))));
-  const order = () => ask(`🚚 Answer to order ${PER_TRUCK} blocks!`, () => { setHand((h) => h + PER_TRUCK); setTruck((t) => t + 1); });
+  const order = () => ask(`🚚 Answer to order ${PER_TRUCK} blocks!`, () => { setHand((h) => h + PER_TRUCK); setTruck((t) => t + 1); sfx.horn(); });
   const place = (x: number, y: number) => {
     if (!plan || hand <= 0 || !canPlace(x, y)) return;
     const next = new Set(filled).add(k(x, y));
-    setFilled(next); setHand((h) => h - 1);
+    setFilled(next); setHand((h) => h - 1); sfx.thud();
     if (next.size === all.length) {
       const isNew = !built[plan.id];
       mergeStyleRow(owner, { built: { ...built, [plan.id]: (built[plan.id] ?? 0) + 1 } });
@@ -77,6 +78,7 @@ export default function ConstructionSite() {
       <header className="fd-head cs-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🏗️ Construction Site</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setBook(true)}>📐 Town Plans ({Object.keys(built).length} / {PLANS.length})</button>
       </header>
       <div className="cs-main">

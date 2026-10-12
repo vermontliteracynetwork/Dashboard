@@ -7,6 +7,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Memory Match (her student-favorite genres list, 2026-09-30: "library or curio shop; questions pair
 // with answers"). Twelve face-down cards: six question cards (blue) and six answer cards (green).
@@ -56,7 +57,7 @@ export default function MemoryMatch() {
   const flip = (c: Card) => {
     if (busy.current || c.matched || up.includes(c.id)) return;
     const now = [...up, c.id];
-    setUp(now); setFlips((f) => f + 1);
+    setUp(now); setFlips((f) => f + 1); sfx.pop();
     if (now.length < 2) { setNote(c.kind === 'q' ? 'Now find the answer card for this question.' : 'Now find the question this answers.'); return; }
     const [a, b] = now.map((id) => cards.find((x) => x.id === id)!);
     if (a.kind !== b.kind && a.key === b.key) {
@@ -64,7 +65,7 @@ export default function MemoryMatch() {
       if (pairQ.current[a.key]) countRight(pairQ.current[a.key]);
       const next = cards.map((x) => (x.key === a.key ? { ...x, matched: true } : x));
       setCards(next); setUp([]);
-      setNote('✨ A match! The answer goes with the question.');
+      sfx.chime(); setNote('✨ A match! The answer goes with the question.');
       if (next.every((x) => x.matched)) {
         const f = flips + 1;
         mergeStyleRow(owner, { best: saved.best ? Math.min(saved.best, f) : f, boards: (saved.boards ?? 0) + 1 });
@@ -90,6 +91,7 @@ export default function MemoryMatch() {
       <header className="fd-head mm-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🃏 Memory Match</h1>
+        <SfxToggle />
         <span className="mc-hud">✨ {matched} / {pairs} · 🔄 {flips}</span>
       </header>
       <div className="mm-main">

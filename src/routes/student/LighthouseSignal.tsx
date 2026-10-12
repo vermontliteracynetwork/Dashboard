@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Lighthouse Signal (her native game list, 2026-09-30: "lighthouse; answers light the beam to guide
 // boats safely in"). A calm night sea. Boats wait out in the fog (they never crash; nothing is lost).
@@ -53,17 +54,17 @@ export default function LighthouseSignal() {
   const saved = (styleLooks.find((r) => r.ownerId === owner)?.look as { seen?: Record<string, number>; total?: number } | undefined) ?? {};
   const seen = saved.seen ?? {};
 
-  const light = () => ask('💡 Answer to light the lamp!', () => setLit(true));
+  const light = () => ask('💡 Answer to light the lamp!', () => { setLit(true); sfx.chime(); });
   const guide = (b: Boat) => {
     if (!lit || aim !== null || b.safe) return;
-    setAim(b.spot);
+    setAim(b.spot); sfx.whoosh();
     // The beam swings onto the boat, then the boat sails home along it.
     timers.current.push(window.setTimeout(() => setBoats((bs) => bs.map((x) => (x.id === b.id ? { ...x, safe: true } : x))), 600));
     timers.current.push(window.setTimeout(() => {
       const isNew = !seen[b.kind.id];
       mergeStyleRow(owner, { seen: { ...seen, [b.kind.id]: (seen[b.kind.id] ?? 0) + 1 }, total: (saved.total ?? 0) + 1 });
       if (isNew) { playCheer(); setNews({ kind: b.kind, isNew }); }
-      setLit(false); setAim(null);
+      sfx.horn(); setLit(false); setAim(null);
       const used = new Set(boats.filter((x) => x.id !== b.id).map((x) => x.spot));
       const free = SPOTS.map((_, i) => i).filter((i) => !used.has(i));
       const spot = free[Math.floor(Math.random() * free.length)];
@@ -98,6 +99,7 @@ export default function LighthouseSignal() {
       <header className="fd-head lh-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🗼 Lighthouse Signal</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setLog(true)}>📘 Harbor Log ({Object.keys(seen).length} / {BOATS.length})</button>
       </header>
       <div className="fd-panel">

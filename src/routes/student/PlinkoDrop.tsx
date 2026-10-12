@@ -7,6 +7,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Plinko Drop (her student-favorite genres list, 2026-09-30: "a carnival or arcade building; answers
 // choose where the ball drops"). The answer choices label the drop chutes at the top of a carnival
@@ -52,7 +53,7 @@ export default function PlinkoDrop() {
   const drop = (choice: number) => {
     if (busy) return;
     if (choice !== q.correctIndex) {
-      setBad(choice); setNote('Boing! That chute is closed. Try another answer.');
+      sfx.boing(); setBad(choice); setNote('Boing! That chute is closed. Try another answer.');
       timers.current.push(window.setTimeout(() => setBad(null), 600));
       return;
     }
@@ -64,12 +65,12 @@ export default function PlinkoDrop() {
     for (let r = 0; r < ROWS; r++) { x = Math.max(0, Math.min(COLS - 1, x + (Math.random() < 0.5 ? -0.5 : 0.5))); path.push({ x, y: r + 0.5 }); }
     const slot = Math.round(Math.max(0, Math.min(COLS - 1, x)));
     path.push({ x: slot, y: ROWS + 0.4 });
-    path.forEach((p, i) => timers.current.push(window.setTimeout(() => setBall(p), i * 170)));
+    path.forEach((p, i) => timers.current.push(window.setTimeout(() => { setBall(p); if (i > 0) sfx.tick(); }, i * 170)));
     timers.current.push(window.setTimeout(() => {
       const won = SLOTS[slot];
       mergeStyleRow(owner, { tickets: tickets + won, drops: (saved.drops ?? 0) + 1 });
       if (won >= 5) playCheer();
-      setWin(slot); setNote(`🎟️ ${won} ticket${won === 1 ? '' : 's'}!`);
+      sfx.coin(); setWin(slot); setNote(`🎟️ ${won} ticket${won === 1 ? '' : 's'}!`);
       if (unpaid.current >= 10) pay();
     }, path.length * 170 + 100));
     timers.current.push(window.setTimeout(() => { setBall(null); setWin(null); setNote(null); setQ((old) => next(old.id)); }, path.length * 170 + 1600));
@@ -86,6 +87,7 @@ export default function PlinkoDrop() {
       <header className="fd-head pk-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🎯 Plinko Drop</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setCounter(true)}>🎟️ {tickets} · Prize Counter</button>
       </header>
       <div className="pk-main">

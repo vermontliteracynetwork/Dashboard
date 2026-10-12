@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Train Station Dispatch (her native game list, 2026-09-30: "train station; answers route trains to
 // the right platforms"). A small track map with three track switches and four platforms. The
@@ -80,7 +81,7 @@ export default function TrainDispatch() {
   };
   const go = () => {
     const p = platform, pts = routeFor(p);
-    setMoving(true); setNote(null);
+    setMoving(true); setNote(null); sfx.horn();
     run(pts, 2.6, () => {
       if (p === train.dest) {
         playCheer();
@@ -95,13 +96,14 @@ export default function TrainDispatch() {
           setTrain((t) => newTrain(t.n + 1)); setGreen(false); setMoving(false); setPos([44, 180]);
         }, 1600));
       } else {
+        sfx.boing();
         setNote({ ok: false, text: `Oops! This is the ${DESTS[p].name} platform. These passengers want ${dest.name}. Fix the switches and send it again!` });
         timers.current.push(window.setTimeout(() => run([...pts].reverse(), 1.6, () => setMoving(false)), 1200));
       }
     });
   };
   const send = () => { if (moving) return; if (green) go(); else ask('🚦 Answer to turn the signal green!', () => { setGreen(true); go(); }); };
-  const flip = (k: 'A' | 'B' | 'C') => { if (!moving) setSw((s) => ({ ...s, [k]: s[k] ? 0 : 1 })); };
+  const flip = (k: 'A' | 'B' | 'C') => { if (!moving) { setSw((s) => ({ ...s, [k]: s[k] ? 0 : 1 })); sfx.click(); } };
   const on = (seg: string) => {
     if (seg === 'up') return sw.A === 0; if (seg === 'down') return sw.A === 1;
     if (seg === 'p0') return sw.A === 0 && sw.B === 0; if (seg === 'p1') return sw.A === 0 && sw.B === 1;
@@ -120,6 +122,7 @@ export default function TrainDispatch() {
       <header className="fd-head td-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🚉 Train Dispatch</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setBook(true)}>📗 Train Spotter Book ({Object.keys(seen).length} / {TRAINS.length})</button>
       </header>
       <div className="td-main">

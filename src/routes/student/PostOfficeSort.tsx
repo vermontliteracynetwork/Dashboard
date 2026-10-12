@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Post Office Sort (her native game list, 2026-09-30: "post office; sort letters and parcels into
 // the right bins by answering"). Mail rides in on the conveyor belt. A right answer stamps it, then
@@ -52,11 +53,11 @@ export default function PostOfficeSort() {
   const saved = (styleLooks.find((r) => r.ownerId === owner)?.look as { stamps?: Record<string, number>; trucks?: number } | undefined) ?? {};
   const stamps = saved.stamps ?? {};
 
-  const stamp = () => ask(`📮 Answer to stamp the ${mail.kind.name}!`, () => setStamped(true));
+  const stamp = () => ask(`📮 Answer to stamp the ${mail.kind.name}!`, () => { setStamped(true); sfx.thud(); });
   const drop = (b: Bin) => {
     if (!stamped || flying) return;
-    if (b.id !== mail.bin.id) { setOops(b.id); timers.current.push(window.setTimeout(() => setOops(null), 700)); return; }
-    setFlying(b.id);
+    if (b.id !== mail.bin.id) { sfx.boing(); setOops(b.id); timers.current.push(window.setTimeout(() => setOops(null), 700)); return; }
+    setFlying(b.id); sfx.whoosh();
     timers.current.push(window.setTimeout(() => {
       setFlying(null); setStamped(false);
       const n = loaded + 1;
@@ -65,7 +66,7 @@ export default function PostOfficeSort() {
         const fresh = STAMPS.filter((s) => !stamps[s]);
         const s = (fresh.length ? fresh : STAMPS)[Math.floor(Math.random() * (fresh.length || STAMPS.length))];
         mergeStyleRow(owner, { stamps: { ...stamps, [s]: (stamps[s] ?? 0) + 1 }, trucks: (saved.trucks ?? 0) + 1 });
-        pay(); playCheer();
+        pay(); playCheer(); sfx.horn();
         setTruckGone({ stamp: s, isNew: !stamps[s] });
         setLoaded(0);
       } else setLoaded(n);
@@ -78,6 +79,7 @@ export default function PostOfficeSort() {
       <header className="fd-head po-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>📮 Post Office Sort</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setAlbum(true)}>📒 Stamp Album ({Object.keys(stamps).length} / {STAMPS.length})</button>
       </header>
       <div className="po-main">

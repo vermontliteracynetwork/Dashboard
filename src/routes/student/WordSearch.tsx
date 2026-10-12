@@ -4,6 +4,7 @@ import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Word Search (her student-favorite genres list, 2026-09-30: "library or post office; answers reveal
 // hidden words"). An 8 by 8 letter grid hides six themed words. The word list starts as blanks
@@ -79,7 +80,7 @@ export default function WordSearch() {
     speak(w.word.toLowerCase(), student.ttsSettings);
   });
   const tap = (i: number) => {
-    if (start === null) { setStart(i); setNote('Now tap the last letter of the word.'); return; }
+    if (start === null) { setStart(i); sfx.pop(); setNote('Now tap the last letter of the word.'); return; }
     if (start === i) { setStart(null); setNote(null); return; }
     const a = start, b = i;
     setStart(null);
@@ -87,7 +88,7 @@ export default function WordSearch() {
     const hit = revealed.find((p) => { const c = cellsOf(p), f = c[0], l = c[c.length - 1]; return !found.has(p.word) && ((f === a && l === b) || (f === b && l === a)); });
     if (hit) {
       const f = new Set(found).add(hit.word);
-      setFound(f); setHint(null); playCheer();
+      setFound(f); setHint(null); playCheer(); sfx.chime();
       setNote(`✨ You found ${hit.word}!`);
       if (f.size === board.placed.length) {
         mergeStyleRow(owner, { themes: { ...doneThemes, [theme.id]: (doneThemes[theme.id] ?? 0) + 1 } });
@@ -110,6 +111,7 @@ export default function WordSearch() {
       <header className="fd-head ws-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🔤 Word Search</h1>
+        <SfxToggle />
         <span className="mc-hud">{theme.icon} {theme.name} · {found.size} / {board.placed.length}</span>
       </header>
       <div className="ws-main">

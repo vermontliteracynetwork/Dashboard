@@ -7,6 +7,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Whack-a-Mole (her student-favorite genres list, 2026-09-30: "garden or farm; answers pop out of the
 // ground"). The question sits on a garden sign (with 🔊 Listen); moles pop out of six holes, each
@@ -78,7 +79,7 @@ export default function WhackAMole() {
       right.current += 1; unpaid.current += 1; countRight(q);
       recordStreakCorrect(student.id);
       setMoles((ms) => ms.map((x) => (x.id === m.id ? { ...x, state: 'bonk', until: Date.now() + 700 } : { ...x, state: 'duck', until: Date.now() })));
-      setNote('🔨 Bonk! That is right!');
+      sfx.bonk(); setNote('🔨 Bonk! That is right!');
       const d = done + 1;
       window.setTimeout(() => {
         lock.current = false; setNote(null); setMoles([]); sinceRight.current = 0;
@@ -90,7 +91,7 @@ export default function WhackAMole() {
     } else {
       setMiss((n) => n + 1);
       setMoles((ms) => ms.map((x) => (x.id === m.id ? { ...x, state: 'duck', until: Date.now() } : x)));
-      setNote('Hee hee! Not that one. Read the question again.');
+      sfx.boing(); setNote('Hee hee! Not that one. Read the question again.');
       window.setTimeout(() => setNote(null), 1600);
     }
   };
@@ -101,6 +102,7 @@ export default function WhackAMole() {
       <header className="fd-head wm-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🔨 Whack-a-Mole</h1>
+        <SfxToggle />
         <span className="mc-hud">⭐ {done} / {ROUND}</span>
       </header>
       <div className="wm-main">

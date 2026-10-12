@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Mine Cart Run (her native game list, 2026-09-30: "mine entrance; a Mario-style auto-runner where
 // answers choose the track switch"). The cart rolls on its own; tap anywhere (or Space) to hop over
@@ -41,7 +42,7 @@ export default function MineCartRun() {
   const jump = () => {
     const g = game.current;
     if (live.current.phase !== 'run' || g.waiting || live.current.asking || g.cy > 0.5) return;
-    g.vy = JUMP;
+    g.vy = JUMP; sfx.boing();
   };
 
   useEffect(() => {
@@ -86,7 +87,7 @@ export default function MineCartRun() {
           if (t.kind === 'switch' && sx <= CART_X) {
             t.done = true; g.waiting = true; g.vy = 0; g.cy = 0;
             live.current.ask('🔀 Answer to flip the switch into the Gem Cave!', () => {
-              g.waiting = false; g.cave = 6;
+              g.waiting = false; g.cave = 6; sfx.chime();
               g.things = g.things.filter((o) => o.kind !== 'rock' || o.x > g.dist + 2000);
               g.nextGem = g.dist + 160;
               playCheer();
@@ -94,13 +95,13 @@ export default function MineCartRun() {
             g.switches += 1;
             if (g.switches >= SWITCHES) g.endAt = t.x + 1900;
           } else if (t.kind === 'rock' && Math.abs(sx - CART_X) < 44 && cartBottom > GROUND - 34) {
-            t.done = true; g.bump = 1;
+            t.done = true; g.bump = 1; sfx.thud();
             const lose = Math.min(3, g.gems); g.gems -= lose;
             for (let i = 0; i < lose; i++) g.bits.push({ x: CART_X, y: cartTop, vx: -60 + Math.random() * 160, vy: -260 - Math.random() * 120, life: 1, icon: '💎' });
           } else if (t.kind === 'gem') {
             const gy = GROUND - (t.h ?? 30);
             if (Math.abs(sx - CART_X) < 40 && gy > cartTop - 22 && gy < cartBottom + 10) {
-              t.done = true; g.gems += 1;
+              t.done = true; g.gems += 1; sfx.tick();
               g.bits.push({ x: sx, y: gy, vx: 0, vy: -120, life: 0.6, icon: '✨' });
             }
           }
@@ -190,6 +191,7 @@ export default function MineCartRun() {
       <header className="fd-head mc-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🛤️ Mine Cart Run</h1>
+        <SfxToggle />
         <span className="mc-hud" aria-live="polite">💎 {hud.gems} · 🔀 {hud.switches} / {SWITCHES}{hud.cave ? ' · ✨ Gem Cave!' : ''}</span>
       </header>
       {phase === 'run' && <button type="button" className="btn btn-primary btn-lg mc-jump" onClick={jump} aria-label="Jump">⬆️ Jump</button>}

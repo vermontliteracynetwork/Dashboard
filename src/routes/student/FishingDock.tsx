@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Fishing Dock (her native game list, 2026-09-30: "Fishing Dock: pier or boat asset; answers power
 // a timing-based cast; fish go in a collection book"). A right answer baits the hook; then the
@@ -58,10 +59,10 @@ export default function FishingDock() {
     raf.current = requestAnimationFrame(loop);
   };
   const release = () => {
-    cancelAnimationFrame(raf.current);
+    cancelAnimationFrame(raf.current); sfx.whoosh();
     const p = power; setCast(p); setPhase('wait');
     timers.current.push(window.setTimeout(() => {
-      setPhase('bite');
+      setPhase('bite'); sfx.splash();
       // A generous 2.5 seconds to tap Reel it in.
       timers.current.push(window.setTimeout(() => setPhase((ph) => (ph === 'bite' ? 'away' : ph)), 2500));
     }, 1200 + Math.random() * 1800));
@@ -77,7 +78,7 @@ export default function FishingDock() {
     const isNew = !got[fish.id];
     mergeStyleRow(owner, { caught: { ...got, [fish.id]: (got[fish.id] ?? 0) + 1 }, biggest: { ...(caught.biggest ?? {}), [fish.id]: Math.max(size, caught.biggest?.[fish.id] ?? 0) } });
     if (isNew || tier >= 2) playCheer();
-    setCatch({ fish, size, isNew }); setPhase('caught');
+    sfx.coin(); setCatch({ fish, size, isNew }); setPhase('caught');
   };
   const bobberX = 30 + cast * 55; // percent across the water
 
@@ -91,6 +92,7 @@ export default function FishingDock() {
       <header className="fd-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🎣 Fishing Dock</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setBook(true)}>📖 Fish Book ({Object.keys(got).length} / {FISH.length})</button>
       </header>
       <div className="fd-panel">

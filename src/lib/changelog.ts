@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-game-sounds",
+    date: "2026-10-12",
+    icon: "🔊",
+    title: "Game sound effects",
+    body: "The new games make fun little sounds now: splashes, chimes, bonks and more! Tap the speaker button at the top of a game to turn them off or on.",
+  },
+  {
     id: "2026-10-12-game-progress",
     date: "2026-10-12",
     icon: "🏆",

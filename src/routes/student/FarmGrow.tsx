@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Farm Grow (her native game list, 2026-09-30: "farm plots; answers plant and tend crops through
 // growth stages; harvest for currency"). Six garden plots. A right answer plants a seed, the next
@@ -61,7 +62,7 @@ export default function FarmGrow() {
   const plant = (i: number, crop: Crop) => {
     setPicking(null);
     ask(`🌰 Answer to plant your ${crop.name}!`, () => {
-      setPlot(i, { crop: crop.id, stage: 1 }); burst(i, 'plant');
+      setPlot(i, { crop: crop.id, stage: 1 }); burst(i, 'plant'); sfx.thud();
       setMsg(`You planted a ${crop.name} seed. Water it to help it sprout!`);
     });
   };
@@ -69,12 +70,12 @@ export default function FarmGrow() {
     const crop = cropOf(p.crop);
     if (p.stage === 1) {
       ask(`💧 Answer to water your ${crop.name}!`, () => {
-        setPlot(i, { ...p, stage: 2 }); burst(i, 'water');
+        setPlot(i, { ...p, stage: 2 }); burst(i, 'water'); sfx.splash();
         setMsg(`Splash! Your ${crop.name} sprouted. Give it sunshine and pull the weeds next.`);
       });
     } else if (p.stage === 2) {
       ask(`☀️ Answer to tend your ${crop.name}!`, () => {
-        setPlot(i, { ...p, stage: 3 }); burst(i, 'sun');
+        setPlot(i, { ...p, stage: 3 }); burst(i, 'sun'); sfx.chime();
         setMsg(`Your ${crop.name} is ready! Tap it to harvest.`);
       });
     } else {
@@ -82,7 +83,7 @@ export default function FarmGrow() {
       const next = [...plots]; next[i] = null;
       const isNew = !harvested[crop.id];
       const h = { ...harvested, [crop.id]: (harvested[crop.id] ?? 0) + 1 };
-      save(next, h); burst(i, 'harvest');
+      save(next, h); burst(i, 'harvest'); sfx.coin();
       if (rightSoFar() > 0) pay();
       playCheer();
       setSold({ crop, isNew });
@@ -102,6 +103,7 @@ export default function FarmGrow() {
       <header className="fd-head fg-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>🌱 Farm Grow</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setBook(true)}>🧺 Harvest Book ({kinds} / {CROPS.length})</button>
       </header>
       <div className="fg-main">

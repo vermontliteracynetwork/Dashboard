@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
+import { sfx, SfxToggle } from '../../lib/miniSfx';
 
 // Library Quest (her native game list, 2026-09-30: "library; answers reveal hidden books on shelves,
 // completing a shelf fills the Finds Book"). A dusty bookcase with three themed shelves of hidden
@@ -61,7 +62,7 @@ export default function LibraryQuest() {
   const hidden = bc.shelves.flat().filter((b) => !b.open).length;
 
   const say = (t: string) => { setToast(t); clearTimeout(timer.current); timer.current = window.setTimeout(() => setToast(null), 3500); };
-  const light = () => ask(`🔦 Answer to charge your flashlight for ${REVEALS} books!`, () => setCharge((c) => c + REVEALS));
+  const light = () => ask(`🔦 Answer to charge your flashlight for ${REVEALS} books!`, () => { setCharge((c) => c + REVEALS); sfx.chime(); });
   const reveal = (si: number, bi: number) => {
     const b = bc.shelves[si][bi];
     if (b.open) { say(`📖 "${b.title}"`); return; }
@@ -71,7 +72,7 @@ export default function LibraryQuest() {
     setBc({ ...bc, shelves });
     const key = `${b.theme}:${b.title}`;
     const patch: Record<string, unknown> = { found: { ...found, [key]: (found[key] ?? 0) + 1 } };
-    say(`📖 You found "${b.title}"!`);
+    say(`📖 You found "${b.title}"!`); sfx.whoosh();
     if (b.secret) {
       const s = SECRETS.find((x) => x.id === b.secret)!;
       patch.secrets = { ...secrets, [s.id]: (secrets[s.id] ?? 0) + 1 };
@@ -91,6 +92,7 @@ export default function LibraryQuest() {
       <header className="fd-head lq-head">
         <button type="button" className="btn" onClick={() => { pay(); back.go(); }}>✕ Leave</button>
         <h1>📚 Library Quest</h1>
+        <SfxToggle />
         <button type="button" className="btn" onClick={() => setBook(true)}>📓 Finds Book ({THEMES.filter((t) => shelvesDone[t.id]).length} / {THEMES.length})</button>
       </header>
       <div className="lq-main">
