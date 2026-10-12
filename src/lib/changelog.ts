@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-library-quest",
+    date: "2026-10-12",
+    icon: "📚",
+    title: "New game: Library Quest",
+    body: "Explore a dusty old library! Answer questions to charge your flashlight, then shine it on hidden books to find out what they are. Fill a whole shelf to add a page to your Finds Book, and look for the secret hiding behind one book!",
+  },
+  {
     id: "2026-10-12-gem-mine",
     date: "2026-10-12",
     icon: "💎",
