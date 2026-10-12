@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-construction",
+    date: "2026-10-12",
+    icon: "🏗️",
+    title: "New game: Construction Site",
+    body: "Be a builder! Pick a blueprint, answer questions to order blocks, then tap them into place from the bottom up. Finish a building to cut the ribbon and add it to your Town Plans.",
+  },
+  {
     id: "2026-10-12-dungeon",
     date: "2026-10-12",
     icon: "🏰",
