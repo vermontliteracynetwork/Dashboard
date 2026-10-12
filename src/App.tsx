@@ -61,16 +61,9 @@ const SpaceBowling = lazyFresh(() => import('./routes/student/SpaceBowling'));
 const RescueShelter = lazyFresh(() => import('./routes/student/RescueShelter'));
 const FishingDock = lazyFresh(() => import('./routes/student/FishingDock'));
 const FarmGrow = lazyFresh(() => import('./routes/student/FarmGrow'));
-const PostOfficeSort = lazyFresh(() => import('./routes/student/PostOfficeSort'));
 const LighthouseSignal = lazyFresh(() => import('./routes/student/LighthouseSignal'));
 const KitchenCookOff = lazyFresh(() => import('./routes/student/KitchenCookOff'));
-const MineCartRun = lazyFresh(() => import('./routes/student/MineCartRun'));
-const TrainDispatch = lazyFresh(() => import('./routes/student/TrainDispatch'));
 const GemMine = lazyFresh(() => import('./routes/student/GemMine'));
-const LibraryQuest = lazyFresh(() => import('./routes/student/LibraryQuest'));
-const DungeonRooms = lazyFresh(() => import('./routes/student/DungeonRooms'));
-const ConstructionSite = lazyFresh(() => import('./routes/student/ConstructionSite'));
-const WhackAMole = lazyFresh(() => import('./routes/student/WhackAMole'));
 const MemoryMatch = lazyFresh(() => import('./routes/student/MemoryMatch'));
 const WordSearch = lazyFresh(() => import('./routes/student/WordSearch'));
 const PlinkoDrop = lazyFresh(() => import('./routes/student/PlinkoDrop'));
@@ -236,16 +229,9 @@ export default function App() {
           <Route path="/student/plinko" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><PlinkoDrop /></Suspense>} />
           <Route path="/student/word-search" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><WordSearch /></Suspense>} />
           <Route path="/student/memory-match" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><MemoryMatch /></Suspense>} />
-          <Route path="/student/whack-a-mole" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><WhackAMole /></Suspense>} />
-          <Route path="/student/construction" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><ConstructionSite /></Suspense>} />
-          <Route path="/student/dungeon" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><DungeonRooms /></Suspense>} />
-          <Route path="/student/library-quest" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><LibraryQuest /></Suspense>} />
           <Route path="/student/gem-mine" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><GemMine /></Suspense>} />
-          <Route path="/student/train-dispatch" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><TrainDispatch /></Suspense>} />
-          <Route path="/student/mine-cart" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><MineCartRun /></Suspense>} />
           <Route path="/student/kitchen" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><KitchenCookOff /></Suspense>} />
           <Route path="/student/lighthouse" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><LighthouseSignal /></Suspense>} />
-          <Route path="/student/post-office" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><PostOfficeSort /></Suspense>} />
           <Route path="/student/farm-grow" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><FarmGrow /></Suspense>} />
           <Route path="/student/fishing-dock" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><FishingDock /></Suspense>} />
           <Route path="/student/rescue-shelter" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><RescueShelter /></Suspense>} />

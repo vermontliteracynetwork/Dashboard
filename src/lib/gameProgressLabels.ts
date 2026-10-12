@@ -20,21 +20,14 @@ export function gameProgressLabels(rows: Rows, studentId: string | undefined): P
   };
   of('fishingDock', 'fishbook', 'caught', 44, 'fish');
   of('farmGrow', 'farm', 'harvested', 8, 'crops');
-  of('postOffice', 'postoffice', 'stamps', 12, 'stamps');
   of('lighthouse', 'lighthouse', 'seen', 9, 'boats');
   of('kitchenCookOff', 'kitchen', 'cooked', 8, 'recipes');
-  of('trainDispatch', 'trains', 'seen', 8, 'trains');
   of('gemMine', 'gemmine', 'gems', 18, 'gems');
-  of('libraryQuest', 'libquest', 'shelves', 6, 'shelves');
-  of('dungeonRooms', 'dungeon', 'relics', 8, 'relics');
-  of('constructionSite', 'construct', 'built', 6, 'buildings');
   of('wordSearch', 'wordsearch', 'themes', 6, 'puzzles');
-  num('mineCart', 'minecart', 'best', (n) => `💎 ${n} gems`);
-  num('whackAMole', 'whack', 'rounds', (n) => `${n} round${n === 1 ? '' : 's'}`);
   num('memoryMatch', 'memory', 'best', (n) => `${n} flips`);
   num('plinkoDrop', 'plinko', 'tickets', (n) => `🎟️ ${n}`);
   num('crossyHopper', 'crossy', 'crossings', (n) => `${n} crossing${n === 1 ? '' : 's'}`);
-  num('idleTycoon', 'tycoon', 'total', (n) => `${n} cupcakes sold`);
+  num('idleTycoon', 'tycoon', 'total', (n) => `${n} shop coins earned`);
   num('dinerDash', 'diner', 'served', (n) => `${n} served`);
   return out;
 }

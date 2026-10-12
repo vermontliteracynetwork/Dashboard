@@ -7,27 +7,33 @@ import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
 import { MyBest, useVisitScore } from '../../components/MyBest';
 
-// Idle Tycoon (her student-favorite genres list, 2026-09-30: "the farm or bakery shop; answers boost a
-// running business"). A cupcake shop that runs by itself: the oven bakes, cupcakes fill the display
-// case, and customers buy them for shop coins. A right answer gives a 30 second Golden Whisk boost
-// (everything three times as fast). Shop coins buy upgrades (oven, display case, helper, sign); they
-// are a pretend shop currency and never real money. Real money is $1 per right answer, as always.
-// The shop keeps a little business going while the student is away (up to 10 minutes' worth).
+// Cupcake Tycoon (her student-favorite genres list, 2026-09-30: "the farm or bakery shop; answers boost a
+// running business"). Rebuilt 2026-10-12 so it is a different game from Diner Dash, not the same one
+// redesigned (her words: "make sure game logic is different between cupcake tycoon and diner dash so
+// theyre not the same game just redesigned"). Diner Dash is time management: cook, then serve each
+// customer in order before they leave. Cupcake Tycoon is an idle empire builder with no customers to
+// serve: tap the big cupcake to bake by hand, open bakery counters (cupcakes, cookies, donuts, pies,
+// cakes), tap a counter to run a batch, buy more ovens for bigger batches, and hire a baker so a counter
+// runs by itself. Numbers grow, new counters open, the shop earns stars. A right answer gives a 30 second
+// Golden Whisk (every counter three times as fast). Shop coins are pretend shop money that only buys
+// shop things, never real money; real money is $1 per right answer, as always. Counters with a baker keep
+// earning while the student is away (up to 10 minutes' worth).
 
-interface Shop { coins: number; total: number; oven: number; display: number; helper: number; sign: number; savedAt: number }
-const UPGRADES = [
-  { key: 'oven', name: 'Bigger Oven', icon: '🔥', what: 'Bakes faster', base: 15 },
-  { key: 'display', name: 'Display Case', icon: '🗄️', what: 'Holds more cupcakes', base: 12 },
-  { key: 'helper', name: 'Helper', icon: '🧑‍🍳', what: 'Sells to more customers', base: 25 },
-  { key: 'sign', name: 'Shop Sign', icon: '🪧', what: 'Brings more customers', base: 20 },
-] as const;
-type UpKey = (typeof UPGRADES)[number]['key'];
-const cost = (base: number, lvl: number) => Math.round(base * Math.pow(1.6, lvl));
-const BOOST_S = 30, AWAY_MAX_S = 600, PRICE = 1;
-const STAR_AT = [0, 50, 200, 600, 1500];
-const FACES = ['🧒', '👧', '👦', '🧑', '👵', '👴', '🐶', '🐱', '🦊', '🐻'];
-const fresh = (): Shop => ({ coins: 0, total: 0, oven: 0, display: 0, helper: 0, sign: 0, savedAt: Date.now() });
-const rates = (s: Shop) => ({ bake: 0.5 * (1 + s.oven * 0.5), cap: 6 + s.display * 3, buyers: 0.35 * (1 + s.sign * 0.4), sell: 1 + s.helper });
+interface Line { id: string; name: string; icon: string; open: number; base: number; income: number; time: number; baker: number }
+const LINES: Line[] = [
+  { id: 'cupcake', name: 'Cupcakes', icon: '🧁', open: 0, base: 5, income: 1, time: 2, baker: 40 },
+  { id: 'cookie', name: 'Cookies', icon: '🍪', open: 60, base: 60, income: 8, time: 4, baker: 400 },
+  { id: 'donut', name: 'Donuts', icon: '🍩', open: 600, base: 600, income: 60, time: 6, baker: 3000 },
+  { id: 'pie', name: 'Pies', icon: '🥧', open: 5000, base: 5000, income: 400, time: 9, baker: 25000 },
+  { id: 'cake', name: 'Cakes', icon: '🎂', open: 40000, base: 40000, income: 3000, time: 14, baker: 200000 },
+];
+interface Own { ovens: number; baker: boolean }
+interface Shop { coins: number; total: number; lines: Record<string, Own>; savedAt: number }
+const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
+const BOOST_S = 30, AWAY_MAX_S = 600, TAP = 1;
+const STAR_AT = [0, 100, 1000, 10000, 100000];
+const fresh = (): Shop => ({ coins: 0, total: 0, lines: { cupcake: { ovens: 1, baker: false } }, savedAt: Date.now() });
+const fmt = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `${Math.floor(n / 1000)}K` : `${Math.floor(n)}`);
 
 export default function IdleTycoon() {
   const back = useBack();
@@ -37,75 +43,72 @@ export default function IdleTycoon() {
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';
   const savedShop = (styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Shop> | undefined) ?? {};
-  const [shop, setShop] = useState<Shop>(() => ({ ...fresh(), ...savedShop }));
-  const [stock, setStock] = useState(0);
-  const [queue, setQueue] = useState<string[]>([]);
-  const [bake, setBake] = useState(0);
+  // Shops saved by the first version (with an oven, display case, helper and sign) keep their coins.
+  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
+  const [shop, setShop] = useState<Shop>(load);
+  const [prog, setProg] = useState<Record<string, number>>({}); // 0..1 per running counter
   const [boost, setBoost] = useState(0);
   const [away, setAway] = useState<number | null>(null);
-  const [pop, setPop] = useState(0);
+  const [pops, setPops] = useState<{ id: number; text: string; line: string }[]>([]);
   const shopRef = useRef(shop); shopRef.current = shop;
   const boostRef = useRef(0); boostRef.current = boost;
-  const bakeRef = useRef(0);
+  const progRef = useRef<Record<string, number>>({});
+  const popId = useRef(0);
   const save = () => { if (owner) mergeStyleRow(owner, { ...shopRef.current, savedAt: Date.now() }); };
+  const earn = (n: number, line: string) => {
+    const next = { ...shopRef.current, coins: shopRef.current.coins + n, total: shopRef.current.total + n };
+    shopRef.current = next; setShop(next); visit.add(n);
+    const id = ++popId.current;
+    setPops((p) => [...p.slice(-6), { id, text: `+${fmt(n)}`, line }]);
+    window.setTimeout(() => setPops((p) => p.filter((x) => x.id !== id)), 900);
+  };
 
-  // If the saved shop arrives after the screen opened, take it instead of starting over (never save
-  // a fresh shop over a bigger saved one).
+  // If the saved shop arrives after the screen opened, take it instead of starting over.
   const savedTotal = savedShop.total ?? 0;
   useEffect(() => {
-    if (savedTotal > shopRef.current.total) { const next = { ...fresh(), ...savedShop }; setShop(next); shopRef.current = next; }
+    if (savedTotal > shopRef.current.total) { const next = load(); setShop(next); shopRef.current = next; }
   }, [savedTotal]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Business while away: up to 10 minutes of plain (unboosted) selling.
+  // Counters with a baker keep earning while away (up to 10 minutes).
   useEffect(() => {
-    const s = shopRef.current;
-    if (!s.savedAt || !savedShop.savedAt) return;
-    const secs = Math.min(AWAY_MAX_S, Math.max(0, (Date.now() - s.savedAt) / 1000));
-    const r = rates(s);
-    const sold = Math.floor(Math.min(r.bake, r.buyers * r.sell) * secs * 0.5);
-    if (sold > 0) { const next = { ...s, coins: s.coins + sold * PRICE, total: s.total + sold * PRICE }; shopRef.current = next; setShop(next); setAway(sold * PRICE); }
+    if (!savedShop.savedAt || !savedShop.lines) return;
+    const secs = Math.min(AWAY_MAX_S, Math.max(0, (Date.now() - savedShop.savedAt) / 1000));
+    const got = LINES.reduce((sum, l) => { const o = savedShop.lines?.[l.id]; return o?.baker ? sum + Math.floor(secs / l.time) * l.income * o.ovens : sum; }, 0);
+    if (got > 0) { earn(got, 'away'); setAway(got); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // The running business, four ticks a second. Stock, the line and the serving clock live in refs so
-  // the timer never resets (an earlier version restarted its serving timer on every tick during a
-  // boost and stopped selling).
-  const stockRef = useRef(0), queueRef = useRef<string[]>([]), serveRef = useRef(0);
+  // Batches bake ten ticks a second; a counter with a baker starts its next batch on its own.
   useEffect(() => {
-    const dt = 0.25;
+    const dt = 0.1;
     const t = window.setInterval(() => {
-      const s = shopRef.current, r = rates(s);
-      const boosted = boostRef.current > 0, k = boosted ? 3 : 1;
-      if (boosted) setBoost((b) => Math.max(0, b - dt));
-      bakeRef.current += r.bake * k * dt;
-      if (bakeRef.current >= 1) { const n = Math.floor(bakeRef.current); bakeRef.current -= n; stockRef.current = Math.min(r.cap, stockRef.current + n); }
-      if (Math.random() < r.buyers * k * dt && queueRef.current.length < 5) queueRef.current = [...queueRef.current, FACES[Math.floor(Math.random() * FACES.length)]];
-      serveRef.current += dt * k;
-      if (serveRef.current >= 0.9) {
-        serveRef.current = 0;
-        const n = Math.min(r.sell, queueRef.current.length, stockRef.current);
-        if (n > 0) {
-          queueRef.current = queueRef.current.slice(n); stockRef.current -= n;
-          const next = { ...shopRef.current, coins: shopRef.current.coins + n * PRICE, total: shopRef.current.total + n * PRICE };
-          shopRef.current = next; setShop(next); setPop((p) => p + 1); sfx.tick(); visit.add(n);
-        }
+      const k = boostRef.current > 0 ? 3 : 1;
+      if (boostRef.current > 0) setBoost((b) => Math.max(0, b - dt));
+      const p = { ...progRef.current };
+      for (const l of LINES) {
+        const o = shopRef.current.lines[l.id];
+        if (!o) continue;
+        if (p[l.id] === undefined && o.baker) p[l.id] = 0;
+        if (p[l.id] === undefined) continue;
+        p[l.id] += (dt * k) / l.time;
+        if (p[l.id] >= 1) { earn(l.income * o.ovens, l.id); if (o.baker) p[l.id] = 0; else delete p[l.id]; }
       }
-      setBake(bakeRef.current); setStock(stockRef.current); setQueue(queueRef.current);
-    }, 250);
-    const autosave = window.setInterval(() => { if (owner) mergeStyleRow(owner, { ...shopRef.current, savedAt: Date.now() }); }, 20000);
-    return () => { clearInterval(t); clearInterval(autosave); if (owner) mergeStyleRow(owner, { ...shopRef.current, savedAt: Date.now() }); };
+      progRef.current = p; setProg(p);
+    }, 100);
+    const autosave = window.setInterval(save, 20000);
+    return () => { clearInterval(t); clearInterval(autosave); save(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!student) return null;
-  const r = rates(shop);
   const stars = STAR_AT.filter((x) => shop.total >= x).length;
   const nextStar = STAR_AT.find((x) => shop.total < x);
-  const buy = (key: UpKey, base: number) => {
-    const cur = shopRef.current, c = cost(base, cur[key]);
-    if (cur.coins < c) return;
-    const next = { ...cur, coins: cur.coins - c, [key]: cur[key] + 1 };
-    setShop(next); shopRef.current = next; save(); playCheer();
+  const spend = (c: number, change: (s: Shop) => Shop) => {
+    if (shopRef.current.coins < c) return;
+    const next = change({ ...shopRef.current, coins: shopRef.current.coins - c });
+    setShop(next); shopRef.current = next; save();
   };
-  const getBoost = () => ask('⭐ Answer for a Golden Whisk boost!', () => { setBoost(BOOST_S); playCheer(); });
+  const run = (l: Line) => { if (progRef.current[l.id] === undefined) { progRef.current = { ...progRef.current, [l.id]: 0 }; sfx.pop(); } };
+  const tapCupcake = () => { earn(TAP * (boost > 0 ? 3 : 1), 'tap'); sfx.tick(); };
+  const getBoost = () => ask('⭐ Answer for a Golden Whisk!', () => { setBoost(BOOST_S); playCheer(); });
 
   return (
     <div className={`ty${boost > 0 ? ' boosted' : ''}`}>
@@ -114,41 +117,47 @@ export default function IdleTycoon() {
         <h1>🧁 Cupcake Tycoon</h1>
         <SfxToggle />
         {settings}
-        <MyBest game="idleTycoon" unit="cupcakes sold" />
-        <span className="mc-hud"><span key={pop} className="ty-coin">🪙</span> {shop.coins} shop coins</span>
+        <MyBest game="idleTycoon" unit="shop coins earned" />
+        <span className="mc-hud">🪙 {fmt(shop.coins)} shop coins</span>
       </header>
       <div className="ty-main">
-        <div className="ty-shop">
-          <div className="ty-awning" aria-hidden />
-          <div className="ty-sign">{'⭐'.repeat(stars)}{'☆'.repeat(STAR_AT.length - stars)} <small>{nextStar ? `${shop.total} / ${nextStar} sold for the next star` : 'Five star shop!'}</small></div>
-          <div className="ty-floor">
-            <div className="ty-oven">
-              <span className="ty-oven-icon" aria-hidden>{boost > 0 ? '✨🔥' : '🔥'}</span>
-              <span className="ty-bar" aria-label="Baking"><i style={{ width: `${bake * 100}%` }} /></span>
-              <small>Oven level {shop.oven + 1}</small>
-            </div>
-            <div className="ty-case" aria-label={`${stock} cupcakes in the display case`}>
-              {Array.from({ length: r.cap }, (_, i) => <span key={i} className={i < stock ? 'on' : ''} aria-hidden>{i < stock ? '🧁' : '·'}</span>)}
-            </div>
-            <div className="ty-line" aria-label={`${queue.length} customers waiting`}>
-              {queue.map((f, i) => <span key={`${i}-${f}`} aria-hidden>{f}</span>)}
-              {!queue.length && <small>Waiting for customers...</small>}
-            </div>
-          </div>
+        <div className="ty-sign ty2-sign">{'⭐'.repeat(stars)}{'☆'.repeat(STAR_AT.length - stars)} <small>{nextStar ? `${fmt(shop.total)} / ${fmt(nextStar)} shop coins for the next star` : 'Five star bakery empire!'}</small></div>
+        <div className="ty2-top">
+          <button type="button" className="ty2-big" onClick={tapCupcake} aria-label="Tap to bake a cupcake by hand">
+            <span aria-hidden>🧁</span><small>Tap to bake</small>
+            {pops.filter((p) => p.line === 'tap').map((p) => <i key={p.id} className="ty2-pop" aria-hidden>{p.text}</i>)}
+          </button>
+          <button type="button" className={`btn btn-primary btn-lg fd-big ty-go${boost > 0 ? ' on' : ''}`} onClick={getBoost} disabled={boost > 0}>
+            {boost > 0 ? `✨ Golden Whisk: ${Math.ceil(boost)} seconds, three times as fast!` : '⭐ Answer for a Golden Whisk'}
+          </button>
         </div>
-        <button type="button" className={`btn btn-primary btn-lg fd-big ty-go${boost > 0 ? ' on' : ''}`} onClick={getBoost} disabled={boost > 0}>
-          {boost > 0 ? `✨ Golden Whisk: ${Math.ceil(boost)} seconds, three times as fast!` : '⭐ Answer for a Golden Whisk boost'}
-        </button>
-        <div className="ty-ups">
-          {UPGRADES.map((u) => {
-            const c = cost(u.base, shop[u.key]);
+        <div className="ty2-lines">
+          {LINES.map((l) => {
+            const o = shop.lines[l.id];
+            if (!o) {
+              return (
+                <div key={l.id} className="ty2-line locked">
+                  <span className="ty2-icon" aria-hidden>{l.icon}</span>
+                  <b>{l.name} counter</b>
+                  <button type="button" className="btn ty2-buy" disabled={shop.coins < l.open} onClick={() => spend(l.open, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ovens: 1, baker: false } } }))}>🔓 Open for 🪙 {fmt(l.open)}</button>
+                </div>
+              );
+            }
+            const p = prog[l.id], c = ovenCost(l, o.ovens);
             return (
-              <button key={u.key} type="button" className="ty-up" onClick={() => buy(u.key, u.base)} disabled={shop.coins < c}>
-                <span className="ty-up-icon" aria-hidden>{u.icon}</span>
-                <b>{u.name} {shop[u.key] > 0 ? `(level ${shop[u.key] + 1})` : ''}</b>
-                <small>{u.what}</small>
-                <span className="ty-cost">🪙 {c}</span>
-              </button>
+              <div key={l.id} className="ty2-line">
+                <button type="button" className={`ty2-run${p !== undefined ? ' on' : ''}`} onClick={() => run(l)} aria-label={`${l.name}: ${o.ovens} ovens, makes ${l.income * o.ovens} shop coins a batch. ${o.baker ? 'The baker runs it.' : 'Tap to bake a batch.'}`}>
+                  <span className="ty2-icon" aria-hidden>{l.icon}</span>
+                  <span className="ty2-info">
+                    <b>{l.name} <small>× {o.ovens}</small></b>
+                    <span className="ty2-bar"><i style={{ width: `${(p ?? 0) * 100}%` }} /></span>
+                    <small>{o.baker ? '🧑‍🍳 Baker runs it' : p !== undefined ? 'Baking...' : 'Tap to bake a batch'} · 🪙 {fmt(l.income * o.ovens)} a batch</small>
+                  </span>
+                  {pops.filter((x) => x.line === l.id).map((x) => <i key={x.id} className="ty2-pop" aria-hidden>{x.text}</i>)}
+                </button>
+                <button type="button" className="btn ty2-buy" disabled={shop.coins < c} onClick={() => spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))}>➕ Oven 🪙 {fmt(c)}</button>
+                {!o.baker && <button type="button" className="btn ty2-buy" disabled={shop.coins < l.baker} onClick={() => { spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } })); playCheer(); }}>🧑‍🍳 Hire a baker 🪙 {fmt(l.baker)}</button>}
+              </div>
             );
           })}
         </div>
@@ -158,8 +167,8 @@ export default function IdleTycoon() {
           <div className="pf-panel fd-catch">
             <div className="fd-fish" aria-hidden>🧁</div>
             <h2>Welcome back!</h2>
-            <p>While you were away, your shop sold cupcakes and earned <b>🪙 {away}</b> shop coins.</p>
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => setAway(null)}>🧁 Open the shop</button>
+            <p>While you were away, your bakers kept baking and earned <b>🪙 {fmt(away)}</b> shop coins.</p>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => setAway(null)}>🧁 Open the bakery</button>
           </div>
         </div>
       )}

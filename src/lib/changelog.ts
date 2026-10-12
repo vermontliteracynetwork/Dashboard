@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-12-tycoon-empire",
+    date: "2026-10-12",
+    icon: "🧁",
+    title: "A brand new Cupcake Tycoon",
+    body: "Cupcake Tycoon is a bakery empire. Tap the big cupcake, open counters for cookies, donuts, pies and cakes, add ovens, and hire bakers to bake for you. Some games left the Arcade so you can enjoy the best ones.",
+  },
+  {
     id: "2026-10-12-doc-fishing-xp",
     date: "2026-10-12",
     icon: "⭐",

@@ -533,7 +533,7 @@ export interface TaskReward {
 // target — see NATIVE_GAME_STANDARD.md for the wider "native games per
 // building/asset" direction this mirrors. Extend as more ship.
 export type NativeGameId = 'bakery' | 'gasPump' | 'castleDefense' | 'chess' | 'spaceBowling' | 'shapeDash' | 'bubbleShooter'
-  | 'petShow' | 'rescueShelter' | 'fishingDock' | 'farmGrow' | 'postOffice' | 'lighthouse' | 'kitchenCookOff' | 'mineCart' | 'trainDispatch' | 'gemMine' | 'libraryQuest' | 'dungeonRooms' | 'constructionSite' | 'whackAMole' | 'memoryMatch' | 'wordSearch' | 'plinkoDrop' | 'crossyHopper' | 'idleTycoon' | 'dinerDash';
+  | 'petShow' | 'rescueShelter' | 'fishingDock' | 'farmGrow' | 'lighthouse' | 'kitchenCookOff' | 'gemMine' | 'memoryMatch' | 'wordSearch' | 'plinkoDrop' | 'crossyHopper' | 'idleTycoon' | 'dinerDash';
 
 export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   bakery: '🧁 Bakery Match',
@@ -547,16 +547,9 @@ export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   rescueShelter: '🐶 Rescue Shelter',
   fishingDock: '🎣 Doc Fishing',
   farmGrow: '🌱 Farm Grow',
-  postOffice: '📮 Post Office Sort',
   lighthouse: '🗼 Lighthouse Signal',
   kitchenCookOff: '🍳 Kitchen Cook-Off',
-  mineCart: '🛤️ Mine Cart Run',
-  trainDispatch: '🚉 Train Dispatch',
   gemMine: '💎 Gem Mine',
-  libraryQuest: '📚 Library Quest',
-  dungeonRooms: '🏰 Dungeon Rooms',
-  constructionSite: '🏗️ Construction Site',
-  whackAMole: '🔨 Whack-a-Mole',
   memoryMatch: '🃏 Memory Match',
   wordSearch: '🔤 Word Search',
   plinkoDrop: '🎯 Plinko Drop',
