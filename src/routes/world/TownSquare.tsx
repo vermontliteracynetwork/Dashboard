@@ -4129,9 +4129,12 @@ export default function TownSquare() {
   const isDoubleTap = (id: string, name?: string) => {
     // A look-drag release or a tap on the map is never a tap on a Neighbor.
     if (mapView || wasDraggingLook.current) return false;
+    // Teacher 2026-10-12 (newest rule wins over the double tap above): "make sure clicks to nightbors
+    // opens their menu", "for confersations". One tap opens the menu (right away if close, or on arrival).
+    const ONE_TAP = true;
     const now = performance.now();
     const last = lastNpcTap.current;
-    const dbl = !!last && last.id === id && now - last.t < DOUBLE_TAP_MS;
+    const dbl = ONE_TAP || (!!last && last.id === id && now - last.t < DOUBLE_TAP_MS);
     lastNpcTap.current = dbl ? null : { id, t: now };
     // First tap: a small hint so a student knows what a second tap does.
     if (npcTapHintTimer.current) window.clearTimeout(npcTapHintTimer.current);
