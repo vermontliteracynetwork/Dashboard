@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { isRobotVoice } from '../lib/voiceCatalog';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
@@ -1022,7 +1023,8 @@ function TTSSettingsPanel({ student }: { student: Student }) {
   const voiceItems = useStore((s) => s.marketplaceItems.filter((it) => it.kind === 'voice'));
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   useState(() => {
-    const load = () => setVoices(window.speechSynthesis?.getVoices() ?? []);
+    // Only human-sounding English voices (her rule 2026-10-12: no more robot sounds).
+    const load = () => setVoices((window.speechSynthesis?.getVoices() ?? []).filter((v) => /^en/i.test(v.lang) && !isRobotVoice(v)));
     load();
     if ('speechSynthesis' in window) window.speechSynthesis.onvoiceschanged = load;
   });

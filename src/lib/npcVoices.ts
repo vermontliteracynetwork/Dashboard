@@ -9,7 +9,7 @@
 // & Cheerful" rather than tuning numbers — same "friendly label over a
 // raw technical control" convention as WorldEditor's own curated
 // TINT_SWATCHES. `hints` reuses the exact mechanism the marketplace's
-// voice-skin items already use (lib/voiceCatalog.ts's pickSystemVoice —
+// voice-skin items already use (lib/voiceCatalog.ts's pickHumanVoice —
 // the first installed system voice whose name contains any hint), kept
 // separate from those marketplace items on purpose: those are earned
 // cosmetic rewards for the STUDENT's own voice, these are narrative
@@ -19,6 +19,8 @@ export interface NpcVoiceProfile {
   pitch: number;
   rate: number;
   hints: string[];
+  // The human voice (api/tts.ts) this character speaks with.
+  cloud?: string;
   // Pick the most human-sounding male voice on the device (Premium, Enhanced or Natural voices first)
   // instead of the first name match; used for Doc Fishing (teacher 2026-10-12: "can we have a more
   // human voice").
@@ -26,27 +28,27 @@ export interface NpcVoiceProfile {
 }
 
 export const NPC_VOICE_PRESETS: Record<string, NpcVoiceProfile> = {
-  'deep-steady': { label: '🎩 Deep & Steady', pitch: 0.6, rate: 0.9, hints: ['male', 'daniel', 'fred'] },
-  'warm-gravelly': { label: '🍞 Warm & Gravelly', pitch: 0.75, rate: 0.95, hints: ['male', 'fred', 'david'] },
-  'calm-slow': { label: '🌾 Calm & Unhurried', pitch: 0.85, rate: 0.8, hints: ['male', 'alex', 'daniel'] },
-  'crisp-precise': { label: '📐 Crisp & Precise', pitch: 0.95, rate: 0.95, hints: ['female', 'samantha', 'victoria'] },
-  'friendly-upbeat': { label: '😊 Friendly & Upbeat', pitch: 1.1, rate: 1.1, hints: ['male', 'fred', 'alex'] },
-  'bright-friendly': { label: '🌤️ Bright & Friendly', pitch: 1.3, rate: 1.05, hints: ['female', 'karen', 'moira'] },
-  'light-cheerful': { label: '🎈 Light & Cheerful', pitch: 1.5, rate: 1.1, hints: ['female', 'samantha', 'karen'] },
-  'playful-quick': { label: '🐿️ Playful & Quick', pitch: 1.6, rate: 1.2, hints: ['female', 'victoria', 'karen'] },
+  'deep-steady': { label: '🎩 Deep & Steady', pitch: 0.6, rate: 0.9, hints: ['male', 'daniel', 'fred'], cloud: 'deep' },
+  'warm-gravelly': { label: '🍞 Warm & Gravelly', pitch: 0.75, rate: 0.95, hints: ['male', 'fred', 'david'], cloud: 'warm' },
+  'calm-slow': { label: '🌾 Calm & Unhurried', pitch: 0.85, rate: 0.8, hints: ['male', 'alex', 'daniel'], cloud: 'calm' },
+  'crisp-precise': { label: '📐 Crisp & Precise', pitch: 0.95, rate: 0.95, hints: ['female', 'samantha', 'victoria'], cloud: 'crisp' },
+  'friendly-upbeat': { label: '😊 Friendly & Upbeat', pitch: 1.1, rate: 1.1, hints: ['male', 'fred', 'alex'], cloud: 'upbeat' },
+  'bright-friendly': { label: '🌤️ Bright & Friendly', pitch: 1.3, rate: 1.05, hints: ['female', 'karen', 'moira'], cloud: 'bright' },
+  'light-cheerful': { label: '🎈 Light & Cheerful', pitch: 1.5, rate: 1.1, hints: ['female', 'samantha', 'karen'], cloud: 'cheerful' },
+  'playful-quick': { label: '🐿️ Playful & Quick', pitch: 1.6, rate: 1.2, hints: ['female', 'victoria', 'karen'], cloud: 'playful' },
   // Bawk the rooster (teacher: "country/southern US male if possible").
   // Browsers ship no true Southern accent, so this picks the deepest US
   // male voice available and slows it into a easy drawl.
-  'country-drawl': { label: '🤠 Country Drawl', pitch: 0.78, rate: 0.86, hints: ['aaron', 'evan', 'fred', 'tom', 'us english male', 'male'] },
+  'country-drawl': { label: '🤠 Country Drawl', pitch: 0.78, rate: 0.86, hints: ['aaron', 'evan', 'fred', 'tom', 'us english male', 'male'], cloud: 'country' },
   // Doc Fishing (teacher 2026-10-12: "a slighly southern, slow deep human voice for all voice overs and
   // TTS", then "can we have a more human voice"). Pitch shifting is what makes a voice sound like a
   // robot, so this keeps the pitch close to natural and gets the slow, easy feel from the rate, on the
   // most human male voice the device has.
-  'doc-drawl': { label: '🎣 Slow Southern Drawl', pitch: 0.9, rate: 0.84, hints: ['evan', 'nathan', 'tom', 'aaron', 'christopher', 'guy', 'davis', 'eric', 'andrew', 'brian', 'roger', 'steffan'], human: true },
+  'doc-drawl': { label: '🎣 Slow Southern Drawl', pitch: 0.9, rate: 0.84, hints: ['evan', 'nathan', 'tom', 'aaron', 'christopher', 'guy', 'davis', 'eric', 'andrew', 'brian', 'roger', 'steffan'], human: true, cloud: 'doc' },
   // Grammar Gus (teacher 2026-10-07: "silly but a little pretentious"):
   // a small, prim, slightly posh voice, British where the device has one.
-  'gus-posh': { label: '🧐 Prim & Proper', pitch: 1.35, rate: 0.95, hints: ['daniel', 'arthur', 'oliver', 'uk english male', 'en-gb', 'male'] },
-  'plain-default': { label: '🔊 Plain (browser default)', pitch: 1, rate: 1, hints: [] },
+  'gus-posh': { label: '🧐 Prim & Proper', pitch: 1.35, rate: 0.95, hints: ['daniel', 'arthur', 'oliver', 'uk english male', 'en-gb', 'male'], cloud: 'posh' },
+  'plain-default': { label: '🔊 Plain (browser default)', pitch: 1, rate: 1, hints: [], cloud: 'reader' },
 };
 
 const FALLBACK_PRESET_ID = 'plain-default';

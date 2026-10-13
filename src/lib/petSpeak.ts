@@ -1,4 +1,6 @@
 import { useStore } from '../store/store';
+import { playCloudVoice } from './cloudVoice';
+import { pickHumanVoice } from './voiceCatalog';
 import { creditSession, trickSessionsOf, speakOpen, isLearned } from './petGym';
 import { petDefById } from './petCatalog';
 
@@ -60,11 +62,16 @@ export function petVoiceLine(defId: string): string {
 }
 export function sayInPetVoice(text: string) {
   try {
-    const sy = window.speechSynthesis; if (!sy) return;
-    sy.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.pitch = 1.9; u.rate = 1.15;
-    sy.speak(u);
+    // A human voice playing a small, happy pet when the voice service is set up (lib/cloudVoice.ts).
+    const device = () => {
+      const sy = window.speechSynthesis; if (!sy) return;
+      sy.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.pitch = 1.25; u.rate = 1.1;
+      const v = pickHumanVoice([], false); if (v) u.voice = v;
+      sy.speak(u);
+    };
+    if (!playCloudVoice(text, 'pet', 1, device)) device();
   } catch { /* no voice on this device */ }
 }
 export async function playSqueaky(blob: Blob) {

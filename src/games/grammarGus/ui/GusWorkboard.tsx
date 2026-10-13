@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { playCloudVoice } from '../../../lib/cloudVoice';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useBack } from '../../../lib/navTrail';
 import { useStore } from '../../../store/store';
@@ -182,13 +183,19 @@ let speechOff = false;
 const narrator = () => { const vs = window.speechSynthesis?.getVoices() ?? []; return vs.find((v) => /en[-_]gb/i.test(v.lang) && /daniel|arthur|oliver|george|uk english male/i.test(v.name)) ?? vs.find((v) => /en[-_]gb/i.test(v.lang)) ?? null; };
 function speak(text: string, onEnd?: () => void) {
   if (speechOff) { onEnd?.(); return; }
-  try {
-    const sy = window.speechSynthesis; if (!sy) { onEnd?.(); return; }
-    sy.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.9;
-    const v = narrator(); if (v) { u.voice = v; u.lang = v.lang; }
-    if (onEnd) { u.onend = onEnd; u.onerror = onEnd; }
-    sy.speak(u);
-  } catch { onEnd?.(); }
+  const device = () => {
+    try {
+      const sy = window.speechSynthesis; if (!sy) { onEnd?.(); return; }
+      sy.cancel(); const u = new SpeechSynthesisUtterance(text); u.rate = 0.9;
+      const v = narrator(); if (v) { u.voice = v; u.lang = v.lang; }
+      if (onEnd) { u.onend = onEnd; u.onerror = onEnd; }
+      sy.speak(u);
+    } catch { onEnd?.(); }
+  };
+  // Gus's human voice when the voice service is set up (lib/cloudVoice.ts), the device voice otherwise.
+  const cloud = playCloudVoice(text, 'posh', 0.95, device);
+  if (cloud) { cloud.onend = () => onEnd?.(); return; }
+  device();
 }
 
 const blankLine = (x = 60, y = 80): BoardLine => ({ id: uid(), x, y, items: [{ id: uid(), kind: 'blank', word: null }] });

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { TTSSettings } from '../types';
-import { pickHumanVoice, pickSystemVoice } from '../lib/voiceCatalog';
+import { isRobotVoice, pickHumanVoice } from '../lib/voiceCatalog';
+import { playCloudVoice } from '../lib/cloudVoice';
 import { useStore } from '../store/store';
 import type { NpcVoiceProfile } from '../lib/npcVoices';
 
@@ -45,33 +46,43 @@ export function buildUtterance(text: string, settings?: TTSSettings, voiceSkinId
   const utter = new SpeechSynthesisUtterance(text);
   const student = currentStudent();
   const resolvedSettings = settings ?? student?.ttsSettings;
+  // Her rule (2026-10-12): "tts voices need to be completely human, no more robot sounds". Big pitch
+  // shifts are what make a device voice sound like a robot, so characters keep only a hint of their
+  // pitch and always get the most human voice the device has (never the novelty voices).
+  const soft = (p: number) => 1 + (p - 1) * 0.15;
   if (npcVoiceProfile) {
     utter.rate = npcVoiceProfile.rate;
-    utter.pitch = npcVoiceProfile.pitch;
-    const npcVoice = npcVoiceProfile.human ? pickHumanVoice(npcVoiceProfile.hints) : pickSystemVoice(npcVoiceProfile.hints);
+    utter.pitch = soft(npcVoiceProfile.pitch);
+    const h = npcVoiceProfile.hints;
+    const npcVoice = pickHumanVoice(h, h.includes('female') ? false : h.includes('male') || npcVoiceProfile.human ? true : undefined);
     if (npcVoice) utter.voice = npcVoice;
     return utter;
   }
   const resolvedVoiceSkinId = voiceSkinId !== undefined ? voiceSkinId : (student?.equippedVoiceId ?? null);
   const skin = resolvedVoiceSkinId ? useStore.getState().marketplaceItems.find((it) => it.id === resolvedVoiceSkinId && it.kind === 'voice') : undefined;
   utter.rate = (resolvedSettings?.rate ?? 1) * (skin?.voiceRate ?? 1);
-  utter.pitch = skin?.voicePitch ?? 1;
-  const skinVoice = skin ? pickSystemVoice(skin.voiceHints ?? []) : null;
-  if (skinVoice) {
-    utter.voice = skinVoice;
-  } else if (resolvedSettings?.voiceURI) {
-    const voice = window.speechSynthesis.getVoices().find((v) => v.voiceURI === resolvedSettings.voiceURI);
-    if (voice) utter.voice = voice;
-  }
+  utter.pitch = soft(skin?.voicePitch ?? 1);
+  const chosen = resolvedSettings?.voiceURI ? window.speechSynthesis.getVoices().find((v) => v.voiceURI === resolvedSettings.voiceURI) : undefined;
+  const voice = skin ? pickHumanVoice(skin.voiceHints ?? []) : chosen && !isRobotVoice(chosen) ? chosen : pickHumanVoice([]);
+  if (voice) utter.voice = voice;
   return utter;
 }
 
 export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null, npcVoiceProfile?: NpcVoiceProfile) => {
-  if (!('speechSynthesis' in window) || !text) return;
-  window.speechSynthesis.cancel();
-  const utter = buildUtterance(text, settings, voiceSkinId, npcVoiceProfile);
-  window.speechSynthesis.speak(utter);
-  return utter;
+  if (!text) return;
+  const device = () => {
+    if (!('speechSynthesis' in window)) return undefined;
+    window.speechSynthesis.cancel();
+    const utter = buildUtterance(text, settings, voiceSkinId, npcVoiceProfile);
+    window.speechSynthesis.speak(utter);
+    return utter;
+  };
+  // A real human voice when the app's voice service is set up (lib/cloudVoice.ts); the device voice
+  // otherwise, or if the audio cannot play. Callers only use onstart/onend, which both provide.
+  const rate = (settings ?? currentStudent()?.ttsSettings)?.rate ?? 1;
+  const cloud = playCloudVoice(text, npcVoiceProfile?.cloud ?? 'reader', rate, () => { device(); });
+  if (cloud) return cloud as unknown as SpeechSynthesisUtterance;
+  return device();
 };
 
 // Claudia's review: an earlier version of this also grew a small voice-
