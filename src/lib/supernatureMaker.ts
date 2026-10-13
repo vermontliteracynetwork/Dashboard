@@ -20,7 +20,7 @@ export const PLANS: { id: Plan; label: string; hint: string }[] = [
 ];
 export const LIMBS_FOR: Record<Plan, Limbs[]> = {
   four: ['paws', 'claws', 'hooves', 'flippers', 'tentacles'], two: ['paws', 'claws', 'flippers', 'tentacles'], flier: ['claws', 'paws'],
-  swimmer: ['flippers', 'tentacles', 'none'], slither: ['none', 'claws', 'flippers'], floater: ['none', 'tentacles'],
+  swimmer: ['flippers', 'tentacles'], slither: ['none', 'claws', 'flippers'], floater: ['none', 'tentacles'],
 };
 export const COLORS = ['#7a4a2e', '#c98b5a', '#e8c27a', '#f6f1ff', '#8f8aa8', '#2d2a3a', '#4f9a5b', '#2fa89a', '#3a6fd1', '#8c5ad1', '#e0457a', '#e0452f', '#f2783a', '#f2c14e'];
 export const DEFAULT_SPEC: Spec = { plan: 'four', head: 'round', eyes: 2, limbs: 'paws', tail: 'long', wings: 'none', horns: 'none', covering: 'fur', main: '#8c5ad1', accent: '#f2c14e' };
@@ -29,6 +29,8 @@ export function fixSpec(s: Spec): Spec {
   const t = { ...s };
   if (!LIMBS_FOR[t.plan].includes(t.limbs)) t.limbs = LIMBS_FOR[t.plan][0];
   if (t.plan === 'flier' && t.wings === 'none') t.wings = 'feathered';
+  // Her rule (Build Queue 116): a water creature needs swimming parts, so a Swimmer always has a fin tail.
+  if (t.plan === 'swimmer') t.tail = 'fin';
   return t;
 }
 const pick = <T,>(a: readonly T[]) => a[Math.floor(Math.random() * a.length)];

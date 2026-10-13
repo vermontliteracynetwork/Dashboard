@@ -426,7 +426,7 @@ export function madeToCreature(m: Made): Creature {
     from: insp ? `Made by you, inspired by the ${insp.name} (${insp.from})` : 'Made by you', home: m.homeText, size: m.size,
     power: body.slice(0, 2).join(' and ') || 'its own kind of magic', energy: m.energy,
     traits: [...body, m.personality, m.social === 'pack' ? 'lives in a pack' : 'lives alone', `smarts ${m.smarts} of 5`, `eats ${m.diet}`],
-    move: moveFor(m.spec), likes: [...new Set<Biome>([m.biome, ...likesFor(m.spec)])],
+    move: moveFor(m.spec), likes: moveFor(m.spec) === 'swim' ? likesFor(m.spec) : [...new Set<Biome>([m.biome, ...likesFor(m.spec)])],
     story: m.sentence, tale: [m.sentence, ...(m.facts ?? [m.fact])].filter(Boolean).join(' '),
     eats: m.diet === 'plants' ? 'plants' : m.diet === 'meat' ? 'meat' : m.diet === 'plants and meat' ? 'both' : m.diet === 'leftovers' ? 'leftovers' : 'magic', food: m.diet,
     nameParts: m.sciParts, nameNote: m.sci && m.sci !== m.name ? `Its science name is ${m.sci}.` : 'You named it.', explore: 'explore',

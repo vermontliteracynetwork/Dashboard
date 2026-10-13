@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { ENERGY_FACE, ENERGY_STEPS, REGIONS, SN, WORD_PARTS, snSound, type Energy, type Part } from '../../lib/supernature';
-import { CREATURES, MAX_MADE, art, type Biome, type Made } from '../../lib/supernatureCreatures';
+import { CREATURES, MAX_MADE, art, type Biome, type Creature, type Made } from '../../lib/supernatureCreatures';
 import {
-  COLORS, DEFAULT_SPEC, LIMBS_FOR, PLANS, bodyTraits, fixSpec, likesFor, sparkSpec, specUrl,
+  COLORS, DEFAULT_SPEC, LIMBS_FOR, PLANS, bodyTraits, fixSpec, likesFor, moveFor, sparkSpec, specUrl,
   type Covering, type Head, type Horns, type Limbs, type Spec, type Tail, type Wings,
 } from '../../lib/supernatureMaker';
+import { TAG_EFFECTS, TAG_WORDS, react, tagsOf } from '../../lib/supernatureAdapt';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 
 // The Creature Maker (Build Queue 98; plan sections 5, 18 and 19). Frankenstein hosts (her pick).
@@ -26,7 +27,7 @@ const SAY = [
   'Now the parts: legs or arms, a tail, wings and horns. Its body traits fill in by themselves.',
   'What is it covered with, and what colors is it? Fur keeps it warm and scales are tough.',
   'Now its mind. How does it act? Does it live in a pack? How smart is it? What does it eat? What is its usual energy?',
-  'Where does it live? Pick its land and a place on the Globe. Antarctica and the Southern Ocean are waiting for new creatures!',
+  'Where does it live? Pick its land and a place on the Globe. Water creatures live in the water, so they skip the land. See how its body handles each change in the Habitat!',
   'Give it a science name from word parts, write its name with your wand, and write one sentence about it.',
   'Here is its page. Tap Save to put it in your Encyclopedia and your Habitat.',
 ];
@@ -98,7 +99,8 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
   const capOk = /^[A-Z]/.test(sentence);
   const puncOk = /[.!?]$/.test(sentence);
   const regionLabel = REGIONS.find((r) => r.id === d.region)?.label ?? '';
-  const homeText = `${LANDS.find((l) => l.id === d.biome)!.label} in ${regionLabel}`;
+  const water = d.spec.plan === 'swimmer';
+  const homeText = water ? `Lakes, rivers and seas in ${regionLabel}` : `${LANDS.find((l) => l.id === d.biome)!.label} in ${regionLabel}`;
   const full = !editing && made.length >= MAX_MADE;
   // Her rule (Build Queue 115): the sentence and all three facts are required, each a short
   // numbered line with a capital letter at the start and punctuation at the end.
@@ -186,9 +188,10 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
               <h3>{d.spec.plan === 'two' ? 'Arms and hands' : 'Legs and feet'}</h3>
               <div className="sn-mk-grid">{LIMBS_FOR[d.spec.plan].map((l) => opt(LIMB_LABEL[l], d.spec.limbs === l, () => spec({ limbs: l }), { ...d.spec, limbs: l }))}</div>
               <h3>Tail</h3>
-              <div className="sn-mk-grid">{TAILS.map((t) => opt(t.label, d.spec.tail === t.id, () => spec({ tail: t.id }), { ...d.spec, tail: t.id }))}</div>
+              <div className="sn-mk-grid">{TAILS.filter((t) => d.spec.plan !== 'swimmer' || t.id === 'fin').map((t) => opt(t.label, d.spec.tail === t.id, () => spec({ tail: t.id }), { ...d.spec, tail: t.id }))}</div>
               <h3>Wings</h3>
               <div className="sn-mk-grid">{WINGS.filter((w) => d.spec.plan !== 'flier' || w.id !== 'none').map((w) => opt(w.label, d.spec.wings === w.id, () => spec({ wings: w.id }), { ...d.spec, wings: w.id }))}</div>
+              {d.spec.plan === 'swimmer' && <p className="sn-small">A Swimmer always gets swimming parts: flippers or tentacles, and a fin tail.</p>}
               <h3>Horns</h3>
               <div className="sn-mk-grid">{HORNS.map((h) => opt(h.label, d.spec.horns === h.id, () => spec({ horns: h.id }), { ...d.spec, horns: h.id }))}</div>
             </>
@@ -225,9 +228,16 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
           )}
           {step === 5 && (
             <>
-              <h3>Its land</h3>
-              <div className="sn-mk-chips">{LANDS.map((l) => <button key={l.id} type="button" className={`sn-chip-btn${d.biome === l.id ? ' on' : ''}`} onClick={() => change({ biome: l.id })}>{l.label}</button>)}</div>
-              <p className="sn-small">Its body is made for: {likesFor(d.spec).join(', ')}. {likesFor(d.spec).includes(d.biome) ? 'A great match!' : 'It can live here, but it may feel homesick.'}</p>
+              {water ? (
+                <p className="sn-small"><b>It lives in the water.</b> A Swimmer does not need land: in the Habitat it lives in the pond, whatever the land is.</p>
+              ) : (
+                <>
+                  <h3>Its land</h3>
+                  <div className="sn-mk-chips">{LANDS.map((l) => <button key={l.id} type="button" className={`sn-chip-btn${d.biome === l.id ? ' on' : ''}`} onClick={() => change({ biome: l.id })}>{l.label}</button>)}</div>
+                  <p className="sn-small">Its body is made for: {likesFor(d.spec).join(', ')}. {likesFor(d.spec).includes(d.biome) ? 'A great match!' : 'It can live here, but it may feel homesick.'}</p>
+                </>
+              )}
+              <HabitatPreview spec={d.spec} biome={d.biome} name={name || 'Your creature'} say={say} />
               <h3>Its place on the Globe</h3>
               <div className="sn-mk-chips">{REGIONS.map((r) => <button key={r.id} type="button" className={`sn-chip-btn${d.region === r.id ? ' on' : ''}`} onClick={() => change({ region: r.id })}>{r.label}{r.frontier ? ' (frontier)' : ''}</button>)}</div>
             </>
@@ -305,6 +315,42 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
         </div>
       </section>
       {write && name && <SupernatureWriting word={name} title="Write its name" onListen={() => say(name)} onClose={() => setWrite(false)} onDone={() => { setWrite(false); change({ wrote: true }, 'learned'); }} />}
+    </div>
+  );
+}
+
+// Build Queue 116 (her words: "make sure different features equate to different reactions and
+// adaptations in different habitats"): the same rules the Habitat uses, run on the creature being
+// built, so the student sees what each body part will do before saving.
+const TRY: { label: string; disaster: string | null; weather: string; night?: boolean; biome?: Biome }[] = [
+  { label: 'Flood', disaster: 'flood', weather: 'rain' }, { label: 'Wildfire', disaster: 'wildfire', weather: 'clear' },
+  { label: 'Blizzard', disaster: 'blizzard', weather: 'snow' }, { label: 'Drought', disaster: 'drought', weather: 'clear' },
+  { label: 'Tornado', disaster: 'tornado', weather: 'wind' }, { label: 'Earthquake', disaster: 'earthquake', weather: 'clear' },
+  { label: 'Storm', disaster: null, weather: 'storm' }, { label: 'Snowy land', disaster: null, weather: 'snow', biome: 'snow' },
+  { label: 'Desert', disaster: null, weather: 'clear', biome: 'desert' }, { label: 'Night', disaster: null, weather: 'clear', night: true },
+];
+function HabitatPreview({ spec, biome, name, say }: { spec: Spec; biome: Biome; name: string; say: (t: string) => void }) {
+  const c: Creature = {
+    id: 'preview', name, say: name, chapter: 'mine', region: '', from: '', home: '', size: '', power: '', energy: 'just right',
+    traits: bodyTraits(spec), move: moveFor(spec), likes: moveFor(spec) === 'swim' ? likesFor(spec) : [...new Set<Biome>([biome, ...likesFor(spec)])],
+    story: '', tale: '', nameNote: '', eats: 'plants', food: 'plants', explore: 'explore',
+  };
+  const tags = [...tagsOf(c)];
+  const rows = TRY.map((t) => ({ t, r: react(c, { weather: t.weather, disaster: t.disaster, night: !!t.night, biome: t.biome ?? biome }) }));
+  const text = `${tags.length ? tags.map((g) => `${TAG_WORDS[g]}: ${TAG_EFFECTS[g]}`).join(' ') : 'Its body has no special features yet. Try fur, scales, wings or flippers.'} ${rows.map(({ t, r }) => `${t.label}: ${r.text}`).join(' ')}`;
+  return (
+    <div className="sn-mk-hab">
+      <div className="sn-row between" style={{ width: '100%' }}>
+        <h3>In the Habitat</h3>
+        <button type="button" className="sn-listen" onClick={() => say(text)} aria-label="Listen"><Icon d={LISTEN} /></button>
+      </div>
+      <ul className="sn-mk-hab-tags">
+        {tags.length ? tags.map((g) => <li key={g}><b>{TAG_WORDS[g]}.</b> {TAG_EFFECTS[g]}</li>) : <li>Its body has no special features yet. Try fur, scales, wings or flippers.</li>}
+      </ul>
+      <div className="sn-mk-hab-grid">
+        {rows.map(({ t, r }) => <span key={t.label} className={r.hit ? 'bad' : 'ok'} title={r.text}><small>{t.label}</small><b>{r.icon} {r.word}</b></span>)}
+      </div>
+      <p className="sn-small">Green means its body handles it. Orange means it needs to take cover. Change its parts and watch this change.</p>
     </div>
   );
 }

@@ -8217,3 +8217,13 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 @media (prefers-reduced-motion: reduce) {
   .sn-crit.pose-shiver > img:first-child, .sn-crit.pose-splash > img:first-child, .sn-slot3.armed, .sn-crit.target > img:first-child { animation: none; }
 }
+
+/* Creature Maker: In the Habitat preview (Build Queue 116) */
+.sn-mk-hab { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding: 10px 12px; background: #fff7e2; color: #241f45; border: 3px solid #c8962a; border-radius: 12px; }
+.sn-mk-hab h3 { margin: 0; }
+.sn-mk-hab-tags { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 4px; font-size: 15px; line-height: 1.35; }
+.sn-mk-hab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 6px; }
+.sn-mk-hab-grid span { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px; border: 2px solid #241f45; border-radius: 10px; font-size: 14px; }
+.sn-mk-hab-grid span small { font-size: 12px; font-weight: 700; color: #4a4480; }
+.sn-mk-hab-grid span.ok { background: #e8fbe0; }
+.sn-mk-hab-grid span.bad { background: #ffe0d6; }

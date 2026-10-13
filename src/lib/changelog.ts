@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-maker-habitat",
+    date: "2026-10-13",
+    icon: "🐟",
+    title: "Your creature's body matters in the Habitat",
+    body: "In the Creature Maker, the In the Habitat box shows what each body part does: fur keeps it warm, wings fly above floods, flippers dive away from fires. Swimmers get flippers or tentacles and a fin tail, and they live in the water, so they do not need land.",
+  },
+  {
     id: "2026-10-13-home-cauldron-rug",
     date: "2026-10-13",
     icon: "🏠",
