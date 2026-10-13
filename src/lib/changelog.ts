@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-potions-world",
+    date: "2026-10-13",
+    icon: "🪽",
+    title: "Float in Town Square!",
+    body: "Brew an Aero potion in Supernature, then tap Drink it to float over Town Square for one minute. Veloaero makes you super fast too. Fort and Velo potions give your pet +1 training, once a day.",
+  },
+  {
     id: "2026-10-13-be-creature",
     date: "2026-10-13",
     icon: "🎮",

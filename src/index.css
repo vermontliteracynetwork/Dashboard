@@ -8060,3 +8060,7 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-be-msg .sn-listen { margin: 0; }
 .sn-joy { position: absolute; left: 24px; bottom: 24px; z-index: 6; width: 120px; height: 120px; border-radius: 50%; background: rgba(36, 31, 69, 0.45); border: 4px solid rgba(246, 241, 255, 0.7); display: flex; align-items: center; justify-content: center; touch-action: none; }
 .sn-joy i { width: 54px; height: 54px; border-radius: 50%; background: #ffd970; border: 3px solid #241f45; pointer-events: none; }
+
+/* Supernature potions out in the world (Build Queue 104). */
+.world-potion { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60; padding: 10px 18px; border-radius: 999px; background: #4a4480; color: #f6f1ff; border: 3px solid #241f45; font-weight: 700; font-size: 17px; box-shadow: 0 4px 0 #241f45; pointer-events: none; }
+.sn-pet-potion { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #fff7e2; border: 2px solid #c8962a; border-radius: 12px; }
