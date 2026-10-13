@@ -21,27 +21,26 @@ Supernature works like a field naturalist's journal that happens to be magic. Ev
 
 The loop a student lives in: **find it, learn it, make one, keep it alive, brew for it.**
 
-## 1b. The home screen: the Witch's House
+## 1b. Home: the Witch's House
 
-Her words (2026-10-13): "lets say the screen opens with a 2d clickable/navigation menu. they can click a book shelf to see their book, a couldron to make potions, a model of a beast (thing sewing dummy) in the right side to clcik beastiary, globe visual clicks open the clibe view. shop vending machine opens shop. -- think a 2d pixel art style witchs house that has click things". She sent three witch's-house pictures as mood references (cozy wooden or stone rooms, a fireplace cauldron, shelves of bottles and books, a round window at night, candles, a broom, a cat).
+Her words (2026-10-13): "lets say the screen opens with a 2d clickable/navigation menu ... think a 2d pixel art style witchs house that has click things", then "make the main background (clikable navigations) from the assets ive added", "no top overhead navigation menu, instead go back to "home" which will be the main witch house view", "lets have the cat wizard as the main host", and "habitat should be accessed by clicking a door in main view (go outside)".
 
-Supernature opens inside a 2D pixel witch's house. There are no menus: every room of the game is an object in the house that students tap. Each one has a name tag (always showing, since iPads have no hover), glows when tapped, and is read aloud:
+- **Home is the Witch's House.** There is no top menu anywhere. Every screen has one big **Home** button (top left, house picture and the word Home) that goes back to the house. From the house, students tap objects to go places. Leaving Supernature is the Computer button on the house screen only.
+- **The objects (name tags always showing, read aloud on tap, a glow when tapped):**
 
-| Object in the house | Opens | Where |
-|---|---|---|
-| Bookshelf | My Books: the Cookbook, the Word Part Book and the creature cards | left wall (her words: "their book") |
-| Cauldron | the Cauldron, to make potions | center |
-| Beast model on a sewing dummy | the Bestiary | right side (her words) |
-| Globe on a stand | the Globe view | right of the cauldron |
-| Potion vending machine | the Shop | far right |
-| Study desk (her wizard desk) | the Creature Maker | proposed; she can swap it |
-| Round window looking out on a garden | the Habitat | proposed; the student's habitat is "outside" |
+| Object | Opens |
+|---|---|
+| Bookshelf (her pastel Witchy Pack bookshelf, with the sparkling book on top) | My Books: Cookbook, Word Part Book, creature cards |
+| A wooden door marked OUTSIDE (with a round window showing the garden) | **Go outside: the Habitat** |
+| Purple stone fireplace with her animated bubbling cauldron | the Cauldron |
+| Globe on a stand | the Globe |
+| Magic vending machine | the Shop |
+| Round witch table with a crystal ball and mortar | the Creature Maker |
+| Beast model on a sewing dummy | the Encyclopedia (Bestiary) |
 
-Small living touches: hanging herbs and spices from the ceiling beam (her spice art), a bat flying past the window, candles that flicker, the cauldron bubbling with a soft sound, and the Star Wizard waiting by the door with a welcome line. As students level up, the house fills in: new creature cards pinned to the wall, new jars on the shelves, the wands they earn on a rack. Calm mode and reduced motion still the animations.
-
-Mockup screen 0 shows it, built from her art. In Play, the name tags open the matching screens.
-
-**Art still needed for the house:** a pixel room background (walls, floor, window, beam) in the same style, a beast model on a sewing dummy, and a front-facing pixel vending machine. Until then, Claudia draws them from simple pixel shapes, as in the mockup.
+- **Built from her packs:** Witchy Pack (pastel bookshelf, fireplace, crescent moon wreath, crystal wind chimes, witch hat, potted tree, candles, jars, crystal ball, round potion, mortar), the free witch table and crystal ball, the hanging herbs and plant shelf from her furniture pack, her vending machine, her animated cauldron and sparkling book, the animated toadstool ring on the rug, sparkles from her sparkle sheet, and her pixel spices.
+- **The Cat Wizard is the main host** (her witchKitty art: a cat in a wizard cloak, with walk, curious and sleepy animations). It greets students at Home, guides every room, reads lines aloud, naps when a student has been idle (its sleepy animation), and perks up when they return. The other wizards stay as optional room helpers if she wants them; otherwise the Cat Wizard does it all.
+- **Still needed for the house:** only the beast model on a sewing dummy (drawn as a simple stand-in for now).
 
 ## 2. Learning goals and where each one lives
 
@@ -347,8 +346,8 @@ Saved in the project under `public/games/supernature/` (cut out on see-through b
 
 ### She needs to upload (updated 2026-10-13, everything still missing in one list)
 **Must have before building the first steps:**
-1. **Witch's House room background** (pixel, wide, landscape): walls, floor, ceiling beam, round window, a door. The props she already sent sit on top of it.
-2. **Beast model on a sewing dummy** (the Bestiary object in the house) and a **front-facing potion vending machine** (the Shop).
+1. **Witch's House:** covered. Built from her packs (section 1b).
+2. **Beast model on a sewing dummy** (the Bestiary object in the house). The vending machine is covered by her art.
 3. **The 10 starter creatures** as pixel sprites in one style and size (32x32 or 48x48): Griffin, Kappa, Sphinx, Jackalope, Curupira, Bunyip, Selkie, Umibozu, Mermaid, Kraken. Each with an idle loop and a move loop (walk, swim or fly), 2 to 4 frames. The "???" silhouettes are made from these.
 4. **A modular creature parts kit** that snaps onto one shared body grid: bodies (walker, flier, swimmer, slitherer, floater), heads, eyes (1 to 3), arms (claws, flippers, sword-hands, tentacles), tails, wings. Coverings are now covered by her materials. Search: "modular pixel monster creator" or "pixel creature parts". If none, Claudia draws them.
 
@@ -360,12 +359,12 @@ Saved in the project under `public/games/supernature/` (cut out on see-through b
 9. **A joystick and a few big game buttons** in the same pixel style (for Be the creature). Claudia can draw these.
 
 **Needed for the Cauldron and Shop:**
-10. **A mixing bowl, a stirring spoon, a shop shelf.**
+10. **A stirring spoon.** The mortar and pestle covers the mixing bowl; the vending machine covers the shop.
 11. **Ingredient icons not in her packs:** dew drop, feather, moonlight jar, salt; silly shop items (toad burp, pixie dust, troll toenail, dragon sneeze); rare items (phoenix ember, kraken ink, unicorn sparkle, star sap, thunder in a jar). Claudia draws any she cannot find.
 
 **Sound and music (section 17):**
 12. **Music loops (5 to 7):** the house (cozy), the Globe (wondering), the Habitat by day and by night, the Cauldron (bubbly), Be the creature (light adventure), a gentle tension loop for disaster signs, and short stingers for level up, new creature and new recipe. Free CC0 chiptune or fantasy packs work well (search "cozy fantasy music loop CC0" or "witch house music loop"). Her Serenitrove songs can fill in.
-13. **Sound effects:** page turn, card flip, quill scratch, wand sparkle, cauldron bubble loop, plop, stir swish, cork pop and pour, smoke poof, fizzle and burp, globe whoosh, creature calls (chirp, croak, rumble, buzz), footsteps, wing flaps, splash, rain, wind, distant rumble, fire crackle, vending machine clunk, coin clink, star twinkle. Kenney's interface and RPG audio packs (some already in the project) cover the clicks and coins.
+13. **Sound effects:** her Witchy UI Sounds pack covers the interface sounds (section 22). Still needed: page turn, card flip, quill scratch, wand sparkle, cauldron bubble loop, plop, stir swish, cork pop and pour, smoke poof, fizzle and burp, globe whoosh, creature calls (chirp, croak, rumble, buzz), footsteps, wing flaps, splash, rain, wind, distant rumble, fire crackle, vending machine clunk, coin clink, star twinkle. Kenney's interface and RPG audio packs (some already in the project) cover the clicks and coins.
 
 **Already covered (no upload needed):** host wizards, the books, wands, cauldron, spices, mushrooms, materials, UI kit, energy faces, the world map (made from free public map data), bugs and sea life, pixel smoke and sparkles.
 
@@ -443,9 +442,47 @@ Her rule (2026-10-13): navigation and UI/UX are the priority; not too much at on
 ### Full-screen writing (cursive)
 Every writing strip (creature names, spells, the encyclopedia form) has an **Enlarge** button that opens a full-screen writing pad: the word large across the whole screen, tall guide lines, start dots, the student's wand, Show me, Undo stroke, Clear, Listen, and Done. It works with a finger or an Apple Pencil, and only one touch counts at a time so a resting hand does not draw.
 
-## 21. Build order (each step ships on its own)
+## 22. Look and feel: purple cat magic
 
-1. **Foundation:** the Witch's House home screen; Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (the 10 starter creatures start approved, everything else Hidden until she approves); the energy faces wired in.
+Her words (2026-10-13): "The general theme should be like the image here that has a purple background and a cat magic pixel theme (witchy, fantasy, magic)" (her reference: a cozy purple witch sticker sheet with a witch, cat, mandrake, crystals, moon phases and sparkles).
+
+- **Palette:** periwinkle purple walls and page (#6b66a3 and #5c5791), deep purple panels (#4a4480, #3d3870), near-black purple outlines (#241f45), warm gold accents (#ffd970, #f6c850), cream text and parchment (#f6f1ff, #f1e3bf), mint for "done" (#57d3b8). Text stays high contrast on every surface.
+- **Type:** pixel font (Press Start 2P) for titles only; Lexend for all reading text; the cursive guide font for writing.
+- **Always a little alive:** sparkles twinkle, candles flicker, the cauldron bubbles, the toadstool ring glows, the Cat Wizard blinks and naps. Calm mode and reduced motion still them.
+- **Her packs used for the look:** Witchy Pack (pastel), Witch's Cabinet (ingredients), Witchy UI Sounds, witchKitty (host), Blue Witch (optional student apprentice avatar, waiting on her yes), Witch's Hut starter (black cat, toadstool ring, jack-o-lantern), Magic Items (CC0), 16x16 magic items, fantasy element icons, Foozle magic effects and the pixel magic effects pack (potion and spell effects), the magic icon set, the furniture pack, and the free witch table.
+
+### Sounds from her Witchy UI pack
+Tap: celesta pluck. Open and close a book: spellbook open and close. Page turn: page turn. Card flip: tarot flip. Stir: cauldron spoon. Cork: potion cork. Potion brewed: potion brewed, then potion complete. New recipe: spell learned. Rank up: coven level up. New creature found: familiar unlocked. Ingredient picked up: herb pickup or mushroom pop. Shop coins: silver coin. Season change: wind chimes. Disaster signs: owl hoot. Steps out of order: hex fizzle (gentle, never a buzzer). Smoke poof: puff of smoke. Back: music box fall. (Hover sounds are not used, since iPads have no hover.) Music loops are still needed.
+
+### Witch's Cabinet: what is used, renamed or left out
+66 of its 80 ingredients are saved (with matching "???" silhouettes for locked ingredients). **Renamed** for a school: bloodleaf to Ruby Leaf, graveyard ivy to Twilight Ivy, sleeping poison to Sleepy Draught, petrified heart to Stone Heart, severed shadow to Shadow Wisp, forbidden book to Secret Book, unknown black potion to Mystery Potion, love philter to Friendship Philter, lantern of lost souls to Lantern of Lost Lights, and the "cursed curios" group to "odd curios". **Left out** (no blood, no body parts, no weapons, no creepy or religious items): witch's finger fungus, vampire fang, werewolf claw, spider venom gland, demon horn fragment, ritual dagger, bone wand, whispering mask, possessed doll, tooth necklace, skull hourglass, crown of thorns, dragonbone reliquary, hand of the saint. From her other packs, the coffins, coffin shelves, tombstones, skulls, spirit boards and tarot cards are also left out, and the jack-o-lantern "soul" animation is not used.
+
+## 23. Claudia review: the Habitat (the students' favorite)
+
+Her words (2026-10-13): "this is students most favorite part so lets make sure the designs are claudia approved, easy to navigate, etc. make sure all creatures are slowly moving around the screen (flying if they are flying creatures, walking, etc.)"
+
+**How creatures move (slow and calm):**
+- Walkers walk slowly along paths, turn around at the ends, and take a little two-step bob as they go; they pause now and then to eat or look around.
+- Fliers drift in slow loops with a gentle wing flutter, and land on plants to rest.
+- Swimmers glide and turn in the water; slitherers wiggle; floaters bob.
+- Burrowers pop in and out of holes; decomposers (beetles, mushrooms) stay close to the ground.
+- Movement shows each creature's energy: very high creatures zoom, very low ones nap (with the asleep face).
+- Speed is always slow enough to tap a creature easily; tapping one makes it stop and face the student.
+- Calm mode and reduced motion slow everything further or stop it.
+
+**Review checklist (all pass in the new mockup):**
+- The scene is the biggest thing on the screen; only one helper panel shows at a time, and it has a close button.
+- Home, Undo, Redo, Save, zoom and Full screen are in the same place as every other screen.
+- One clear next step: the Next season button, in the same corner every time.
+- Food web and What if open from buttons, so the scene is not crowded.
+- Every creature has a name tag on tap, a Listen button, and the Be this creature button.
+- Counters use pictures and numbers with words (up, down), not color alone.
+- Nothing scary: no blood or harm, prey poofs to safety, disasters give warning signs first.
+- iPad: big targets (at least 48 px), no hover, pinch to zoom, tap-to-place as well as drag.
+
+## 24. Build order (each step ships on its own)
+
+1. **Foundation:** Home (the Witch's House) with the Cat Wizard, the Home button on every screen, the purple theme and her UI sounds; Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (the 10 starter creatures start approved, everything else Hidden until she approves); the energy faces wired in.
 2. **Creature Maker and Habitat** (her priority), with the 10 starter creatures to explore and remix, Energy check-ins, cursive naming, the Name Builder, predictions, and the shared control bar (Undo, Redo, Save, zoom, full screen).
 2b. **Disasters, Be the creature, and generations** (section 16).
 3. **Encyclopedia (Bestiary):** the pixel book you flip through, Add a page, "???" pages, the trait sorting job, decoding real names, the Word Part Book and Morpheme Mixer, My Creatures.
