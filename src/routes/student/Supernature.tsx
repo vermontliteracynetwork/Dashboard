@@ -173,14 +173,13 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
         <span className="sn-door-sill" />
       </button>
 
-      <button type="button" className="sn-obj" style={{ left: 480, bottom: 250, width: 240 }} onClick={() => go('cauldron')} aria-label="Cauldron">
+      <div className="sn-obj" style={{ left: 480, bottom: 250, width: 240 }} aria-hidden="true">
         <span style={{ position: 'relative', width: 240, height: 300, display: 'block' }}>
           <img src={`${W}fireplaces-0.png`} alt="" style={{ width: 240, height: 300 }} />
           <img src={`${W}candles-0.png`} alt="" style={{ position: 'absolute', left: 20, top: 92, width: 40 }} />
           <img src={`${W}colorful-jars-0.png`} alt="" style={{ position: 'absolute', left: 180, top: 90, width: 40 }} />
-          <img src={`${SN}theme/cauldron-bubbling.gif`} alt="" className="sn-smooth" style={{ position: 'absolute', left: 66, top: 172, width: 110 }} />
-        </span>{tag('Cauldron')}
-      </button>
+        </span>
+      </div>
 
       <button type="button" className="sn-obj" style={{ left: 760, bottom: 250, width: 150 }} onClick={() => go('globe')} aria-label="Globe">
         <span className="sn-globe-stand"><img src={`${SN}ui/globe.png`} alt="" /></span>
@@ -193,13 +192,14 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       </button>
 
       <div className="sn-rug" />
-      {/* Her layout (2026-10-13): the Creature Maker corner is a cauldron on the rug with a bigger
-          Frankenstein to its right; the table and its things are gone. */}
-      <button type="button" className="sn-obj" style={{ left: 560, top: 516, width: 320 }} onClick={maker} aria-label="Creature Maker">
-        <span style={{ position: 'relative', width: 320, height: 190, display: 'block' }}>
-          <img src={`${SN}props/cauldron.png`} alt="" style={{ position: 'absolute', left: 10, bottom: 4, width: 150 }} />
-          <img src={`${SN}creatures/frankie.png`} alt="" style={{ position: 'absolute', right: 0, bottom: 0, width: 168 }} />
-        </span>{tag('Creature Maker')}
+      {/* Her layout (2026-10-13, Build Queue 119): the bubbling cauldron sits in the middle of the
+          rug and opens the Cauldron; the fireplace is decor now. Frankenstein stands on the wood floor
+          to the right of the rug, with the Creature Maker tag under him. */}
+      <button type="button" className="sn-obj" style={{ left: 655, top: 560, width: 130 }} onClick={() => go('cauldron')} aria-label="Cauldron">
+        <img src={`${SN}theme/cauldron-bubbling.gif`} alt="" className="sn-smooth" style={{ width: 130, display: 'block' }} />{tag('Cauldron')}
+      </button>
+      <button type="button" className="sn-obj" style={{ left: 945, top: 556, width: 160 }} onClick={maker} aria-label="Creature Maker">
+        <img src={`${SN}creatures/frankie.png`} alt="" className="sn-host-pixel" style={{ width: 160, height: 160, display: 'block', imageRendering: 'pixelated' }} />{tag('Creature Maker')}
       </button>
 
       <Host say={say} crown={crown} text="Welcome home! Tap anything with a name tag. The bookshelf is your Encyclopedia, and the door goes outside to your Habitat." />

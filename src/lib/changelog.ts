@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-home-cauldron-rug",
+    date: "2026-10-13",
+    icon: "🏠",
+    title: "The cauldron moved to the rug",
+    body: "In Supernature, the bubbling cauldron now sits in the middle of the rug. Tap it to brew. Frankenstein stands on the wood floor next to it: tap him to make a creature.",
+  },
+  {
     id: "2026-10-13-habitat-hotbar",
     date: "2026-10-13",
     icon: "🎒",
