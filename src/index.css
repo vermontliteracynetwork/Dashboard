@@ -7549,3 +7549,4 @@ body.calm-games .fgx-crop.ripe, body.calm-games .fgx-work { animation: none; }
 .cop-food-item img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
 .cop-food-item span { position: absolute; right: -6px; bottom: -6px; min-width: 24px; height: 24px; border-radius: 12px; background: #3e7c6b; color: #fff; font-weight: 900; font-size: 0.8rem; display: grid; place-items: center; padding: 0 4px; }
 .cop-food-ghost { position: fixed; width: 72px; height: 72px; transform: translate(-50%, -50%); pointer-events: none; z-index: 1000; image-rendering: pixelated; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3)); }
+.widget-icon-img { width: 1.6em; height: 1.6em; object-fit: contain; display: block; }

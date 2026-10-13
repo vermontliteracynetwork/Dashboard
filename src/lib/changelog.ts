@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-gym-app",
+    date: "2026-10-13",
+    icon: "🏋️",
+    title: "Buff Doge's Gym on your computer",
+    body: "Buff Doge's Gym is an app on your computer now, right next to the Pet Finder. Voices also sound more like real people.",
+  },
+  {
     id: "2026-10-12-farm-fresh",
     date: "2026-10-12",
     icon: "🌱",
