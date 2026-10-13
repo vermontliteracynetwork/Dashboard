@@ -9,7 +9,7 @@ import { speak } from './ReadAloud';
 // choices, a typing box with an example, and Send; it lands in the teacher's feedback inbox with the
 // game's name, the same place the Tools feedback goes.
 // Grammar Gus is left out on purpose: nothing may overlap his machine (her standing Gus rule).
-const EXTRA: Record<string, string> = { '/student/gym': "Buff Doge's Gym", '/student/science-lab': 'Science Lab' };
+const EXTRA: Record<string, string> = { '/student/gym': "Buff Doge's Gym", '/student/science-lab': 'Science Lab', '/student/supernature': 'Supernature' };
 
 export default function GameReportBubble() {
   const { pathname } = useLocation();

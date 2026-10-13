@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-supernature",
+    date: "2026-10-13",
+    icon: "🐈‍⬛",
+    title: "Supernature is open!",
+    body: "Open Supernature on your computer to visit the Cat Wizard's witch's house. Go outside to the Habitat and check in on each creature's energy, find mythical creatures on the Globe, write their names in your Encyclopedia, brew the Aero potion in the cauldron and build magic names from word parts.",
+  },
+  {
     id: "2026-10-13-doc-aussie",
     date: "2026-10-13",
     icon: "🎣",

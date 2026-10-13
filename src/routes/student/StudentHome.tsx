@@ -440,6 +440,15 @@ export default function StudentHome() {
           <span className="widget-icon">⚗️</span>
           <span className="widget-label">Alchemy</span>
         </button>
+        {/* Supernature (item 96, teacher 2026-10-13: "lets get a model of this ready in computer app"). */}
+        <button
+          className="widget-card widget-icon-card widget-grammar-gus"
+          onClick={() => navigate('/student/supernature')}
+          aria-label="Supernature"
+        >
+          <span className="widget-icon"><img src="/games/supernature/theme/kitty-curiousIdleBreaker.gif" alt="" className="widget-icon-img" /></span>
+          <span className="widget-label">Supernature</span>
+        </button>
         {/* Science Lab (teacher 2026-10-09: "science lab should be an app in the computer not a native game"). */}
         <button
           className="widget-card widget-icon-card widget-grammar-gus"
