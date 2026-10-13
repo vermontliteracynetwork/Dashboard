@@ -3,6 +3,7 @@ import { ENERGY_FACE, ENERGY_STEPS, SN, natureSound, setNatureLoop, snSound, typ
 import { art, byId, madeList, type Biome, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
 import SupernatureGenerations from './SupernatureGenerations';
+import SupernatureBe from './SupernatureBe';
 import { START_GROUP, runSeason, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
@@ -152,6 +153,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [giant, setGiant] = useState<string | null>(null);
   const [potionMenu, setPotionMenu] = useState(false);
   const [gensOpen, setGensOpen] = useState(false);
+  const [playing, setPlaying] = useState<Creature | null>(null);
   const have = (n: string) => potions.filter((p) => p === n).length;
   const covered = live.length > 0 && live.every((l) => l.hide);
   const night = timeMode === 'night' || (timeMode === 'auto' && clock >= 0.62);
@@ -447,6 +449,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 {(sel_.energy === 'high' || sel_.energy === 'very high') && have('Dorm') > 0 && <button type="button" className="sn-btn2 go" onClick={() => giveTo('Dorm')}>Give Dorm potion to calm it ({have('Dorm')})</button>}
                 {(sel_.energy === 'low' || sel_.energy === 'very low') && have('Viv') > 0 && <button type="button" className="sn-btn2 go" onClick={() => giveTo('Viv')}>Give Viv potion to wake it up ({have('Viv')})</button>}
                 {have('Mega') > 0 && giant !== sel_.c.id && <button type="button" className="sn-btn2" onClick={() => giveTo('Mega')}>Give Mega potion ({have('Mega')})</button>}
+                <button type="button" className="sn-btn2 go" disabled={sel_.hp === 0} onClick={() => { snSound('open'); setPlaying(sel_.c); setSel(null); }}>🎮 Be this creature</button>
                 <button type="button" className="sn-btn2" onClick={() => openPage(sel_.c.id)}>Read its page</button>
               </div>
             ) : (
@@ -471,6 +474,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         )}
       </div>
 
+      {playing && <SupernatureBe c={playing} roster={roster} biome={biome} say={say} onClose={() => setPlaying(null)} />}
       {gensOpen && <SupernatureGenerations roster={roster} biome={biome} disaster={active} say={say} onClose={() => setGensOpen(false)} goNames={goNames} />}
       {predict && (
         <div className="sn-modal" role="dialog" aria-label="Predict the season">

@@ -8041,3 +8041,22 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-gen-sum { padding: 8px 12px; background: #fff7e2; border-radius: 10px; font-size: 16px; line-height: 1.45; }
 .sn-jump { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; }
 .sn-jump input { width: 150px; height: 32px; }
+
+/* Be the creature (Build Queue 103). */
+.sn-be { position: absolute; inset: 70px 0 0 0; z-index: 25; background: #3d3870; }
+.sn-be-world { position: absolute; left: 10px; top: 8px; width: 1152px; height: 584px; overflow: hidden; border: 4px solid #241f45; border-radius: 14px; touch-action: none; }
+.sn-be-burrow { position: absolute; width: 140px; pointer-events: none; }
+.sn-be-item { position: absolute; width: 44px; height: 44px; object-fit: contain; pointer-events: none; }
+.sn-be-me, .sn-be-hunter { position: absolute; width: 88px; height: 88px; object-fit: contain; pointer-events: none; z-index: 2; }
+.sn-be-me { filter: drop-shadow(0 0 4px #ffd970); }
+.sn-be-hunter { filter: drop-shadow(0 0 4px #e0452f); }
+.sn-be-bush { position: absolute; width: 140px; pointer-events: none; z-index: 3; opacity: 0.92; }
+.sn-be-poof { position: absolute; width: 80px; height: 80px; border-radius: 50%; pointer-events: none; z-index: 4; background: radial-gradient(circle, #f6f1ff 0 30%, rgba(214, 196, 255, 0.7) 55%, rgba(214, 196, 255, 0) 72%); }
+.sn-be-hud { position: absolute; right: 10px; top: 10px; z-index: 6; display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: rgba(36, 31, 69, 0.88); border-radius: 12px; font-weight: 700; color: #f6f1ff; }
+.sn-be-time { font-family: 'Press Start 2P', monospace; font-size: 14px; color: #ffd970; }
+.sn-be-energy { display: flex; align-items: center; gap: 4px; font-size: 13px; }
+.sn-be-energy img { width: 30px; height: 30px; }
+.sn-be-msg { position: absolute; left: 10px; top: 10px; z-index: 6; max-width: 560px; display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 14px; background: rgba(36, 31, 69, 0.88); border-radius: 12px; font-size: 15px; line-height: 1.35; color: #f6f1ff; }
+.sn-be-msg .sn-listen { margin: 0; }
+.sn-joy { position: absolute; left: 24px; bottom: 24px; z-index: 6; width: 120px; height: 120px; border-radius: 50%; background: rgba(36, 31, 69, 0.45); border: 4px solid rgba(246, 241, 255, 0.7); display: flex; align-items: center; justify-content: center; touch-action: none; }
+.sn-joy i { width: 54px; height: 54px; border-radius: 50%; background: #ffd970; border: 3px solid #241f45; pointer-events: none; }

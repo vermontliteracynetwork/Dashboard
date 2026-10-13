@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-be-creature",
+    date: "2026-10-13",
+    icon: "🎮",
+    title: "Be the creature!",
+    body: "In your Habitat, tap a creature and choose Be this creature. Walk around for 90 seconds and find its food. Plant eaters can hide in the bushes when a hunter comes, and hunters tag their prey, who poof safely home. Keep your energy just right!",
+  },
+  {
     id: "2026-10-13-generations",
     date: "2026-10-13",
     icon: "🧬",
