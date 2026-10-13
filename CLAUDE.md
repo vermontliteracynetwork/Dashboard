@@ -52,3 +52,6 @@ Direct teacher rule (2026-10-12): "tts voices need to be completely human, no mo
 
 ## iPad is the priority device for every student view
 Direct, standing teacher instruction: her students use iPads. Every student-facing screen, view, and display (Town Square, Build Mode-adjacent student surfaces, task/quiz UIs, the computer desktop, all of it) must be optimized for iPad first, not just "also work" on it — touch targets, layout at iPad viewport sizes (both orientations), no hover-only affordances, no interactions that assume a mouse or physical keyboard. Claudia's review checklist (`.claude/agents/claudia.md`) treats this as non-negotiable on every review of student-facing work, same tier as the other pass/fail visual standards. Apply this on every change to a student view, not just when explicitly asked.
+
+## No blood, anywhere
+Direct teacher rule (2026-10-13): "NO BLOOD!! IN any supernature or otherwise." No blood, wounds or gore in any art, animation, text or sound across the whole platform. Predators "catch" and prey poofs away; nothing is ever shown hurt.
