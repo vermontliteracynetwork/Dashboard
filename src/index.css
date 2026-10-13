@@ -7629,7 +7629,7 @@ body.calm-games .fgx-crop.ripe, body.calm-games .fgx-work { animation: none; }
 .sn-wall { position: absolute; left: 0; right: 0; top: 70px; height: 440px; background: #6b66a3 repeating-linear-gradient(90deg, transparent 0 94px, rgba(36, 31, 69, 0.16) 94px 98px); }
 .sn-beam { position: absolute; left: 0; right: 0; top: 70px; height: 18px; background: #3d2f5c; border-bottom: 3px solid #241f45; }
 .sn-floor { position: absolute; left: 0; right: 0; top: 506px; bottom: 0; background: #4b3a6e repeating-linear-gradient(0deg, transparent 0 40px, rgba(36, 31, 69, 0.35) 40px 43px); border-top: 4px solid #241f45; }
-.sn-rug { position: absolute; left: 540px; top: 650px; width: 340px; height: 90px; border-radius: 50%; background: #8a4f9e; border: 4px solid #241f45; box-shadow: inset 0 0 0 8px #a96bbd; z-index: 0; }
+.sn-rug { position: absolute; left: 540px; top: 640px; width: 360px; height: 90px; border-radius: 50%; background: #8a4f9e; border: 4px solid #241f45; box-shadow: inset 0 0 0 8px #a96bbd; z-index: 0; }
 .sn-obj { position: absolute; z-index: 2; display: flex; flex-direction: column; align-items: center; background: none; border: 0; padding: 0; color: inherit; }
 .sn-obj:active > img, .sn-obj:active > span:first-child { filter: brightness(1.18); }
 .sn-obj > .sn-tag { position: absolute; top: calc(100% + 4px); left: 50%; transform: translateX(-50%); margin: 0; }

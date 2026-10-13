@@ -158,8 +158,6 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       {bar}
       <div className="sn-wall" /><div className="sn-floor" /><div className="sn-beam" />
       <img src={`${W}dried-herbs-0.png`} alt="" style={{ position: 'absolute', left: 532, top: 92, width: 144 }} />
-      <img src={`${W}crescent-moon-wreaths-1.png`} alt="" style={{ position: 'absolute', left: 760, top: 100, width: 76 }} />
-      <img src={`${W}witch-hats-1.png`} alt="" style={{ position: 'absolute', left: 850, top: 128, width: 72 }} />
       <img src={`${SN}theme/extra1-wall.png`} alt="" style={{ position: 'absolute', left: 930, top: 92, width: 230 }} />
       <img className="sn-sparkle" src={`${SN}theme/sparkle-4.png`} alt="" style={{ left: 300, top: 110, width: 40 }} />
       <img className="sn-sparkle d2" src={`${SN}theme/sparkle-0.png`} alt="" style={{ left: 700, top: 160, width: 52 }} />
@@ -170,8 +168,8 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       </button>
 
       <button type="button" className="sn-obj" style={{ left: 290, bottom: 250, width: 156 }} onClick={() => go('habitat')} aria-label="Go outside to the Habitat">
-        <span className="sn-door"><span className="sn-door-win"><img src={`${SN}creatures/griffin.png`} alt="" /></span><span className="sn-door-sign">OUTSIDE</span><i /></span>
-        <span className="sn-door-sill" />{tag('Go outside: Habitat')}
+        <span className="sn-door"><span className="sn-door-win"><img src={`${SN}creatures/griffin.png`} alt="" /></span><span className="sn-door-sign">HABITAT</span><i /></span>
+        <span className="sn-door-sill" />
       </button>
 
       <button type="button" className="sn-obj" style={{ left: 480, bottom: 250, width: 240 }} onClick={() => go('cauldron')} aria-label="Cauldron">
@@ -194,12 +192,12 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       </button>
 
       <div className="sn-rug" />
-      <button type="button" className="sn-obj" style={{ left: 560, top: 540, width: 280 }} onClick={maker} aria-label="Creature Maker">
-        <span style={{ position: 'relative', width: 280, height: 160, display: 'block' }}>
-          <img src={`${SN}furniture/witch_table.png`} alt="" style={{ position: 'absolute', left: 0, bottom: 0, width: 180 }} />
-          <img src={`${SN}furniture/witch_crystal_ball.png`} alt="" style={{ position: 'absolute', left: 72, top: 14, width: 40 }} />
-          <img src={`${W}mortar-and-pestles-0.png`} alt="" style={{ position: 'absolute', left: 22, top: 32, width: 38 }} />
-          <img src={`${SN}creatures/frankie.png`} alt="" style={{ position: 'absolute', right: 0, bottom: 0, width: 110 }} />
+      {/* Her layout (2026-10-13): the Creature Maker corner is a cauldron on the rug with a bigger
+          Frankenstein to its right; the table and its things are gone. */}
+      <button type="button" className="sn-obj" style={{ left: 560, top: 516, width: 320 }} onClick={maker} aria-label="Creature Maker">
+        <span style={{ position: 'relative', width: 320, height: 190, display: 'block' }}>
+          <img src={`${SN}props/cauldron.png`} alt="" style={{ position: 'absolute', left: 10, bottom: 4, width: 150 }} />
+          <img src={`${SN}creatures/frankie.png`} alt="" style={{ position: 'absolute', right: 0, bottom: 0, width: 168 }} />
         </span>{tag('Creature Maker')}
       </button>
 
