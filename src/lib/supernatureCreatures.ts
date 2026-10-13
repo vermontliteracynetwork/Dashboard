@@ -35,7 +35,11 @@ export interface Creature {
   story: string; tale: string; nameParts?: Part[]; nameNote: string;
   explore: 'explore' | 'remix'; respect?: string; starter?: boolean;
   ingredient?: { name: string; img: string };
+  eats?: Eats; food?: string;
 }
+// What each creature eats sets its place in the Habitat food web (Build Queue 99). Leftover eaters
+// are scavengers and decomposers; magic eaters live on things no food web can count.
+export type Eats = 'plants' | 'meat' | 'both' | 'leftovers' | 'magic';
 export const art = (id: string) => {
   const m = MADE.find((x) => x.id === id);
   return m ? specUrl(m.spec) : `${SN}creatures/${id}.png`;
@@ -376,6 +380,29 @@ export const CREATURES: Creature[] = [
     tale: 'In the deep, misty forests of the Pacific Northwest, people tell of a huge, hairy creature that walks on two legs. Coast Salish peoples have stories of the Sasquatch, a wild giant of the woods. In 1958, workers building a road in California found giant footprints around their bulldozer, and a newspaper called the creature Bigfoot. Since then, people have searched with cameras and microphones, but no one has ever found proof. Some of the footprints turned out to be pranks made with carved wooden feet!' },
 ];
 
+const GODS_FOOD = 'ambrosia and nectar, the food of the gods';
+const EGYPT_FOOD = 'offerings of bread, fruit and honey';
+const DIET: Record<string, [Eats, string]> = {
+  zeus: ['magic', GODS_FOOD], athena: ['magic', GODS_FOOD], poseidon: ['magic', GODS_FOOD], artemis: ['magic', GODS_FOOD],
+  jupiter: ['magic', GODS_FOOD], mars: ['magic', GODS_FOOD], janus: ['magic', GODS_FOOD],
+  ra: ['magic', EGYPT_FOOD], anubis: ['magic', EGYPT_FOOD], isis: ['magic', EGYPT_FOOD], bastet: ['magic', EGYPT_FOOD],
+  cerberus: ['meat', 'meat, and honey cakes that made him sleepy'], cyclops: ['both', 'cheese, milk and meat from his sheep'],
+  ogre: ['both', 'almost anything it can find'], minotaur: ['both', 'meat and grain'], medusa: ['magic', 'nobody knows'],
+  demon: ['magic', 'trouble and tricky deals'], jinn: ['magic', 'nobody knows'], wisp: ['magic', 'nothing: it is a glowing light'],
+  unicorn: ['plants', 'grass and flowers'], dragon: ['meat', 'sheep and cattle, in the old stories'], longdragon: ['magic', 'rain clouds and pearls'],
+  fairy: ['plants', 'nectar, berries and milk left out for them'], pixie: ['plants', 'berries and honey'], golem: ['magic', 'nothing at all: it is made of clay'],
+  troll: ['both', 'almost anything, goats included'], raven: ['leftovers', 'leftovers, berries and bugs (a scavenger)'],
+  thunderbird: ['meat', 'whales, in some stories'], siren: ['magic', 'nobody knows'], pegasus: ['plants', 'grass and grain'],
+  phoenix: ['magic', 'frankincense and sweet spices, says an old Roman poem'], hydra: ['meat', 'animals that came to the swamp to drink'],
+  kraken: ['meat', 'whole schools of fish'], nessie: ['meat', 'fish, if she is real'], champ: ['meat', 'fish, if Champ is real'],
+  kappa: ['both', 'cucumbers and fish'], umibozu: ['magic', 'nobody knows'], mermaid: ['both', 'fish and seaweed'],
+  bunyip: ['meat', 'animals that came to the waterhole'], sphinx: ['meat', 'meat, like a lion'], centaur: ['both', 'meat, bread and fruit'],
+  chimera: ['meat', 'meat'], griffin: ['meat', 'horses, in the old stories'], jackalope: ['plants', 'prairie grass'],
+  werewolf: ['meat', 'meat'], selkie: ['meat', 'fish'], curupira: ['plants', 'fruit of the forest'], kitsune: ['both', 'fried tofu, mice and fruit'],
+  anansi: ['meat', 'bugs (it is a spider)'], yeti: ['both', 'plants, roots and small animals, people guess'], bigfoot: ['both', 'berries, plants and fish, people guess'],
+};
+for (const c of CREATURES) { const d = DIET[c.id]; if (d) { c.eats = d[0]; c.food = d[1]; } }
+
 // The ten starters keep their place on the Globe: one per continent and ocean, found first.
 export const STARTERS = ['griffin', 'kappa', 'sphinx', 'jackalope', 'curupira', 'bunyip', 'selkie', 'umibozu', 'mermaid', 'kraken'];
 for (const c of CREATURES) if (STARTERS.includes(c.id)) c.starter = true;
@@ -401,6 +428,7 @@ export function madeToCreature(m: Made): Creature {
     traits: [...body, m.personality, m.social === 'pack' ? 'lives in a pack' : 'lives alone', `smarts ${m.smarts} of 5`, `eats ${m.diet}`],
     move: moveFor(m.spec), likes: [...new Set<Biome>([m.biome, ...likesFor(m.spec)])],
     story: m.sentence, tale: [m.sentence, m.fact].filter(Boolean).join(' '),
+    eats: m.diet === 'plants' ? 'plants' : m.diet === 'meat' ? 'meat' : m.diet === 'plants and meat' ? 'both' : m.diet === 'leftovers' ? 'leftovers' : 'magic', food: m.diet,
     nameParts: m.sciParts, nameNote: m.sci && m.sci !== m.name ? `Its science name is ${m.sci}.` : 'You named it.', explore: 'explore',
   };
 }

@@ -84,7 +84,7 @@ export const RECIPES = [AERO, VITA];
 
 
 // Each student's progress, saved in their own row (no new tables).
-export interface SnHabitat { biome?: string; health?: Record<string, number> }
+export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number> }
 export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[] }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';

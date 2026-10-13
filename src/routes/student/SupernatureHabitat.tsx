@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ENERGY_FACE, ENERGY_STEPS, SN, natureSound, setNatureLoop, snSound, type Energy, type NatureLoop, type SnHabitat } from '../../lib/supernature';
 import { art, byId, madeList, type Biome, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
+import { START_GROUP, runSeason, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
 // has found live here; the scene fills the screen and help opens next to a creature only when it is
@@ -130,6 +131,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, vit
   const [clock, setClock] = useState(0.1);
   const [dis, setDis] = useState<{ kind: Disaster; phase: Phase; left: number } | null>(null);
   const [surprise, setSurprise] = useState(true);
+  const [eco, setEco] = useState<Eco>({ season: saved.season ?? 0, plants: saved.plants ?? 6, mush: saved.mush ?? 2, groups: saved.groups ?? {} });
+  const [predict, setPredict] = useState<{ id: string; guess: 'up' | 'same' | 'down' | null } | null>(null);
+  const [result, setResult] = useState<{ r: SeasonResult; id: string; guess: string } | null>(null);
+  const [web, setWeb] = useState(false);
+  const [whatIf, setWhatIf] = useState<string | null>(null);
+  const [caughtFx, setCaughtFx] = useState<string[]>([]);
   const [nextSurprise, setNextSurprise] = useState(12);
   const [tick, setTick] = useState(0);
   const [menu, setMenu] = useState<null | 'land' | 'time' | 'weather' | 'disaster'>(null);
@@ -146,6 +153,33 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, vit
   const sel_ = live.find((l) => l.c.id === sel);
 
   const tell = (t: string, speak = false) => { setNote(t); if (speak) say(t); };
+  const count = (id: string) => eco.groups[id] ?? START_GROUP;
+  const eatsOf = (c: Creature) => c.eats ?? 'magic';
+  const runIt = () => {
+    if (!predict?.guess) return;
+    const r = runSeason(eco, roster, { biome, weather, disaster: active });
+    const ch = r.changes.find((x) => x.id === predict.id);
+    setEco(r.next); setCaughtFx(r.caught); window.setTimeout(() => setCaughtFx([]), 2600);
+    snSound('season'); if (r.caught.length) snSound('poof');
+    const real = ch ? (ch.after > ch.before ? 'up' : ch.after < ch.before ? 'down' : 'same') : 'same';
+    setResult({ r, id: predict.id, guess: predict.guess === real ? 'match' : predict.guess }); setPredict(null);
+    say(`${seasonName(eco.season)} is over. ${r.sentence}`);
+  };
+  // What if a group moved away? Who would get hungry, and who would grow (plan section 5: fragility).
+  const ripple = (id: string): Record<string, 'hungry' | 'grow'> => {
+    const out: Record<string, 'hungry' | 'grow'> = {};
+    const isPlants = id === 'plants';
+    const node = roster.find((c) => c.id === id);
+    for (const c of roster) {
+      if (c.id === id) continue;
+      const e = eatsOf(c);
+      if (isPlants && (e === 'plants' || e === 'both')) out[c.id] = 'hungry';
+      if (node && ['plants', 'both', 'leftovers'].includes(eatsOf(node)) && (e === 'meat' || e === 'both')) out[c.id] = 'hungry';
+      if (node && eatsOf(node) === 'meat' && ['plants', 'both', 'leftovers'].includes(e)) out[c.id] = 'grow';
+    }
+    if (node && ['plants', 'both'].includes(eatsOf(node))) out.plants = 'grow';
+    return out;
+  };
 
   // One heartbeat every 3 seconds while this screen is open. Leaving stops everything.
   useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 3000); return () => window.clearInterval(t); }, []);
@@ -153,8 +187,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, vit
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])) };
-  const saveKey = `${biome}|${live.map((l) => l.hp).join(',')}`;
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups };
+  const saveKey = `${biome}|${live.map((l) => l.hp).join(',')}|${eco.season}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,18 +340,27 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, vit
           const still = k === 0 || l.hp === 0;
           const pos = l.hide ? (l.c.move === 'swim' ? { left: l.x, top: l.y + 40 } : { left: CAVE.x + 50, top: CAVE.y + 60 }) : { left: l.x, top: l.y };
           return (
-            <button key={l.c.id} type="button" className={`sn-crit ${l.c.move}${still ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}`}
+            <button key={l.c.id} type="button" className={`sn-crit ${l.c.move}${still ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}`}
               style={{ ...pos, zIndex: l.c.move === 'fly' ? 4 : 3, ['--d' as string]: `${l.d}px`, ['--t' as string]: `${l.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s` }}
               onClick={(e) => { e.stopPropagation(); snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. Tap to check on it.`}>
               <img src={art(l.c.id)} alt="" />
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <span className="sn-sparkles" />}
-              <span className="sn-crit-name">{l.c.name}{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</span>
+              {caughtFx.includes(l.c.id) && <span className="sn-catch" />}
+              <span className="sn-crit-name">{count(l.c.id) === 0 ? '🧳 moved away' : <>{l.c.name} <b>×{count(l.c.id)}</b>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
           );
         })}
 
+        {roster.length > 0 && (
+          <div className="sn-season" onClick={(e) => e.stopPropagation()}>
+            <span className="sn-season-name">{seasonName(eco.season)} · season {eco.season + 1}</span>
+            <span className="sn-season-plants">🌱 plants {eco.plants} · 🍄 {eco.mush}</span>
+            <button type="button" className="sn-btn2 small" onClick={() => { snSound('page'); setWeb(true); setWhatIf(null); }}>🕸️ Food web</button>
+            <button type="button" className="sn-btn2 small go" onClick={() => { snSound('tap'); setPredict({ id: roster.find((c) => count(c.id) > 0)?.id ?? roster[0].id, guess: null }); }}>⏭️ Next season</button>
+          </div>
+        )}
         {roster.length === 0 && (
           <div className="sn-hab-empty">
             <p>No creatures live here yet. Find creatures on the Globe or make one in the Creature Maker, and they will come to live in your Habitat.</p>
@@ -387,6 +430,85 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, vit
           </div>
         )}
       </div>
+
+      {predict && (
+        <div className="sn-modal" role="dialog" aria-label="Predict the season">
+          <div className="sn-modal-card">
+            <h2>Before {seasonName(eco.season).toLowerCase()} ends: what will happen?</h2>
+            <p className="sn-small">Pick a group, then make your guess. Guessing is how scientists learn!</p>
+            <div className="sn-pick-row">
+              {roster.map((c) => (
+                <button key={c.id} type="button" className={`sn-opt dark${predict.id === c.id ? ' on' : ''}`} onClick={() => setPredict({ ...predict, id: c.id })}>
+                  <img src={art(c.id)} alt="" /><span>{c.name} ×{count(c.id)}</span>
+                </button>
+              ))}
+            </div>
+            <div className="sn-row center">
+              {(['up', 'same', 'down'] as const).map((g) => <button key={g} type="button" className={`sn-btn2 big${predict.guess === g ? ' go' : ''}`} onClick={() => setPredict({ ...predict, guess: g })}>{g === 'up' ? '⬆️ more' : g === 'down' ? '⬇️ fewer' : '➡️ the same'}</button>)}
+            </div>
+            <div className="sn-row center">
+              <button type="button" className="sn-btn2" onClick={() => setPredict(null)}>Not yet</button>
+              <button type="button" className="sn-btn" disabled={!predict.guess} onClick={runIt}>Run the season</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {result && (
+        <div className="sn-modal" role="dialog" aria-label="Field Notebook">
+          <div className="sn-modal-card paper wide">
+            <h2>Field Notebook: {seasonName(result.r.next.season - 1)}</h2>
+            <p className={`sn-balance ${result.r.balance === 'Balanced' ? 'ok' : result.r.balance === 'Wobbly' ? 'warn' : 'bad'}`}>{result.r.balance}: {result.r.sentence}</p>
+            <p className="sn-small">{result.guess === 'match' ? '⭐ Your guess matched!' : `You guessed ${result.guess === 'up' ? 'more' : result.guess === 'down' ? 'fewer' : 'the same'} for the ${byId(result.id)?.name}. Now you know more!`}</p>
+            <ul className="sn-notes">
+              <li><span>🌱 Plants</span><b>{result.r.plantsBefore} → {result.r.next.plants}</b><em>Plants grow with sun and rain, and plant eaters eat them.</em></li>
+              {result.r.changes.map((x) => (
+                <li key={x.id}><span><img src={art(x.id)} alt="" />{byId(x.id)?.name}</span><b>{x.before} → {x.after}</b><em>{x.why}</em></li>
+              ))}
+            </ul>
+            <div className="sn-row center">
+              <button type="button" className="sn-btn2" onClick={() => say(`${result.r.balance}. ${result.r.sentence} ${result.r.changes.map((x) => `${byId(x.id)?.name}: ${x.before} to ${x.after}. ${x.why}`).join(' ')}`)}>Listen</button>
+              <button type="button" className="sn-btn" onClick={() => setResult(null)}>Keep exploring</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {web && (
+        <div className="sn-modal" role="dialog" aria-label="Food web" onClick={() => setWeb(false)}>
+          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+            <h2>Food web: the energy goes →</h2>
+            <p className="sn-small">Tap anything to ask: what if it moved away?</p>
+            {(() => {
+              const rp = whatIf ? ripple(whatIf) : {};
+              const node = (id: string, label: string, img: string | null, n?: number) => (
+                <button key={id} type="button" className={`sn-node${whatIf === id ? ' on' : ''}${rp[id] ? ` ${rp[id]}` : ''}`} onClick={() => setWhatIf(whatIf === id ? null : id)}>
+                  {img ? <img src={img} alt="" /> : <span className="sn-node-ic">{label.split(' ')[0]}</span>}
+                  <b>{img ? label : label.split(' ').slice(1).join(' ')}{n !== undefined ? ` ×${n}` : ''}</b>
+                  {rp[id] && <small>{rp[id] === 'hungry' ? 'would get hungry' : 'would grow'}</small>}
+                </button>
+              );
+              const col = (title: string, items: React.ReactNode[]) => <div className="sn-web-col"><span className="sn-label dark">{title}</span>{items.length ? items : <em className="sn-small">nobody yet</em>}</div>;
+              const by = (e: string[]) => roster.filter((c) => e.includes(eatsOf(c))).map((c) => node(c.id, c.name, art(c.id), count(c.id)));
+              return (
+                <>
+                  <div className="sn-web-grid">
+                    {col('Sun and plants', [node('sun', '☀️ Sun', null), node('plants', '🌱 Plants', null, eco.plants)])}
+                    <i className="sn-web-arrow">→</i>
+                    {col('Plant eaters', by(['plants', 'both']))}
+                    <i className="sn-web-arrow">→</i>
+                    {col('Meat eaters', by(['meat', 'both']))}
+                  </div>
+                  <div className="sn-web-grid low">
+                    {col('Leftover eaters and mushrooms (they feed the soil, so plants grow)', [...by(['leftovers']), node('mush', '🍄 Mushrooms', null, eco.mush)])}
+                    {col('Magic eaters (no food web needed)', by(['magic']))}
+                  </div>
+                  {whatIf && <p className="sn-small"><b>What if?</b> {whatIf === 'sun' ? 'Without the sun, no plants could grow, and every eater would get hungry.' : 'Orange ones would get hungry; green ones would grow. Everything in a food web is connected.'}</p>}
+                </>
+              );
+            })()}
+            <button type="button" className="sn-btn" onClick={() => setWeb(false)}>Close</button>
+          </div>
+        </div>
+      )}
 
       <div className="sn-controls" onClick={(e) => e.stopPropagation()}>
         <button type="button" className={`sn-ctl${menu === 'land' ? ' on' : ''}`} onClick={() => setMenu(menu === 'land' ? null : 'land')}><span>{BIOMES.find((b) => b.id === biome)!.icon}</span>Land: {BIOMES.find((b) => b.id === biome)!.label}</button>

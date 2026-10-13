@@ -7962,3 +7962,41 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-dots i { width: 12px; height: 12px; border-radius: 50%; background: #d8c9a3; border: 2px solid #8a5a2e; }
 .sn-dots i.done { background: #57d3b8; }
 .sn-dots i.on { background: #4a4480; }
+
+/* Habitat seasons and food web (Build Queue 99). */
+.sn-season { position: absolute; right: 10px; top: 96px; z-index: 9; display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 190px; padding: 8px; background: rgba(36, 31, 69, 0.85); border-radius: 12px; }
+.sn-season-name { font-weight: 700; font-size: 15px; text-align: center; color: #ffd970; }
+.sn-season-plants { font-size: 13px; text-align: center; }
+.sn-crit-name b { color: #ffd970; }
+.sn-crit.away { opacity: 0.45; filter: grayscale(1); animation: none; }
+.sn-crit.away > img:first-child { animation: none; }
+.sn-catch { position: absolute; left: 50%; top: 30%; width: 90px; height: 90px; margin-left: -45px; border-radius: 50%; pointer-events: none; background: radial-gradient(circle, #f6f1ff 0 30%, rgba(214, 196, 255, 0.7) 55%, rgba(214, 196, 255, 0) 72%); animation: snPoof 1.2s ease-out forwards; }
+.sn-modal { position: absolute; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(20, 16, 40, 0.62); }
+.sn-modal-card { position: relative; width: 640px; max-height: 660px; overflow: auto; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 22px 28px; text-align: center; background: #4a4480; border: 4px solid #241f45; border-radius: 16px; box-shadow: 0 6px 0 #241f45; font-size: 17px; line-height: 1.45; }
+.sn-modal-card.wide { width: 900px; }
+.sn-modal-card h2 { font-size: 22px; line-height: 1.3; }
+.sn-modal-card.paper { background: #f1e3bf; color: #241f45; }
+.sn-btn2.big { min-width: 150px; min-height: 66px; font-size: 19px; }
+.sn-pick-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.sn-opt.dark { background: #3d3870; color: #f6f1ff; border-color: #241f45; }
+.sn-opt.dark.on { background: #ffd970; color: #241f45; }
+.sn-balance { padding: 8px 14px; border-radius: 10px; font-weight: 700; }
+.sn-balance.ok { background: #57d3b8; } .sn-balance.warn { background: #ffd970; } .sn-balance.bad { background: #f6a85b; }
+.sn-notes { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.sn-notes li { display: grid; grid-template-columns: 210px 80px 1fr; align-items: center; gap: 10px; padding: 6px 10px; background: #fff7e2; border: 2px solid #c8962a; border-radius: 10px; font-size: 15px; }
+.sn-notes li span { display: flex; align-items: center; gap: 6px; font-weight: 700; }
+.sn-notes li img { width: 36px; height: 36px; object-fit: contain; }
+.sn-notes li b { font-variant-numeric: tabular-nums; }
+.sn-notes li em { font-style: normal; line-height: 1.3; }
+.sn-web-grid { display: flex; align-items: stretch; gap: 8px; width: 100%; }
+.sn-web-grid.low { margin-top: 4px; }
+.sn-web-col { flex: 1; display: flex; flex-direction: column; align-items: stretch; gap: 6px; padding: 8px; background: #fff7e2; border: 2px solid #c8962a; border-radius: 12px; }
+.sn-label.dark { color: #8a5a2e; }
+.sn-web-arrow { align-self: center; font-style: normal; font-size: 30px; font-weight: 700; color: #8a5a2e; }
+.sn-node { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 4px 8px; text-align: left; background: #f6efe0; color: #241f45; border: 2px solid #241f45; border-radius: 10px; font-size: 14px; }
+.sn-node img { width: 36px; height: 36px; object-fit: contain; }
+.sn-node-ic { font-size: 24px; }
+.sn-node small { margin-left: auto; font-weight: 700; }
+.sn-node.on { box-shadow: 0 0 0 3px #4a4480; background: #ffd970; }
+.sn-node.hungry { background: #f6a85b; }
+.sn-node.grow { background: #57d3b8; }

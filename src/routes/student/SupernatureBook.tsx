@@ -152,6 +152,7 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
                           <dt>Lives</dt><dd>{c.home}</dd>
                           <dt>Size</dt><dd>{c.size}</dd>
                           <dt>Power</dt><dd>{c.power}</dd>
+                          {c.food && <><dt>Eats</dt><dd>{c.food}</dd></>}
                           <dt>Energy</dt><dd className="sn-energy"><img src={ENERGY_FACE[c.energy]} alt="" className="sn-smooth" />{c.energy}</dd>
                           <dt>Traits</dt><dd className="sn-traits">{c.traits.map((t) => <span key={t}>{t}</span>)}</dd>
                           <dt>Name</dt><dd>{c.nameParts && <>{c.nameParts.map((p, i) => <span key={i}>{i > 0 && ' + '}<b>{p.text}</b> ({p.meaning})</span>)}. </>}{c.nameNote}</dd>

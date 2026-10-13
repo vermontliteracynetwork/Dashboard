@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-food-web",
+    date: "2026-10-13",
+    icon: "🕸️",
+    title: "Seasons and food webs in your Habitat",
+    body: "Your creatures live in groups now. Guess what will happen, then tap Next season to watch plants grow and hunters catch their food. Open the Food web and tap any creature to see what would happen if it moved away. Every creature's page says what it eats.",
+  },
+  {
     id: "2026-10-13-creature-maker",
     date: "2026-10-13",
     icon: "🧟",
