@@ -4,19 +4,34 @@ import { snSound } from '../../lib/supernature';
 // Full-screen writing pad (plan section 20): the word large in cursive guide letters across the
 // whole screen, tall guide lines, a start dot, Show me, Undo line, Clear, Listen and Done. One
 // touch at a time, so a resting hand does not draw. A finger or an Apple Pencil both work.
+// Her rule (Build Queue 113): tracing needs a level of accuracy. Done checks two things: how much
+// of the guide letters the student covered, and how much of their ink stayed on the letters.
 
 const W = 1150, H = 560, BASE = 400;
+const NEED_COVER = 0.55, NEED_ON = 0.6;
 type Pt = { x: number; y: number };
 
 export default function SupernatureWriting({ word, title, onListen, onDone, onClose }: {
   word: string; title: string; onListen: () => void; onDone: () => void; onClose: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const guide = useRef<HTMLCanvasElement | null>(null);
   const [lines, setLines] = useState<Pt[][]>([]);
   const [show, setShow] = useState(false);
+  const [score, setScore] = useState<{ cover: number; on: number } | null>(null);
+  const [msg, setMsg] = useState('Start at the green dot. Write over the light letters. Tap Show me to see it once.');
   const active = useRef<{ id: number; pts: Pt[] } | null>(null);
   // The guide word fills the pad: long names get a smaller size, and the guide lines follow it.
   const fs = Math.min(280, Math.floor(1500 / Math.max(word.length, 4)));
+  const font = `${fs}px 'Playwrite US Trad', cursive`;
+
+  const drawGuide = () => {
+    const g = guide.current?.getContext('2d'); if (!g) return;
+    g.clearRect(0, 0, W, H); g.font = font; g.textBaseline = 'alphabetic';
+    g.fillStyle = show ? '#6b66a3' : 'rgba(107, 102, 163, 0.25)'; g.fillText(word, 90, BASE);
+  };
+  useEffect(() => { drawGuide(); void document.fonts?.load(font).then(drawGuide); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show, word]);
 
   const draw = (all: Pt[][]) => {
     const c = canvas.current; if (!c) return;
@@ -32,6 +47,27 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
   };
   useEffect(() => { draw(lines); }, [lines]);
   useEffect(() => { if (!show) return; const t = window.setTimeout(() => setShow(false), 2600); return () => clearTimeout(t); }, [show]);
+
+  // Score the tracing on small offscreen canvases (every 2nd pixel is plenty).
+  const measure = (all: Pt[][]) => {
+    const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c.getContext('2d')!; };
+    const letters = mk(); letters.font = font; letters.fillStyle = '#000'; letters.fillText(word, 90, BASE);
+    const near = mk(); near.font = font; near.lineJoin = 'round'; near.lineWidth = 34; near.strokeStyle = '#000'; near.fillStyle = '#000'; near.strokeText(word, 90, BASE); near.fillText(word, 90, BASE);
+    const wide = mk(); const thin = mk();
+    for (const [g, w] of [[wide, 36], [thin, 4]] as const) {
+      g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = w; g.strokeStyle = '#000';
+      for (const l of all) { if (l.length < 2) continue; g.beginPath(); g.moveTo(l[0].x, l[0].y); for (const p of l.slice(1)) g.lineTo(p.x, p.y); g.stroke(); }
+    }
+    const a = (g: CanvasRenderingContext2D) => g.getImageData(0, 0, W, H).data;
+    const L = a(letters), N = a(near), Wd = a(wide), T = a(thin);
+    let lt = 0, lc = 0, it = 0, ic = 0;
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+      const k = (y * W + x) * 4 + 3;
+      if (L[k] > 100) { lt++; if (Wd[k] > 100) lc++; }
+      if (T[k] > 100) { it++; if (N[k] > 100) ic++; }
+    }
+    return { cover: lt ? lc / lt : 0, on: it ? ic / it : 0 };
+  };
 
   const at = (e: React.PointerEvent): Pt => {
     const r = canvas.current!.getBoundingClientRect();
@@ -49,8 +85,17 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
   const up = (e: React.PointerEvent) => {
     const a = active.current; if (!a || a.id !== e.pointerId) return;
     active.current = null;
-    if (a.pts.length > 1) { setLines((l) => [...l, a.pts]); snSound('tap'); }
+    if (a.pts.length > 1) { const next = [...lines, a.pts]; setLines(next); setScore(measure(next)); snSound('tap'); }
   };
+  const finish = () => {
+    const s = measure(lines); setScore(s);
+    if (s.cover >= NEED_COVER && s.on >= NEED_ON) { snSound('learned'); onDone(); return; }
+    snSound('fizzle');
+    setMsg(s.cover < NEED_COVER
+      ? `Almost! Trace over more of the light letters. You covered ${Math.round(s.cover * 100)}%, and the wand needs ${Math.round(NEED_COVER * 100)}%.`
+      : `Almost! Keep your lines on the letters. ${Math.round(s.on * 100)}% of your ink was on them, and the wand needs ${Math.round(NEED_ON * 100)}%. Try Undo line.`);
+  };
+  const pct = score ? Math.round(Math.min(score.cover / NEED_COVER, score.on / NEED_ON, 1) * 100) : 0;
 
   return (
     <div className="sn-write" role="dialog" aria-modal="true" aria-label={`Write ${word}`}>
@@ -60,18 +105,19 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
         <span style={{ flex: 1 }} />
         <button type="button" className="sn-ib" onClick={onListen}><Icon d="M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8" />Listen</button>
         <button type="button" className="sn-ib" onClick={() => setShow(true)}><Icon d="M4 12s3-6 8-6 8 6 8 6-3 6-8 6-8-6-8-6z M12 10v4" />Show me</button>
-        <button type="button" className="sn-ib" disabled={!lines.length} onClick={() => setLines((l) => l.slice(0, -1))}><Icon d="M9 6L4 11l5 5 M4 11h10a5 5 0 0 1 0 10h-4" />Undo line</button>
-        <button type="button" className="sn-ib" disabled={!lines.length} onClick={() => setLines([])}><Icon d="M5 7h14 M9 7V4h6v3 M7 7l1 13h8l1-13" />Clear</button>
+        <button type="button" className="sn-ib" disabled={!lines.length} onClick={() => { const n = lines.slice(0, -1); setLines(n); setScore(n.length ? measure(n) : null); }}><Icon d="M9 6L4 11l5 5 M4 11h10a5 5 0 0 1 0 10h-4" />Undo line</button>
+        <button type="button" className="sn-ib" disabled={!lines.length} onClick={() => { setLines([]); setScore(null); }}><Icon d="M5 7h14 M9 7V4h6v3 M7 7l1 13h8l1-13" />Clear</button>
         <button type="button" className="sn-ib" onClick={onClose}><Icon d="M6 6l12 12 M18 6L6 18" />Shrink</button>
-        <button type="button" className="sn-ib sn-ib-go" onClick={() => { snSound('learned'); onDone(); }}><Icon d="M4 12l5 5L20 6" />Done</button>
+        <button type="button" className="sn-ib sn-ib-go" disabled={!lines.length} onClick={finish}><Icon d="M4 12l5 5L20 6" />Done</button>
       </div>
       <div className="sn-write-pad">
         <i className="sn-wl" style={{ top: BASE - fs * 0.86 }} /><i className="sn-wl dash" style={{ top: BASE - fs * 0.44 }} /><i className="sn-wl base" style={{ top: BASE }} /><i className="sn-wl" style={{ top: BASE + fs * 0.3 }} />
-        <span className={`sn-write-guide${show ? ' show' : ''}`} style={{ fontSize: fs, top: BASE - fs * 1.08 }}>{word}</span>
+        <canvas ref={guide} width={W} height={H} className="sn-write-guide-cv" aria-hidden="true" />
         <span className="sn-write-dot" style={{ top: BASE - fs * 0.44 - 13 }} />
         <canvas ref={canvas} width={W} height={H} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} aria-label="Writing pad" />
       </div>
-      <p className="sn-write-hint">Start at the green dot. Write over the light letters. Tap Show me to see it once.</p>
+      <div className="sn-write-meter" aria-label={`Tracing ${pct} percent of the way`}><i style={{ width: `${pct}%` }} /><span>{pct >= 100 ? 'Great tracing! Tap Done.' : `Tracing: ${pct}%`}</span></div>
+      <p className="sn-write-hint" role="status">{msg}</p>
     </div>
   );
 }

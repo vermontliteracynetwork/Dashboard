@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-cauldron-stick",
+    date: "2026-10-13",
+    icon: "🥄",
+    title: "Stir the cauldron yourself",
+    body: "Drag ingredients right into the cauldron and watch the wooden stick swirl. To stir, draw circles on the pot with your finger. When you write a spell, trace carefully over the letters: the tracing meter shows when it is good enough.",
+  },
+  {
     id: "2026-10-13-globe",
     date: "2026-10-13",
     icon: "🌍",

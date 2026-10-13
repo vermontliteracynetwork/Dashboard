@@ -79,14 +79,14 @@ export const ING = (id: string) => INGREDIENTS.find((x) => x.id === id)!;
 
 // The Cookbook (Build Queue 101, plan section 6): 10 base recipes, and discovered recipes that
 // unlock after their base one is brewed (her example: flying unlocks super speed flying). Steps
-// happen in order, and the bowl always goes first (order of operations, her math year).
+// happen in order, and the part in parentheses always goes first (order of operations, her math
+// year). Everything mixes in one cauldron (her ask, Build Queue 113: no separate bowl).
 export interface Step { text: string; need: 'bowl' | 'pour' | 'add' | 'stir' | 'spell'; items?: string[]; times?: number; word?: string }
 export interface Recipe { name: string; meaning: string; does: string; where: string; steps: Step[]; unlock?: string }
 const r = (name: string, meaning: string, does: string, where: string, bowl: [string, string], add: string[], stir: number, word: string, unlock?: string): Recipe => ({
   name, meaning, does, where, unlock,
   steps: [
-    { text: `In the bowl, mix ( ${ING(bowl[0]).name} + ${ING(bowl[1]).name} ). The bowl always goes first.`, need: 'bowl', items: bowl },
-    { text: 'Pour the bowl into the cauldron.', need: 'pour' },
+    { text: `Mix ( ${ING(bowl[0]).name} + ${ING(bowl[1]).name} ) in the cauldron first. Parentheses always go first.`, need: 'bowl', items: bowl },
     ...add.map((a): Step => ({ text: `Add 1 ${ING(a).name}.`, need: 'add', items: [a] })),
     { text: `Stir ${stir} times.`, need: 'stir', times: stir },
     { text: `Write the spell word with your wand: ${word}.`, need: 'spell', word },

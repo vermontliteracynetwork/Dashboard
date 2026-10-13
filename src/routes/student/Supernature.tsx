@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
@@ -249,19 +249,47 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
     if (s.need === 'bowl' && inStep) {
       if (bowl.includes(id)) return;
       snSound('pickup'); const nb = [...bowl, id]; setBowl(nb);
-      if (s.items!.every((x) => nb.includes(x))) { setStep(step + 1); setMsg(`The bowl is mixed. ${stepMsg(step + 1)}`); snSound('chime'); }
-      else setMsg(`${g.name} is in the bowl. What else does step 1 need?`);
+      swirl();
+      if (s.items!.every((x) => nb.includes(x))) { setStep(step + 1); setMsg(`Mixed! The part in parentheses is done. ${stepMsg(step + 1)}`); snSound('chime'); }
+      else setMsg(`${g.name} is in the cauldron. What else goes in the parentheses?`);
       return;
     }
-    if (s.need === 'add' && inStep) { snSound('cork'); setPoof((n) => n + 1); setStep(step + 1); setMsg(`In it goes! ${stepMsg(step + 1)}`); return; }
-    if (s.need === 'bowl') return wrong(`Fizzle! The bowl always goes first, like parentheses in math. ${stepMsg(0)}`);
+    if (s.need === 'add' && inStep) { snSound('cork'); swirl(); setBowl([...bowl, id]); setPoof((n) => n + 1); setStep(step + 1); setMsg(`In it goes! ${stepMsg(step + 1)}`); return; }
+    if (s.need === 'bowl') return wrong(`Fizzle! The part in parentheses always goes first, like in math. ${stepMsg(0)}`);
     wrong(`Fizzle! That is not in this step. ${stepMsg(step)}`);
   };
-  const pour = () => { if (locked) return; if (s.need !== 'pour') return wrong(`Not yet. ${stepMsg(step)}`); snSound('brewed'); setPoof((n) => n + 1); setStep(step + 1); setMsg(`Splash! ${stepMsg(step + 1)}`); };
+  // Her Cauldron (Build Queue 113): one pot, a wooden stick that swirls whenever something goes
+  // in, ingredients dragged (or tapped) into the pot, and stirring by drawing circles on the pot.
+  const [mixing, setMixing] = useState(0);
+  const [stickAngle, setStickAngle] = useState(0);
+  const [dragItem, setDragItem] = useState<{ id: string; x: number; y: number } | null>(null);
+  const potRef = useRef<HTMLDivElement | null>(null);
+  const stirRef = useRef<{ last: number; total: number } | null>(null);
+  const swirl = () => setMixing((n) => n + 1);
+  const stageXY = (cx: number, cy: number) => { const st = document.querySelector('.sn-stage')!.getBoundingClientRect(); const k = st.width / 1180; return { x: (cx - st.left) / k, y: (cy - st.top) / k }; };
+  const overPot = (cx: number, cy: number) => { const r = potRef.current?.getBoundingClientRect(); return !!r && cx > r.left && cx < r.right && cy > r.top && cy < r.bottom; };
+  const startDrag = (e: React.PointerEvent, id: string) => {
+    const start = { x: e.clientX, y: e.clientY }; let moved = false;
+    const mv = (ev: PointerEvent) => { if (!moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 8) moved = true; if (moved) setDragItem({ id, ...stageXY(ev.clientX, ev.clientY) }); };
+    const upH = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', upH); window.removeEventListener('pointercancel', upH);
+      setDragItem(null);
+      if (!moved || overPot(ev.clientX, ev.clientY)) tapIngredient(id);
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', upH); window.addEventListener('pointercancel', upH);
+  };
+  const potAngle = (e: React.PointerEvent) => { const r = potRef.current!.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height * 0.42), e.clientX - (r.left + r.width / 2)); };
+  const stirDown = (e: React.PointerEvent) => { if (s.need !== 'stir' || locked || done) return; (e.target as Element).setPointerCapture?.(e.pointerId); stirRef.current = { last: potAngle(e), total: 0 }; };
+  const stirMove = (e: React.PointerEvent) => {
+    const st = stirRef.current; if (!st) return;
+    const a = potAngle(e); let d = a - st.last; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI;
+    st.last = a; st.total += d; setStickAngle((v) => v + (d * 180) / Math.PI);
+    if (Math.abs(st.total) >= Math.PI * 2) { st.total = 0; stir(); }
+  };
   const stir = () => {
     if (locked) return;
     if (s.need !== 'stir') return wrong(`Not yet. ${stepMsg(step)}`);
-    snSound('stir'); const n = stirs + 1; setStirs(n);
+    snSound('stir'); swirl(); const n = stirs + 1; setStirs(n);
     if (n >= (s.times ?? 3)) { setStirs(0); setStep(step + 1); setMsg(`Bubbling nicely! ${stepMsg(step + 1)}`); }
   };
   const spell = R.steps.find((x) => x.need === 'spell')?.word ?? R.name.toLowerCase();
@@ -312,13 +340,16 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
         )}
       </section>
       <section className="sn-pot">
-        <div className="sn-bowl"><span className="sn-bowl-dish" />Bowl: {bowl.length ? bowl.map((b) => ING(b).name).join(' + ') : 'empty'}</div>
+        <div className="sn-bowl">In the pot: {bowl.length ? bowl.map((b) => ING(b).name).join(' + ') : 'nothing yet'}</div>
         {fizz > 0 && <img key={`z${fizz}`} src={`${SN}theme/sparkle-6.png`} alt="" className="sn-fizz" />}
         {poof > 0 && <span key={`p${poof}`} className="sn-poof" />}
-        <img src={`${SN}theme/cauldron-bubbling.gif`} alt="Bubbling cauldron" className="sn-cauldron sn-smooth" />
+        <div className={`sn-potwrap${dragItem ? ' drop' : ''}${s.need === 'stir' && !done ? ' stirring' : ''}`} ref={potRef} onPointerDown={stirDown} onPointerMove={stirMove} onPointerUp={() => { stirRef.current = null; }} onPointerCancel={() => { stirRef.current = null; }}>
+          <img src={`${SN}theme/cauldron-bubbling.gif`} alt="Bubbling cauldron" className="sn-cauldron sn-smooth" />
+          <span key={`m${mixing}`} className={`sn-stick${mixing ? ' swirl' : ''}`} style={{ ['--a' as string]: `${stickAngle}deg` }} aria-hidden="true"><i /></span>
+          {s.need === 'stir' && !done && <span className="sn-stir-hint">Draw circles on the pot to stir! ({stirs} of {s.times})</span>}
+        </div>
         <div className="sn-row center">
-          <button type="button" className="sn-btn2" disabled={locked} onClick={pour}>Pour the bowl</button>
-          <button type="button" className="sn-btn2" disabled={locked} onClick={stir}>Stir</button>
+          <button type="button" className="sn-btn2" disabled={locked} onClick={stir}>Stir once</button>
           <button type="button" className="sn-btn2" disabled={locked} onClick={() => (s.need === 'spell' && !done ? setWrite(true) : wrong(`Not yet. ${stepMsg(step)}`))}>Write the spell</button>
         </div>
         {msg && <p className="sn-msg" role="status">{msg}</p>}
@@ -337,7 +368,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
           {shelf.map((x) => {
             const n = x.tier === 'free' ? null : x.earnedAs && earned.includes(x.earnedAs) ? 'earned' : (pantry[x.id] ?? 0);
             return (
-              <button key={x.id} type="button" className={`sn-ingb${n === 0 ? ' empty' : ''}`} onClick={() => tapIngredient(x.id)}>
+              <button key={x.id} type="button" className={`sn-ingb${n === 0 ? ' empty' : ''}`} onPointerDown={(e) => startDrag(e, x.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') tapIngredient(x.id); }}>
                 <img src={x.img} alt="" />{x.name}<small>{n === null ? 'free' : n === 'earned' ? 'earned' : n === 0 ? `buy ${formatMoney(x.price)}` : `you have ${n}`}</small>
               </button>
             );
@@ -345,6 +376,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
         </div>
         <button type="button" className="sn-btn2 small" onClick={goShop}>🛒 Shop for more</button>
       </section>
+      {dragItem && <img src={ING(dragItem.id).img} alt="" className="sn-drag-ghost" style={{ left: dragItem.x - 30, top: dragItem.y - 30 }} />}
       {write && <SupernatureWriting word={spell} title="Write the spell" onListen={() => say(spell)} onClose={() => setWrite(false)} onDone={finish} />}
     </div>
   );

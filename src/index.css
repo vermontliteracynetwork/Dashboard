@@ -8127,3 +8127,20 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-mini2 img { width: 38px; height: 38px; object-fit: contain; image-rendering: pixelated; }
 .sn-found-card h3 { font-size: 20px; }
 .sn-found-card small { display: block; font-size: 13px; opacity: 0.85; }
+
+/* Cauldron rework (Build Queue 113): one pot, the stick, drag to add, stirring circles. */
+.sn-potwrap { position: relative; width: 300px; height: 320px; display: flex; align-items: flex-end; justify-content: center; border-radius: 24px; touch-action: none; }
+.sn-potwrap.drop { box-shadow: 0 0 0 4px #ffd970, 0 0 24px #ffd970; }
+.sn-potwrap.stirring { cursor: grab; }
+.sn-stick { position: absolute; left: 50%; top: 42%; width: 0; height: 0; transform: rotate(var(--a, 0deg)); pointer-events: none; }
+.sn-stick i { position: absolute; left: -9px; top: -150px; width: 18px; height: 170px; background: repeating-linear-gradient(0deg, #8a5a2e 0 10px, #7a4a2e 10px 12px); border: 3px solid #241f45; border-radius: 6px; transform: translate(34px, 0) rotate(18deg); transform-origin: 50% 100%; box-shadow: inset 4px 0 0 #b07f4a; }
+.sn-stick.swirl { animation: snSwirl 0.9s ease-in-out; }
+@keyframes snSwirl { from { transform: rotate(var(--a, 0deg)); } to { transform: rotate(calc(var(--a, 0deg) + 720deg)); } }
+.sn-stir-hint { position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%); white-space: nowrap; padding: 4px 12px; border-radius: 999px; background: #ffd970; color: #241f45; font-weight: 700; font-size: 14px; animation: snPulse 1s ease-in-out infinite alternate; }
+.sn-drag-ghost { position: absolute; z-index: 50; width: 60px; height: 60px; object-fit: contain; pointer-events: none; filter: drop-shadow(0 4px 0 rgba(36, 31, 69, 0.5)); }
+.sn-ingb { touch-action: none; }
+.sn-write-guide-cv { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.sn-write-meter { position: absolute; left: 15px; top: 652px; width: 1150px; height: 26px; border-radius: 999px; background: #4a4480; border: 3px solid #241f45; overflow: hidden; box-sizing: border-box; }
+.sn-write-meter i { position: absolute; left: 0; top: 0; bottom: 0; background: #57d3b8; transition: width 0.3s; }
+.sn-write-meter span { position: relative; display: block; text-align: center; font-weight: 700; font-size: 14px; line-height: 20px; }
+.sn-write-hint { top: 688px !important; font-size: 16px !important; }
