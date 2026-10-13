@@ -8025,3 +8025,19 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-potion-menu .sn-btn2 { justify-content: flex-start; text-align: left; font-size: 13px; }
 .sn-crit.giant > img:first-child { width: 168px; height: 168px; }
 .sn-fireflies.lumin i { width: 8px; height: 8px; background: #c8f0ff; box-shadow: 0 0 14px #9fe3ff; }
+
+/* Generations (Build Queue 102). */
+.sn-gen { gap: 10px; text-align: left; align-items: stretch; }
+.sn-gen h2 { text-align: left; }
+.sn-gen-pick { display: flex; flex-direction: column; gap: 6px; }
+.sn-gen .sn-pick-row { justify-content: flex-start; }
+.sn-opt.small { width: 84px; min-height: 80px; }
+.sn-opt.small img { width: 44px; height: 44px; }
+.sn-gen-chart { display: flex; flex-direction: column; gap: 4px; padding: 8px; background: #fff7e2; border: 2px solid #c8962a; border-radius: 12px; }
+.sn-gen-row { display: grid; grid-template-columns: 70px auto 1fr; align-items: center; gap: 10px; font-size: 14px; }
+.sn-gen-dots { display: flex; gap: 4px; }
+.sn-gen-dots i { width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border: 2px solid #241f45; border-radius: 6px; font-style: normal; font-size: 12px; font-weight: 700; color: #241f45; }
+.sn-gen-dots i:nth-child(n) { text-shadow: 0 0 2px #fff; }
+.sn-gen-sum { padding: 8px 12px; background: #fff7e2; border-radius: 10px; font-size: 16px; line-height: 1.45; }
+.sn-jump { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; }
+.sn-jump input { width: 150px; height: 32px; }

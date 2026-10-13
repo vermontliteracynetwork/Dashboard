@@ -92,7 +92,7 @@ export default function Supernature() {
           <SupernatureHabitat bar={bar} say={say} found={found} saved={save.habitat ?? {}} onSave={(h) => patch({ habitat: h })}
             potions={potions}
             usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }}
-            goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} />
+            goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} goNames={() => go('names')} />
         )}
         {room === 'globe' && <Globe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
         {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')}

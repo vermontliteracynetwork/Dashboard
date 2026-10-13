@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-generations",
+    date: "2026-10-13",
+    icon: "🧬",
+    title: "Watch your creatures evolve",
+    body: "Tap Generations in your Habitat. Pick a group and a trait like thick fur, then make the world colder, hotter or full of hunters. Run the Time Machine and watch the whole group change over many generations.",
+  },
+  {
     id: "2026-10-13-sn-shop",
     date: "2026-10-13",
     icon: "🛒",

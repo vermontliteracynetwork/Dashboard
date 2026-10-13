@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ENERGY_FACE, ENERGY_STEPS, SN, natureSound, setNatureLoop, snSound, type Energy, type NatureLoop, type SnHabitat } from '../../lib/supernature';
 import { art, byId, madeList, type Biome, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
+import SupernatureGenerations from './SupernatureGenerations';
 import { START_GROUP, runSeason, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
@@ -117,10 +118,10 @@ const DECOR: Record<Biome, { src: string; x: number; y: number; w: number; filte
   ],
 };
 
-export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, usePotion, goCauldron, openPage, goGlobe }: {
+export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, usePotion, goCauldron, openPage, goGlobe, goNames }: {
   bar: (o?: { extra?: React.ReactNode }) => React.ReactNode; say: (t: string) => void; found: string[];
   saved: SnHabitat; onSave: (h: SnHabitat) => void; potions: string[]; usePotion: (name: string) => void;
-  goCauldron: (recipe: string) => void; openPage: (id: string) => void; goGlobe: () => void;
+  goCauldron: (recipe: string) => void; openPage: (id: string) => void; goGlobe: () => void; goNames: () => void;
 }) {
   // Found creatures plus the ones the student made in the Creature Maker.
   const roster = useMemo(() => [...madeList().slice(-6).map((m) => m.id), ...found.slice(-12)].map((id) => byId(id)).filter((c): c is Creature => !!c).slice(0, 16), [found]);
@@ -150,6 +151,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [glow, setGlow] = useState(false);
   const [giant, setGiant] = useState<string | null>(null);
   const [potionMenu, setPotionMenu] = useState(false);
+  const [gensOpen, setGensOpen] = useState(false);
   const have = (n: string) => potions.filter((p) => p === n).length;
   const covered = live.length > 0 && live.every((l) => l.hide);
   const night = timeMode === 'night' || (timeMode === 'auto' && clock >= 0.62);
@@ -382,6 +384,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <span className="sn-season-plants">🌱 plants {eco.plants} · 🍄 {eco.mush}</span>
             <button type="button" className="sn-btn2 small" onClick={() => { snSound('page'); setWeb(true); setWhatIf(null); }}>🕸️ Food web</button>
             <button type="button" className="sn-btn2 small go" onClick={() => { snSound('tap'); setPredict({ id: roster.find((c) => count(c.id) > 0)?.id ?? roster[0].id, guess: null }); }}>⏭️ Next season</button>
+            <button type="button" className="sn-btn2 small" onClick={() => { snSound('open'); setGensOpen(true); }}>🧬 Generations</button>
             <button type="button" className="sn-btn2 small" onClick={() => { snSound('open'); setPotionMenu(!potionMenu); }}>🧪 Potions</button>
             {potionMenu && (
               <div className="sn-potion-menu">
@@ -468,6 +471,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         )}
       </div>
 
+      {gensOpen && <SupernatureGenerations roster={roster} biome={biome} disaster={active} say={say} onClose={() => setGensOpen(false)} goNames={goNames} />}
       {predict && (
         <div className="sn-modal" role="dialog" aria-label="Predict the season">
           <div className="sn-modal-card">
