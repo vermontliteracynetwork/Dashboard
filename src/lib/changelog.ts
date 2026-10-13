@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-report-bubble",
+    date: "2026-10-13",
+    icon: "🐞",
+    title: "Tell your teacher about a game",
+    body: "Every game has a little Report bubble in the bottom corner. Tap it if something is broken or if you have an idea to make the game better, and your teacher will see it.",
+  },
+  {
     id: "2026-10-13-gym-app",
     date: "2026-10-13",
     icon: "🏋️",

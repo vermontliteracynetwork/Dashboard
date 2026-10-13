@@ -22,6 +22,7 @@ import BakeryMatch3 from './routes/student/BakeryMatch3';
 import GamesHub from './routes/student/GamesHub';
 import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
+import GameReportBubble from './components/GameReportBubble';
 import PetTrainedToast from './components/PetTrainedToast';
 import GymWatcher from './components/GymWatcher';
 import CheckOnPetHost from './components/CheckOnPet';
@@ -146,6 +147,7 @@ export default function App() {
         <SelLoginGate />
         <CoinDropOverlay />
         <StreakLayer />
+        <GameReportBubble />
         <PetTrainedToast />
         <GymWatcher />
         <CheckOnPetHost />

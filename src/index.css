@@ -7550,3 +7550,21 @@ body.calm-games .fgx-crop.ripe, body.calm-games .fgx-work { animation: none; }
 .cop-food-item span { position: absolute; right: -6px; bottom: -6px; min-width: 24px; height: 24px; border-radius: 12px; background: #3e7c6b; color: #fff; font-weight: 900; font-size: 0.8rem; display: grid; place-items: center; padding: 0 4px; }
 .cop-food-ghost { position: fixed; width: 72px; height: 72px; transform: translate(-50%, -50%); pointer-events: none; z-index: 1000; image-rendering: pixelated; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3)); }
 .widget-icon-img { width: 1.6em; height: 1.6em; object-fit: contain; display: block; }
+
+/* The report bubble in every game (2026-10-13). */
+.report-bubble { position: fixed; right: max(12px, env(safe-area-inset-right)); bottom: max(12px, env(safe-area-inset-bottom)); z-index: 190; width: 56px; height: 56px; border-radius: 50%; border: 3px solid #5b6bd6; background: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; cursor: pointer; touch-action: manipulation; font: inherit; color: #2b2f5c; padding: 0; }
+.report-bubble span { font-size: 1.3rem; line-height: 1; }
+.report-bubble small { font-size: 0.6rem; font-weight: 900; }
+.report-back { z-index: 195; }
+.report-card { width: min(520px, 100%); display: flex; flex-direction: column; gap: 12px; font-family: 'Lexend', system-ui, sans-serif; color: #2e2416; }
+.report-card h2 { margin: 0; }
+.report-ask { display: flex; gap: 8px; align-items: flex-start; }
+.report-ask p { margin: 0; flex: 1; font-size: 1.1rem; }
+.report-listen { min-width: 44px; min-height: 44px; padding: 0; flex: none; }
+.report-kinds { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.report-kind { min-height: 64px; border-radius: 14px; border: 3px solid #d9c49a; background: #fff; font: inherit; font-size: 1.1rem; font-weight: 800; color: inherit; cursor: pointer; touch-action: manipulation; }
+.report-kind.on { border-color: #3fa35a; background: #e9f7ec; }
+.report-field { display: flex; flex-direction: column; gap: 6px; font-weight: 700; }
+.report-field textarea { font: inherit; font-size: 1.1rem; padding: 10px; border: 3px solid #b9a27a; border-radius: 12px; resize: vertical; }
+.has-report-bubble .fgx-bar { width: min(760px, calc(100vw - 100px)); left: calc(50% - 36px); }
+@media (max-width: 480px) { .report-kinds { grid-template-columns: 1fr; } }
