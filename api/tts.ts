@@ -9,7 +9,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 const VOICES: Record<string, { voice: string; instructions: string }> = {
   reader: { voice: 'coral', instructions: 'Read clearly and warmly at a calm, steady pace, like a kind teacher reading aloud to a middle school student. Natural and human, never robotic.' },
-  doc: { voice: 'ash', instructions: 'You are Doc Fishing, a kind old fisherman and game host. Speak slowly in a deep, warm, easygoing Southern drawl.' },
+  doc: { voice: 'ash', instructions: 'You are Doc Fishing, a friendly fishing guide from Australia and the host of a kids fishing game. Speak with a natural, smooth Australian accent: relaxed, warm and easygoing, like a real person chatting on a sunny dock. Smooth and human, never robotic.' },
   country: { voice: 'ash', instructions: 'Friendly, upbeat country voice with a light Southern accent.' },
   posh: { voice: 'fable', instructions: 'A small, prim, slightly posh and playful British voice.' },
   deep: { voice: 'onyx', instructions: 'Deep, calm and steady.' },

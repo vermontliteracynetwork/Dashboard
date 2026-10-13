@@ -6,14 +6,15 @@ const FEMALE = /female|samantha|victoria|karen|moira|tessa|fiona|serena|kate|sus
 // US English first, preferred names next, never the novelty voices. With `male`, female voices
 // drop to the bottom.
 export const isRobotVoice = (v: SpeechSynthesisVoice) => NOVELTY.test(v.name);
-export function pickHumanVoice(names: string[], male?: boolean): SpeechSynthesisVoice | null {
+export function pickHumanVoice(names: string[], male?: boolean, lang?: string): SpeechSynthesisVoice | null {
   if (!('speechSynthesis' in window)) return null;
   let best: SpeechSynthesisVoice | null = null, bestScore = -Infinity;
   for (const v of window.speechSynthesis.getVoices()) {
     if (!/^en/i.test(v.lang) || NOVELTY.test(v.name)) continue;
     const n = v.name.toLowerCase();
     let s = /premium/.test(n) ? 12 : HUMANLIKE.test(n) ? 10 : /online/.test(n) ? 6 : 0;
-    if (/en[-_]us/i.test(v.lang)) s += 4;
+    if (lang && v.lang.replace('_', '-').toLowerCase() === lang.toLowerCase()) s += 8;
+    else if (/en[-_]us/i.test(v.lang)) s += 4;
     if (names.some((h) => n.includes(h))) s += 5;
     if (male === true && FEMALE.test(n)) s -= 20;
     if (male === false && !FEMALE.test(n)) s -= 20;

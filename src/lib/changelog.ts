@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-doc-aussie",
+    date: "2026-10-13",
+    icon: "🎣",
+    title: "G'day from Doc Fishing!",
+    body: "Doc Fishing talks with a smooth Australian voice now, and read-aloud sounds more like a real person everywhere.",
+  },
+  {
     id: "2026-10-13-report-bubble",
     date: "2026-10-13",
     icon: "🐞",

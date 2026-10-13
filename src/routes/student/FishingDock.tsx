@@ -14,7 +14,7 @@ import { addPetFood } from '../../lib/petFood';
 // "the whole fishing dock game should become pixel theme. the game should have this cover and be renamed
 // to Doc Fishing"). From her native game list, 2026-09-30: "Fishing Dock: pier or boat asset; answers power
 // a timing-based cast; fish go in a collection book"). Her 2026-10-12 update, with her fishing art
-// and sound packs: Doc Fishing hosts the dock and reads the game aloud in a slow, deep drawl; the rod
+// and sound packs: Doc Fishing hosts the dock and reads the game aloud (a smooth Australian voice since 2026-10-13); the rod
 // casts first ("make sure the fishing poles cast in animation before the question pops up") and the
 // question comes while the bobber floats, so a right answer hooks the fish. A better cast (the green
 // part of the meter) reaches deeper water and rarer fish. New kinds of fish earn better rods (a wider
@@ -163,6 +163,7 @@ export default function FishingDock() {
   const [timeLeft, setTimeLeft] = useState(0); // seconds
   const run = useRef({ catches: 0, kinds: 0, xp: 0, best: null as null | { name: string; size: number } });
   const raf = useRef(0);
+  const told = useRef({ power: false, wait: false });
   const t0 = useRef(0);
   const timers = useRef<number[]>([]);
   const tipRef = useRef<HTMLSpanElement>(null);
@@ -178,7 +179,7 @@ export default function FishingDock() {
   useEffect(() => {
     if (diamondLeft <= 0) return;
     const id = window.setTimeout(() => {
-      if (diamondLeft === 1) doc('That Diamond Rod potion wore off, partner. Back to questions!');
+      if (diamondLeft === 1) doc(`That Diamond Rod potion wore off, mate. Back to questions!`);
       setDiamondLeft(diamondLeft - 1);
     }, 1000);
     return () => clearTimeout(id);
@@ -216,8 +217,8 @@ export default function FishingDock() {
     greeted.current = true;
     if (!saved.met) mergeStyleRow(owner, { met: true });
     doc(saved.met
-      ? 'Howdy again, partner! The fish are biting today. How long do you want to fish? Pick your time, then tap Start fishing.'
-      : 'Well, howdy there, partner! I am Doc Fishing. Let us catch us some fish. Pick how long you want to fish, then tap Start fishing.');
+      ? `G'day again, mate! The fish are biting today. How long do you want to fish? Pick your time, then tap Start fishing.`
+      : `G'day, mate! I'm Doc Fishing. Let's catch some fish together. Pick how long you want to fish, then tap Start fishing.`);
   }, [student]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!student) return null;
 
@@ -237,7 +238,7 @@ export default function FishingDock() {
     setXpPop({ n, why, at: Date.now() });
     if (up) {
       setRodUp({ rod: up, at: Date.now() }); later(() => setRodUp(null), 4500);
-      if (speakUp) { play('legend'); doc(`Yee haw! Your XP meter filled up, and your rod upgraded to the ${up.name} Rod. Its green spot is bigger!`); }
+      if (speakUp) { play('legend'); doc(`Good on ya! Your XP meter filled up, and your rod upgraded to the ${up.name} Rod. Its green spot is bigger!`); }
     }
     return up;
   };
@@ -247,20 +248,21 @@ export default function FishingDock() {
 
   const startPower = () => {
     play('rod'); setPhase('power'); t0.current = performance.now();
-    doc(`Watch the line slide. Tap Cast when it is in the green, and your bobber flies way out to the deep water where the rare fish swim.`, !noQuestion);
+    // The long how-to is read on the first cast only, so Doc never talks over every cast.
+    doc(`Watch the line slide. Tap Cast when it's in the green, and your bobber flies way out to the deep water where the rare fish swim.`, !noQuestion && !told.current.power); told.current.power = true;
     const loop = () => { const t = (performance.now() - t0.current) / 1000; setPower((Math.sin(t * 2.6 - Math.PI / 2) + 1) / 2); raf.current = requestAnimationFrame(loop); };
     raf.current = requestAnimationFrame(loop);
   };
   const waitForBite = () => {
     setPhase('wait');
-    doc('Hold real still, partner. Wait for that bobber to dip.', !noQuestion);
+    doc('Nice and still now. Wait for that bobber to dip.', !noQuestion && !told.current.wait); told.current.wait = true;
     later(() => {
       setPhase('bite'); play('bite');
-      doc('There is a bite! Reel it in, quick!');
+      doc(`There's a bite! Reel it in, quick!`);
       // A generous 2.5 seconds to tap Reel it in.
       later(() => setPhase((ph) => {
         if (ph !== 'bite') return ph;
-        play('escaped'); doc('Aw, shucks. That one got away. It happens to every fisher, even me. Let us cast again.');
+        play('escaped'); doc(`Ah, no worries. That one got away. It happens to every fisher, even me. Let's cast again.`);
         return 'away';
       }), 2500);
     }, 1200 + Math.random() * 1800);
@@ -282,7 +284,7 @@ export default function FishingDock() {
         const n = Math.max(1, rightSoFar() - rightBefore);
         play('hook'); gainXp(10 * n, n > 1 ? `${n} right answers` : 'Right answer'); waitForBite();
       }, () => {
-        play('reel'); setPhase('ready'); doc('No worries. I will reel your line back in.');
+        play('reel'); setPhase('ready'); doc(`No worries, I'll reel your line back in.`);
       });
     }, quick() ? 250 : 950);
   };
@@ -293,7 +295,7 @@ export default function FishingDock() {
       const pw = POWERS[Math.floor(Math.random() * POWERS.length)];
       const up = gainXp(15, 'Power-up!', false);
       setCaught({ kind: 'power', power: pw, xp: 15 }); setPhase('leap');
-      later(() => { setPhase('caught'); play('legend'); doc(`Well, what do you know! You fished up a ${pw.name}. ${pw.blurb}${up ? ` And your rod upgraded to the ${up.name} Rod!` : ''}`); }, quick() ? 200 : 1000);
+      later(() => { setPhase('caught'); play('legend'); doc(`Well, would you look at that! You fished up a ${pw.name}. ${pw.blurb}${up ? ` And your rod upgraded to the ${up.name} Rod!` : ''}`); }, quick() ? 200 : 1000);
       return;
     }
     // The sweet spot (the green part of the meter) reaches the rare fish.
@@ -334,7 +336,7 @@ export default function FishingDock() {
     const id = c.power.id;
     if (id === 'diamond') { setDiamondLeft(DIAMOND_SECONDS); doc('Diamond Rod time! No questions for 30 seconds. Cast as fast as you can!'); }
     else if (id === 'skip') { setFreeCasts((n) => n + 1); doc('Your next cast skips its question.'); }
-    else if (id === 'double') { setFreeCasts((n) => n + 2); doc('Your next two casts have no questions. Yee haw!'); }
+    else if (id === 'double') { setFreeCasts((n) => n + 2); doc('Your next two casts have no questions. Beauty!'); }
     else if (id === 'rainbow') { setRainbow(true); later(() => setRainbow(false), 20000); doc('Would you look at that water! Every color of the rainbow.'); }
     else { setShow({ kind: id, at: Date.now() }); play(id === 'school' ? 'thrash' : 'plunk'); later(() => setShow(null), 4200); doc(id === 'school' ? 'Here they come! A whole school of fish, jumping to say hello!' : 'Bubbles, bubbles, everywhere!'); }
   };
@@ -343,13 +345,13 @@ export default function FishingDock() {
     run.current = { catches: 0, kinds: 0, xp: 0, best: null };
     if (saved.minutes !== chosen) mergeStyleRow(owner, { minutes: chosen });
     setTimeLeft(chosen * 60); setStage('play'); setPhase('ready'); play('tackle');
-    doc(`Alrighty, ${chosen} ${chosen === 1 ? 'minute' : 'minutes'} on the clock. Tap Cast your line!`);
+    doc(`Righto, ${chosen} ${chosen === 1 ? 'minute' : 'minutes'} on the clock. Tap Cast your line!`);
   };
   const endGame = () => {
     cancelAnimationFrame(raf.current); timers.current.forEach(clearTimeout); timers.current = [];
     setStage('end'); setPhase('ready'); setDiamondLeft(0); setFreeCasts(0); pay(); play('legend');
     const r = run.current;
-    doc(`Time is up, partner! You caught ${r.catches} ${r.catches === 1 ? 'thing' : 'things'}${r.best ? `, and your biggest was a ${r.best.size} centimeter ${r.best.name}` : ''}. You earned ${r.xp} XP. Mighty fine fishing!`);
+    doc(`Time's up, mate! You caught ${r.catches} ${r.catches === 1 ? 'thing' : 'things'}${r.best ? `, and your biggest was a ${r.best.size} centimeter ${r.best.name}` : ''}. You earned ${r.xp} XP. Great fishing, mate!`);
   };
   endRef.current = endGame;
   const clock = `${Math.floor(Math.max(0, timeLeft) / 60)}:${String(Math.max(0, timeLeft) % 60).padStart(2, '0')}`;
@@ -453,7 +455,7 @@ export default function FishingDock() {
         <button type="button" className="btn fdk-icon" onClick={flipRead} aria-pressed={readAloud} aria-label={readAloud ? 'Doc Fishing reads aloud. Tap to turn it off.' : 'Reading aloud is off. Tap to turn it on.'}>{readAloud ? '🗣️' : '🤐'}</button>
         <SfxToggle />
         <MyBest game="fishingDock" unit="cm" />
-        <button type="button" className="btn fdk-hbtn" onClick={() => { play('tackle'); setPanel('tackle'); doc('Here is your tackle box. Pick a rod and a bobber.'); }}><img src={`${ART}ui/chest.png`} alt="" className="fdk-px" /> Tackle box</button>
+        <button type="button" className="btn fdk-hbtn" onClick={() => { play('tackle'); setPanel('tackle'); doc(`Here's your tackle box. Pick a rod and a bobber.`); }}><img src={`${ART}ui/chest.png`} alt="" className="fdk-px" /> Tackle box</button>
         <button type="button" className="btn fdk-hbtn" onClick={() => { play('tackle'); setPanel('book'); }}><img src={`${ART}ui/bucket.png`} alt="" className="fdk-px" /> Fish Book ({kinds} / {CATCHABLE.length})</button>
       </header>
       {xpPop && <div key={xpPop.at} className="fdk-xp-pop" aria-live="polite">+{xpPop.n} XP <small>{xpPop.why}</small></div>}

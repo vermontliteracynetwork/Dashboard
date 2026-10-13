@@ -21,6 +21,8 @@ export interface NpcVoiceProfile {
   hints: string[];
   // The human voice (api/tts.ts) this character speaks with.
   cloud?: string;
+  // A preferred accent for the device voice backup, like 'en-AU'.
+  lang?: string;
   // Pick the most human-sounding male voice on the device (Premium, Enhanced or Natural voices first)
   // instead of the first name match; used for Doc Fishing (teacher 2026-10-12: "can we have a more
   // human voice").
@@ -40,11 +42,10 @@ export const NPC_VOICE_PRESETS: Record<string, NpcVoiceProfile> = {
   // Browsers ship no true Southern accent, so this picks the deepest US
   // male voice available and slows it into a easy drawl.
   'country-drawl': { label: '🤠 Country Drawl', pitch: 0.78, rate: 0.86, hints: ['aaron', 'evan', 'fred', 'tom', 'us english male', 'male'], cloud: 'country' },
-  // Doc Fishing (teacher 2026-10-12: "a slighly southern, slow deep human voice for all voice overs and
-  // TTS", then "can we have a more human voice"). Pitch shifting is what makes a voice sound like a
-  // robot, so this keeps the pitch close to natural and gets the slow, easy feel from the rate, on the
-  // most human male voice the device has.
-  'doc-drawl': { label: '🎣 Slow Southern Drawl', pitch: 0.9, rate: 0.84, hints: ['evan', 'nathan', 'tom', 'aaron', 'christopher', 'guy', 'davis', 'eric', 'andrew', 'brian', 'roger', 'steffan'], human: true, cloud: 'doc' },
+  // Doc Fishing (teacher 2026-10-13: "smooth, hymabn austrailian man voice for doc fishing"; this replaces
+  // the slow Southern drawl from 2026-10-12). A natural pitch and pace, an Australian male voice where the
+  // device has one (Lee, Gordon, or Microsoft's William and Darren), the human voice service's 'doc' style.
+  'doc-drawl': { label: '🎣 Smooth Australian', pitch: 1, rate: 0.96, hints: ['lee', 'gordon', 'william', 'darren', 'duncan', 'neil', 'evan', 'nathan', 'aaron'], human: true, cloud: 'doc', lang: 'en-AU' },
   // Grammar Gus (teacher 2026-10-07: "silly but a little pretentious"):
   // a small, prim, slightly posh voice, British where the device has one.
   'gus-posh': { label: '🧐 Prim & Proper', pitch: 1.35, rate: 0.95, hints: ['daniel', 'arthur', 'oliver', 'uk english male', 'en-gb', 'male'], cloud: 'posh' },

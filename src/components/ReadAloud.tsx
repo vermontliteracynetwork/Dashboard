@@ -54,7 +54,8 @@ export function buildUtterance(text: string, settings?: TTSSettings, voiceSkinId
     utter.rate = npcVoiceProfile.rate;
     utter.pitch = soft(npcVoiceProfile.pitch);
     const h = npcVoiceProfile.hints;
-    const npcVoice = pickHumanVoice(h, h.includes('female') ? false : h.includes('male') || npcVoiceProfile.human ? true : undefined);
+    const npcVoice = pickHumanVoice(h, h.includes('female') ? false : h.includes('male') || npcVoiceProfile.human ? true : undefined, npcVoiceProfile.lang);
+    if (npcVoice) utter.lang = npcVoice.lang;
     if (npcVoice) utter.voice = npcVoice;
     return utter;
   }
@@ -68,13 +69,26 @@ export function buildUtterance(text: string, settings?: TTSSettings, voiceSkinId
   return utter;
 }
 
+// Ask for the voice list as early as possible so the first line already has a human voice.
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) window.speechSynthesis.getVoices();
+
 export const speak = (text: string, settings?: TTSSettings, voiceSkinId?: string | null, npcVoiceProfile?: NpcVoiceProfile) => {
   if (!text) return;
   const device = () => {
     if (!('speechSynthesis' in window)) return undefined;
-    window.speechSynthesis.cancel();
+    const sy = window.speechSynthesis;
+    sy.cancel();
     const utter = buildUtterance(text, settings, voiceSkinId, npcVoiceProfile);
-    window.speechSynthesis.speak(utter);
+    // iPads load their voice list a moment after the page opens; speaking before then uses the robotic
+    // default voice. Wait for the list (up to 0.8 seconds), then pick the human voice and speak.
+    if (!sy.getVoices().length) {
+      let done = false;
+      const go = () => { if (done) return; done = true; sy.removeEventListener?.('voiceschanged', go); const u = buildUtterance(text, settings, voiceSkinId, npcVoiceProfile); u.onstart = utter.onstart; u.onend = utter.onend; sy.speak(u); };
+      sy.addEventListener?.('voiceschanged', go);
+      window.setTimeout(go, 800);
+      return utter;
+    }
+    sy.speak(utter);
     return utter;
   };
   // A real human voice when the app's voice service is set up (lib/cloudVoice.ts); the device voice
