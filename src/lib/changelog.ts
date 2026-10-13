@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-supernature-2",
+    date: "2026-10-13",
+    icon: "📖",
+    title: "Supernature grew a whole world",
+    body: "Tap the bookshelf to open your Encyclopedia: 51 creatures in 9 chapters, each with facts and a story to read or listen to. Explore the Globe to find them, and every creature you find moves into your Habitat. Outside, change the land, the time and the weather, try a flood or a tornado, take cover, and brew a Vita potion in the cauldron to help tired creatures feel better.",
+  },
+  {
     id: "2026-10-13-supernature",
     date: "2026-10-13",
     icon: "🐈‍⬛",

@@ -491,3 +491,13 @@ Her words (2026-10-13): "this is students most favorite part so lets make sure t
 6. **Wand cursive** spells.
 7. **Potions out in the world:** pets, the student's Town Square character, Habitats.
 8. **Level up** threaded through all of it (started in step 2, finished here).
+
+
+## 25. Model round 2 (2026-10-13)
+
+What the computer app model has after her second round of feedback (full detail and her words in the development plan, item 96):
+
+- **Encyclopedia:** 51 creatures in 9 chapters with a working table of contents and chapter ribbons; each page has Facts (origin, home, size, power, energy, traits, word history) and a Story that reads itself aloud. Art for every creature (7 from her packs, 44 drawn in code, `scripts/supernature-art/`).
+- **Habitat:** only found creatures; land, day and night, weather, six playable disasters with real warning signs, surprises, shelter, hearts (never hurt, only worn out), and the Vita potion to heal. Plain worded controls; nothing happens while the student is away.
+- **Home:** objects on the floor line, globe on a table, bookshelf opens the Encyclopedia, Home in the top right of every room, Frankenstein by the Creature Maker.
+- **Next:** food webs (who eats whom), generations and adapting, the Creature Maker, the Shop, music.

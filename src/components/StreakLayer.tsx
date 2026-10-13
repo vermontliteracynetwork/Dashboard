@@ -25,7 +25,9 @@ export const OPEN_STREAK_EVENT = 'open-streak-view';
 export const streakOverlay = { open: false };
 export const openStreakView = () => window.dispatchEvent(new Event(OPEN_STREAK_EVENT));
 
-const HIDE_ON = ['/', '/student/login'];
+// Supernature has no questions, and its Home and Sounds buttons sit in the top right corner
+// where the streak pill rests (her ask, 2026-10-13: Home in the top right beside Sounds).
+const HIDE_ON = ['/', '/student/login', '/student/supernature'];
 const POS_KEY = 'streak-pill-pos';
 const MIN_KEY = 'streak-pill-min';
 const HINT_KEY = 'streak-pill-hint-seen';

@@ -1,8 +1,8 @@
 import { useStore } from '../store/store';
 
 // Supernature, the witchy creature app on the student computer (Build Queue item 96, plan in
-// docs/SUPERNATURE_PLAN.md). This file holds its data (starter creatures, word parts, the first
-// recipe, the Habitat roster), each student's saved progress, and its sounds.
+// docs/SUPERNATURE_PLAN.md). This file holds its data (regions, word parts, recipes), each
+// student's saved progress, and its sounds. The creatures live in supernatureCreatures.ts.
 
 export const SN = '/games/supernature/';
 
@@ -17,63 +17,6 @@ export const ENERGY_FACE: Record<Energy, string> = {
 };
 
 export interface Part { text: string; meaning: string; kind: 'start' | 'main' | 'end' }
-export interface Creature {
-  id: string; name: string; say: string; from: string; region: string; regionLabel: string;
-  story: string; traits: string[]; energy: Energy;
-  nameParts?: Part[]; nameNote: string; explore: 'explore' | 'remix';
-  ingredient: { name: string; img: string };
-}
-
-// One starter creature per continent and ocean (her answer, 2026-10-13). Antarctica and the
-// Southern Ocean have no traditional creature stories, so they are the students' frontier.
-export const CREATURES: Creature[] = [
-  { id: 'griffin', name: 'Griffin', say: 'GRIFF-in', from: 'Greece', region: 'europe', regionLabel: 'Europe', explore: 'remix',
-    story: 'In stories from ancient Greece, the griffin has the body of a lion and the head and wings of an eagle. It guarded gold high in the mountains.',
-    traits: ['flying', 'sharp claws', 'walking'], energy: 'high', nameNote: 'Its name comes from an old Greek word.',
-    ingredient: { name: 'lost feather', img: `${SN}cabinet/monster-ingredients/phoenix_feather.png` } },
-  { id: 'kappa', name: 'Kappa', say: 'KAH-pah', from: 'Japan', region: 'asia', regionLabel: 'Asia', explore: 'remix',
-    story: 'In stories told in Japan, the kappa lives in rivers and ponds. It is famous for mischief, and for always keeping a promise. It carries water in a dish on top of its head.',
-    traits: ['aquatic', 'mischievous', 'walking', 'water breathing'], energy: 'high',
-    nameParts: [{ text: 'kawa', meaning: 'river', kind: 'main' }, { text: 'wappa', meaning: 'child', kind: 'main' }],
-    nameNote: '"River child" in Japanese.', ingredient: { name: 'river water', img: `${SN}materials/water.png` } },
-  { id: 'sphinx', name: 'Sphinx', say: 'SFINKS', from: 'Egypt', region: 'africa', regionLabel: 'Africa', explore: 'remix',
-    story: 'In stories from ancient Egypt, the sphinx has the body of a lion and the head of a person. Huge stone sphinxes still guard old temples today.',
-    traits: ['walking', 'very smart', 'calm'], energy: 'low', nameNote: 'Its name came to English through Greek.',
-    ingredient: { name: 'desert sand', img: `${SN}materials/dirt.png` } },
-  { id: 'jackalope', name: 'Jackalope', say: 'JACK-uh-lope', from: 'Wyoming, USA', region: 'northamerica', regionLabel: 'North America', explore: 'remix',
-    story: 'A joke creature from Wyoming: a jackrabbit with antelope horns. People tell tall tales about it and sell funny postcards of it.',
-    traits: ['hopping', 'horns', 'shy', 'fast'], energy: 'very high',
-    nameParts: [{ text: 'jackrabbit', meaning: 'a big hare', kind: 'main' }, { text: 'antelope', meaning: 'a horned runner', kind: 'main' }],
-    nameNote: 'A blend: two words squished into one.', ingredient: { name: 'lucky leaf', img: `${SN}ingredients/bay-leaf.png` } },
-  { id: 'curupira', name: 'Curupira', say: 'koo-roo-PEE-rah', from: 'Brazil', region: 'southamerica', regionLabel: 'South America', explore: 'explore',
-    story: 'In stories from Brazil, the Curupira is a guardian of the forest with bright hair and feet that point backward, so its tracks lead the wrong way. It protects the animals of the forest.',
-    traits: ['walking', 'fast', 'protector'], energy: 'high', nameNote: 'Its name comes from the Tupi language of Brazil.',
-    ingredient: { name: 'forest leaf', img: `${SN}materials/leaves.png` } },
-  { id: 'bunyip', name: 'Bunyip', say: 'BUN-yip', from: 'Australia (Aboriginal peoples)', region: 'oceania', regionLabel: 'Oceania', explore: 'explore',
-    story: 'In stories told by Aboriginal peoples of southeastern Australia, the Bunyip lives in swamps, creeks and waterholes. People said you could hear its booming call at night.',
-    traits: ['aquatic', 'loud call', 'night creature'], energy: 'low', nameNote: 'Its name comes from an Aboriginal language of southeastern Australia.',
-    ingredient: { name: 'swamp reed', img: `${SN}cabinet/herbs-fungi-roots/whispering_reed.png` } },
-  { id: 'selkie', name: 'Selkie', say: 'SELL-kee', from: 'Scotland and Ireland', region: 'atlantic', regionLabel: 'Atlantic Ocean', explore: 'remix',
-    story: 'In stories from Scotland and Ireland, a selkie is a seal that can take off its sealskin and walk on land as a person.',
-    traits: ['aquatic', 'shape changing', 'swimming'], energy: 'just right',
-    nameParts: [{ text: 'selch', meaning: 'seal (Scots)', kind: 'main' }, { text: 'ie', meaning: 'little', kind: 'end' }],
-    nameNote: '"Little seal" in Scots.', ingredient: { name: 'sea star', img: `${SN}habitat/starfish.png` } },
-  { id: 'umibozu', name: 'Umibozu', say: 'oo-mee-BOH-zoo', from: 'Japan', region: 'pacific', regionLabel: 'Pacific Ocean', explore: 'remix',
-    story: 'In stories from Japan, the umibozu is a huge, dark sea giant that rises out of calm water at night. Sailors told each other to stay very quiet if they saw one.',
-    traits: ['aquatic', 'giant', 'night creature'], energy: 'very low',
-    nameParts: [{ text: 'umi', meaning: 'sea', kind: 'main' }, { text: 'bozu', meaning: 'monk', kind: 'main' }],
-    nameNote: '"Sea monk" in Japanese.', ingredient: { name: 'deep sea ink', img: `${SN}cabinet/bottled-brews/shadow_ink.png` } },
-  { id: 'mermaid', name: 'Mermaid', say: 'MUR-maid', from: 'sailors\' stories around the world', region: 'indian', regionLabel: 'Indian Ocean', explore: 'remix',
-    story: 'Sailors all around the world told stories of mermaids: half person and half fish, singing to ships from the rocks.',
-    traits: ['aquatic', 'singing', 'swimming'], energy: 'just right',
-    nameParts: [{ text: 'mere', meaning: 'sea (Old English)', kind: 'main' }, { text: 'maid', meaning: 'young woman', kind: 'main' }],
-    nameNote: '"Sea maid" in Old English.', ingredient: { name: 'mermaid tear', img: `${SN}cabinet/monster-ingredients/mermaid_tear.png` } },
-  { id: 'kraken', name: 'Kraken', say: 'KRAH-ken', from: 'Norway', region: 'arctic', regionLabel: 'Arctic Ocean', explore: 'remix',
-    story: 'In stories from Norway, the Kraken is a sea creature so big that sailors thought it was an island until it moved.',
-    traits: ['aquatic', 'giant', 'tentacles'], energy: 'low', nameNote: 'Its name comes from Norwegian.',
-    ingredient: { name: 'storm in a bottle', img: `${SN}cabinet/bottled-brews/bottled_storm.png` } },
-];
-
 export const REGIONS: { id: string; label: string; kind: 'land' | 'ocean'; frontier?: boolean }[] = [
   { id: 'europe', label: 'Europe', kind: 'land' }, { id: 'asia', label: 'Asia', kind: 'land' }, { id: 'africa', label: 'Africa', kind: 'land' },
   { id: 'northamerica', label: 'North America', kind: 'land' }, { id: 'southamerica', label: 'South America', kind: 'land' },
@@ -112,7 +55,8 @@ export const SHELF: Ingredient[] = [
   { id: 'phoenix', name: 'phoenix feather', img: `${SN}cabinet/monster-ingredients/phoenix_feather.png`, price: '$35 rare' },
 ];
 export interface Step { text: string; need: 'bowl' | 'pour' | 'add' | 'stir' | 'spell'; items?: string[]; times?: number; word?: string }
-export const AERO: { name: string; meaning: string; does: string; steps: Step[] } = {
+export interface Recipe { name: string; meaning: string; does: string; steps: Step[] }
+export const AERO: Recipe = {
   name: 'Aero', meaning: 'aero means air', does: 'Lets you float and fly for 1 minute in Town Square.',
   steps: [
     { text: 'In the bowl, mix ( grass + dew ). The bowl always goes first.', need: 'bowl', items: ['grass', 'dew'] },
@@ -122,9 +66,24 @@ export const AERO: { name: string; meaning: string; does: string; steps: Step[] 
     { text: 'Write the spell word with your wand: aero.', need: 'spell', word: 'aero' },
   ],
 };
+// Vita heals a creature in the Habitat back to full hearts (her ask, 2026-10-13: potions that heal
+// creatures the weather has worn out). Vita is Latin for life, like vitamin and vital.
+export const VITA: Recipe = {
+  name: 'Vita', meaning: 'vita means life', does: 'Heals one creature in the Habitat back to full hearts.',
+  steps: [
+    { text: 'In the bowl, mix ( dew + glowmoss ). The bowl always goes first.', need: 'bowl', items: ['dew', 'glowmoss'] },
+    { text: 'Pour the bowl into the cauldron.', need: 'pour' },
+    { text: 'Add 1 star anise.', need: 'add', items: ['staranise'] },
+    { text: 'Stir 2 times.', need: 'stir', times: 2 },
+    { text: 'Write the spell word with your wand: vita.', need: 'spell', word: 'vita' },
+  ],
+};
+export const RECIPES = [AERO, VITA];
+
 
 // Each student's progress, saved in their own row (no new tables).
-export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[] }
+export interface SnHabitat { biome?: string; health?: Record<string, number> }
+export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === owner));
@@ -148,4 +107,26 @@ export const setSoundsOn = (on: boolean) => { try { localStorage.setItem(SOUND_K
 export function snSound(name: SnSound) {
   if (!soundsOn()) return;
   try { const a = new Audio(`${SN}sounds/witchy-ui-wav/${SOUND_FILES[name]}.wav`); a.volume = 0.55; void a.play().catch(() => undefined); } catch { /* fine */ }
+}
+
+// Her Weather & Nature SFX (CC BY 4.0, credits in sounds/nature/CREDITS.txt). One-shots, plus one
+// looping bed at a time for rain, wind, night crickets and the like; the Habitat stops it on leave.
+export type NatureSound = 'gust' | 'thunder' | 'lightning' | 'fire' | 'owl' | 'bird' | 'frog' | 'splash' | 'ice' | 'whoosh';
+const NATURE_FILES: Record<NatureSound, string> = {
+  gust: 'gust_01', thunder: 'thunder_mid_01', lightning: 'lightning_strike_01', fire: 'fire_ignite_01', owl: 'owl_hoot_01',
+  bird: 'bird_chirp_01', frog: 'frog_croak_01', splash: 'splash_01', ice: 'ice_crack_01', whoosh: 'whoosh_01',
+};
+export function natureSound(name: NatureSound, volume = 0.5) {
+  if (!soundsOn()) return;
+  try { const a = new Audio(`${SN}sounds/nature/${NATURE_FILES[name]}.wav`); a.volume = volume; void a.play().catch(() => undefined); } catch { /* fine */ }
+}
+export type NatureLoop = 'rain_light_loop' | 'wind_steady_loop' | 'blizzard_loop' | 'torch_loop' | 'crickets_loop' | 'forest_day_loop' | 'waves_calm_loop' | 'stream_loop';
+let loopEl: HTMLAudioElement | null = null; let loopName: string | null = null;
+export function setNatureLoop(name: NatureLoop | null, volume = 0.3) {
+  if (!soundsOn()) name = null;
+  if (name === loopName) return;
+  try { loopEl?.pause(); } catch { /* fine */ }
+  loopEl = null; loopName = name;
+  if (!name) return;
+  try { const a = new Audio(`${SN}sounds/nature/${name}.wav`); a.loop = true; a.volume = volume; void a.play().catch(() => undefined); loopEl = a; } catch { /* fine */ }
 }
