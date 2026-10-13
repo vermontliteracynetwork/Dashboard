@@ -21,6 +21,28 @@ Supernature works like a field naturalist's journal that happens to be magic. Ev
 
 The loop a student lives in: **find it, learn it, make one, keep it alive, brew for it.**
 
+## 1b. The home screen: the Witch's House
+
+Her words (2026-10-13): "lets say the screen opens with a 2d clickable/navigation menu. they can click a book shelf to see their book, a couldron to make potions, a model of a beast (thing sewing dummy) in the right side to clcik beastiary, globe visual clicks open the clibe view. shop vending machine opens shop. -- think a 2d pixel art style witchs house that has click things". She sent three witch's-house pictures as mood references (cozy wooden or stone rooms, a fireplace cauldron, shelves of bottles and books, a round window at night, candles, a broom, a cat).
+
+Supernature opens inside a 2D pixel witch's house. There are no menus: every room of the game is an object in the house that students tap. Each one has a name tag (always showing, since iPads have no hover), glows when tapped, and is read aloud:
+
+| Object in the house | Opens | Where |
+|---|---|---|
+| Bookshelf | My Books: the Cookbook, the Word Part Book and the creature cards | left wall (her words: "their book") |
+| Cauldron | the Cauldron, to make potions | center |
+| Beast model on a sewing dummy | the Bestiary | right side (her words) |
+| Globe on a stand | the Globe view | right of the cauldron |
+| Potion vending machine | the Shop | far right |
+| Study desk (her wizard desk) | the Creature Maker | proposed; she can swap it |
+| Round window looking out on a garden | the Habitat | proposed; the student's habitat is "outside" |
+
+Small living touches: hanging herbs and spices from the ceiling beam (her spice art), a bat flying past the window, candles that flicker, the cauldron bubbling with a soft sound, and the Star Wizard waiting by the door with a welcome line. As students level up, the house fills in: new creature cards pinned to the wall, new jars on the shelves, the wands they earn on a rack. Calm mode and reduced motion still the animations.
+
+Mockup screen 0 shows it, built from her art. In Play, the name tags open the matching screens.
+
+**Art still needed for the house:** a pixel room background (walls, floor, window, beam) in the same style, a beast model on a sewing dummy, and a front-facing pixel vending machine. Until then, Claudia draws them from simple pixel shapes, as in the mockup.
+
 ## 2. Learning goals and where each one lives
 
 - **Mythology and culture** (Globe, Bestiary): real creatures, the country and people whose stories they come from, told respectfully (section 9).
@@ -265,7 +287,7 @@ Checked 2026-10-13 against everything she has uploaded so far. All of it is pixe
 - **Swamp:** the Craftpix Poison Swamp pack: swamp ground, the giant rafflesia flower, water plants, floating leaves, the tree-stump house, the cave entrance, boulders and sticks.
 - **Ocean and lakes:** the animated water loop (water_128px, 40 frames) and Pixel Farm water tiles.
 - **Mountain and tundra:** Tappy Plane grass, snow and ice rocks.
-- **Backdrops:** Side Farming mountain and firefly night skies (their license is not in the pack; she should confirm).
+- **Backdrops:** Side Farming mountain and firefly night skies.
 - **Plants as producers:** Farm Grow crops and Pixel Farm crops.
 
 ### Reuse: ingredients and potions
@@ -299,7 +321,7 @@ Checked 2026-10-13 against everything she has uploaded so far. All of it is pixe
 
 ### License notes
 - **fishing_free** (some Doc Fishing fish) is for non-commercial use only. That is fine for her classroom, but the game can never be sold with it.
-- These packs had no license file. She should confirm she may use them: NFG Potions, Hollow Dolphin icons, Pixel Farm 16x16, Side Farming.
+- NFG Potions, Hollow Dolphin icons, Pixel Farm 16x16 and Side Farming had no license file; she confirmed her uploads are cleared (2026-10-13).
 
 ### New from her (2026-10-13): five pieces of art
 Saved in the project under `public/games/supernature/` (cut out on see-through backgrounds), with her originals in `assets/held/supernature/`:
@@ -321,13 +343,13 @@ Saved in the project under `public/games/supernature/` (cut out on see-through b
 - **A pixel UI kit** (`ui/`): three title banners (blanked so any word fits), a dialog box with a name tab (blanked, for the wizards' speech), and a row of item slots. Its option panels, score panel and character select are kept in `assets/held/supernature/ui-kit.jpg` for later screens.
 - **Sixteen pixel books** (AI-made, with a small generator mark on one): five fit Supernature and are saved in `books/` (the beetle cover as the Bestiary's cover, the wood-gem and eye covers for the Cookbook, the insect and map spreads for Bestiary and Globe pages). The science ones (atoms, circuits, brain, portal) are saved for the Science Lab in `assets/held/supernature/books-science/`. The skull cover is left out.
 
-**License check needed on all of her art:** the spice and mushroom sheets are signed by their artist ("seehy17"); the book carries a credit to another game and its artist ("Sigmaiden" by @attohimmel12), so it may not be free to use without that artist's permission; the scroll buttons look like a stock image; the wizards' artist is unknown. She should confirm she may use each before the game ships to students. The mockup uses them in the meantime.
+**Licenses: she confirmed all of her art is cleared to use (2026-10-13).**
 
 ### She needs to upload
 1. **The host character:** covered by the six wizards, if she agrees.
 2. **The 10 starter creatures** as pixel sprites, in a similar size (32x32 or 48x48) and style: Griffin, Kappa, Sphinx, Jackalope, Curupira, Bunyip, Selkie, Umibozu, Mermaid, Kraken. Each needs an idle loop and a move loop (walk, swim or fly), 2 to 4 frames each. The "???" silhouettes are made from these automatically.
 3. **A modular creature parts kit:** pixel bodies, heads, eyes, arms (claws, flippers, sword-hands, tentacles), coverings, tails and wings that snap onto one shared body grid. Search terms that help: "modular pixel monster creator" or "pixel creature parts". If none can be found, Claudia draws them.
-4. **A spell book:** covered by her animated book (license check above).
+4. **A spell book:** covered by her animated book and her tabbed book.
 5. **The Cauldron set:** the cauldron and wands are covered; still needed: a mixing bowl, a stirring spoon, and a shop shelf or stall.
 6. **The missing biomes:** desert (sand, cactus), tundra and snow, ocean floor (coral, kelp, seaweed), sky islands (clouds), and a cave.
 7. **The missing real animals for land food webs:** rabbit, deer, mouse, frog, songbird, owl, fox, snake and worm. Mushrooms are now covered.
@@ -337,7 +359,7 @@ Saved in the project under `public/games/supernature/` (cut out on see-through b
 
 ## 15. Build order (each step ships on its own)
 
-1. **Foundation:** Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (the 10 starter creatures start approved, everything else Hidden until she approves); the energy faces wired in.
+1. **Foundation:** the Witch's House home screen; Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (the 10 starter creatures start approved, everything else Hidden until she approves); the energy faces wired in.
 2. **Creature Maker and Habitat** (her priority), with the 10 starter creatures to explore and remix, Energy check-ins, cursive naming, and science names from word part tiles.
 3. **Bestiary:** the pixel book, "???" pages, the trait sorting job, decoding real names, the Word Part Book and Morpheme Mixer, My Creatures.
 4. **Globe:** spin, zoom, continents, oceans and seas, countries, pins, earned ingredients.
