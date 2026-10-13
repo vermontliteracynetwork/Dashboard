@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-sn-shop",
+    date: "2026-10-13",
+    icon: "🛒",
+    title: "The Supernature Shop and 13 potions",
+    body: "Spend your real money in the vending machine Shop on ingredients like star anise, glowmoss and rare phoenix feathers. The Cookbook has 10 potions plus 3 secret ones you discover by brewing. Use them in your Habitat to heal, calm, wake up or super-size your creatures, light up the night, and stop wildfires, droughts and blizzards.",
+  },
+  {
     id: "2026-10-13-food-web",
     date: "2026-10-13",
     icon: "🕸️",

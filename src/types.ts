@@ -927,7 +927,8 @@ export type TransactionKind =
   | 'purchase-style'
   | 'game-answers'
   | 'streak-chest'
-  | 'purchase-freeze';
+  | 'purchase-freeze'
+  | 'purchase-supernature';
 
 // A teacher-defined bonus given the moment a student finishes their WHOLE
 // assignment for the day (both Math and Literacy complete) — separate from

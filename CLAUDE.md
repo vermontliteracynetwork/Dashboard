@@ -29,7 +29,7 @@ Direct teacher rule (2026-10-09): "claudia, continue with all queued items, alwa
 `src/lib/changelog.ts`'s `CHANGELOG_ENTRIES` is the "what's new" page-turning book shown to students, and it must stay comprehensive: whenever a change ships that a student would actually notice or use (not a Build Mode tooling fix, not a backend/teacher-only change), add a plain-language entry as part of that same change, same habit as the dev plan above. Newest first, today's date, short id, no em dashes (see Copy below). A behind-the-scenes policy change (like pausing a system) isn't "what's new" to celebrate and doesn't belong here.
 
 ## Before shipping
-Run `npx tsc --noEmit` and `npm run build` once at the end of a batch of changes. Fix anything they catch before committing.
+Run `npx tsc --noEmit -p tsconfig.app.json` and `npm run build` once at the end of a batch of changes. (The bare `npx tsc --noEmit` checks nothing here: the root tsconfig only lists references.) Fix anything they catch before committing.
 
 ## Quiet build
 No narration between tool calls. Final message is a short `## Done` / `## Test in this order` report only. See the quiet-build skill for the full rule.

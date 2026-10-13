@@ -43,49 +43,76 @@ export const WORD_PARTS: (Part & { example: string })[] = [
   { text: 'pter', meaning: 'wing', kind: 'main', example: 'pterodactyl' }, { text: 'saur', meaning: 'lizard', kind: 'end', example: 'dinosaur' },
 ];
 
-// The first Cookbook recipe. Steps happen in order, and the bowl always goes first (order of
-// operations, her math year).
-export interface Ingredient { id: string; name: string; img: string; price: string }
-export const SHELF: Ingredient[] = [
-  { id: 'bottle', name: 'glass bottle', img: `${SN}witchy-pack/potions-3.png`, price: 'free' },
-  { id: 'grass', name: 'grass', img: `${SN}materials/grass.png`, price: 'free' },
-  { id: 'dew', name: 'dew', img: `${SN}materials/water.png`, price: 'free' },
-  { id: 'fairywing', name: 'fairy wing', img: `${SN}habitat/loot-fairywings.png`, price: 'earned' },
-  { id: 'staranise', name: 'star anise', img: `${SN}ingredients/star-anise.png`, price: '$4' },
-  { id: 'glowmoss', name: 'glowmoss', img: `${SN}cabinet/herbs-fungi-roots/glowmoss.png`, price: '$6' },
-  { id: 'saffron', name: 'saffron', img: `${SN}ingredients/saffron.png`, price: '$25 rare' },
-  { id: 'phoenix', name: 'phoenix feather', img: `${SN}cabinet/monster-ingredients/phoenix_feather.png`, price: '$35 rare' },
+// Ingredients (Build Queue 100, plan section 10, her spec): base ones like a glass bottle or grass
+// are free; the rest are bought in the Shop with real money, $1 to $10, and rare ones $15 to $50.
+// A few are also earned by exploring the Globe. Gross humor stays out of the base ingredients.
+export type Tier = 'free' | 'basic' | 'rare';
+export interface Ingredient { id: string; name: string; img: string; tier: Tier; price: number; note?: string; earnedAs?: string }
+const CAB = `${SN}cabinet/`;
+export const INGREDIENTS: Ingredient[] = [
+  { id: 'bottle', name: 'glass bottle', img: `${SN}witchy-pack/potions-3.png`, tier: 'free', price: 0 },
+  { id: 'grass', name: 'grass', img: `${SN}materials/grass.png`, tier: 'free', price: 0 },
+  { id: 'dew', name: 'dew', img: `${SN}materials/water.png`, tier: 'free', price: 0 },
+  { id: 'fairywing', name: 'fairy wing', img: `${SN}habitat/loot-fairywings.png`, tier: 'free', price: 0, note: 'Found on the ground in the garden. No fairies were bothered.' },
+  { id: 'newt', name: 'eye of newt', img: `${SN}ingredients/mustard-seed.png`, tier: 'basic', price: 100, note: 'In old recipes, eye of newt was really a mustard seed.' },
+  { id: 'chili', name: 'chili pepper', img: `${SN}ingredients/chili-pepper.png`, tier: 'basic', price: 100 },
+  { id: 'staranise', name: 'star anise', img: `${SN}ingredients/star-anise.png`, tier: 'basic', price: 200 },
+  { id: 'ginger', name: 'ginger root', img: `${SN}ingredients/ginger.png`, tier: 'basic', price: 200 },
+  { id: 'silversage', name: 'silver sage', img: `${CAB}herbs-fungi-roots/silver_sage.png`, tier: 'basic', price: 200 },
+  { id: 'icechip', name: 'ice chip', img: `${SN}materials/ice.png`, tier: 'basic', price: 200 },
+  { id: 'glowmoss', name: 'glowmoss', img: `${CAB}herbs-fungi-roots/glowmoss.png`, tier: 'basic', price: 300 },
+  { id: 'dreamberries', name: 'dreamberries', img: `${CAB}herbs-fungi-roots/dreamberries.png`, tier: 'basic', price: 300 },
+  { id: 'vanilla', name: 'vanilla bean', img: `${SN}ingredients/vanilla.png`, tier: 'basic', price: 300 },
+  { id: 'mooncap', name: 'mooncap mushroom', img: `${CAB}herbs-fungi-roots/mooncap_mushroom.png`, tier: 'basic', price: 400 },
+  { id: 'mothdust', name: 'moth wing powder', img: `${CAB}monster-ingredients/moth_wing_powder.png`, tier: 'basic', price: 400 },
+  { id: 'frostorchid', name: 'frost orchid', img: `${CAB}herbs-fungi-roots/frost_orchid.png`, tier: 'basic', price: 500 },
+  { id: 'fireblossom', name: 'fire blossom', img: `${CAB}herbs-fungi-roots/fire_blossom.png`, tier: 'basic', price: 500 },
+  { id: 'slimecore', name: 'slime core', img: `${CAB}monster-ingredients/slime_core.png`, tier: 'basic', price: 500, note: 'Squishy, sticky and a little gross. Wash your hands!' },
+  { id: 'moonlight', name: 'bottled moonlight', img: `${CAB}bottled-brews/bottled_moonlight.png`, tier: 'rare', price: 2000 },
+  { id: 'saffron', name: 'saffron', img: `${SN}ingredients/saffron.png`, tier: 'rare', price: 2500, note: 'Real saffron is the most expensive spice in the world.' },
+  { id: 'mermaidtear', name: 'mermaid tear', img: `${CAB}monster-ingredients/mermaid_tear.png`, tier: 'rare', price: 3000, earnedAs: 'mermaid tear' },
+  { id: 'phoenix', name: 'phoenix feather', img: `${CAB}monster-ingredients/phoenix_feather.png`, tier: 'rare', price: 3500, earnedAs: 'phoenix feather' },
+  { id: 'dragonscale', name: 'dragon scale', img: `${CAB}monster-ingredients/dragon_scale.png`, tier: 'rare', price: 4000 },
+  { id: 'frozenflame', name: 'frozen flame', img: `${CAB}legendary-relics/frozen_flame.png`, tier: 'rare', price: 5000 },
 ];
-export interface Step { text: string; need: 'bowl' | 'pour' | 'add' | 'stir' | 'spell'; items?: string[]; times?: number; word?: string }
-export interface Recipe { name: string; meaning: string; does: string; steps: Step[] }
-export const AERO: Recipe = {
-  name: 'Aero', meaning: 'aero means air', does: 'Lets you float and fly for 1 minute in Town Square.',
-  steps: [
-    { text: 'In the bowl, mix ( grass + dew ). The bowl always goes first.', need: 'bowl', items: ['grass', 'dew'] },
-    { text: 'Pour the bowl into the cauldron.', need: 'pour' },
-    { text: 'Add 1 fairy wing.', need: 'add', items: ['fairywing'] },
-    { text: 'Stir 3 times.', need: 'stir', times: 3 },
-    { text: 'Write the spell word with your wand: aero.', need: 'spell', word: 'aero' },
-  ],
-};
-// Vita heals a creature in the Habitat back to full hearts (her ask, 2026-10-13: potions that heal
-// creatures the weather has worn out). Vita is Latin for life, like vitamin and vital.
-export const VITA: Recipe = {
-  name: 'Vita', meaning: 'vita means life', does: 'Heals one creature in the Habitat back to full hearts.',
-  steps: [
-    { text: 'In the bowl, mix ( dew + glowmoss ). The bowl always goes first.', need: 'bowl', items: ['dew', 'glowmoss'] },
-    { text: 'Pour the bowl into the cauldron.', need: 'pour' },
-    { text: 'Add 1 star anise.', need: 'add', items: ['staranise'] },
-    { text: 'Stir 2 times.', need: 'stir', times: 2 },
-    { text: 'Write the spell word with your wand: vita.', need: 'spell', word: 'vita' },
-  ],
-};
-export const RECIPES = [AERO, VITA];
+export const ING = (id: string) => INGREDIENTS.find((x) => x.id === id)!;
 
+// The Cookbook (Build Queue 101, plan section 6): 10 base recipes, and discovered recipes that
+// unlock after their base one is brewed (her example: flying unlocks super speed flying). Steps
+// happen in order, and the bowl always goes first (order of operations, her math year).
+export interface Step { text: string; need: 'bowl' | 'pour' | 'add' | 'stir' | 'spell'; items?: string[]; times?: number; word?: string }
+export interface Recipe { name: string; meaning: string; does: string; where: string; steps: Step[]; unlock?: string }
+const r = (name: string, meaning: string, does: string, where: string, bowl: [string, string], add: string[], stir: number, word: string, unlock?: string): Recipe => ({
+  name, meaning, does, where, unlock,
+  steps: [
+    { text: `In the bowl, mix ( ${ING(bowl[0]).name} + ${ING(bowl[1]).name} ). The bowl always goes first.`, need: 'bowl', items: bowl },
+    { text: 'Pour the bowl into the cauldron.', need: 'pour' },
+    ...add.map((a): Step => ({ text: `Add 1 ${ING(a).name}.`, need: 'add', items: [a] })),
+    { text: `Stir ${stir} times.`, need: 'stir', times: stir },
+    { text: `Write the spell word with your wand: ${word}.`, need: 'spell', word },
+  ],
+});
+export const RECIPES: Recipe[] = [
+  r('Aero', 'aero means air', 'Lets you float and fly for 1 minute in Town Square.', 'Town Square (coming soon)', ['grass', 'dew'], ['fairywing'], 3, 'aero'),
+  r('Vita', 'vita means life', 'Heals one creature in the Habitat back to full hearts.', 'Habitat: tap a creature', ['dew', 'glowmoss'], ['staranise'], 2, 'vita'),
+  r('Dorm', 'dorm means sleep, like a dormitory', 'Calms a creature with high energy down to just right.', 'Habitat: tap a creature', ['dew', 'silversage'], ['dreamberries'], 2, 'dorm'),
+  r('Viv', 'viv means lively, like vivid', 'Wakes up a creature with low energy to just right.', 'Habitat: tap a creature', ['dew', 'ginger'], ['chili'], 4, 'viv'),
+  r('Lumin', 'lumin means light, like luminous', 'Fills your Habitat with floating lights at night.', 'Habitat: Potions button', ['dew', 'mooncap'], ['glowmoss'], 3, 'lumin'),
+  r('Cryo', 'cryo means cold', 'Puts out a wildfire in your Habitat.', 'Habitat: Potions button', ['icechip', 'dew'], ['frostorchid'], 2, 'cryo'),
+  r('Aqua', 'aqua means water', 'Ends a drought and fills the pond back up.', 'Habitat: Potions button', ['dew', 'grass'], ['icechip'], 3, 'aqua'),
+  r('Fort', 'fort means strong, like a fortress', 'A strength potion for a pet.', 'Pets (coming soon)', ['grass', 'ginger'], ['newt'], 3, 'fort'),
+  r('Velo', 'velo means fast, like velocity', 'A speed potion for a pet.', 'Pets (coming soon)', ['dew', 'chili'], ['vanilla'], 2, 'velo'),
+  r('Mega', 'mega means huge', 'Makes one creature giant in your Habitat for a minute.', 'Habitat: tap a creature', ['grass', 'mothdust'], ['slimecore'], 5, 'mega'),
+  r('Veloaero', 'velo means fast and aero means air', 'Super speed flying in Town Square.', 'Town Square (coming soon)', ['grass', 'dew'], ['fairywing', 'phoenix'], 5, 'veloaero', 'Aero'),
+  r('Megavita', 'mega means huge and vita means life', 'Heals every creature in your Habitat at once.', 'Habitat: Potions button', ['dew', 'glowmoss'], ['saffron'], 3, 'megavita', 'Vita'),
+  r('Pyro', 'pyro means fire', 'Warms your Habitat and ends a blizzard.', 'Habitat: Potions button', ['dew', 'fireblossom'], ['dragonscale'], 3, 'pyro', 'Cryo'),
+];
+export const AERO = RECIPES[0];
+export const VITA = RECIPES[1];
 
 // Each student's progress, saved in their own row (no new tables).
 export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number> }
-export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[] }
+export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[] }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === owner));

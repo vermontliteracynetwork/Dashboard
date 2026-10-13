@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
-import { SN, REGIONS, WORD_PARTS, SHELF, RECIPES, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { SN, REGIONS, WORD_PARTS, INGREDIENTS, ING, RECIPES, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { formatMoney } from '../../lib/money';
+import { playCashRegister } from '../../lib/chime';
 import { CREATURES, STARTERS, art, byId, setMade, type Made } from '../../lib/supernatureCreatures';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 import SupernatureBook from './SupernatureBook';
@@ -48,6 +50,9 @@ export default function Supernature() {
   const say = (t: string) => speak(t, tts);
   const found = save.found ?? [];
   const potions = save.potions ?? [];
+  const pantry = save.pantry ?? {};
+  const brewed = save.brewed ?? [];
+  const recordTransaction = useStore((s) => s.recordTransaction);
   const made = save.made ?? [];
   setMade(made);
   const go = (r: Room) => { snSound(r === 'home' ? 'back' : 'open'); setRoom(r); };
@@ -85,19 +90,27 @@ export default function Supernature() {
         {room === 'home' && <Home bar={bar()} go={go} say={say} maker={() => openMaker(null)} />}
         {room === 'habitat' && (
           <SupernatureHabitat bar={bar} say={say} found={found} saved={save.habitat ?? {}} onSave={(h) => patch({ habitat: h })}
-            vitas={potions.filter((p) => p === 'Vita').length}
-            onUseVita={() => { const i = potions.indexOf('Vita'); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }}
-            goCauldron={() => { setRecipe(1); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} />
+            potions={potions}
+            usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }}
+            goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} />
         )}
         {room === 'globe' && <Globe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
         {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')}
           goMaker={openMaker} onRemove={(id) => patch({ made: made.filter((x) => x.id !== id) })} />}
         {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade}
           goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
-        {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} start={recipe}
-          onBrewed={(name) => patch({ potions: [...potions, name] })} goNames={() => go('names')} goHabitat={() => go('habitat')} />}
+        {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} pantry={pantry} brewed={brewed} start={recipe}
+          onBrewed={(name, used) => {
+            const np = { ...pantry }; for (const id of used) np[id] = Math.max(0, (np[id] ?? 0) - 1);
+            patch({ potions: [...potions, name], pantry: np, brewed: brewed.includes(name) ? brewed : [...brewed, name] });
+          }} goNames={() => go('names')} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
         {room === 'names' && <Names bar={bar} say={say} names={save.names ?? []} onSave={(n) => patch({ names: [...(save.names ?? []), n] })} />}
-        {room === 'shop' && <ComingNext bar={bar} say={say} />}
+        {room === 'shop' && <Shop bar={bar} say={say} coins={student.coins} pantry={pantry} earned={save.earned ?? []} goCauldron={() => go('cauldron')}
+          onBuy={(id) => {
+            const g = ING(id); if (student.coins < g.price) return false;
+            recordTransaction(student.id, -g.price, `Supernature Shop: ${g.name}`, '🧪', 'purchase-supernature');
+            patch({ pantry: { ...pantry, [id]: (pantry[id] ?? 0) + 1 } }); playCashRegister(); snSound('cork'); return true;
+          }} />}
         {toast && <div className="sn-toast" role="status">{toast}</div>}
       </div>
     </div>
@@ -253,16 +266,22 @@ function Globe({ bar, say, found, onFind, openPage }: { bar: (o?: BarOpts) => Re
 }
 
 /* ---------------- Cauldron ---------------- */
-function Cauldron({ bar, say, potions, earned, start, onBrewed, goNames, goHabitat }: {
-  bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; potions: string[]; earned: string[]; start: number;
-  onBrewed: (name: string) => void; goNames: () => void; goHabitat: () => void;
+// The Cookbook (Build Queue 101): 10 base recipes and 3 discovered ones. Free basics are always on
+// the shelf; bought ingredients come from the student's pantry and are used up only when the potion
+// is finished, so a fizzle never costs anything.
+function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, goNames, goHabitat, goShop }: {
+  bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; potions: string[]; earned: string[]; pantry: Record<string, number>; brewed: string[]; start: number;
+  onBrewed: (name: string, used: string[]) => void; goNames: () => void; goHabitat: () => void; goShop: () => void;
 }) {
   const [ri, setRi] = useState(start);
+  const [list, setList] = useState(false);
   const R = RECIPES[ri];
+  const locked = !!R.unlock && !brewed.includes(R.unlock);
   const [step, setStep] = useState(0);
   const [bowl, setBowl] = useState<string[]>([]);
   const [stirs, setStirs] = useState(0);
-  const [msg, setMsg] = useState(`Read the recipe. Step 1 first: ${R.steps[0].text}`);
+  const [msg, setMsg] = useState(locked ? '' : `Read the recipe. Step 1 first: ${R.steps[0].text}`);
+  const [need, setNeed] = useState<string | null>(null);
   const [fizz, setFizz] = useState(0);
   const [poof, setPoof] = useState(0);
   const [write, setWrite] = useState(false);
@@ -270,56 +289,87 @@ function Cauldron({ bar, say, potions, earned, start, onBrewed, goNames, goHabit
   const s = R.steps[step];
   const stepMsg = (n: number) => `Step ${n + 1}: ${R.steps[n].text}`;
   const wrong = (why: string) => { snSound('fizzle'); setFizz((n) => n + 1); setMsg(why); };
-  const reset = (i = ri) => { setRi(i); setStep(0); setBowl([]); setStirs(0); setDone(false); setMsg(`Read the recipe. Step 1 first: ${RECIPES[i].steps[0].text}`); };
-  const tapIngredient = (id: string, name: string) => {
-    if (done) return;
-    if (s.need === 'bowl' && s.items!.includes(id)) {
+  const has = (id: string) => { const g = ING(id); return g.tier === 'free' || (pantry[id] ?? 0) > 0 || (!!g.earnedAs && earned.includes(g.earnedAs)); };
+  const needed = [...new Set(R.steps.flatMap((x) => x.items ?? []))];
+  const buyList = needed.filter((id) => ING(id).tier !== 'free' && !(ING(id).earnedAs && earned.includes(ING(id).earnedAs!)));
+  const reset = (i = ri) => {
+    const rr = RECIPES[i]; const lk = !!rr.unlock && !brewed.includes(rr.unlock);
+    setRi(i); setStep(0); setBowl([]); setStirs(0); setDone(false); setNeed(null); setList(false);
+    setMsg(lk ? '' : `Read the recipe. Step 1 first: ${rr.steps[0].text}`);
+  };
+  const tapIngredient = (id: string) => {
+    if (done || locked) return;
+    const g = ING(id);
+    const inStep = (s.need === 'bowl' || s.need === 'add') && s.items!.includes(id);
+    if (inStep && !has(id)) { snSound('fizzle'); setNeed(id); setMsg(`You need 1 ${g.name}. You can buy it in the Shop for ${formatMoney(g.price)}.`); return; }
+    if (s.need === 'bowl' && inStep) {
       if (bowl.includes(id)) return;
       snSound('pickup'); const nb = [...bowl, id]; setBowl(nb);
       if (s.items!.every((x) => nb.includes(x))) { setStep(step + 1); setMsg(`The bowl is mixed. ${stepMsg(step + 1)}`); snSound('chime'); }
-      else setMsg(`${name} is in the bowl. What else does step 1 need?`);
+      else setMsg(`${g.name} is in the bowl. What else does step 1 need?`);
       return;
     }
-    if (s.need === 'add' && s.items!.includes(id)) { snSound('cork'); setPoof((n) => n + 1); setStep(step + 1); setMsg(`In it goes! ${stepMsg(step + 1)}`); return; }
+    if (s.need === 'add' && inStep) { snSound('cork'); setPoof((n) => n + 1); setStep(step + 1); setMsg(`In it goes! ${stepMsg(step + 1)}`); return; }
     if (s.need === 'bowl') return wrong(`Fizzle! The bowl always goes first, like parentheses in math. ${stepMsg(0)}`);
     wrong(`Fizzle! That is not in this step. ${stepMsg(step)}`);
   };
-  const pour = () => { if (s.need !== 'pour') return wrong(`Not yet. ${stepMsg(step)}`); snSound('brewed'); setPoof((n) => n + 1); setStep(step + 1); setMsg(`Splash! ${stepMsg(step + 1)}`); };
+  const pour = () => { if (locked) return; if (s.need !== 'pour') return wrong(`Not yet. ${stepMsg(step)}`); snSound('brewed'); setPoof((n) => n + 1); setStep(step + 1); setMsg(`Splash! ${stepMsg(step + 1)}`); };
   const stir = () => {
+    if (locked) return;
     if (s.need !== 'stir') return wrong(`Not yet. ${stepMsg(step)}`);
     snSound('stir'); const n = stirs + 1; setStirs(n);
     if (n >= (s.times ?? 3)) { setStirs(0); setStep(step + 1); setMsg(`Bubbling nicely! ${stepMsg(step + 1)}`); }
   };
   const spell = R.steps.find((x) => x.need === 'spell')?.word ?? R.name.toLowerCase();
-  const finish = () => { setWrite(false); setDone(true); setPoof((n) => n + 1); snSound('done'); onBrewed(R.name); setMsg(`Poof! You made the ${R.name} potion. ${R.does}`); say(`Poof! You made the ${R.name} potion.`); };
+  const finish = () => {
+    setWrite(false); setDone(true); setPoof((n) => n + 1); snSound('done'); onBrewed(R.name, buyList);
+    const unlocks = RECIPES.filter((x) => x.unlock === R.name && !brewed.includes(R.name));
+    setMsg(`Poof! You made the ${R.name} potion. ${R.does}${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
+    say(`Poof! You made the ${R.name} potion.${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
+  };
   const count = (n: string) => potions.filter((p) => p === n).length;
+  const shelf = INGREDIENTS.filter((g) => g.tier === 'free' || needed.includes(g.id) || (pantry[g.id] ?? 0) > 0 || (g.earnedAs && earned.includes(g.earnedAs)));
+  const isLocked = (x: typeof R) => !!x.unlock && !brewed.includes(x.unlock);
   return (
     <div className="sn-room">
-      {bar({ extra: <span className="sn-chip">My potions: {RECIPES.map((x) => `${x.name} ${count(x.name)}`).join(' · ')}</span> })}
+      {bar({ extra: <span className="sn-chip">My potions: {potions.length}</span> })}
       <section className="sn-recipe">
-        <div className="sn-seg">
-          {RECIPES.map((x, i) => <button key={x.name} type="button" className={i === ri ? 'on' : ''} onClick={() => { snSound('page'); reset(i); }}>{x.name}</button>)}
+        <div className="sn-row between">
+          <button type="button" className="sn-ib small light" onClick={() => { snSound('page'); reset((ri + RECIPES.length - 1) % RECIPES.length); }} aria-label="Previous recipe"><Icon d="M15 5l-7 7 7 7" /></button>
+          <button type="button" className="sn-chip-btn" onClick={() => setList(!list)}>Recipe {ri + 1} of {RECIPES.length} ▾</button>
+          <button type="button" className="sn-ib small light" onClick={() => { snSound('page'); reset((ri + 1) % RECIPES.length); }} aria-label="Next recipe"><Icon d="M9 5l7 7-7 7" /></button>
         </div>
-        <div className="sn-row between"><span className="sn-label">Cookbook, recipe {ri + 1} of {RECIPES.length}</span>
-          <button type="button" className="sn-listen" onClick={() => say(`${R.name}. ${R.meaning}. ${R.steps.map((x, i) => `Step ${i + 1}. ${x.text}`).join(' ')}`)} aria-label="Read the recipe aloud"><Icon d={LISTEN} /></button></div>
-        <h2>{R.name}</h2>
-        <p className="sn-small">{R.meaning}. {R.does}</p>
-        <ol>{R.steps.map((x, i) => <li key={i} className={i < step || done ? 'done' : i === step ? 'now' : ''}><b>{i + 1}</b><span>{x.text}{x.need === 'stir' && i === step ? ` (${stirs} of ${x.times})` : ''}</span></li>)}</ol>
+        {list ? (
+          <div className="sn-recipe-list">
+            {RECIPES.map((x, i) => <button key={x.name} type="button" className={`sn-chip-btn${i === ri ? ' on' : ''}`} onClick={() => { snSound('page'); reset(i); }}>{isLocked(x) ? '🔒 ???' : `${x.name}${count(x.name) ? ` (${count(x.name)})` : ''}`}</button>)}
+          </div>
+        ) : locked ? (
+          <div className="sn-locked"><h2>🔒 A secret recipe</h2><p>Discover it by brewing the {R.unlock} potion first.</p></div>
+        ) : (
+          <>
+            <div className="sn-row between"><h2>{R.name}{R.unlock ? ' ✨' : ''}</h2>
+              <button type="button" className="sn-listen" onClick={() => say(`${R.name}. ${R.meaning}. ${R.does} ${R.steps.map((x, i) => `Step ${i + 1}. ${x.text}`).join(' ')}`)} aria-label="Read the recipe aloud"><Icon d={LISTEN} /></button></div>
+            <p className="sn-small">{R.meaning}. {R.does} <b>Use it:</b> {R.where}. You have {count(R.name)}.</p>
+            <ol>{R.steps.map((x, i) => <li key={i} className={i < step || done ? 'done' : i === step ? 'now' : ''}><b>{i + 1}</b><span>{x.text}{x.need === 'stir' && i === step ? ` (${stirs} of ${x.times})` : ''}</span></li>)}</ol>
+            {buyList.length > 0 && <p className="sn-small">From the Shop: {buyList.map((id) => `${ING(id).name} ${has(id) ? '✓' : `(${formatMoney(ING(id).price)})`}`).join(', ')}</p>}
+          </>
+        )}
       </section>
       <section className="sn-pot">
-        <div className="sn-bowl"><span className="sn-bowl-dish" />Bowl: {bowl.length ? bowl.map((b) => SHELF.find((x) => x.id === b)?.name).join(' + ') : 'empty'}</div>
+        <div className="sn-bowl"><span className="sn-bowl-dish" />Bowl: {bowl.length ? bowl.map((b) => ING(b).name).join(' + ') : 'empty'}</div>
         {fizz > 0 && <img key={`z${fizz}`} src={`${SN}theme/sparkle-6.png`} alt="" className="sn-fizz" />}
         {poof > 0 && <span key={`p${poof}`} className="sn-poof" />}
         <img src={`${SN}theme/cauldron-bubbling.gif`} alt="Bubbling cauldron" className="sn-cauldron sn-smooth" />
         <div className="sn-row center">
-          <button type="button" className="sn-btn2" onClick={pour}>Pour the bowl</button>
-          <button type="button" className="sn-btn2" onClick={stir}>Stir</button>
-          <button type="button" className="sn-btn2" onClick={() => (s.need === 'spell' && !done ? setWrite(true) : wrong(`Not yet. ${stepMsg(step)}`))}>Write the spell</button>
+          <button type="button" className="sn-btn2" disabled={locked} onClick={pour}>Pour the bowl</button>
+          <button type="button" className="sn-btn2" disabled={locked} onClick={stir}>Stir</button>
+          <button type="button" className="sn-btn2" disabled={locked} onClick={() => (s.need === 'spell' && !done ? setWrite(true) : wrong(`Not yet. ${stepMsg(step)}`))}>Write the spell</button>
         </div>
-        <p className="sn-msg" role="status">{msg}</p>
+        {msg && <p className="sn-msg" role="status">{msg}</p>}
+        {need && !has(need) && <button type="button" className="sn-btn" onClick={goShop}>Go to the Shop</button>}
         {done && (
           <div className="sn-row center">
-            {R.name === 'Vita' && <button type="button" className="sn-btn" onClick={goHabitat}>Take it outside</button>}
+            {R.where.startsWith('Habitat') && <button type="button" className="sn-btn" onClick={goHabitat}>Take it outside</button>}
             <button type="button" className="sn-btn2" onClick={goNames}>Name your potion</button>
             <button type="button" className="sn-btn2" onClick={() => reset()}>Brew again</button>
           </div>
@@ -328,11 +378,64 @@ function Cauldron({ bar, say, potions, earned, start, onBrewed, goNames, goHabit
       <section className="sn-shelf">
         <span className="sn-label">Ingredient shelf</span>
         <div className="sn-shelf-grid">
-          {SHELF.map((x) => <button key={x.id} type="button" className="sn-ingb" onClick={() => tapIngredient(x.id, x.name)}><img src={x.img} alt="" />{x.name}<small>{x.price}</small></button>)}
+          {shelf.map((x) => {
+            const n = x.tier === 'free' ? null : x.earnedAs && earned.includes(x.earnedAs) ? 'earned' : (pantry[x.id] ?? 0);
+            return (
+              <button key={x.id} type="button" className={`sn-ingb${n === 0 ? ' empty' : ''}`} onClick={() => tapIngredient(x.id)}>
+                <img src={x.img} alt="" />{x.name}<small>{n === null ? 'free' : n === 'earned' ? 'earned' : n === 0 ? `buy ${formatMoney(x.price)}` : `you have ${n}`}</small>
+              </button>
+            );
+          })}
         </div>
-        <p className="sn-small">Earned by exploring: {earned.length ? earned.join(', ') : 'explore the Globe to earn some'}.</p>
+        <button type="button" className="sn-btn2 small" onClick={goShop}>🛒 Shop for more</button>
       </section>
       {write && <SupernatureWriting word={spell} title="Write the spell" onListen={() => say(spell)} onClose={() => setWrite(false)} onDone={finish} />}
+    </div>
+  );
+}
+
+/* ---------------- Shop ---------------- */
+// The vending machine (Build Queue 100): real money from the student's bank, $1 to $10 for basic
+// ingredients and $15 to $50 for rare ones. Every buy is a line in their bank register.
+function Shop({ bar, say, coins, pantry, earned, onBuy, goCauldron }: {
+  bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; coins: number; pantry: Record<string, number>; earned: string[];
+  onBuy: (id: string) => boolean; goCauldron: () => void;
+}) {
+  const [sel, setSel] = useState<string | null>(null);
+  const [bought, setBought] = useState<string | null>(null);
+  const g = sel ? ING(sel) : null;
+  const usedIn = g ? RECIPES.filter((r) => r.steps.some((x) => x.items?.includes(g.id))).map((r) => r.name) : [];
+  const tile = (x: typeof INGREDIENTS[number]) => (
+    <button key={x.id} type="button" className={`sn-shop-item${sel === x.id ? ' on' : ''}`} onClick={() => { snSound('tap'); setSel(x.id); setBought(null); say(`${x.name}. ${formatMoney(x.price)}.`); }}>
+      <img src={x.img} alt="" /><span>{x.name}</span><b>{formatMoney(x.price)}</b>{(pantry[x.id] ?? 0) > 0 && <i>×{pantry[x.id]}</i>}
+    </button>
+  );
+  return (
+    <div className="sn-room">
+      {bar({ extra: <span className="sn-chip">My money: {formatMoney(coins)}</span> })}
+      <section className="sn-shop-left">
+        <img src={`${SN}theme/vending-machine.png`} alt="The potion vending machine" className="sn-smooth sn-vend" />
+        {g ? (
+          <div className="sn-shop-detail">
+            <div className="sn-row"><img src={g.img} alt="" /><div><h3>{g.name}</h3><b>{formatMoney(g.price)}</b> {g.tier === 'rare' && <span className="sn-rare">rare</span>}</div></div>
+            {g.note && <p className="sn-small">{g.note}</p>}
+            <p className="sn-small">Used in: {usedIn.length ? usedIn.join(', ') : 'secret recipes still to come'}. You have {pantry[g.id] ?? 0}{g.earnedAs && earned.includes(g.earnedAs) ? ' (and you earned one by exploring)' : ''}.</p>
+            {bought === g.id && <p className="sn-ok" role="status">Clunk! You bought 1 {g.name}.</p>}
+            <div className="sn-row">
+              <button type="button" className="sn-btn" disabled={coins < g.price} onClick={() => { if (onBuy(g.id)) { setBought(g.id); say(`You bought 1 ${g.name}.`); } }}>Buy 1 for {formatMoney(g.price)}</button>
+              {coins < g.price && <span className="sn-small">You need {formatMoney(g.price - coins)} more.</span>}
+            </div>
+          </div>
+        ) : <Host wide say={say} text="Welcome to the Shop! Tap an ingredient to see what it does. Money you spend here comes out of your real bank." />}
+        <button type="button" className="sn-btn2 small" onClick={goCauldron}>Back to the Cauldron</button>
+      </section>
+      <section className="sn-shop-right">
+        <p className="sn-small">Always free on your shelf: {INGREDIENTS.filter((x) => x.tier === 'free').map((x) => x.name).join(', ')}.</p>
+        <span className="sn-label">Basic ingredients ($1 to $10)</span>
+        <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.tier === 'basic').map(tile)}</div>
+        <span className="sn-label">Rare ingredients ($15 to $50)</span>
+        <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.tier === 'rare').map(tile)}</div>
+      </section>
     </div>
   );
 }
@@ -373,18 +476,6 @@ function Names({ bar, say, names, onSave }: { bar: (o?: BarOpts) => React.ReactN
       </section>
       <div className="sn-trays">{group('start', 'Starts (come first)')}{group('main', 'Main ideas')}{group('end', 'Endings (come last)')}</div>
       {names.length > 0 && <p className="sn-saved-names">My names: {names.join(', ')}</p>}
-    </div>
-  );
-}
-
-function ComingNext({ bar, say }: { bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void }) {
-  return (
-    <div className="sn-room">
-      {bar()}
-      <div className="sn-next">
-        <img src={`${SN}theme/vending-machine.png`} alt="" className="sn-smooth" style={{ width: 300 }} />
-        <Host wide say={say} text="The Shop opens soon. You will buy rare ingredients here with your real money." />
-      </div>
     </div>
   );
 }

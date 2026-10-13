@@ -8000,3 +8000,28 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-node.on { box-shadow: 0 0 0 3px #4a4480; background: #ffd970; }
 .sn-node.hungry { background: #f6a85b; }
 .sn-node.grow { background: #57d3b8; }
+
+/* Shop and Cookbook (Build Queue 100 and 101). */
+.sn-ib.light { background: #f6efe0; color: #241f45; }
+.sn-recipe-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.sn-locked { display: flex; flex-direction: column; gap: 10px; padding: 16px; border: 3px dashed #8a5a2e; border-radius: 12px; text-align: center; }
+.sn-ingb.empty { opacity: 0.7; border-style: dashed; }
+.sn-shop-left { position: absolute; left: 14px; top: 84px; width: 420px; height: 662px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 14px; background: #4a4480; border: 4px solid #241f45; border-radius: 14px; overflow: auto; }
+.sn-vend { width: 220px; }
+.sn-shop-detail { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #f1e3bf; color: #241f45; border: 3px solid #241f45; border-radius: 12px; }
+.sn-shop-detail img { width: 56px; height: 56px; object-fit: contain; }
+.sn-shop-detail h3 { font-size: 20px; }
+.sn-rare { padding: 2px 8px; border-radius: 999px; background: #c45af2; color: #fff; font-size: 12px; font-weight: 700; }
+.sn-ok { padding: 6px 10px; border-radius: 10px; background: #57d3b8; font-weight: 700; }
+.sn-shop-right { position: absolute; left: 446px; top: 84px; width: 720px; height: 662px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; background: #4a4480; border: 4px solid #241f45; border-radius: 14px; overflow: auto; }
+.sn-shop-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.sn-shop-item { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 112px; padding: 8px 4px; background: #3d3870; color: #f6f1ff; border: 3px solid #241f45; border-radius: 12px; font-size: 13px; font-weight: 700; text-align: center; }
+.sn-shop-item img { width: 46px; height: 46px; object-fit: contain; }
+.sn-shop-item b { color: #ffd970; font-size: 14px; }
+.sn-shop-item i { position: absolute; top: 4px; right: 6px; font-style: normal; font-size: 12px; background: #57d3b8; color: #241f45; border-radius: 999px; padding: 0 6px; }
+.sn-shop-item.on { background: #ffd970; color: #241f45; }
+.sn-shop-item.on b { color: #241f45; }
+.sn-potion-menu { display: flex; flex-direction: column; gap: 6px; }
+.sn-potion-menu .sn-btn2 { justify-content: flex-start; text-align: left; font-size: 13px; }
+.sn-crit.giant > img:first-child { width: 168px; height: 168px; }
+.sn-fireflies.lumin i { width: 8px; height: 8px; background: #c8f0ff; box-shadow: 0 0 14px #9fe3ff; }
