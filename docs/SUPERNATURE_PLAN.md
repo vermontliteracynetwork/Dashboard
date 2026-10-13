@@ -195,7 +195,15 @@ The rest of the earlier list waits for the next round, still under her approval:
 
 - **Science Lab:** the fantasy or magic mode is removed; it becomes chemistry only (her rule: "drop fantasy mode").
 - **Alchemy:** stays exactly the same.
-- **Computer app:** a new "Supernature" icon on the student computer. The host character is to be decided; she is sending the art.
+- **Computer app:** a new "Supernature" icon on the student computer.
+- **Hosts: a Wizard Council** (proposed 2026-10-13 from the six wizards she sent; she confirms). Each room has its own wizard host, so every place has its own helper with its own voice:
+  - **Star Wizard:** the Globe and the Bestiary (the main host, who greets students).
+  - **Cone Wizard:** the Creature Maker (the builder, with a traffic-cone hat).
+  - **Mushroom Wizard:** the Habitat (mushrooms are decomposers, so it teaches the food web).
+  - **Slime Wizard:** the Cauldron (the gross-humor wizard, kept gentle).
+  - **Breakfast Wizard:** the Supernature Shop (fried-egg hat, bacon robe, sells the ingredients).
+  - **Squid Wizard:** the oceans on the Globe and ocean Habitats.
+  Each one says its lines through the human voice service, with read-aloud on every line.
 - **Every screen** has read-aloud; story pages read themselves aloud by default with a toggle; voices go through the human voice service.
 - **iPad first:** swipe and pinch on the globe, big drag targets, no hover-only actions, both orientations, nothing overlapping.
 - **Bug and idea Report** bubble in the corner, like every game.
@@ -293,14 +301,24 @@ Checked 2026-10-13 against everything she has uploaded so far. All of it is pixe
 - **fishing_free** (some Doc Fishing fish) is for non-commercial use only. That is fine for her classroom, but the game can never be sold with it.
 - These packs had no license file. She should confirm she may use them: NFG Potions, Hollow Dolphin icons, Pixel Farm 16x16, Side Farming.
 
+### New from her (2026-10-13): five pieces of art
+Saved in the project under `public/games/supernature/` (cut out on see-through backgrounds), with her originals in `assets/held/supernature/`:
+- **25 pixel spices** (`ingredients/`): ginger, turmeric, galangal, garlic, chili pepper, cinnamon, peppercorn, coriander seed, clove, cumin, nutmeg, cardamom, star anise, sesame, allspice, horseradish, licorice, bay leaf, juniper berry, wasabi, sumac, caper, mustard seed, vanilla, saffron. These are Shop and base ingredients. Spices also carry real geography (saffron from Iran, star anise from China, vanilla from Mexico), so a spice can be earned on the Globe the same way coral is earned from the Mermaid.
+- **25 pixel mushrooms** (`mushrooms/`): king oyster, oyster, button, cremini, morel, porcini, Caesar's, shiitake, chanterelle, lion's mane, portobello, enoki, matsutake, maitake, wood ear, truffle, beech, reishi, neungi, bamboo, chicken of the woods, ink cap, hedgehog, black trumpet, indigo milk cap. These are the Habitat's decomposers (a gap in the earlier list) and rare ingredients (truffle, indigo milk cap). No mushroom is ever shown as something to eat from the wild; they are ingredients and decomposers only.
+- **Six wizards** (`hosts/`): star, mushroom, breakfast, squid, slime and cone wizards. These become the Wizard Council hosts (section 11).
+- **Scroll buttons** (`ui/scroll-blank.png`): a blank scroll cut from her pack, which stretches to fit any button label in the regular reading font.
+- **The open spell book with a page-turn animation** (`ui/book-open.png` and a 10-frame `ui/book-page-turn-strip.png`): the Bestiary book. Turning a page plays the animation.
+
+**License check needed on all five:** the spice and mushroom sheets are signed by their artist ("seehy17"); the book carries a credit to another game and its artist ("Sigmaiden" by @attohimmel12), so it may not be free to use without that artist's permission; the scroll buttons look like a stock image; the wizards' artist is unknown. She should confirm she may use each before the game ships to students. The mockup uses them in the meantime.
+
 ### She needs to upload
-1. **The host character** (she is sending it).
+1. **The host character:** covered by the six wizards, if she agrees.
 2. **The 10 starter creatures** as pixel sprites, in a similar size (32x32 or 48x48) and style: Griffin, Kappa, Sphinx, Jackalope, Curupira, Bunyip, Selkie, Umibozu, Mermaid, Kraken. Each needs an idle loop and a move loop (walk, swim or fly), 2 to 4 frames each. The "???" silhouettes are made from these automatically.
 3. **A modular creature parts kit:** pixel bodies, heads, eyes, arms (claws, flippers, sword-hands, tentacles), coverings, tails and wings that snap onto one shared body grid. Search terms that help: "modular pixel monster creator" or "pixel creature parts". If none can be found, Claudia draws them.
-4. **A spell book:** an open pixel book with page-turn frames.
+4. **A spell book:** covered by her animated book (license check above).
 5. **The Cauldron set:** a bubbling cauldron (animated), a wand with sparkles, a mixing bowl, a stirring spoon, and a shop shelf or stall.
 6. **The missing biomes:** desert (sand, cactus), tundra and snow, ocean floor (coral, kelp, seaweed), sky islands (clouds), and a cave.
-7. **The missing real animals for land food webs:** rabbit, deer, mouse, frog, songbird, owl, fox, snake and worm, plus mushrooms for decomposers.
+7. **The missing real animals for land food webs:** rabbit, deer, mouse, frog, songbird, owl, fox, snake and worm. Mushrooms are now covered.
 8. **Ingredient icons the packs do not have:** a grass blade, a dew drop, a pebble, a feather, a moonlight jar, a leaf, sand and salt. The silly shop items are eye of newt, toad burp, pixie dust, troll toenail and dragon sneeze. The rare items are phoenix ember, kraken ink, unicorn sparkle, star sap and thunder in a jar. Any she cannot find, Claudia draws.
 9. **Optional:** a magical background music loop, plus cauldron pop, page turn and wand sparkle sounds.
 10. **Not needed:** a world map. The pixel globe is made from free public map data.
