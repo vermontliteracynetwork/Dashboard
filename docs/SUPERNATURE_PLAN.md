@@ -36,6 +36,7 @@ The loop a student lives in: **find it, learn it, make one, keep it alive, brew 
 - **Reading is a job** (Cauldron, Bestiary): every recipe and creature page is read; read-aloud on every screen.
 - **Order of operations** (Cauldron): recipe steps happen in order, and anything in the small mixing bowl happens first, just like parentheses in math (section 6).
 - **Cursive** (Wand): the class has learned every letter and is writing words, so students write whole words in Cursive Without Tears letter shapes, mostly creature names (section 7).
+- **Morphology** (everywhere): creature names, trait words, potion names and spells are built from word parts (prefixes, roots and suffixes) students learn to read and combine (section 13).
 - **Energy language** (everywhere): Energy check-ins on their creatures, using the 5-step energy scale with the original faces from her MyEnergy page (section 8). This is language the class is building, so it runs through every room.
 
 Questions from question sets are **not** part of Supernature for now (her answer: "no questions yet").
@@ -206,16 +207,109 @@ The rest of the earlier list waits for the next round, still under her approval:
 3. **Energy:** the 5-step energy scale with the original faces, used throughout, as Energy check-ins for creatures in their Habitat (section 8).
 4. **Potions on pets:** count toward gym training to a degree: +1 training, once a day per pet (section 6).
 
-**Still owed (she is sending them):**
+**Still owed (she is sending them; the full reuse and upload list is in section 14):**
 1. The host character (any pose; a few expressions if possible).
 2. Pixel art for real creatures, if she has a pack. If not, Claudia builds them from the same pixel parts the Creature Maker uses.
 3. Optional: a pixel book and page set, cauldron, wand, potion bottles, biome tiles, smoke and sparkle effects. Anything missing gets drawn in the same pixel style.
 
-## 13. Build order (each step ships on its own)
+## 13. Word parts (morphology)
+
+Her request (2026-10-13): "Let's add a morphology element for the supernatural creature names and other elements."
+
+Creature names are perfect for morphology: many are built from word parts (Cyclops is "circle" + "eye"; Unicorn is "one" + "horn"), and the traits students sort are full of them (carni + vore). Word parts go everywhere a name or a trait word appears.
+
+**Word part tiles.** Every word part is a pixel tile with its meaning under it and a picture. Prefixes, roots and suffixes each have their own tile shape and color, so the kind of part is never shown by color alone. Tap a tile to hear it and its meaning.
+
+**Starter word parts** (each with an everyday word students already know):
+
+| Kind | Parts |
+|---|---|
+| How many | uni, mono (one: unicycle); bi (two: bicycle); tri (three: triangle); quad (four: quadrilateral); multi, poly (many: polygon) |
+| How big | mega (huge: megaphone); micro (tiny: microscope) |
+| Body | ops (eye: Cyclops); corn, cerat (horn: unicorn); ped, pod (foot: pedal, tripod); ptera (wing: pterodactyl); dont (tooth: orthodontist); derm (skin: dermatologist); morph (shape: metamorphosis) |
+| Where it lives | aqua, hydro (water: aquarium, hydrant); terra, geo (earth: terrarium, geography); aero (air: aerospace); pyro (fire: pyrotechnics); cryo (cold); noct (night: nocturnal); lumin, photo (light: luminous, photograph); mari (sea: submarine); sub (under: subway); astro (star: astronaut) |
+| Endings | vore (eats: herbivore); saur (lizard: dinosaur); ling (little: duckling); phile (loves); phobe (is afraid of); oid (looks like: asteroid) |
+
+The "How many" row ties straight into her math year (triangle, quadrilateral, polygon).
+
+**Where morphology shows up:**
+1. **Decode a real name (Bestiary).** When a page opens, its name splits into parts: Cyclops = cycl (circle) + ops (eye), so "round eye". Unicorn = uni (one) + corn (horn). Hydra = hydr (water). Mermaid = mere (sea, in Old English) + maid. Selkie = selch (seal, in Scots) + ie (little). Jackalope is a blend: jackrabbit + antelope. The student picks the picture that shows what the name means. Help fades: meanings show at first, then the student guesses before they are shown.
+2. **Names from other languages are honored in their own language,** never forced into Greek or Latin parts: Kappa is "river child" in Japanese (kawa, river + wappa, child); Umibozu is "sea monk" (umi, sea + bozu, monk). Where a name's meaning is not well documented (Curupira, Bunyip), the page says which language the name comes from and does not guess. She checks every word history when she approves a creature.
+3. **Science names for their own creatures (Creature Maker).** Like real scientists naming animals, every creature a student makes gets a science name built from word part tiles. The traits they picked offer matching tiles (three eyes offers tri + ops; a fire flier offers pyro + ptera), so the name describes the creature. Tiles snap together, and a joining "o" pops in where it is needed. The meaning is built and read aloud: "Pyrotriops: fire, three eyes." Students also give it a friendly name of their own choice. They write both in cursive (section 7).
+4. **Trait words in parts (sorting jobs and Habitat).** Trait cards show their parts on a tap: carni·vore (meat + eats), herbi·vore (plant + eats), omni·vore (all + eats), insecti·vore, aqua·tic, noct·urnal, re·generat·ive (again + make + can), in·vis·ible (not + see + can be), amphi·bious (both + life), sub·terra·nean (under + earth), photo·synthesis (light + putting together), de·compos·er.
+5. **Potion names and spell words (Cauldron).** Potions are named from word parts: Aero (flying), Mega (giant), Micro (tiny), Hydro (water breathing), Lumin (glow), Velo-Aero (Super Speed Flying). The spell word students write with the wand is the word part itself, so writing "aero" casts flying.
+6. **The Word Part Book (Bestiary).** A section that fills up as students discover parts: each part, its meaning, a creature that uses it, and an everyday word. Students can use any collected part when naming their next creature, so the more they explore, the more names they can build.
+7. **Morpheme Mixer (a small game in the Word Part Book).** Drag two parts together to see if they make a real word or a creature name (tri + pod = tripod; aqua + phobe = afraid of water). Real words and real names light up and are added to the book; silly combinations get a silly made-up creature sketch and a laugh, never a "wrong".
+
+## 14. Pixel assets: what we can reuse and what she needs to upload
+
+Checked 2026-10-13 against everything she has uploaded so far. All of it is pixel art unless noted.
+
+### Reuse: creatures and critters for Habitats
+- **Foozle Spire bug packs (CC0, already in the project from Castle Defense):** Clampbeetle, Firewasp, Flying Locust, Void Butterfly, Firebug, Leafbug, Magma Crab, Scorpion, all animated. These are the Habitat's insects: Leafbug (herbivore), Clampbeetle (decomposer), Scorpion and Firewasp (hunters), Void Butterfly (pollinator). Walk and fly loops only.
+- **Doc Fishing sea life (about 90 sprites):** octopus, squid, jellyfish, seahorse, sea turtle, crab, hermit crab, lobster, shrimp, starfish, sea urchin, mussels, axolotl, pufferfish, eel, shark, and dozens of fish. This covers ocean, river and lake food webs, with real animals students already know from Doc Fishing.
+- **Pixel Farm 16x16:** chicken, cow, and a green slime (a ready-made silly creature).
+- **Septembit Farm (CC0):** dog, snail, chicken, fish.
+- **Castle Defense tiny field creatures (Craftpix):** small bees, goblins and wolves. Maybe, walk frames only.
+
+### Reuse: plants, ground and biomes
+- **Grassland and forest:** Pixel Farm 16x16 trees, bushes, flowers and crops; Septembit grass, long grass, bush, tree and flower patch; Craftpix Fields tileset grass, flowers, bushes and stones; Castle Defense village and field tiles.
+- **Swamp:** the Craftpix Poison Swamp pack: swamp ground, the giant rafflesia flower, water plants, floating leaves, the tree-stump house, the cave entrance, boulders and sticks.
+- **Ocean and lakes:** the animated water loop (water_128px, 40 frames) and Pixel Farm water tiles.
+- **Mountain and tundra:** Tappy Plane grass, snow and ice rocks.
+- **Backdrops:** Side Farming mountain and firefly night skies (their license is not in the pack; she should confirm).
+- **Plants as producers:** Farm Grow crops and Pixel Farm crops.
+
+### Reuse: ingredients and potions
+- **NFG Potions sheet:** about 40 bottles and vials in 5 colors. These cover potions, plus the free glass bottle.
+- **Doc Fishing power-up potions** (6 bottles).
+- **Doc Fishing loot:** fairy wings, bottled rainbow, rainbow pearl, adderstone (a real folklore charm, the "hag stone"), horseshoe, ancient coin, conch, sand dollar, starfish, sea urchin, and the junk sock (one of the few gross shop items).
+- **Hollow Dolphin fishing icons** (108): worms, bait, shells, pearls, bottles, crabs, keys.
+- **Pixel Farm items:** crops, food, wood, stone and ore.
+- **Doc Fishing bucket and chest.**
+
+### Reuse: magic effects
+- **Pixel explosions pack:** smoke poofs, green gas circle, blue sparkle bursts, fire and lightning. These are the cauldron poofs and potion bursts. The "nuclear explosion" set stays out.
+- **Tappy Plane puffs:** small and large smoke puffs.
+- **Overgrown Portal (animated, plus an electric version):** the doorway into Supernature, or into each Habitat.
+- **Castle Defense magic towers:** glowing crystals and "blessing" sparkles for the cauldron glow and rank badges.
+- **Pixel emotes:** zzz, hearts, stars, swirl, music notes, exclamation, question, drops, idea. These are the energy clues that float above creatures.
+- **Her MyEnergy faces** (already saved).
+
+### Reuse: screens, sound and code
+- **Pixelkiln Oakheart wooden UI:** panels, ornate panel, nameplate, buttons, bars (health, mana, XP), badges, checkboxes, and icons (potion, map, key, gem, star, coin). These fit the Bestiary and Cauldron frames and the energy bars.
+- **Pixel UI Free wood theme** and the **Jamie Cross gold UI kit** (CC0): stars, check, x, arrows.
+- **Press Start 2P font:** titles only. Reading text stays in the regular font, as in Doc Fishing.
+- **Sounds:** bubbling water (the cauldron), water droplets and waves (the ocean Habitat), Doc Fishing plunks and catches, and the Kenney interface sounds.
+- **Music:** the Serenitrove chiptune songs ("Forgotten Quest" fits). Their license (CC BY-ND) allows use as is, with credit.
+- **Code:** Alchemy's drag-to-combine (the Morpheme Mixer and the Cauldron), Grammar Gus's pixel creature drawings (a head start on Creature Maker parts), read-aloud, and the Report bubble.
+
+### Do not reuse
+- **Any death or attack animations** from the Castle Defense enemy packs (the no-blood rule).
+- **Skulls, bones and the animal skeleton** from the fishing and swamp packs.
+- **Non-pixel UI packs** (Basic GUI Bundle, GUI Interface Kit, Bubble Buttons, the gold glossy UI, Jelly Chess) and all 3D models. They are the wrong style for a 2D pixel game.
+
+### License notes
+- **fishing_free** (some Doc Fishing fish) is for non-commercial use only. That is fine for her classroom, but the game can never be sold with it.
+- These packs had no license file. She should confirm she may use them: NFG Potions, Hollow Dolphin icons, Pixel Farm 16x16, Side Farming.
+
+### She needs to upload
+1. **The host character** (she is sending it).
+2. **The 10 starter creatures** as pixel sprites, in a similar size (32x32 or 48x48) and style: Griffin, Kappa, Sphinx, Jackalope, Curupira, Bunyip, Selkie, Umibozu, Mermaid, Kraken. Each needs an idle loop and a move loop (walk, swim or fly), 2 to 4 frames each. The "???" silhouettes are made from these automatically.
+3. **A modular creature parts kit:** pixel bodies, heads, eyes, arms (claws, flippers, sword-hands, tentacles), coverings, tails and wings that snap onto one shared body grid. Search terms that help: "modular pixel monster creator" or "pixel creature parts". If none can be found, Claudia draws them.
+4. **A spell book:** an open pixel book with page-turn frames.
+5. **The Cauldron set:** a bubbling cauldron (animated), a wand with sparkles, a mixing bowl, a stirring spoon, and a shop shelf or stall.
+6. **The missing biomes:** desert (sand, cactus), tundra and snow, ocean floor (coral, kelp, seaweed), sky islands (clouds), and a cave.
+7. **The missing real animals for land food webs:** rabbit, deer, mouse, frog, songbird, owl, fox, snake and worm, plus mushrooms for decomposers.
+8. **Ingredient icons the packs do not have:** a grass blade, a dew drop, a pebble, a feather, a moonlight jar, a leaf, sand and salt. The silly shop items are eye of newt, toad burp, pixie dust, troll toenail and dragon sneeze. The rare items are phoenix ember, kraken ink, unicorn sparkle, star sap and thunder in a jar. Any she cannot find, Claudia draws.
+9. **Optional:** a magical background music loop, plus cauldron pop, page turn and wand sparkle sounds.
+10. **Not needed:** a world map. The pixel globe is made from free public map data.
+
+## 15. Build order (each step ships on its own)
 
 1. **Foundation:** Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (the 10 starter creatures start approved, everything else Hidden until she approves); the energy faces wired in.
-2. **Creature Maker and Habitat** (her priority), with the 10 starter creatures to explore and remix, Energy check-ins, and cursive naming.
-3. **Bestiary:** the pixel book, "???" pages, the trait sorting job, My Creatures.
+2. **Creature Maker and Habitat** (her priority), with the 10 starter creatures to explore and remix, Energy check-ins, cursive naming, and science names from word part tiles.
+3. **Bestiary:** the pixel book, "???" pages, the trait sorting job, decoding real names, the Word Part Book and Morpheme Mixer, My Creatures.
 4. **Globe:** spin, zoom, continents, oceans and seas, countries, pins, earned ingredients.
 5. **Cauldron and Shop:** the Cookbook, order of operations, discovered recipes, effects, the ingredient economy.
 6. **Wand cursive** spells.
