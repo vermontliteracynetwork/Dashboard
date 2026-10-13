@@ -47,7 +47,15 @@ export const WORD_PARTS: (Part & { example: string })[] = [
 // are free; the rest are bought in the Shop with real money, $1 to $10, and rare ones $15 to $50.
 // A few are also earned by exploring the Globe. Gross humor stays out of the base ingredients.
 export type Tier = 'free' | 'basic' | 'rare';
-export interface Ingredient { id: string; name: string; img: string; tier: Tier; price: number; note?: string; earnedAs?: string }
+export type Kind = 'spice' | 'herb' | 'nature' | 'critter' | 'relic';
+export interface Ingredient { id: string; name: string; img: string; tier: Tier; price: number; note?: string; earnedAs?: string; kind?: Kind }
+// The Shop's shelves (Build Queue 122, her words: "make sure the store function has lots of variety
+// in potion ingredients").
+export const KINDS: { id: Kind; label: string }[] = [
+  { id: 'spice', label: 'Spices and seeds' }, { id: 'herb', label: 'Herbs, roots and flowers' }, { id: 'nature', label: 'From nature' },
+  { id: 'critter', label: 'Creature finds' }, { id: 'relic', label: 'Crystals and relics' },
+];
+const SP = `${SN}ingredients/`, MAT = `${SN}materials/`;
 const CAB = `${SN}cabinet/`;
 export const INGREDIENTS: Ingredient[] = [
   { id: 'bottle', name: 'glass bottle', img: `${SN}witchy-pack/potions-3.png`, tier: 'free', price: 0 },
@@ -74,7 +82,56 @@ export const INGREDIENTS: Ingredient[] = [
   { id: 'phoenix', name: 'phoenix feather', img: `${CAB}monster-ingredients/phoenix_feather.png`, tier: 'rare', price: 3500, earnedAs: 'phoenix feather' },
   { id: 'dragonscale', name: 'dragon scale', img: `${CAB}monster-ingredients/dragon_scale.png`, tier: 'rare', price: 4000 },
   { id: 'frozenflame', name: 'frozen flame', img: `${CAB}legendary-relics/frozen_flame.png`, tier: 'rare', price: 5000 },
+  // More variety (Build Queue 122): real spices with real facts, garden herbs, things from nature,
+  // gentle creature finds (nothing was ever hurt to get them) and rare crystals.
+  { id: 'cinnamon', name: 'cinnamon stick', img: `${SP}cinnamon.png`, tier: 'basic', price: 100, kind: 'spice', note: 'Cinnamon is the inside bark of a tree, rolled up as it dries.' },
+  { id: 'clove', name: 'clove', img: `${SP}clove.png`, tier: 'basic', price: 100, kind: 'spice', note: 'A clove is a flower bud that was picked and dried before it opened.' },
+  { id: 'nutmeg', name: 'nutmeg', img: `${SP}nutmeg.png`, tier: 'basic', price: 150, kind: 'spice', note: 'Nutmeg is the seed of a tree from the Spice Islands of Indonesia.' },
+  { id: 'cardamom', name: 'cardamom pod', img: `${SP}cardamom.png`, tier: 'basic', price: 150, kind: 'spice' },
+  { id: 'turmeric', name: 'turmeric root', img: `${SP}turmeric.png`, tier: 'basic', price: 100, kind: 'spice', note: 'Turmeric is so yellow it was used to dye cloth.' },
+  { id: 'peppercorn', name: 'peppercorns', img: `${SP}peppercorn.png`, tier: 'basic', price: 100, kind: 'spice' },
+  { id: 'bayleaf', name: 'bay leaf', img: `${SP}bay-leaf.png`, tier: 'basic', price: 100, kind: 'spice', note: 'In ancient Greece, winners wore crowns of bay leaves.' },
+  { id: 'juniper', name: 'juniper berry', img: `${SP}juniper-berry.png`, tier: 'basic', price: 150, kind: 'spice' },
+  { id: 'sesame', name: 'sesame seeds', img: `${SP}sesame.png`, tier: 'basic', price: 100, kind: 'spice', note: '"Open sesame!" Sesame pods pop open when they are ripe.' },
+  { id: 'sumac', name: 'sumac', img: `${SP}sumac.png`, tier: 'basic', price: 150, kind: 'spice' },
+  { id: 'cumin', name: 'cumin seed', img: `${SP}cumin.png`, tier: 'basic', price: 100, kind: 'spice' },
+  { id: 'coriander', name: 'coriander seed', img: `${SP}coriander-seed.png`, tier: 'basic', price: 100, kind: 'spice' },
+  { id: 'allspice', name: 'allspice', img: `${SP}allspice.png`, tier: 'basic', price: 100, kind: 'spice', note: 'It smells like cinnamon, clove and nutmeg all at once.' },
+  { id: 'licorice', name: 'licorice root', img: `${SP}licorice.png`, tier: 'basic', price: 200, kind: 'spice' },
+  { id: 'galangal', name: 'galangal root', img: `${SP}galangal.png`, tier: 'basic', price: 200, kind: 'spice' },
+  { id: 'garlic', name: 'garlic', img: `${SP}garlic.png`, tier: 'basic', price: 100, kind: 'spice' },
+  { id: 'horseradish', name: 'horseradish', img: `${SP}horseradish.png`, tier: 'basic', price: 150, kind: 'spice' },
+  { id: 'wasabi', name: 'wasabi', img: `${SP}wasabi.png`, tier: 'basic', price: 300, kind: 'spice', note: 'Real wasabi is a rare root that grows in cold mountain streams.' },
+  { id: 'caper', name: 'capers', img: `${SP}caper.png`, tier: 'basic', price: 200, kind: 'spice' },
+  { id: 'rubyleaf', name: 'ruby leaf', img: `${CAB}herbs-fungi-roots/ruby_leaf.png`, tier: 'basic', price: 400, kind: 'herb' },
+  { id: 'twilightivy', name: 'twilight ivy', img: `${CAB}herbs-fungi-roots/twilight_ivy.png`, tier: 'basic', price: 500, kind: 'herb', note: 'It only grows in the shade.' },
+  { id: 'whisperreed', name: 'whispering reed', img: `${CAB}herbs-fungi-roots/whispering_reed.png`, tier: 'basic', price: 500, kind: 'herb', note: 'Reeds grow at the edge of ponds and rivers.' },
+  { id: 'ghostpepper', name: 'ghost pepper', img: `${CAB}herbs-fungi-roots/ghost_pepper.png`, tier: 'basic', price: 400, kind: 'herb', note: 'One of the hottest peppers in the world. Do not touch your eyes!' },
+  { id: 'mandrake', name: 'mandrake root', img: `${CAB}herbs-fungi-roots/mandrake_root.png`, tier: 'basic', price: 600, kind: 'herb', note: 'In old stories mandrake roots shout. This one is just shy.' },
+  { id: 'flytrap', name: 'flytrap flower', img: `${CAB}herbs-fungi-roots/carnivorous_flower.png`, tier: 'basic', price: 600, kind: 'herb', note: 'Some plants catch bugs for food, like the Venus flytrap.' },
+  { id: 'snow', name: 'fresh snow', img: `${MAT}snow.png`, tier: 'basic', price: 100, kind: 'nature' },
+  { id: 'fallleaves', name: 'fall leaves', img: `${MAT}leaves.png`, tier: 'basic', price: 100, kind: 'nature' },
+  { id: 'riverstone', name: 'river stone', img: `${MAT}stone.png`, tier: 'basic', price: 200, kind: 'nature', note: 'Water smooths river stones over hundreds of years.' },
+  { id: 'irondust', name: 'iron filings', img: `${MAT}iron.png`, tier: 'basic', price: 300, kind: 'nature', note: 'Iron filings jump to a magnet.' },
+  { id: 'oakbark', name: 'oak bark', img: `${MAT}wood.png`, tier: 'basic', price: 200, kind: 'nature' },
+  { id: 'shedscale', name: 'shed lizard scale', img: `${MAT}scales.png`, tier: 'basic', price: 300, kind: 'critter', note: 'Lizards shed their old skin as they grow. Nobody was bothered.' },
+  { id: 'ectoplasm', name: 'ghost goo', img: `${CAB}monster-ingredients/ghost_ectoplasm.png`, tier: 'basic', price: 800, kind: 'critter', note: 'Wiggly, cold and a little gross. A friendly ghost left it behind.' },
+  { id: 'trolltooth', name: 'troll tooth', img: `${CAB}monster-ingredients/troll_tooth.png`, tier: 'basic', price: 900, kind: 'critter', note: 'A troll lost a baby tooth. Trolls get new teeth, just like kids.' },
+  { id: 'stoneheart', name: 'heart stone', img: `${CAB}monster-ingredients/stone_heart.png`, tier: 'basic', price: 1000, kind: 'nature', note: 'A heart-shaped stone, very heavy and very steady.' },
+  { id: 'mimic', name: 'tiny bottled mimic', img: `${CAB}monster-ingredients/tiny_bottled_mimic.png`, tier: 'rare', price: 1500, kind: 'critter', note: 'It copies whatever is next to it. It is happy in its bottle.' },
+  { id: 'basiliskeye', name: 'basilisk eye marble', img: `${CAB}monster-ingredients/basilisk_eye.png`, tier: 'rare', price: 1800, kind: 'critter', note: 'A glass marble shaped like a basilisk eye, from the stories.' },
+  { id: 'heartforest', name: 'heart of the forest', img: `${CAB}legendary-relics/heart_of_the_forest.png`, tier: 'rare', price: 2200, kind: 'relic' },
+  { id: 'worldseed', name: 'world tree seed', img: `${CAB}legendary-relics/seed_of_the_world_tree.png`, tier: 'rare', price: 2500, kind: 'relic', note: 'In Norse stories, the World Tree holds up all the worlds.' },
+  { id: 'oracle', name: "oracle's crystal", img: `${CAB}legendary-relics/oracles_crystal.png`, tier: 'rare', price: 3000, kind: 'relic' },
+  { id: 'lostlight', name: 'lantern of lost lights', img: `${CAB}legendary-relics/lantern_of_lost_lights.png`, tier: 'rare', price: 3500, kind: 'relic' },
 ];
+// Older ingredients sorted onto the new shelves.
+const OLD_KIND: Record<string, Kind> = {
+  newt: 'spice', chili: 'spice', staranise: 'spice', ginger: 'spice', vanilla: 'spice', saffron: 'spice', silversage: 'herb', glowmoss: 'herb', dreamberries: 'herb',
+  mooncap: 'herb', frostorchid: 'herb', fireblossom: 'herb', icechip: 'nature', mothdust: 'critter', slimecore: 'critter', mermaidtear: 'critter',
+  phoenix: 'critter', dragonscale: 'critter', moonlight: 'relic', frozenflame: 'relic',
+};
+for (const g of INGREDIENTS) if (!g.kind && OLD_KIND[g.id]) g.kind = OLD_KIND[g.id];
 export const ING = (id: string) => INGREDIENTS.find((x) => x.id === id)!;
 
 // The Cookbook (Build Queue 101, plan section 6): 10 base recipes, and discovered recipes that
@@ -106,12 +163,26 @@ export const RECIPES: Recipe[] = [
   r('Veloaero', 'velo means fast and aero means air', 'Super speed flying in Town Square for 1 minute.', 'Town Square: drink it here', ['grass', 'dew'], ['fairywing', 'phoenix'], 5, 'veloaero', 'Aero'),
   r('Megavita', 'mega means huge and vita means life', 'Heals every creature in your Habitat at once.', 'Habitat: Potions button', ['dew', 'glowmoss'], ['saffron'], 3, 'megavita', 'Vita'),
   r('Pyro', 'pyro means fire', 'Warms your Habitat and ends a blizzard.', 'Habitat: Potions button', ['dew', 'fireblossom'], ['dragonscale'], 3, 'pyro', 'Cryo'),
+  // Season potions (Build Queue 121, her words: "a comprehensive list of potions with hyper specific
+  // purposes, like supporting desert animals through winter"). Each one helps one creature with one
+  // hard time, and lasts until the season ends. Every name is a Greek or Latin word part.
+  r('Thermo', 'thermo means heat, like a thermometer', 'Keeps a desert or scaly creature warm through the whole winter.', 'Habitat: give it to one creature', ['dew', 'cinnamon'], ['ginger', 'clove'], 3, 'thermo'),
+  r('Umbra', 'umbra means shade, like an umbrella', 'Gives a furry creature cool shade through the whole summer.', 'Habitat: give it to one creature', ['dew', 'twilightivy'], ['snow'], 2, 'umbra'),
+  r('Hydro', 'hydro means water, like a fire hydrant', 'One creature never gets thirsty in a drought this season.', 'Habitat: give it to one creature', ['dew', 'whisperreed'], ['icechip'], 4, 'hydro'),
+  r('Somnus', 'somn means sleep, like insomnia', 'Tucks a creature in to hibernate: it sleeps safe and snug until winter ends.', 'Habitat: give it in fall or winter', ['dew', 'dreamberries'], ['nutmeg', 'fallleaves'], 2, 'somnus', 'Dorm'),
+  r('Ancora', 'ancora means anchor', 'Holds a flier steady so a tornado cannot toss it this season.', 'Habitat: give it to a flier', ['grass', 'riverstone'], ['irondust'], 3, 'ancora'),
+  r('Pneumo', 'pneum means air or breath, like pneumatic', 'Fresh air for one creature: no coughing in wildfire smoke this season.', 'Habitat: give it to one creature', ['dew', 'silversage'], ['cardamom'], 3, 'pneumo'),
+  r('Sicco', 'sicc means dry, like desiccate', 'A dry coat: one creature stays dry in floods and storms this season.', 'Habitat: give it to one creature', ['grass', 'sumac'], ['shedscale'], 2, 'sicco'),
+  r('Stabil', 'stabil means steady, like stable', 'Steady feet: one walker stays steady in an earthquake this season.', 'Habitat: give it to a walker', ['grass', 'stoneheart'], ['turmeric'], 4, 'stabil'),
+  r('Patria', 'patri means homeland, like patriot', 'Makes any land feel like home: no homesickness this season.', 'Habitat: give it to one creature', ['grass', 'dew'], ['bayleaf', 'oakbark'], 3, 'patria'),
+  r('Nidus', 'nid means nest', 'A cozy nest: a group can have babies even when it is not its baby season.', 'Habitat: give it to one creature', ['grass', 'fairywing'], ['juniper', 'sesame'], 3, 'nidus'),
+  r('Redux', 're means back and dux means to lead', 'Leads every creature family that did not survive back to your Habitat right away.', 'Habitat: Potions hotbar', ['dew', 'heartforest'], ['phoenix'], 5, 'redux', 'Vita'),
 ];
 export const AERO = RECIPES[0];
 export const VITA = RECIPES[1];
 
 // Each student's progress, saved in their own row (no new tables).
-export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number> }
+export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]> }
 export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; petDay?: string; checkins?: number }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';
@@ -193,4 +264,5 @@ export const POTION_ICON: Record<string, string> = {
   Lumin: `${BREW}bottled_moonlight.png`, Cryo: `${BREW}ghost_essence.png`, Aqua: `${BREW}mana_draught.png`, Fort: `${BREW}mystery_potion.png`,
   Velo: `${BREW}memory_tonic.png`, Mega: `${BREW}transformation_serum.png`, Veloaero: `${BREW}bottled_storm.png`, Megavita: `${BREW}friendship_philter.png`,
   Pyro: `${BREW}dragonfire_flask.png`,
+  ...Object.fromEntries(['Thermo', 'Umbra', 'Hydro', 'Somnus', 'Ancora', 'Pneumo', 'Sicco', 'Stabil', 'Patria', 'Nidus', 'Redux'].map((n) => [n, `${SN}potions/${n.toLowerCase()}.png`])),
 };

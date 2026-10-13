@@ -40,7 +40,24 @@ export const TAG_EFFECTS: Record<Tag, string> = {
 
 export type Pose = 'none' | 'dive' | 'land' | 'shiver' | 'fluff' | 'brace' | 'bask' | 'sleep' | 'glow' | 'splash';
 export interface Reaction { icon: string; word: string; text: string; hit: number; status?: string; pose: Pose; because?: string }
-export interface Ctx { weather: string; disaster: string | null; night: boolean; biome: Biome }
+export interface Ctx { weather: string; disaster: string | null; night: boolean; biome: Biome; season?: string }
+
+// Baby seasons (Build Queue 120, her words: "creatures should have a breeding/spawning period if
+// noted and otherwise can breed whenever"). Water creatures spawn in spring, fliers nest in spring,
+// snow creatures have their babies in snug winter dens (like polar bears); everyone else, any time.
+export function breedsIn(c: Creature): string | null {
+  if (c.chapter === 'gods' || c.eats === 'magic') return null;
+  const t = tagsOf(c);
+  if (t.has('swim') || t.has('fly')) return 'Spring';
+  if (c.likes.includes('snow') && !c.likes.includes('desert')) return 'Winter';
+  return null;
+}
+export function breedNote(c: Creature): string {
+  const b = breedsIn(c); const t = tagsOf(c);
+  if (b === 'Spring') return t.has('swim') ? 'Spawning season: spring. Its eggs hatch in the spring water.' : 'Nesting season: spring. It builds a nest and its eggs hatch.';
+  if (b === 'Winter') return 'Den season: winter. Its babies are born in a snug snow den.';
+  return 'It can have babies in any season.';
+}
 
 export function react(c: Creature, x: Ctx): Reaction {
   const t = tagsOf(c); const n = c.name;
@@ -75,7 +92,7 @@ export function react(c: Creature, x: Ctx): Reaction {
     case 'tornado':
       if (t.has('tough')) return ok('🪨', 'stands strong', 'is too heavy and strong to blow away.', 'brace', 'tough');
       if (t.has('swim')) return ok('🌊', 'dives', 'dives deep, under the wind.', 'dive', 'swim');
-      if (t.has('fly')) return hurt('🌪️', 'tossed', 'gets tossed by the wind: wings are no help in a tornado!', 'dizzy', 'shiver', 2, TAG_WORDS.fly);
+      if (t.has('fly')) return hurt('🌪️', 'tossed', 'gets tossed by the wind: wings are no help in a tornado!', 'tossed', 'shiver', 2, TAG_WORDS.fly);
       return hurt('💫', 'dizzy', 'gets dizzy in the spinning wind. Take cover!', 'dizzy', 'brace');
   }
   switch (x.weather) {
@@ -99,7 +116,32 @@ export function react(c: Creature, x: Ctx): Reaction {
     case 'fog': return ok('🌫️', 'sniffs', 'moves slowly and sniffs its way through the fog.', 'none');
     case 'rainbow': case 'meteors': return ok('🤩', 'amazed', 'watches the magic sky in wonder.', 'glow');
   }
+  // The four seasons (Build Queue 120). Hard seasons first: winter cold for bodies with no warm fur,
+  // summer heat for thick fur.
+  if (x.season === 'Winter') {
+    if (t.has('warm')) return ok('🧥', 'cozy', 'has its thick winter coat and stays cozy.', 'fluff', 'warm');
+    if (t.has('swim')) return ok('🧊', 'under ice', 'swims slowly under the ice, where the water stays warmer.', 'dive', 'swim');
+    if (t.has('fire')) return ok('🔥', 'toasty', 'stays toasty with its own fire.', 'bask', 'fire');
+    if (t.has('magic')) return ok('✨', 'safe', 'is not bothered: its magic keeps it warm.', 'glow', 'magic');
+    return hurt('🥶', 'chilly', 'is chilly in the winter cold. The shelter, a Thermo potion or a Somnus potion to hibernate will help.', 'chilly', 'shiver', 1, t.has('heat') ? 'A desert body is made for heat, not cold' : 'It has no thick fur');
+  }
+  if (x.season === 'Summer' && t.has('warm') && !t.has('heat') && !t.has('swim') && !t.has('magic') && x.biome !== 'snow') {
+    return hurt('🥵', 'too hot', 'is too hot in its thick fur. The shelter or an Umbra potion gives it shade.', 'hot', 'shiver', 1, 'Thick fur is made for cold');
+  }
   if (x.night) return t.has('night') ? ok('🌙', 'explores', 'wakes up and explores: it is a night creature.', 'glow', 'night') : ok('💤', 'sleeps', 'curls up to sleep for the night.', 'sleep');
+  if (x.season === 'Spring') {
+    if (breedsIn(c) === 'Spring') return ok('🥚', t.has('swim') ? 'spawning' : 'nesting', t.has('swim') ? 'lays eggs in the spring water. It is spawning time!' : 'builds a nest. Spring is its nesting time!', 'none', t.has('swim') ? 'swim' : 'fly');
+    if (c.eats === 'plants' || c.eats === 'both') return ok('🌸', 'munches', 'munches fresh spring flowers and new leaves.', 'none');
+  }
+  if (x.season === 'Summer') {
+    if (t.has('heat') || t.has('fire')) return ok('☀️', 'basks', 'basks in the long, hot summer days.', 'bask', t.has('heat') ? 'heat' : 'fire');
+    if (t.has('swim')) return ok('💦', 'cools off', 'cools off in the summer pond.', 'splash', 'swim');
+  }
+  if (x.season === 'Fall') {
+    if (t.has('fly')) return ok('🍂', 'gets ready', 'flies on the cool fall wind, getting ready for winter.', 'none', 'fly');
+    if (t.has('warm')) return ok('🍂', 'thick coat', 'starts growing its thick winter coat.', 'fluff', 'warm');
+    if (c.eats === 'plants' || c.eats === 'both') return ok('🌰', 'gathers', 'gathers seeds and nuts to save for winter.', 'none');
+  }
   if (!c.likes.includes(x.biome) && !t.has('swim')) return { icon: '🏠', word: 'homesick', text: `${n} misses its favorite land: ${c.likes.join(', ')}.`, hit: 0, status: 'homesick', pose: 'none' };
   if (x.biome === 'desert' && t.has('heat')) return ok('☀️', 'basks', 'soaks up the hot sun.', 'bask', 'heat');
   return ok('😊', 'at home', `feels at home in the ${x.biome}.`, 'none');

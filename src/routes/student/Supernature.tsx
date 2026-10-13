@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
-import { SN, WORD_PARTS, INGREDIENTS, ING, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { useNavigate } from 'react-router-dom';
@@ -391,6 +391,7 @@ function Shop({ bar, say, coins, pantry, earned, onBuy, goCauldron }: {
 }) {
   const [sel, setSel] = useState<string | null>(null);
   const [bought, setBought] = useState<string | null>(null);
+  const [shelf, setShelf] = useState<'all' | 'rare' | typeof KINDS[number]['id']>('all');
   const g = sel ? ING(sel) : null;
   const usedIn = g ? RECIPES.filter((r) => r.steps.some((x) => x.items?.includes(g.id))).map((r) => r.name) : [];
   const tile = (x: typeof INGREDIENTS[number]) => (
@@ -419,10 +420,18 @@ function Shop({ bar, say, coins, pantry, earned, onBuy, goCauldron }: {
       </section>
       <section className="sn-shop-right">
         <p className="sn-small">Always free on your shelf: {INGREDIENTS.filter((x) => x.tier === 'free').map((x) => x.name).join(', ')}.</p>
-        <span className="sn-label">Basic ingredients ($1 to $10)</span>
-        <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.tier === 'basic').map(tile)}</div>
-        <span className="sn-label">Rare ingredients ($15 to $50)</span>
-        <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.tier === 'rare').map(tile)}</div>
+        <div className="sn-shop-tabs" role="tablist" aria-label="Shelves">
+          {([['all', 'Everything'], ...KINDS.map((k) => [k.id, k.label]), ['rare', 'Rare ($15 to $50)']] as [typeof shelf, string][]).map(([id, label]) => (
+            <button key={id} type="button" role="tab" aria-selected={shelf === id} className={`sn-chip-btn${shelf === id ? ' on' : ''}`} onClick={() => { snSound('page'); setShelf(id); }}>{label}</button>
+          ))}
+        </div>
+        {(shelf === 'all' ? KINDS : shelf === 'rare' ? [] : KINDS.filter((k) => k.id === shelf)).map((k) => (
+          <div key={k.id} className="sn-shop-shelf">
+            <span className="sn-label">{k.label} ({INGREDIENTS.filter((x) => x.kind === k.id && x.tier !== 'free').length})</span>
+            <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.kind === k.id && x.tier !== 'free').sort((a, b) => a.price - b.price).map(tile)}</div>
+          </div>
+        ))}
+        {shelf === 'rare' && <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.tier === 'rare').sort((a, b) => a.price - b.price).map(tile)}</div>}
       </section>
     </div>
   );

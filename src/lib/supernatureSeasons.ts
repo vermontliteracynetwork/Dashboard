@@ -5,6 +5,22 @@
 // which help the plants; magic eaters live on things no food web can count. A group with no food
 // packs up and moves away, and comes back when there is food again.
 import type { Biome, Creature } from './supernatureCreatures';
+import { breedsIn } from './supernatureAdapt';
+
+// The shared Habitat clock (Build Queue 120, her words: "seasons should run automatically and be
+// synced on devices. each season take 10 minutes. a day lasts 1 minutes ... a night lasts 1 minutes.
+// a season consists of 5 days (and five nights)"). Every device works the season out from the real
+// time, so all of a student's devices show the same season, day and sun at the same moment.
+export const DAY_MS = 60_000, NIGHT_MS = 60_000, DAYS = 5, SEASON_MS = DAYS * (DAY_MS + NIGHT_MS);
+export function seasonClock(now = Date.now()) {
+  const abs = Math.floor(now / SEASON_MS);
+  const inSeason = now - abs * SEASON_MS;
+  const day = Math.floor(inSeason / (DAY_MS + NIGHT_MS));
+  const inDay = inSeason - day * (DAY_MS + NIGHT_MS);
+  const night = inDay >= DAY_MS;
+  return { abs, name: seasonName(abs), day, night, t: night ? (inDay - DAY_MS) / NIGHT_MS : inDay / DAY_MS, left: SEASON_MS - inSeason, frac: inSeason / SEASON_MS };
+}
+export const SEASON_ICON: Record<string, string> = { Spring: '🌸', Summer: '☀️', Fall: '🍂', Winter: '❄️' };
 
 export interface Eco { season: number; plants: number; mush: number; groups: Record<string, number> }
 export interface Change { id: string; before: number; after: number; why: string }
@@ -13,7 +29,7 @@ export const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'];
 export const seasonName = (n: number) => SEASONS[((n % 4) + 4) % 4];
 export const START_GROUP = 3;
 
-export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; weather: string; disaster: string | null }): SeasonResult {
+export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; weather: string; disaster: string | null; nest?: string[] }): SeasonResult {
   const g: Record<string, number> = {};
   for (const c of roster) g[c.id] = eco.groups[c.id] ?? START_GROUP;
   const before = { ...g };
@@ -64,7 +80,9 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
     else {
       const f = fed[c.id] ?? 0;
       const food = c.food ?? (e === 'plants' ? 'plants' : 'food');
-      if (f >= 1 && liked && n < 10) { n += 1; why = `Plenty to eat (${food}), and it loves this land.`; }
+      const bs = breedsIn(c); const babies = !bs || bs === name || !!ctx.nest?.includes(c.id);
+      if (f >= 1 && liked && n < 10 && babies) { n = Math.min(10, n + (bs === name ? 2 : 1)); why = bs === name ? `It is its baby season: ${bs === 'Winter' ? 'babies were born in a snug den' : 'eggs hatched'}, and there was plenty to eat (${food}).` : ctx.nest?.includes(c.id) ? 'The Nidus nest helped: babies were born.' : `Plenty to eat (${food}), and it loves this land, so babies were born.`; }
+      else if (f >= 1 && liked && n < 10) why = `Well fed. It waits for ${bs!.toLowerCase()} to have babies.`;
       else if (f >= 1) why = liked ? 'Well fed, and the group is as big as it can get.' : 'Well fed, but this land is not its favorite.';
       else if (f >= 0.5) why = 'It found some food, but not a lot.';
       else { n -= 1; why = e === 'plants' ? 'Not enough plants to eat.' : e === 'leftovers' ? 'Not enough leftovers to clean up.' : 'Not enough to catch.'; }

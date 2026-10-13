@@ -8227,3 +8227,40 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-mk-hab-grid span small { font-size: 12px; font-weight: 700; color: #4a4480; }
 .sn-mk-hab-grid span.ok { background: #e8fbe0; }
 .sn-mk-hab-grid span.bad { background: #ffe0d6; }
+
+/* Supernature Habitat: four seasons on the shared clock (Build Queue 120) */
+.sn-hab .sn-sun { transition: left 1s linear, top 1s linear, background 2s; z-index: 0; }
+.sn-sun.summer { width: 76px; height: 76px; box-shadow: 0 0 44px #ffcf5a; }
+.sn-season-decor { position: absolute; inset: 0; pointer-events: none; transition: filter 3s; }
+.sn-season-decor .sn-decor { pointer-events: none; }
+.season-fall .sn-season-decor { filter: sepia(0.5) saturate(1.7) hue-rotate(-28deg); }
+.season-winter .sn-season-decor { filter: saturate(0.4) brightness(1.18); }
+.season-summer .sn-season-decor { filter: saturate(1.25); }
+.season-fall .sn-hab-ground { filter: sepia(0.35) saturate(1.35) hue-rotate(-18deg); }
+.season-summer .sn-hab-ground { filter: saturate(1.2) brightness(1.04); }
+.season-winter .sn-hab-ground { filter: saturate(0.5) brightness(1.1); }
+.sn-snowcover { position: absolute; left: 0; right: 0; top: 170px; bottom: 0; pointer-events: none; background: radial-gradient(ellipse 120px 26px at 20% 30%, #fff 60%, transparent 62%), radial-gradient(ellipse 160px 30px at 60% 55%, #fff 60%, transparent 62%), radial-gradient(ellipse 140px 24px at 35% 82%, #fff 60%, transparent 62%), linear-gradient(rgba(246, 250, 255, 0.72), rgba(232, 240, 252, 0.78)); }
+.sn-snowcover.thin { opacity: 0.4; }
+.sn-blossoms { position: absolute; left: 0; right: 0; top: 176px; bottom: 0; pointer-events: none; background-image: radial-gradient(circle, #ffb6d5 3px, transparent 4px), radial-gradient(circle, #fff6a8 3px, transparent 4px), radial-gradient(circle, #f6f1ff 2px, transparent 3px); background-size: 110px 90px, 150px 120px, 70px 80px; background-position: 20px 30px, 70px 10px, 40px 50px; opacity: 0.9; }
+.sn-leafpiles { position: absolute; left: 0; right: 0; top: 176px; bottom: 0; pointer-events: none; background-image: radial-gradient(ellipse 22px 9px, #d9682a 70%, transparent 75%), radial-gradient(ellipse 18px 8px, #e8a33a 70%, transparent 75%), radial-gradient(ellipse 14px 7px, #a8452a 70%, transparent 75%); background-size: 130px 100px, 170px 130px, 90px 110px; background-position: 10px 40px, 80px 20px, 50px 70px; opacity: 0.85; }
+.sn-petals { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 5; }
+.sn-petals i { position: absolute; top: -12px; width: 9px; height: 7px; border-radius: 60% 0; background: #ffb6d5; animation: snPetal 9s linear infinite; }
+.sn-petals i:nth-child(3n) { background: #f6f1ff; }
+@keyframes snPetal { 0% { transform: translate(0, 0) rotate(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translate(-120px, 600px) rotate(540deg); opacity: 0.2; } }
+.sn-hud { flex-wrap: wrap; max-width: 860px; }
+.sn-hud-season { display: inline-flex; align-items: center; gap: 6px; }
+.sn-hud-bar { display: inline-flex; gap: 2px; font-style: normal; }
+.sn-hud-bar em { position: relative; font-style: normal; padding: 0 3px; border-radius: 6px; opacity: 0.5; overflow: hidden; }
+.sn-hud-bar em.on { opacity: 1; background: linear-gradient(90deg, rgba(255, 217, 112, 0.6) var(--p), rgba(255, 255, 255, 0.15) var(--p)); }
+.sn-pop-seasons { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 15px; }
+.sn-pop-seasons span { padding: 1px 5px; border-radius: 8px; border: 2px dashed rgba(246, 241, 255, 0.5); opacity: 0.55; }
+.sn-pop-seasons span.got { opacity: 1; border-style: solid; border-color: #ffd970; background: rgba(255, 217, 112, 0.25); }
+.sn-season-line { margin: 0; padding: 8px 12px; border-radius: 10px; border: 2px solid #241f45; font-size: 16px; line-height: 1.35; }
+.sn-season-line.up { background: #e8fbe0; color: #1f4a1a; }
+.sn-season-line.lost { background: #efe9ff; color: #3b2a6a; }
+@media (prefers-reduced-motion: reduce) { .sn-petals { display: none; } .sn-hab .sn-sun { transition: none; } }
+
+/* Shop shelves (Build Queue 122) */
+.sn-shop-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+.sn-shop-shelf { display: flex; flex-direction: column; gap: 6px; }
+.sn-recipe-list { max-height: 300px; overflow-y: auto; }

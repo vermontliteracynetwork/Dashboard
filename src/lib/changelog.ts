@@ -16,6 +16,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-habitat-seasons",
+    date: "2026-10-13",
+    icon: "🍂",
+    title: "Four seasons in the Habitat",
+    body: "Spring, summer, fall and winter now come on their own, 10 minutes each, with 1 minute days and 1 minute nights. Watch the sun cross the sky. Leaves fall in fall, snow covers the ground in winter, and flowers bloom in spring. Help your creatures through hard seasons: a creature that lives through all four seasons levels up!",
+  },
+  {
+    id: "2026-10-13-season-potions",
+    date: "2026-10-13",
+    icon: "🧪",
+    title: "11 new potions with special jobs",
+    body: "Brew Thermo to keep a desert creature warm all winter, Umbra to give a furry creature shade in summer, Somnus to help a creature hibernate, and more. Every name comes from a Greek or Latin word part.",
+  },
+  {
+    id: "2026-10-13-shop-shelves",
+    date: "2026-10-13",
+    icon: "🛒",
+    title: "40 new ingredients in the Shop",
+    body: "The Shop has new shelves: spices and seeds, herbs and flowers, things from nature, creature finds and crystals. Tap one to learn a fact about it.",
+  },
+  {
     id: "2026-10-13-maker-habitat",
     date: "2026-10-13",
     icon: "🐟",
