@@ -8264,3 +8264,53 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-shop-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
 .sn-shop-shelf { display: flex; flex-direction: column; gap: 6px; }
 .sn-recipe-list { max-height: 300px; overflow-y: auto; }
+
+/* Habitat views, pixel ocean and pixel textures (Build Queue 123 to 126) */
+.sn-hab-note { flex: 1 1 auto; min-width: 0; max-width: 660px; display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; background: rgba(36, 31, 69, 0.55); border: 2px solid #241f45; border-radius: 12px; color: #f6f1ff; font-size: 14px; line-height: 1.25; }
+.sn-hab-note > span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sn-hab-note .sn-listen { flex: none; margin: 0; width: 44px; height: 44px; }
+.sn-railbtn { width: 58px; min-height: 58px; justify-content: center; padding: 0; }
+.sn-railbtn span { font-size: 28px; }
+.sn-side-arrow { position: fixed; top: 50%; transform: translateY(-50%); z-index: 900; width: 76px; min-height: 104px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px 4px; background: #ffd970; color: #241f45; border: 4px solid #241f45; border-radius: 16px; box-shadow: 0 5px 0 #241f45; font-size: 12px; font-weight: 800; line-height: 1.1; text-align: center; touch-action: manipulation; }
+.sn-side-arrow.left { left: 10px; } .sn-side-arrow.right { right: 10px; }
+.sn-side-arrow svg { width: 40px; height: 40px; fill: none; stroke: #241f45; stroke-width: 4; stroke-linecap: square; stroke-linejoin: miter; }
+.sn-side-arrow:active { transform: translateY(calc(-50% + 3px)); box-shadow: 0 2px 0 #241f45; }
+.sn-pop-move { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; font-size: 14px; }
+.sn-pop-move .sn-chip-btn { min-height: 40px; padding: 0 8px; font-size: 13px; }
+.sn-pop-move .sn-chip-btn:disabled { opacity: 0.5; }
+.sn-crit.temp-zoom > img:first-child { filter: drop-shadow(0 0 6px #9fe3ff) drop-shadow(0 0 3px #9fe3ff); }
+.sn-crit.temp-float > img:first-child { filter: drop-shadow(0 6px 0 rgba(36, 31, 69, 0.3)); }
+.sn-crit.temp-fast > img:first-child { filter: drop-shadow(-6px 0 0 rgba(255, 255, 255, 0.5)); }
+/* pixel sun, moon, clouds, stars and season tiles */
+.sn-hab .sn-sun { width: 80px; height: 80px; border-radius: 0; box-shadow: none; background: url('/games/supernature/habitat/px/sun.png') 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
+.sn-hab .sn-sun.summer { width: 96px; height: 96px; }
+.sn-hab .sn-sun.moon { background-image: url('/games/supernature/habitat/px/moon.png'); }
+.sn-hab .sn-cloud { width: 160px; height: 56px; border-radius: 0; box-shadow: none; background: url('/games/supernature/habitat/px/cloud.png') 0 0 / 100% 100% no-repeat; image-rendering: pixelated; opacity: 1; }
+.sn-hab .sn-cloud.big { width: 240px; height: 84px; background-image: url('/games/supernature/habitat/px/cloud-gray.png'); box-shadow: none; }
+.sn-hab .sn-stars { background: url('/games/supernature/habitat/px/water-fleck.png') 0 0 / 96px repeat; image-rendering: pixelated; filter: brightness(1.6) saturate(0); }
+.sn-hab .sn-snowcover { background: url('/games/supernature/habitat/px/snow.png') 0 0 / 96px repeat; image-rendering: pixelated; }
+.sn-hab .sn-blossoms { background: url('/games/supernature/habitat/px/blossoms.png') 0 0 / 144px repeat; image-rendering: pixelated; }
+.sn-hab .sn-leafpiles { background: url('/games/supernature/habitat/px/leaves.png') 0 0 / 144px repeat; image-rendering: pixelated; }
+.sn-petals i { border-radius: 0; width: 8px; height: 8px; }
+/* the Ocean: an underwater view with an animated pixel surface near the top */
+.sn-ocean { position: absolute; inset: 0; overflow: hidden; }
+.sn-ocean-sky { position: absolute; left: 0; right: 0; top: 0; height: 48px; }
+.sn-ocean-water { position: absolute; left: 0; right: 0; top: 44px; bottom: 0; background: linear-gradient(#4fb4e0 0 10%, #3fa2d4 10% 22%, #3492c6 22% 36%, #2a80b6 36% 50%, #226ea4 50% 64%, #1b5c90 64% 78%, #154b7a 78%); }
+.sn-ocean.night .sn-ocean-water, .sn-ocean.night .sn-ocean-floor, .sn-ocean.night .sn-ocean-weed, .sn-ocean.night .sn-ocean-coral { filter: brightness(0.55) saturate(0.8); }
+.sn-ocean-surface { position: absolute; left: -192px; right: -192px; top: 26px; height: 48px; background: url('/games/supernature/habitat/px/water-surface.png') 0 0 / 192px 48px repeat-x; image-rendering: pixelated; animation: snWaveX 6s linear infinite, snWaveY 2.6s ease-in-out infinite alternate; }
+.sn-ocean.icy .sn-ocean-surface { background-image: url('/games/supernature/habitat/px/water-surface-ice.png'); animation-duration: 18s, 6s; }
+.sn-ocean-flecks { position: absolute; left: 0; right: 0; top: 70px; bottom: 60px; background: url('/games/supernature/habitat/px/water-fleck.png') 0 0 / 96px repeat; image-rendering: pixelated; animation: snFleck 24s linear infinite; opacity: 0.8; }
+.sn-ocean-rays { position: absolute; inset: 60px 0 60px 0; pointer-events: none; }
+.sn-ocean-rays i { position: absolute; top: 0; width: 48px; height: 100%; background: rgba(255, 255, 255, 0.07); transform: skewX(-14deg); animation: snRay 7s ease-in-out infinite alternate; }
+.sn-ocean-rays i:nth-child(1) { left: 220px; } .sn-ocean-rays i:nth-child(2) { left: 560px; width: 72px; animation-delay: -2s; } .sn-ocean-rays i:nth-child(3) { left: 880px; animation-delay: -4s; }
+.sn-ocean-floor { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: url('/games/supernature/habitat/px/sand.png') 0 0 / 96px repeat; image-rendering: pixelated; border-top: 4px solid #c99a52; }
+.sn-ocean-weed { position: absolute; bottom: 52px; width: auto; image-rendering: pixelated; transform-origin: bottom center; animation: snWeed 3.2s ease-in-out infinite alternate; }
+.sn-ocean-coral { position: absolute; bottom: 52px; width: 96px; image-rendering: pixelated; }
+.sn-ocean-bubble { position: absolute; bottom: 60px; width: 16px; image-rendering: pixelated; animation: snBubble 7s linear infinite; }
+@keyframes snWaveX { to { background-position-x: 192px; } }
+@keyframes snWaveY { from { transform: translateY(0); } to { transform: translateY(10px); } }
+@keyframes snFleck { to { background-position: 96px 192px; } }
+@keyframes snRay { from { opacity: 0.4; } to { opacity: 1; } }
+@keyframes snWeed { from { transform: skewX(-6deg); } to { transform: skewX(6deg); } }
+@keyframes snBubble { 0% { transform: translateY(0); opacity: 0; } 10% { opacity: 1; } 100% { transform: translateY(-470px); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .sn-ocean-surface, .sn-ocean-flecks, .sn-ocean-weed, .sn-ocean-bubble, .sn-ocean-rays i { animation: none; } }

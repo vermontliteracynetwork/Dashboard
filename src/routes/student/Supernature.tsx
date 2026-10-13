@@ -5,8 +5,6 @@ import { speak } from '../../components/ReadAloud';
 import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
-import { useNavigate } from 'react-router-dom';
-import { drinkWorldPotion, type WorldPotion } from '../../lib/potionEffects';
 import { byId, setMade, type Made } from '../../lib/supernatureCreatures';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 import SupernatureBook from './SupernatureBook';
@@ -57,9 +55,6 @@ export default function Supernature() {
   const pantry = save.pantry ?? {};
   const brewed = save.brewed ?? [];
   const recordTransaction = useStore((s) => s.recordTransaction);
-  const allPets = useStore((s) => s.pets);
-  const trainPet = useStore((s) => s.trainPet);
-  const navigate = useNavigate();
   const made = save.made ?? [];
   setMade(made);
   const nat = naturalist(save);
@@ -111,9 +106,6 @@ export default function Supernature() {
         {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade} extraColors={nat.level >= 1 ? SPARKLY_COLORS : []}
           goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
         {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} pantry={pantry} brewed={brewed} start={recipe}
-          pets={allPets.filter((p) => p.studentId === student.id).map((p) => ({ id: p.id, name: p.customName }))} petDone={save.petDay === new Date().toDateString()}
-          drinkWorld={(name) => { const i = potions.indexOf(name); if (i < 0) return; patch({ potions: potions.filter((_, j) => j !== i) }); drinkWorldPotion(name as WorldPotion); snSound('done'); navigate('/world/town'); }}
-          petPotion={(name, petId) => { const i = potions.indexOf(name); if (i < 0 || save.petDay === new Date().toDateString()) return; trainPet(petId, 1); patch({ potions: potions.filter((_, j) => j !== i), petDay: new Date().toDateString() }); snSound('done'); }}
           onBrewed={(name, used) => {
             const np = { ...pantry }; for (const id of used) np[id] = Math.max(0, (np[id] ?? 0) - 1);
             patch({ potions: [...potions, name], pantry: np, brewed: brewed.includes(name) ? brewed : [...brewed, name] });
@@ -211,12 +203,10 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
 // The Cookbook (Build Queue 101): 10 base recipes and 3 discovered ones. Free basics are always on
 // the shelf; bought ingredients come from the student's pantry and are used up only when the potion
 // is finished, so a fizzle never costs anything.
-function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, goNames, goHabitat, goShop, pets, petDone, drinkWorld, petPotion }: {
+function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, goNames, goHabitat, goShop }: {
   bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; potions: string[]; earned: string[]; pantry: Record<string, number>; brewed: string[]; start: number;
   onBrewed: (name: string, used: string[]) => void; goNames: () => void; goHabitat: () => void; goShop: () => void;
-  pets: { id: string; name: string }[]; petDone: boolean; drinkWorld: (name: string) => void; petPotion: (name: string, petId: string) => void;
 }) {
-  const [petMsg, setPetMsg] = useState<string | null>(null);
   const [ri, setRi] = useState(start);
   const [list, setList] = useState(false);
   const R = RECIPES[ri];
@@ -324,18 +314,6 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
             <p className="sn-small">{R.meaning}. {R.does} <b>Use it:</b> {R.where}. You have {count(R.name)}.</p>
             <ol>{R.steps.map((x, i) => <li key={i} className={i < step || done ? 'done' : i === step ? 'now' : ''}><b>{i + 1}</b><span>{x.text}{x.need === 'stir' && i === step ? ` (${stirs} of ${x.times})` : ''}</span></li>)}</ol>
             {buyList.length > 0 && <p className="sn-small">From the Shop: {buyList.map((id) => `${ING(id).name} ${has(id) ? '✓' : `(${formatMoney(ING(id).price)})`}`).join(', ')}</p>}
-            {(R.name === 'Aero' || R.name === 'Veloaero') && count(R.name) > 0 && (
-              <button type="button" className="sn-btn2 go" onClick={() => drinkWorld(R.name)}>🪽 Drink it and go to Town Square</button>
-            )}
-            {(R.name === 'Fort' || R.name === 'Velo') && count(R.name) > 0 && (
-              <div className="sn-pet-potion">
-                <b>Give it to a pet (+1 training, once a day)</b>
-                {petDone ? <span className="sn-small">Your pet already had a potion today. Come back tomorrow!</span>
-                  : pets.length === 0 ? <span className="sn-small">You do not have a pet yet.</span>
-                  : <div className="sn-row">{pets.map((p) => <button key={p.id} type="button" className="sn-chip-btn" onClick={() => { petPotion(R.name, p.id); setPetMsg(`${p.name} drank the ${R.name} potion and got +1 training!`); say(`${p.name} drank the ${R.name} potion and got plus 1 training!`); }}>{p.name}</button>)}</div>}
-                {petMsg && <span className="sn-ok">{petMsg}</span>}
-              </div>
-            )}
           </>
         )}
       </section>

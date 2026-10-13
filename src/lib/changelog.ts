@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-habitat-ocean",
+    date: "2026-10-13",
+    icon: "🌊",
+    title: "Dive into the Ocean",
+    body: "In the Habitat, tap the big arrows on the sides of the screen to visit the grassland, forest, desert, snow, swamp and the new underwater Ocean. Tap a creature to move it to a new biome and see how its body handles it.",
+  },
+  {
+    id: "2026-10-13-potions-habitat",
+    date: "2026-10-13",
+    icon: "🪽",
+    title: "Aero, Velo and Fort work in the Habitat",
+    body: "Give Aero to a creature to make it float and fly, Velo to make it run super fast, and Fort to help it stand strong in a tornado.",
+  },
+  {
     id: "2026-10-13-habitat-seasons",
     date: "2026-10-13",
     icon: "🍂",

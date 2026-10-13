@@ -1,5 +1,4 @@
 import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
-import { worldPotionNow } from '../../lib/potionEffects';
 import GroundPatchMesh from './GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
@@ -2001,7 +2000,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
         cameraPitch.current = 0;
         dx /= Math.max(1, len);
         dz /= Math.max(1, len);
-        const sp = moveSpeed * (swimming.current ? SWIM_SPEED : 1) * worldPotionNow().speed;
+        const sp = moveSpeed * (swimming.current ? SWIM_SPEED : 1);
         const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + dx * sp * dt, pos.current.z + dz * sp * dt, true);
         const cx = clampGroundX(bx);
         const cz = clampGroundZ(bz);
@@ -2030,7 +2029,7 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
           cameraPitch.current = 0;
           const ndx = tx / dist;
           const ndz = tz / dist;
-          const sp = moveSpeed * (swimming.current ? SWIM_SPEED : 1) * worldPotionNow().speed;
+          const sp = moveSpeed * (swimming.current ? SWIM_SPEED : 1);
           const [bx, bz] = blockObstaclesSlide(pos.current.x, pos.current.z, pos.current.x + ndx * sp * dt, pos.current.z + ndz * sp * dt, true);
           const cx = clampGroundX(bx);
           const cz = clampGroundZ(bz);
@@ -2100,10 +2099,8 @@ function Player({ touchDir, walkTarget, onMove, frozen, sensitivity, cameraLook,
     // Ease up and down (stepping into deep water, starting and stopping a stroke); a jump
     // (teleport, a big drop) snaps.
     const prevY = groupRef.current.position.y;
-    // A Supernature Aero potion lifts the student off the ground for a minute (Build Queue 104).
-    const lift = driving ? 0 : worldPotionNow().lift;
-    const targetY = groundY + lift;
-    const y = Math.abs(targetY - prevY) > 1.5 && !lift ? targetY : prevY + (targetY - prevY) * Math.min(1, dt * (lift ? 3 : 10));
+    const targetY = groundY;
+    const y = Math.abs(targetY - prevY) > 1.5 ? targetY : prevY + (targetY - prevY) * Math.min(1, dt * 10);
     groupRef.current.position.set(pos.current.x, y, pos.current.z);
     groupRef.current.rotation.y = facing.current;
     if (facingRef) facingRef.current = facing.current;

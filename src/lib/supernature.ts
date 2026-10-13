@@ -150,17 +150,17 @@ const r = (name: string, meaning: string, does: string, where: string, bowl: [st
   ],
 });
 export const RECIPES: Recipe[] = [
-  r('Aero', 'aero means air', 'Lets you float and fly for 1 minute in Town Square.', 'Town Square: drink it here', ['grass', 'dew'], ['fairywing'], 3, 'aero'),
+  r('Aero', 'aero means air', 'Lets one creature float up and fly over the Habitat for 1 minute.', 'Habitat: give it to one creature', ['grass', 'dew'], ['fairywing'], 3, 'aero'),
   r('Vita', 'vita means life', 'Heals one creature in the Habitat back to full hearts.', 'Habitat: tap a creature', ['dew', 'glowmoss'], ['staranise'], 2, 'vita'),
   r('Dorm', 'dorm means sleep, like a dormitory', 'Calms a creature with high energy down to just right.', 'Habitat: tap a creature', ['dew', 'silversage'], ['dreamberries'], 2, 'dorm'),
   r('Viv', 'viv means lively, like vivid', 'Wakes up a creature with low energy to just right.', 'Habitat: tap a creature', ['dew', 'ginger'], ['chili'], 4, 'viv'),
   r('Lumin', 'lumin means light, like luminous', 'Fills your Habitat with floating lights at night.', 'Habitat: Potions button', ['dew', 'mooncap'], ['glowmoss'], 3, 'lumin'),
   r('Cryo', 'cryo means cold', 'Puts out a wildfire in your Habitat.', 'Habitat: Potions button', ['icechip', 'dew'], ['frostorchid'], 2, 'cryo'),
   r('Aqua', 'aqua means water', 'Ends a drought and fills the pond back up.', 'Habitat: Potions button', ['dew', 'grass'], ['icechip'], 3, 'aqua'),
-  r('Fort', 'fort means strong, like a fortress', 'A strength potion for a pet: +1 training.', 'Pets: give it here, once a day', ['grass', 'ginger'], ['newt'], 3, 'fort'),
-  r('Velo', 'velo means fast, like velocity', 'A speed potion for a pet: +1 training.', 'Pets: give it here, once a day', ['dew', 'chili'], ['vanilla'], 2, 'velo'),
+  r('Fort', 'fort means strong, like a fortress', 'A strength potion: one creature stands strong in tornadoes and earthquakes this season.', 'Habitat: give it to one creature', ['grass', 'ginger'], ['newt'], 3, 'fort'),
+  r('Velo', 'velo means fast, like velocity', 'A speed potion: one creature runs super fast for 1 minute.', 'Habitat: give it to one creature', ['dew', 'chili'], ['vanilla'], 2, 'velo'),
   r('Mega', 'mega means huge', 'Makes one creature giant in your Habitat for a minute.', 'Habitat: tap a creature', ['grass', 'mothdust'], ['slimecore'], 5, 'mega'),
-  r('Veloaero', 'velo means fast and aero means air', 'Super speed flying in Town Square for 1 minute.', 'Town Square: drink it here', ['grass', 'dew'], ['fairywing', 'phoenix'], 5, 'veloaero', 'Aero'),
+  r('Veloaero', 'velo means fast and aero means air', 'One creature zooms around the sky at super speed for 1 minute.', 'Habitat: give it to one creature', ['grass', 'dew'], ['fairywing', 'phoenix'], 5, 'veloaero', 'Aero'),
   r('Megavita', 'mega means huge and vita means life', 'Heals every creature in your Habitat at once.', 'Habitat: Potions button', ['dew', 'glowmoss'], ['saffron'], 3, 'megavita', 'Vita'),
   r('Pyro', 'pyro means fire', 'Warms your Habitat and ends a blizzard.', 'Habitat: Potions button', ['dew', 'fireblossom'], ['dragonscale'], 3, 'pyro', 'Cryo'),
   // Season potions (Build Queue 121, her words: "a comprehensive list of potions with hyper specific
@@ -182,7 +182,7 @@ export const AERO = RECIPES[0];
 export const VITA = RECIPES[1];
 
 // Each student's progress, saved in their own row (no new tables).
-export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]> }
+export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]>; homes?: Record<string, string> }
 export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; petDay?: string; checkins?: number }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';

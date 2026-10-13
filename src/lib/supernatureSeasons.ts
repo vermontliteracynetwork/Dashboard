@@ -29,7 +29,7 @@ export const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'];
 export const seasonName = (n: number) => SEASONS[((n % 4) + 4) % 4];
 export const START_GROUP = 3;
 
-export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; weather: string; disaster: string | null; nest?: string[] }): SeasonResult {
+export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; weather: string; disaster: string | null; nest?: string[]; homes?: Record<string, string> }): SeasonResult {
   const g: Record<string, number> = {};
   for (const c of roster) g[c.id] = eco.groups[c.id] ?? START_GROUP;
   const before = { ...g };
@@ -71,7 +71,7 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
   // grow, stay, shrink, move away or come back
   const changes: Change[] = [];
   for (const c of roster) {
-    const e = eats(c); const liked = c.likes.includes(ctx.biome) || c.move === 'swim';
+    const e = eats(c); const hm = ctx.homes?.[c.id] ?? ctx.biome; const liked = c.likes.includes(hm as Biome) || c.move === 'swim' || hm === 'ocean';
     let n = g[c.id]; let why = '';
     if (before[c.id] === 0) {
       const food = e === 'magic' || (e === 'plants' ? plants > 2 : e === 'leftovers' ? mush > 1 : roster.some((p) => p.id !== c.id && g[p.id] > 1));

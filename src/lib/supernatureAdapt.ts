@@ -40,7 +40,7 @@ export const TAG_EFFECTS: Record<Tag, string> = {
 
 export type Pose = 'none' | 'dive' | 'land' | 'shiver' | 'fluff' | 'brace' | 'bask' | 'sleep' | 'glow' | 'splash';
 export interface Reaction { icon: string; word: string; text: string; hit: number; status?: string; pose: Pose; because?: string }
-export interface Ctx { weather: string; disaster: string | null; night: boolean; biome: Biome; season?: string }
+export interface Ctx { weather: string; disaster: string | null; night: boolean; biome: Biome | 'ocean'; season?: string }
 
 // Baby seasons (Build Queue 120, her words: "creatures should have a breeding/spawning period if
 // noted and otherwise can breed whenever"). Water creatures spawn in spring, fliers nest in spring,
@@ -65,6 +65,30 @@ export function react(c: Creature, x: Ctx): Reaction {
   const hurt = (icon: string, word: string, text: string, status: string, pose: Pose, hit = 1, why?: string): Reaction => ({ icon, word, text: `${n} ${text}`, hit, status, pose, because: why });
   const bad = x.disaster || ['storm', 'snow'].includes(x.weather);
   if (bad && t.has('magic')) return ok('✨', 'safe', 'is not bothered: its magic keeps it safe.', 'glow', 'magic');
+  // The Ocean (Build Queue 123, 125): deep water changes slowly, so most hard times pass over it.
+  // Floaters drift near the top, so big wind still tosses them.
+  if (x.biome === 'ocean') {
+    if ((x.disaster === 'tornado' || x.weather === 'storm') && !t.has('swim')) return hurt('🌊', 'tossed', 'gets tossed by the big waves near the surface.', 'tossed', 'shiver', 1);
+    if (x.disaster === 'drought') return ok('🌊', 'deep sea', 'is fine: the ocean never dries up, even in a drought. A pond would shrink!', 'none', 'swim');
+    if (x.disaster === 'wildfire') return ok('🌊', 'safe', 'is safe under the water, far from the fire.', 'dive', 'swim');
+    if (x.disaster === 'flood') return ok('🌊', 'swims', 'hardly notices: the ocean is already full of water.', 'splash', 'swim');
+    if (x.disaster === 'earthquake') return ok('🌊', 'rocks', 'feels the water rock and swims down deep until it stops.', 'dive', 'swim');
+    if (x.disaster === 'blizzard' || x.weather === 'snow' || x.season === 'Winter') return ok('🧊', 'deep water', 'swims down deep, where ocean water stays warmer than the air.', 'dive', 'swim');
+    if (x.weather === 'storm') return ok('🌊', 'dives', 'dives below the waves until the storm passes.', 'dive', 'swim');
+    if (x.season === 'Summer') return ok('🐠', 'cool water', 'swims in the cool ocean while the land is hot.', 'splash', 'swim');
+    if (x.season === 'Spring' && breedsIn(c) === 'Spring') return ok('🥚', 'spawning', 'lays its eggs in the spring sea. It is spawning time!', 'none', 'swim');
+    if (x.night) return ok('🌙', 'drifts', 'drifts in the dark, quiet sea.', 'none');
+    return ok('🐟', 'at home', 'swims happily in the open ocean.', 'none', 'swim');
+  }
+  // Biome changes the hard times (Build Queue 125): desert summers are dry, deserts stay mild in
+  // winter, forests give shade, and the snow land is cold in every season but summer.
+  if (!x.disaster && x.weather === 'clear') {
+    if (x.biome === 'desert' && x.season === 'Summer' && !t.has('heat') && !t.has('fire') && !t.has('swim')) return hurt('🌵', 'thirsty', 'gets thirsty in the dry desert summer. A desert body would save water.', 'thirsty', 'shiver', 1, 'It does not have a desert body');
+    if (x.biome === 'desert' && x.season === 'Winter' && t.has('heat')) return ok('🏜️', 'mild', 'is fine: desert winters are mild in the daytime.', 'bask', 'heat');
+    if (x.biome === 'forest' && x.season === 'Summer' && t.has('warm')) return ok('🌳', 'shade', 'rests in the cool forest shade, so its thick fur is fine.', 'none', 'warm');
+    if (x.biome === 'snow' && (x.season === 'Spring' || x.season === 'Fall') && !t.has('warm') && !t.has('swim') && !t.has('fire')) return hurt('🥶', 'chilly', 'is chilly: the snow land stays cold even in spring and fall.', 'chilly', 'shiver', 1, 'It has no thick fur');
+    if (x.biome === 'swamp' && x.season !== 'Winter' && !t.has('swim') && !t.has('fly') && !t.has('float')) return ok('🪷', 'squelches', 'squelches through the warm swamp mud.', 'none');
+  }
   switch (x.disaster) {
     case 'flood':
       if (t.has('swim')) return ok('🌊', 'swims', 'loves the extra water and swims around.', 'splash', 'swim');
@@ -142,7 +166,7 @@ export function react(c: Creature, x: Ctx): Reaction {
     if (t.has('warm')) return ok('🍂', 'thick coat', 'starts growing its thick winter coat.', 'fluff', 'warm');
     if (c.eats === 'plants' || c.eats === 'both') return ok('🌰', 'gathers', 'gathers seeds and nuts to save for winter.', 'none');
   }
-  if (!c.likes.includes(x.biome) && !t.has('swim')) return { icon: '🏠', word: 'homesick', text: `${n} misses its favorite land: ${c.likes.join(', ')}.`, hit: 0, status: 'homesick', pose: 'none' };
+  if (!c.likes.includes(x.biome as Biome) && !t.has('swim')) return { icon: '🏠', word: 'homesick', text: `${n} misses its favorite land: ${c.likes.join(', ')}.`, hit: 0, status: 'homesick', pose: 'none' };
   if (x.biome === 'desert' && t.has('heat')) return ok('☀️', 'basks', 'soaks up the hot sun.', 'bask', 'heat');
   return ok('😊', 'at home', `feels at home in the ${x.biome}.`, 'none');
 }
