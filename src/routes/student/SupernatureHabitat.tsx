@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ENERGY_FACE, ENERGY_STEPS, SN, natureSound, setNatureLoop, snSound, type Energy, type NatureLoop, type SnHabitat } from '../../lib/supernature';
+import { ENERGY_FACE, ENERGY_STEPS, POTION_ICON, RECIPES, SN, natureSound, setNatureLoop, snSound, type Energy, type NatureLoop, type SnHabitat } from '../../lib/supernature';
+import { TAG_WORDS, react, type Reaction } from '../../lib/supernatureAdapt';
 import { art, byId, madeList, type Biome, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
 import SupernatureGenerations from './SupernatureGenerations';
@@ -29,13 +30,33 @@ const G = '/games/castle-defense/craftpix/';
 const OBJ = `${G}tileset/2-objects/`, SW = `${G}swamp/props/`, HB = `${SN}habitat/`;
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 
-const BIOMES: { id: Biome; label: string; icon: string }[] = [
-  { id: 'grassland', label: 'Grassland', icon: '🌾' }, { id: 'forest', label: 'Forest', icon: '🌲' },
-  { id: 'desert', label: 'Desert', icon: '🏜️' }, { id: 'snow', label: 'Snow', icon: '🏔️' }, { id: 'swamp', label: 'Swamp', icon: '🪷' },
+const SPELL = `${SN}spell-icons/`;
+const BIOMES: { id: Biome; label: string; icon: string; img: string; does: string }[] = [
+  { id: 'grassland', label: 'Grassland', icon: '🌾', img: `${SN}habitat/nat0.png`, does: 'Lots of grass, so plant eaters do well.' },
+  { id: 'forest', label: 'Forest', icon: '🌲', img: `${SN}habitat/tree0.png`, does: 'Shade and trees. Furry forest creatures feel at home.' },
+  { id: 'desert', label: 'Desert', icon: '🏜️', img: '/games/castle-defense/craftpix/tileset/2-objects/4-stone/7.png', does: 'Hot and dry. Desert bodies save water.' },
+  { id: 'snow', label: 'Snow', icon: '🏔️', img: `${SPELL}ice-spikes.png`, does: 'Cold all the time. Thick fur helps.' },
+  { id: 'swamp', label: 'Swamp', icon: '🪷', img: '/games/castle-defense/craftpix/swamp/props/water-plant-1.png', does: 'Wet and muddy. Swamp creatures love it.' },
 ];
-const WEATHERS: { id: Weather; label: string; icon: string }[] = [
-  { id: 'clear', label: 'Clear', icon: '☀️' }, { id: 'rain', label: 'Rain', icon: '🌧️' }, { id: 'snow', label: 'Snow', icon: '🌨️' },
-  { id: 'fog', label: 'Fog', icon: '🌫️' }, { id: 'wind', label: 'Wind', icon: '🍃' }, { id: 'storm', label: 'Storm', icon: '⛈️' },
+const WEATHERS: { id: Weather; label: string; icon: string; img?: string; does: string }[] = [
+  { id: 'clear', label: 'Clear', icon: '☀️', img: `${SPELL}holy-flare.png`, does: 'Sunny and calm. Creatures rest and heal.' },
+  { id: 'rain', label: 'Rain', icon: '🌧️', img: `${SPELL}aether-spring.png`, does: 'Plants grow faster. Swimmers splash.' },
+  { id: 'snow', label: 'Snow', icon: '🌨️', img: `${SPELL}ice-spikes.png`, does: 'Cold! Creatures without warm fur get chilly.' },
+  { id: 'fog', label: 'Fog', icon: '🌫️', img: `${SPELL}cyclone-ward.png`, does: 'Hard to see. Everyone moves slowly.' },
+  { id: 'wind', label: 'Wind', icon: '🍃', img: `${SPELL}verdant-cycle.png`, does: 'Fliers glide, and leaves blow around.' },
+  { id: 'storm', label: 'Storm', icon: '⛈️', img: `${SPELL}dark-bolt.png`, does: 'Thunder and lightning! Fliers and walkers get soaked.' },
+];
+const DIS_IMG: Partial<Record<Disaster, string>> = { wildfire: `${SPELL}firebolt.png`, blizzard: `${SPELL}glacial-eruption.png`, earthquake: `${SPELL}earth-spike.png`, tornado: `${SPELL}tornado.png` };
+const DIS_DOES: Record<Disaster, string> = {
+  flood: 'Water rises. Swimmers and fliers are safe.', wildfire: 'Fire spreads. Swimmers and fiery creatures are safe.', blizzard: 'Freezing snow. Thick fur and swimmers are safe.',
+  earthquake: 'No warning! Fliers and swimmers are safe.', drought: 'No rain, and the pond shrinks. Desert bodies are safe.', tornado: 'Spinning wind. Tough, heavy creatures are safe; fliers get tossed.',
+};
+// The potion hotbar (Build Queue 117): creature potions arm, then a tap or a drag gives them;
+// Habitat potions work right away.
+const HOT: { name: string; who: 'one' | 'all'; does: string }[] = [
+  { name: 'Vita', who: 'one', does: 'heals one creature' }, { name: 'Dorm', who: 'one', does: 'calms high energy' }, { name: 'Viv', who: 'one', does: 'wakes low energy' },
+  { name: 'Mega', who: 'one', does: 'makes one giant' }, { name: 'Megavita', who: 'all', does: 'heals everyone' }, { name: 'Lumin', who: 'all', does: 'lights at night' },
+  { name: 'Cryo', who: 'all', does: 'puts out a wildfire' }, { name: 'Aqua', who: 'all', does: 'ends a drought' }, { name: 'Pyro', who: 'all', does: 'ends a blizzard' },
 ];
 // Signs before each disaster and what happens after are the real science (plan section 16).
 const DISASTERS: Record<Disaster, { label: string; icon: string; sign: string; after: string }> = {
@@ -87,8 +108,8 @@ function WeatherLayer({ kind, opacity = 1, dark = false }: { kind: keyof typeof 
   return <canvas ref={ref} width={W} height={H} className="sn-wx" style={{ opacity, filter: dark ? 'brightness(0.35)' : undefined }} aria-hidden="true" />;
 }
 
-function place(c: Creature, i: number): { x: number; y: number; d: number; t: number } {
-  if (c.move === 'swim') return { x: POND.x + 50 + ((i * 67) % 170), y: POND.y + 40 + ((i * 31) % 60), d: 50 + (i % 3) * 20, t: 9 + (i % 4) * 2 };
+function place(c: Creature, i: number, k = i): { x: number; y: number; d: number; t: number } {
+  if (c.move === 'swim') return { x: POND.x + 20 + ((k * 110) % 220), y: POND.y + 10 + (Math.floor(k / 2) % 3) * 50, d: k % 2 ? -40 : 40, t: 9 + (k % 4) * 2 };
   if (c.move === 'fly') return { x: 240 + ((i * 137) % 460), y: 24 + ((i * 53) % 100), d: 0, t: 16 + (i % 5) * 3 };
   return { x: 240 + ((i * 149) % 440), y: 210 + ((i * 71) % 220), d: (i % 2 ? -1 : 1) * (90 + (i % 4) * 25), t: 18 + (i % 5) * 4 };
 }
@@ -126,7 +147,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 }) {
   // Found creatures plus the ones the student made in the Creature Maker.
   const roster = useMemo(() => [...madeList().slice(-6).map((m) => m.id), ...found.slice(-12)].map((id) => byId(id)).filter((c): c is Creature => !!c).slice(0, 16), [found]);
-  const [live, setLive] = useState<Live[]>(() => roster.map((c, i) => ({ c, ...place(c, i), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
+  const [live, setLive] = useState<Live[]>(() => roster.map((c, i) => ({ c, ...place(c, i, roster.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
   const [biome, setBiome] = useState<Biome>((saved.biome as Biome) || 'grassland');
   const [weather, setWeather] = useState<Weather>('clear');
   const [timeMode, setTimeMode] = useState<TimeMode>('auto');
@@ -151,7 +172,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [sparkle, setSparkle] = useState<string | null>(null);
   const [glow, setGlow] = useState(false);
   const [giant, setGiant] = useState<string | null>(null);
-  const [potionMenu, setPotionMenu] = useState(false);
+  const [armed, setArmed] = useState<string | null>(null);
+  const [slotMsg, setSlotMsg] = useState<string | null>(null);
+  const [potionDrag, setPotionDrag] = useState<{ name: string; x: number; y: number } | null>(null);
+  const [reactOpen, setReactOpen] = useState(false);
   const [gensOpen, setGensOpen] = useState(false);
   const [playing, setPlaying] = useState<Creature | null>(null);
   const have = (n: string) => potions.filter((p) => p === n).length;
@@ -159,10 +183,22 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const night = timeMode === 'night' || (timeMode === 'auto' && clock >= 0.62) || weather === 'meteors';
   const active = dis?.phase === 'active' ? dis.kind : null;
   const sel_ = live.find((l) => l.c.id === sel);
+  // Every creature's reaction to what is happening right now (Build Queue 118).
+  const reactions = useMemo(() => Object.fromEntries(live.map((l) => [l.c.id, react(l.c, { weather, disaster: active, night, biome })])) as Record<string, Reaction>,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [live.length, weather, active, night, biome]);
+  const situation = active ? DISASTERS[active].label.toLowerCase() : weather !== 'clear' ? weather : night ? 'night' : biome;
+  useEffect(() => {
+    if (!live.length) return;
+    const safe = live.filter((l) => reactions[l.c.id]?.hit === 0).map((l) => l.c.name);
+    const trouble = live.filter((l) => (reactions[l.c.id]?.hit ?? 0) > 0).map((l) => l.c.name);
+    if (active || weather === 'storm' || weather === 'snow') setNote(`In the ${situation}: ${safe.length ? `${safe.join(', ')} ${safe.length === 1 ? 'is' : 'are'} fine. ` : ''}${trouble.length ? `${trouble.join(', ')} ${trouble.length === 1 ? 'needs' : 'need'} help: take cover or use a potion.` : 'Everyone is safe!'} Tap How they react to see why.`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [situation]);
 
   const tell = (t: string, speak = false) => { setNote(t); if (speak) say(t); };
   // Magic weathers unlock with the Naturalist rank (Build Queue 105). They never wear anyone out.
-  const weathers = [...WEATHERS, ...(rankLevel >= 2 ? [{ id: 'rainbow' as Weather, label: 'Rainbow Storm (magic)', icon: '🌈' }] : []), ...(rankLevel >= 3 ? [{ id: 'meteors' as Weather, label: 'Meteor Sparkles (magic)', icon: '☄️' }] : [])];
+  const weathers = [...WEATHERS, ...(rankLevel >= 2 ? [{ id: 'rainbow' as Weather, label: 'Rainbow Storm (magic)', icon: '🌈', img: `${SPELL}frostflame-confluence.png`, does: 'Magic rain: nobody gets hurt.' }] : []), ...(rankLevel >= 3 ? [{ id: 'meteors' as Weather, label: 'Meteor Sparkles (magic)', icon: '☄️', img: `${SPELL}shooting-stars.png`, does: 'A magic night sky.' }] : [])];
   const [levels, setLevels] = useState<Record<string, number>>(saved.levels ?? {});
   const count = (id: string) => eco.groups[id] ?? START_GROUP;
   const eatsOf = (c: Creature) => c.eats ?? 'magic';
@@ -241,14 +277,11 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       const hit = (n: number, s: string) => { hp = Math.max(0, hp - n); status = s; };
       const likes = l.c.likes.includes(biome);
       if (hp > 0 && !l.hide) {
-        if (active === 'flood' && l.c.move !== 'swim' && l.c.move !== 'fly') hit(1, 'soggy');
-        else if (active === 'wildfire' && l.c.move !== 'swim') hit(1, 'smoky');
-        else if (active === 'blizzard' && !l.c.likes.includes('snow')) hit(1, 'chilly');
-        else if (active === 'earthquake' && (l.c.move === 'walk')) hit(1, 'dizzy');
-        else if (active === 'drought' && (l.c.move === 'swim' || !l.c.likes.includes('desert'))) hit(1, 'thirsty');
-        else if (active === 'tornado') hit(l.c.move === 'fly' ? 2 : 1, 'dizzy');
-        else if (!active && weather === 'storm' && tick % 2 === 0 && l.c.move !== 'swim') hit(1, 'soggy');
-        else if (!active && weather === 'snow' && !l.c.likes.includes('snow') && tick % 3 === 0) hit(1, 'chilly');
+        // Each creature's own body decides what happens to it (supernatureAdapt.ts).
+        const r = react(l.c, { weather, disaster: active, night, biome });
+        if (active && r.hit) hit(r.hit, r.status ?? 'tired');
+        else if (!active && weather === 'storm' && r.hit && tick % 2 === 0) hit(r.hit, r.status ?? 'soggy');
+        else if (!active && weather === 'snow' && r.hit && tick % 3 === 0) hit(r.hit, r.status ?? 'chilly');
         else if (!likes && l.c.move !== 'swim' && tick % 6 === 0 && hp > 2) hit(1, 'homesick');
       }
       const calm = !dis && (weather === 'clear' || weather === 'fog' || weather === 'wind' || weather === 'rain' || weather === 'rainbow' || weather === 'meteors');
@@ -310,8 +343,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   // Potions from the Cookbook (Build Queue 101): one creature at a time, or the whole Habitat.
   const sparkleOn = (id: string) => { setSparkle(id); window.setTimeout(() => setSparkle(null), 2500); };
-  const giveTo = (name: string) => {
+  const giveTo = (name: string, targetId?: string) => {
+    const sel_ = live.find((l) => l.c.id === (targetId ?? sel));
     if (!sel_ || have(name) < 1) return;
+    setArmed(null);
     usePotion(name); snSound('done'); sparkleOn(sel_.c.id);
     if (name === 'Vita') { setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, hp: 5, status: null } : l))); tell(`The Vita potion worked! ${sel_.c.name} has all 5 hearts again.`, true); }
     if (name === 'Dorm' || name === 'Viv') { setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, energy: 'just right' } : l))); tell(`The ${name} potion worked! ${sel_.c.name} has just right energy.`, true); }
@@ -319,20 +354,42 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   const habitatPotion = (name: string) => {
     if (have(name) < 1) return;
-    usePotion(name); snSound('done'); setPotionMenu(false);
+    usePotion(name); snSound('done'); setArmed(null);
     if (name === 'Lumin') { setGlow(true); tell('Lumin! Floating lights will glow all night in your Habitat.', true); }
     if (name === 'Megavita') { setLive((ls) => ls.map((l) => ({ ...l, hp: 5, status: null }))); tell('Megavita! Every creature has all 5 hearts again.', true); }
     if ((name === 'Cryo' && active === 'wildfire') || (name === 'Aqua' && active === 'drought') || (name === 'Pyro' && active === 'blizzard')) {
       setDis({ kind: dis!.kind, phase: 'after', left: 2 }); tell(`The ${name} potion stopped the ${dis!.kind}! ${DISASTERS[dis!.kind].after}`, true);
     }
   };
-  const HAB_POTIONS: { name: string; ok: boolean; why: string }[] = [
-    { name: 'Lumin', ok: true, why: 'floating lights at night' },
-    { name: 'Megavita', ok: true, why: 'heals every creature' },
-    { name: 'Cryo', ok: active === 'wildfire', why: 'puts out a wildfire' },
-    { name: 'Aqua', ok: active === 'drought', why: 'ends a drought' },
-    { name: 'Pyro', ok: active === 'blizzard', why: 'ends a blizzard' },
-  ];
+  const tapSlot = (h: typeof HOT[number]) => {
+    snSound('tap'); setMenu(null);
+    if (have(h.name) < 1) { setArmed(null); setSlotMsg(h.name); return; }
+    setSlotMsg(null);
+    if (h.who === 'one') { setArmed(armed === h.name ? null : h.name); setSel(null); return; }
+    const need = h.name === 'Cryo' ? 'wildfire' : h.name === 'Aqua' ? 'drought' : h.name === 'Pyro' ? 'blizzard' : null;
+    if (need && active !== need) { tell(`${h.name} ${h.does}. There is no ${need} right now, so save it for later.`); return; }
+    habitatPotion(h.name);
+  };
+  const fits = (name: string, l: Live) => name === 'Vita' ? l.hp < 5 : name === 'Dorm' ? (l.energy === 'high' || l.energy === 'very high') : name === 'Viv' ? (l.energy === 'low' || l.energy === 'very low') : name === 'Mega' ? giant !== l.c.id : false;
+  const dropOn = (name: string, cx: number, cy: number) => {
+    const el = document.elementFromPoint(cx, cy)?.closest('[data-crit]') as HTMLElement | null;
+    const id = el?.dataset.crit; const l = live.find((x) => x.c.id === id);
+    if (!l) return;
+    if (!fits(name, l)) { tell(`${l.c.name} does not need ${name} right now.`); return; }
+    giveTo(name, l.c.id);
+  };
+  const startPotionDrag = (e: React.PointerEvent, h: typeof HOT[number]) => {
+    if (h.who !== 'one' || have(h.name) < 1) return;
+    const st = document.querySelector('.sn-stage')!.getBoundingClientRect(); const k = st.width / 1180;
+    const start = { x: e.clientX, y: e.clientY }; let moved = false;
+    const mv = (ev: PointerEvent) => { if (!moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 10) moved = true; if (moved) setPotionDrag({ name: h.name, x: (ev.clientX - st.left) / k, y: (ev.clientY - st.top) / k }); };
+    const upH = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', upH); window.removeEventListener('pointercancel', upH);
+      setPotionDrag(null);
+      if (moved) { setTimeout(() => dropOn(h.name, ev.clientX, ev.clientY), 0); } else tapSlot(h);
+    };
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', upH); window.addEventListener('pointercancel', upH);
+  };
   const tapFace = (e: Energy) => {
     if (!sel_) return; setPick(e);
     if (e === sel_.energy) { snSound('chime'); onCheckin(); say(`${sel_.c.name} has ${sel_.energy} energy.`); } else snSound('fizzle');
@@ -375,9 +432,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           const still = k === 0 || l.hp === 0;
           const pos = l.hide ? (l.c.move === 'swim' ? { left: l.x, top: l.y + 40 } : { left: CAVE.x + 50, top: CAVE.y + 60 }) : { left: l.x, top: l.y };
           return (
-            <button key={l.c.id} type="button" className={`sn-crit ${l.c.move}${still ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}`}
+            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${l.c.move}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
               style={{ ...pos, zIndex: l.c.move === 'fly' ? 4 : 3, ['--d' as string]: `${l.d}px`, ['--t' as string]: `${l.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s` }}
-              onClick={(e) => { e.stopPropagation(); snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. Tap to check on it.`}>
+              onClick={(e) => { e.stopPropagation(); if (armed) { if (fits(armed, l)) giveTo(armed, l.c.id); else tell(`${l.c.name} does not need ${armed} right now.`); return; } snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. ${reactions[l.c.id]?.text ?? ''} Tap to check on it.`}>
+              {reactions[l.c.id] && reactions[l.c.id].word !== 'at home' && !l.hide && <span className={`sn-react${reactions[l.c.id].hit ? ' bad' : ''}`}>{reactions[l.c.id].icon} {reactions[l.c.id].word}</span>}
               <img src={art(l.c.id)} alt="" />
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <span className="sn-sparkles" />}
@@ -389,23 +447,30 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         })}
 
         {roster.length > 0 && (
-          <div className="sn-season" onClick={(e) => e.stopPropagation()}>
-            <span className="sn-season-name">{seasonName(eco.season)} · season {eco.season + 1}</span>
-            <span className="sn-season-plants">🌱 plants {eco.plants} · 🍄 {eco.mush}</span>
-            <button type="button" className="sn-btn2 small" onClick={() => { snSound('page'); setWeb(true); setWhatIf(null); }}>🕸️ Food web</button>
-            <button type="button" className="sn-btn2 small go" onClick={() => { snSound('tap'); setPredict({ id: roster.find((c) => count(c.id) > 0)?.id ?? roster[0].id, guess: null }); }}>⏭️ Next season</button>
-            <button type="button" className="sn-btn2 small" onClick={() => { snSound('open'); setGensOpen(true); }}>🧬 Generations</button>
-            <button type="button" className="sn-btn2 small" onClick={() => { snSound('open'); setPotionMenu(!potionMenu); }}>🧪 Potions</button>
-            {potionMenu && (
-              <div className="sn-potion-menu">
-                {HAB_POTIONS.map((p) => (
-                  <button key={p.name} type="button" className="sn-btn2 small" disabled={have(p.name) < 1 || !p.ok} onClick={() => habitatPotion(p.name)}>
-                    {p.name} ({have(p.name)}): {p.why}
-                  </button>
-                ))}
-                <button type="button" className="sn-btn2 small" onClick={() => goCauldron('Lumin')}>Brew potions</button>
-              </div>
-            )}
+          <>
+            <div className="sn-hud" onClick={(e) => e.stopPropagation()}>
+              <span>🌱 {seasonName(eco.season)} · season {eco.season + 1}</span>
+              <span>Plants {eco.plants} · Mushrooms {eco.mush}</span>
+            </div>
+            <div className="sn-rail" onClick={(e) => e.stopPropagation()}>
+              <button type="button" className="sn-railbtn go" onClick={() => { snSound('tap'); setArmed(null); setPredict({ id: roster.find((c) => count(c.id) > 0)?.id ?? roster[0].id, guess: null }); }}><span>⏭️</span>Next season</button>
+              <button type="button" className="sn-railbtn" onClick={() => { snSound('page'); setReactOpen(true); }}><span>👀</span>How they react</button>
+              <button type="button" className="sn-railbtn" onClick={() => { snSound('page'); setWeb(true); setWhatIf(null); }}><span>🕸️</span>Food web</button>
+              <button type="button" className="sn-railbtn" onClick={() => { snSound('open'); setGensOpen(true); }}><span>🧬</span>Generations</button>
+            </div>
+          </>
+        )}
+        {armed && (
+          <div className="sn-armed" role="status" onClick={(e) => e.stopPropagation()}>
+            <img src={POTION_ICON[armed]} alt="" /><span>Tap a glowing creature to give it <b>{armed}</b>, or drag the bottle onto it.</span>
+            <button type="button" className="sn-btn2 small" onClick={() => setArmed(null)}>Cancel</button>
+          </div>
+        )}
+        {slotMsg && (
+          <div className="sn-armed" role="status" onClick={(e) => e.stopPropagation()}>
+            <img src={POTION_ICON[slotMsg]} alt="" className="sn-shadow" /><span>You have no {slotMsg} potions. {RECIPES.find((r) => r.name === slotMsg)?.does}</span>
+            <button type="button" className="sn-btn2 small go" onClick={() => goCauldron(slotMsg)}>Brew one</button>
+            <button type="button" className="sn-btn2 small" onClick={() => setSlotMsg(null)}>Close</button>
           </div>
         )}
         {roster.length === 0 && (
@@ -448,17 +513,16 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-ib small" onClick={() => setSel(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button>
             </div>
             <div className="sn-hearts big" aria-label={`${sel_.hp} of 5 hearts`}>{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < sel_.hp ? 'full' : ''} />)}</div>
+            {reactions[sel_.c.id] && <p className={`sn-pop-react${reactions[sel_.c.id].hit ? ' bad' : ''}`}>{reactions[sel_.c.id].icon} {reactions[sel_.c.id].text}{reactions[sel_.c.id].because ? <><br /><b>Why:</b> {reactions[sel_.c.id].because}.</> : null}</p>}
             <p className="sn-pop-status"><b>Level {levels[sel_.c.id] ?? 1}.</b> {sel_.status ? STATUS[sel_.status] : 'Happy and healthy.'}
               {sel_.status === 'homesick' && ` It likes: ${sel_.c.likes.map((b) => BIOMES.find((x) => x.id === b)!.label.toLowerCase()).join(', ')}.`}</p>
             {!checkIn ? (
               <div className="sn-pop-actions">
                 <button type="button" className="sn-btn2" onClick={() => { snSound('open'); setCheckIn(true); }}>Check its energy</button>
-                {sel_.hp < 5 && (have('Vita') > 0
-                  ? <button type="button" className="sn-btn2 go" onClick={() => giveTo('Vita')}>Give Vita potion ({have('Vita')})</button>
-                  : <button type="button" className="sn-btn2" onClick={() => goCauldron('Vita')}>Brew a Vita potion</button>)}
-                {(sel_.energy === 'high' || sel_.energy === 'very high') && have('Dorm') > 0 && <button type="button" className="sn-btn2 go" onClick={() => giveTo('Dorm')}>Give Dorm potion to calm it ({have('Dorm')})</button>}
-                {(sel_.energy === 'low' || sel_.energy === 'very low') && have('Viv') > 0 && <button type="button" className="sn-btn2 go" onClick={() => giveTo('Viv')}>Give Viv potion to wake it up ({have('Viv')})</button>}
-                {have('Mega') > 0 && giant !== sel_.c.id && <button type="button" className="sn-btn2" onClick={() => giveTo('Mega')}>Give Mega potion ({have('Mega')})</button>}
+                {HOT.filter((h) => h.who === 'one' && have(h.name) > 0 && fits(h.name, sel_)).map((h) => (
+                  <button key={h.name} type="button" className="sn-btn2 go potion" onClick={() => giveTo(h.name)}><img src={POTION_ICON[h.name]} alt="" />Give {h.name} ({have(h.name)}): {h.does}</button>
+                ))}
+                {sel_.hp < 5 && have('Vita') < 1 && <button type="button" className="sn-btn2" onClick={() => goCauldron('Vita')}>Brew a Vita potion to heal it</button>}
                 <button type="button" className="sn-btn2 go" disabled={sel_.hp === 0} onClick={() => { snSound('open'); setPlaying(sel_.c); setSel(null); }}>🎮 Be this creature</button>
                 <button type="button" className="sn-btn2" onClick={() => openPage(sel_.c.id)}>Read its page</button>
               </div>
@@ -486,6 +550,28 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
       {playing && <SupernatureBe c={playing} roster={roster} biome={biome} say={say} onClose={() => setPlaying(null)} />}
       {gensOpen && <SupernatureGenerations roster={roster} biome={biome} disaster={active} say={say} onClose={() => setGensOpen(false)} goNames={goNames} />}
+      {reactOpen && (
+        <div className="sn-modal" role="dialog" aria-label="How they react" onClick={() => setReactOpen(false)}>
+          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+            <h2>👀 How they react: {situation}</h2>
+            <p className="sn-small">Every creature's body decides what happens to it. Change the land, the weather or the time, or start a disaster, and watch them adapt.</p>
+            <ul className="sn-notes react">
+              {live.map((l) => { const r = reactions[l.c.id]; return r && (
+                <li key={l.c.id} className={r.hit ? 'bad' : 'ok'}>
+                  <span><img src={art(l.c.id)} alt="" />{l.c.name}</span>
+                  <b>{r.icon} {r.word}</b>
+                  <em>{r.text}{r.because ? ` Why: ${r.because}.` : ''}{r.hit ? ` It loses ${r.hit} ${r.hit === 1 ? 'heart' : 'hearts'} at a time unless it takes cover.` : ''}</em>
+                </li>
+              ); })}
+            </ul>
+            <p className="sn-small"><b>Body features to look for:</b> {Object.values(TAG_WORDS).slice(0, 7).join(' · ')}.</p>
+            <div className="sn-row center">
+              <button type="button" className="sn-btn2" onClick={() => say(live.map((l) => reactions[l.c.id]?.text).filter(Boolean).join(' '))}>Listen</button>
+              <button type="button" className="sn-btn" onClick={() => setReactOpen(false)}>Keep exploring</button>
+            </div>
+          </div>
+        </div>
+      )}
       {predict && (
         <div className="sn-modal" role="dialog" aria-label="Predict the season">
           <div className="sn-modal-card">
@@ -565,24 +651,40 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         </div>
       )}
 
-      <div className="sn-controls" onClick={(e) => e.stopPropagation()}>
-        <button type="button" className={`sn-ctl${menu === 'land' ? ' on' : ''}`} onClick={() => setMenu(menu === 'land' ? null : 'land')}><span>{BIOMES.find((b) => b.id === biome)!.icon}</span>Land: {BIOMES.find((b) => b.id === biome)!.label}</button>
-        <button type="button" className={`sn-ctl${menu === 'time' ? ' on' : ''}`} onClick={() => setMenu(menu === 'time' ? null : 'time')}><span>{night ? '🌙' : '☀️'}</span>Time: {timeMode === 'auto' ? (night ? 'Night' : 'Day') + ' (auto)' : timeMode === 'day' ? 'Day' : 'Night'}</button>
-        <button type="button" className={`sn-ctl${menu === 'weather' ? ' on' : ''}`} onClick={() => setMenu(menu === 'weather' ? null : 'weather')}><span>{weathers.find((w) => w.id === weather)!.icon}</span>Weather: {weathers.find((w) => w.id === weather)!.label}</button>
-        <button type="button" className={`sn-ctl${menu === 'disaster' ? ' on' : ''}`} onClick={() => setMenu(menu === 'disaster' ? null : 'disaster')} disabled={!!dis}><span>⚠️</span>{dis ? `${DISASTERS[dis.kind].label}...` : 'Disasters'}</button>
-        <button type="button" className={`sn-ctl${surprise ? ' on2' : ''}`} aria-pressed={surprise} onClick={() => { setSurprise(!surprise); tell(surprise ? 'Surprises are off. Only you change things.' : 'Surprises are on. Weather and events can change on their own.'); }}><span>🎲</span>Surprises: {surprise ? 'On' : 'Off'}</button>
-        <span style={{ flex: 1 }} />
-        <button type="button" className="sn-ctl cover" onClick={takeCover} disabled={live.length === 0}><span>🛖</span>{covered ? 'Come out' : 'Take cover'}</button>
+      <div className="sn-dock" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-dock-world">
+          <button type="button" className={`sn-wtile${menu === 'land' ? ' on' : ''}`} onClick={() => setMenu(menu === 'land' ? null : 'land')}><img src={BIOMES.find((b) => b.id === biome)!.img} alt="" /><b>Land</b><small>{BIOMES.find((b) => b.id === biome)!.label}</small></button>
+          <button type="button" className={`sn-wtile${menu === 'time' ? ' on' : ''}`} onClick={() => setMenu(menu === 'time' ? null : 'time')}><span>{night ? '🌙' : '☀️'}</span><b>Time</b><small>{timeMode === 'auto' ? 'auto' : timeMode}</small></button>
+          <button type="button" className={`sn-wtile${menu === 'weather' ? ' on' : ''}`} onClick={() => setMenu(menu === 'weather' ? null : 'weather')}>{weathers.find((w) => w.id === weather)!.img ? <img src={weathers.find((w) => w.id === weather)!.img} alt="" /> : <span>{weathers.find((w) => w.id === weather)!.icon}</span>}<b>Weather</b><small>{weathers.find((w) => w.id === weather)!.label.replace(' (magic)', '')}</small></button>
+          <button type="button" className={`sn-wtile${menu === 'disaster' ? ' on' : ''}${dis ? ' busy' : ''}`} onClick={() => !dis && setMenu(menu === 'disaster' ? null : 'disaster')}><span>⚠️</span><b>Disaster</b><small>{dis ? DISASTERS[dis.kind].label : 'pick one'}</small></button>
+          <button type="button" className={`sn-wtile${surprise ? ' on2' : ''}`} aria-pressed={surprise} onClick={() => { setSurprise(!surprise); tell(surprise ? 'Surprises are off. Only you change things.' : 'Surprises are on. Weather and events can change on their own.'); }}><span>🎲</span><b>Surprises</b><small>{surprise ? 'on' : 'off'}</small></button>
+        </div>
+        <div className="sn-hotbar" role="toolbar" aria-label="Potions">
+          <span className="sn-hotbar-label">Potions</span>
+          {HOT.map((h) => (
+            <button key={h.name} type="button" className={`sn-slot3${have(h.name) ? '' : ' empty'}${armed === h.name ? ' armed' : ''}`} onPointerDown={(e) => startPotionDrag(e, h)}
+              onClick={() => { if (h.who !== 'one' || have(h.name) < 1) tapSlot(h); }} aria-label={`${h.name}: ${h.does}. You have ${have(h.name)}.`}>
+              <img src={POTION_ICON[h.name]} alt="" />
+              <i>{have(h.name)}</i>
+              <small>{h.name}</small>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="sn-wtile cover" onClick={takeCover} disabled={live.length === 0}><span>🛖</span><b>{covered ? 'Come out' : 'Take cover'}</b><small>shelter</small></button>
 
         {menu && (
-          <div className={`sn-menu ${menu}`} role="menu">
-            {menu === 'land' && BIOMES.map((b) => <button key={b.id} type="button" className={biome === b.id ? 'on' : ''} onClick={() => { setBiome(b.id); setMenu(null); snSound('page'); tell(`The land is ${b.label.toLowerCase()}. Watch which creatures feel at home here.`); }}><span>{b.icon}</span>{b.label}</button>)}
-            {menu === 'time' && ([['auto', '🔄', 'Day and night (auto)'], ['day', '☀️', 'Day'], ['night', '🌙', 'Night']] as const).map(([id, ic, label]) => <button key={id} type="button" className={timeMode === id ? 'on' : ''} onClick={() => { setTimeMode(id); setMenu(null); snSound('chime'); }}><span>{ic}</span>{label}</button>)}
-            {menu === 'weather' && weathers.map((w) => <button key={w.id} type="button" className={weather === w.id ? 'on' : ''} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setMenu(null); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); tell(`The weather is ${w.label.toLowerCase()}.`); }}><span>{w.icon}</span>{w.label}</button>)}
-            {menu === 'disaster' && (Object.keys(DISASTERS) as Disaster[]).map((d) => <button key={d} type="button" onClick={() => startDisaster(d)}><span>{DISASTERS[d].icon}</span>{DISASTERS[d].label}</button>)}
+          <div className="sn-tray2" role="menu">
+            <div className="sn-tray2-head"><b>{menu === 'land' ? 'Pick the land' : menu === 'time' ? 'Pick the time' : menu === 'weather' ? 'Pick the weather' : 'Start a disaster'}</b><button type="button" className="sn-ib small light" onClick={() => setMenu(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button></div>
+            <div className="sn-tray2-row">
+              {menu === 'land' && BIOMES.map((b) => <button key={b.id} type="button" className={`sn-opt3${biome === b.id ? ' on' : ''}`} onClick={() => { setBiome(b.id); setMenu(null); snSound('page'); tell(`The land is ${b.label.toLowerCase()}. ${b.does}`); }}><img src={b.img} alt="" /><b>{b.label}</b><small>{b.does}</small></button>)}
+              {menu === 'time' && ([['auto', '🔄', 'Day and night', 'Day and night take turns.'], ['day', '☀️', 'Day', 'Always day.'], ['night', '🌙', 'Night', 'Always night. Night creatures wake up.']] as const).map(([id, ic, label, does]) => <button key={id} type="button" className={`sn-opt3${timeMode === id ? ' on' : ''}`} onClick={() => { setTimeMode(id); setMenu(null); snSound('chime'); tell(does); }}><span>{ic}</span><b>{label}</b><small>{does}</small></button>)}
+              {menu === 'weather' && weathers.map((w) => <button key={w.id} type="button" className={`sn-opt3${weather === w.id ? ' on' : ''}`} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setMenu(null); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); }}>{w.img ? <img src={w.img} alt="" /> : <span>{w.icon}</span>}<b>{w.label}</b><small>{w.does}</small></button>)}
+              {menu === 'disaster' && (Object.keys(DISASTERS) as Disaster[]).map((d) => <button key={d} type="button" className="sn-opt3" onClick={() => startDisaster(d)}>{DIS_IMG[d] ? <img src={DIS_IMG[d]} alt="" /> : <span>{DISASTERS[d].icon}</span>}<b>{DISASTERS[d].label}</b><small>{DIS_DOES[d]}</small></button>)}
+            </div>
           </div>
         )}
       </div>
+      {potionDrag && <img src={POTION_ICON[potionDrag.name]} alt="" className="sn-drag-ghost" style={{ left: potionDrag.x - 30, top: potionDrag.y - 30 }} />}
     </div>
   );
 }

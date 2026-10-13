@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-habitat-hotbar",
+    date: "2026-10-13",
+    icon: "🎒",
+    title: "A potion hotbar and creatures that react",
+    body: "The Habitat has a new bar at the bottom. Pick the land, time, weather or a disaster from picture cards. Your potions sit in a hotbar: tap a bottle, then tap a glowing creature, or drag the bottle onto it. Every creature now shows how its body handles each change, like diving deep in a storm or fluffing its fur in the snow. Tap How they react to see them all.",
+  },
+  {
     id: "2026-10-13-maker-facts",
     date: "2026-10-13",
     icon: "✍️",

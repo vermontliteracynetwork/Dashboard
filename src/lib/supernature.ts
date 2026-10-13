@@ -185,3 +185,12 @@ export function naturalist(save: SnSave) {
   let level = 0; RANKS.forEach((r, i) => { if (xp >= r.at) level = i; });
   return { xp, level, rank: RANKS[level], next: RANKS[level + 1], parts };
 }
+
+// Pixel bottles for every potion (her Witch's Cabinet), used by the Habitat hotbar and the Cauldron.
+const BREW = `${SN}cabinet/bottled-brews/`;
+export const POTION_ICON: Record<string, string> = {
+  Aero: `${BREW}preserved_fairy.png`, Vita: `${BREW}healing_tincture.png`, Dorm: `${BREW}sleepy_draught.png`, Viv: `${BREW}liquid_luck.png`,
+  Lumin: `${BREW}bottled_moonlight.png`, Cryo: `${BREW}ghost_essence.png`, Aqua: `${BREW}mana_draught.png`, Fort: `${BREW}mystery_potion.png`,
+  Velo: `${BREW}memory_tonic.png`, Mega: `${BREW}transformation_serum.png`, Veloaero: `${BREW}bottled_storm.png`, Megavita: `${BREW}friendship_philter.png`,
+  Pyro: `${BREW}dragonfire_flask.png`,
+};

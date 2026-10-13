@@ -1,0 +1,106 @@
+// How every Habitat creature reacts to the land, the weather, the time and disasters (Build Queue
+// 118, her words: "show how all creatures with the habitat respond/adapt/react to the habitat
+// changes"; and 116: "make sure different features equate to different reactions and adaptations
+// in different habitats"). Each reaction comes from the creature's own body: thick fur keeps it warm
+// in a blizzard, swimmers dive away from floods and fires, fliers take off in an earthquake but get
+// tossed by a tornado, desert bodies save water in a drought. The reason is always said out loud,
+// so the adaptation is the lesson.
+import type { Biome, Creature } from './supernatureCreatures';
+
+export type Tag = 'fly' | 'swim' | 'float' | 'warm' | 'heat' | 'tough' | 'fire' | 'night' | 'magic';
+export function tagsOf(c: Creature): Set<Tag> {
+  const t = c.traits.join(' ').toLowerCase(); const s = new Set<Tag>();
+  if (c.move === 'fly' || t.includes('flying')) s.add('fly');
+  if (c.move === 'swim' || /aquatic|water breathing|swimming|fin tail|swimmer/.test(t)) s.add('swim');
+  if (c.move === 'float' || t.includes('floating')) s.add('float');
+  if (c.likes.includes('snow') || /fur|shaggy|snow walker/.test(t)) s.add('warm');
+  if (c.likes.includes('desert') || /desert/.test(t)) s.add('heat');
+  if (/tough scales|hard shell|clay|giant|huge|strong|tough/.test(t) || c.chapter === 'colossal') s.add('tough');
+  if (/fire|fiery/.test(t)) s.add('fire');
+  if (/night creature|night/.test(t)) s.add('night');
+  if (c.chapter === 'gods' || (c.chapter === 'spirits' && c.eats === 'magic')) s.add('magic');
+  return s;
+}
+export const TAG_WORDS: Record<Tag, string> = {
+  fly: 'It can fly', swim: 'It can swim', float: 'It floats', warm: 'Thick fur or a warm body', heat: 'A body made for heat and dry land',
+  tough: 'A tough, heavy body', fire: 'A fiery body', night: 'It is a night creature', magic: 'Magic protects it',
+};
+// What each body feature does in the Habitat, for the Creature Maker preview.
+export const TAG_EFFECTS: Record<Tag, string> = {
+  fly: 'Flies above floods and earthquakes, but strong wind tosses it.',
+  swim: 'Dives away from floods, fires and storms; gets thirsty in a drought.',
+  float: 'Floats safely over floods and shaking ground.',
+  warm: 'Stays warm in snow and blizzards.',
+  heat: 'Saves water in a drought and loves the hot sun.',
+  tough: 'Stands strong in storms and tornadoes.',
+  fire: 'Is not bothered by wildfire.',
+  night: 'Wakes up and explores at night.',
+  magic: 'Magic keeps it safe from everything.',
+};
+
+export type Pose = 'none' | 'dive' | 'land' | 'shiver' | 'fluff' | 'brace' | 'bask' | 'sleep' | 'glow' | 'splash';
+export interface Reaction { icon: string; word: string; text: string; hit: number; status?: string; pose: Pose; because?: string }
+export interface Ctx { weather: string; disaster: string | null; night: boolean; biome: Biome }
+
+export function react(c: Creature, x: Ctx): Reaction {
+  const t = tagsOf(c); const n = c.name;
+  const ok = (icon: string, word: string, text: string, pose: Pose, tag?: Tag): Reaction => ({ icon, word, text: `${n} ${text}`, hit: 0, pose, because: tag ? TAG_WORDS[tag] : undefined });
+  const hurt = (icon: string, word: string, text: string, status: string, pose: Pose, hit = 1, why?: string): Reaction => ({ icon, word, text: `${n} ${text}`, hit, status, pose, because: why });
+  const bad = x.disaster || ['storm', 'snow'].includes(x.weather);
+  if (bad && t.has('magic')) return ok('✨', 'safe', 'is not bothered: its magic keeps it safe.', 'glow', 'magic');
+  switch (x.disaster) {
+    case 'flood':
+      if (t.has('swim')) return ok('🌊', 'swims', 'loves the extra water and swims around.', 'splash', 'swim');
+      if (t.has('fly')) return ok('🪽', 'flies up', 'flies up above the flood water.', 'none', 'fly');
+      if (t.has('float')) return ok('🫧', 'floats', 'floats safely over the water.', 'none', 'float');
+      return hurt('💧', 'soggy', 'gets soggy in the flood. It cannot swim or fly: take cover!', 'soggy', 'shiver');
+    case 'wildfire':
+      if (t.has('fire')) return ok('🔥', 'fine', 'is not bothered by the fire at all.', 'bask', 'fire');
+      if (t.has('swim')) return ok('🌊', 'dives', 'stays down in the pond, away from the smoke.', 'dive', 'swim');
+      if (t.has('fly')) return ok('🪽', 'flies off', 'flies far away from the smoke.', 'none', 'fly');
+      return hurt('💨', 'smoky', 'coughs from the smoke. Take cover!', 'smoky', 'shiver');
+    case 'blizzard':
+      if (t.has('warm')) return ok('🧥', 'warm', 'fluffs up its fur and stays warm.', 'fluff', 'warm');
+      if (t.has('swim')) return ok('🌊', 'dives', 'dives under the ice, where the water stays warmer.', 'dive', 'swim');
+      return hurt('🥶', 'chilly', 'shivers in the cold. It has no thick fur.', 'chilly', 'shiver');
+    case 'earthquake':
+      if (t.has('fly')) return ok('🪽', 'takes off', 'takes off into the air until the shaking stops.', 'none', 'fly');
+      if (t.has('swim') || t.has('float')) return ok('🌊', 'rocks', 'just rocks gently in the water.', 'none', t.has('swim') ? 'swim' : 'float');
+      return hurt('💫', 'dizzy', 'wobbles on the shaking ground.', 'dizzy', 'brace');
+    case 'drought':
+      if (t.has('heat')) return ok('🏜️', 'saves water', 'saves water in its body, like desert animals do.', 'bask', 'heat');
+      if (t.has('fly')) return ok('🪽', 'finds water', 'flies off to find water far away.', 'none', 'fly');
+      if (t.has('swim')) return hurt('🌵', 'thirsty', 'is worried: the pond is shrinking!', 'thirsty', 'shiver');
+      return hurt('🌵', 'thirsty', 'gets thirsty in the dry heat.', 'thirsty', 'shiver');
+    case 'tornado':
+      if (t.has('tough')) return ok('🪨', 'stands strong', 'is too heavy and strong to blow away.', 'brace', 'tough');
+      if (t.has('swim')) return ok('🌊', 'dives', 'dives deep, under the wind.', 'dive', 'swim');
+      if (t.has('fly')) return hurt('🌪️', 'tossed', 'gets tossed by the wind: wings are no help in a tornado!', 'dizzy', 'shiver', 2, TAG_WORDS.fly);
+      return hurt('💫', 'dizzy', 'gets dizzy in the spinning wind. Take cover!', 'dizzy', 'brace');
+  }
+  switch (x.weather) {
+    case 'storm':
+      if (t.has('swim')) return ok('🌊', 'dives', 'dives deep where the storm cannot reach.', 'dive', 'swim');
+      if (t.has('tough')) return ok('🪨', 'stands strong', 'stands strong in the storm.', 'brace', 'tough');
+      if (t.has('fly')) return hurt('⚡', 'lands', 'lands and holds on tight. Flying in lightning is not safe.', 'soggy', 'land', 1, TAG_WORDS.fly);
+      return hurt('💧', 'soggy', 'gets soaked in the storm.', 'soggy', 'shiver');
+    case 'snow':
+      if (t.has('warm')) return ok('❄️', 'plays', 'plays in the snow. Its fur keeps it warm.', 'fluff', 'warm');
+      if (t.has('swim')) return ok('🌊', 'dives', 'stays under the water, where it is warmer.', 'dive', 'swim');
+      return hurt('🥶', 'chilly', 'gets chilly. It has no thick fur.', 'chilly', 'shiver');
+    case 'rain':
+      if (t.has('swim')) return ok('💦', 'splashes', 'splashes happily in the rain.', 'splash', 'swim');
+      if (t.has('fly')) return ok('🌳', 'waits', 'tucks its wings and waits under a tree.', 'land', 'fly');
+      if (t.has('warm')) return ok('💦', 'shakes', 'shakes the rain off its fur.', 'none', 'warm');
+      return ok('☂️', 'stays dry', 'finds a dry spot under the leaves.', 'none');
+    case 'wind':
+      if (t.has('fly')) return ok('🪽', 'glides', 'glides on the wind.', 'none', 'fly');
+      return ok('🍃', 'braces', 'leans into the wind.', 'brace');
+    case 'fog': return ok('🌫️', 'sniffs', 'moves slowly and sniffs its way through the fog.', 'none');
+    case 'rainbow': case 'meteors': return ok('🤩', 'amazed', 'watches the magic sky in wonder.', 'glow');
+  }
+  if (x.night) return t.has('night') ? ok('🌙', 'explores', 'wakes up and explores: it is a night creature.', 'glow', 'night') : ok('💤', 'sleeps', 'curls up to sleep for the night.', 'sleep');
+  if (!c.likes.includes(x.biome) && !t.has('swim')) return { icon: '🏠', word: 'homesick', text: `${n} misses its favorite land: ${c.likes.join(', ')}.`, hit: 0, status: 'homesick', pose: 'none' };
+  if (x.biome === 'desert' && t.has('heat')) return ok('☀️', 'basks', 'soaks up the hot sun.', 'bask', 'heat');
+  return ok('😊', 'at home', `feels at home in the ${x.biome}.`, 'none');
+}
