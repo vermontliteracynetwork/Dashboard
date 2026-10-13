@@ -1,6 +1,6 @@
 # Supernature: the plan
 
-Build Queue item 96 · Claudia · October 13, 2026 · **Status: planned, not built.** Building starts when her assets arrive and she answers the short list in section 12.
+Build Queue item 96 · Claudia · October 13, 2026 · **Status: planned, not built.** All four of her answers are in (2026-10-13, section 12). Building starts when her assets arrive.
 
 Supernature is a new app on the student computer. It replaces the old idea of a "Potion Lab". Students discover real mythical creatures from around the world, make their own creatures, and build a small living world where those creatures have to eat, rest and get along. Potions and wand spells are the magic that ties it together. Everything is 2D pixel art. Nothing is shared between students. **There is no blood anywhere: not in Supernature and not in any other part of the platform.**
 
@@ -35,8 +35,8 @@ The loop a student lives in: **find it, learn it, make one, keep it alive, brew 
   - Adaptations: traits learned from where the creature lives (section 5).
 - **Reading is a job** (Cauldron, Bestiary): every recipe and creature page is read; read-aloud on every screen.
 - **Order of operations** (Cauldron): recipe steps happen in order, and anything in the small mixing bowl happens first, just like parentheses in math (section 6).
-- **Cursive** (Wand): tracing spell words in Cursive Without Tears letter shapes (section 7).
-- **Self-regulation** (everywhere): the Energy scale and Zones (section 8).
+- **Cursive** (Wand): the class has learned every letter and is writing words, so students write whole words in Cursive Without Tears letter shapes, mostly creature names (section 7).
+- **Energy language** (everywhere): Energy check-ins on their creatures, using the 5-step energy scale with the original faces from her MyEnergy page (section 8). This is language the class is building, so it runs through every room.
 
 Questions from question sets are **not** part of Supernature for now (her answer: "no questions yet").
 
@@ -53,7 +53,8 @@ Questions from question sets are **not** part of Supernature for now (her answer
 
 - A pixel spell book with page turns, like her reference picture. Pages are grouped by continent and ocean, then a **My Creatures** section at the back.
 - An undiscovered creature is a dark silhouette with "???" and only its region shown.
-- A discovered page shows: the pixel picture, its name and how to say it (read aloud), where it comes from (country and people), a short story told respectfully, its traits, its diet, its habitat, and an Energy face.
+- A discovered page shows: the pixel picture, its name and how to say it (read aloud), where it comes from (country and people), a short story told respectfully, its traits, its diet, its habitat, and its usual energy ("Kappas are often at high energy: they love mischief.").
+- **Write its name in cursive:** the student writes the creature's name with the wand on a cursive line (section 7). The name is then shown on the page in their own handwriting.
 - **Finish the page job (vocabulary):** trait cards are mixed up beside the page; the student drags each to "has it" or "does not have it", using the story they just read. A finished page gets a gold seal. Kind help on a wrong sort, never a buzzer.
 - Story pages read themselves aloud by default with a 🔊/🔇 toggle (her rule for story screens).
 
@@ -69,7 +70,8 @@ Four ways in, her list:
 Then the student:
 - Sees **body traits filled in automatically** from the parts (three eyes gives "sharp sight"; flippers give "aquatic"). These are the traits "assigned to the creature".
 - **Chooses personality** (mischievous, gentle, curious, bossy, shy), **social style** (pack or loner), **intelligence** (1 to 5) and **diet** (plants, meat, both, leftovers, or a magic food like moonlight or dreams).
-- **Names it** and writes one sentence about it. The writing check is gentle: a capital letter at the start, punctuation at the end (the same habit as the gym form).
+- **Names it in cursive** with the wand (section 7), then writes one sentence about it. The sentence check is gentle: a capital letter at the start, punctuation at the end (the same habit as the gym form).
+- **Picks its usual energy** on the 5-step scale ("My creature is usually at low energy. It likes to nap in the sun.").
 - The creature goes into My Creatures in the Bestiary.
 
 ### Habitat: the actual game play logic
@@ -86,39 +88,66 @@ This is where students' creatures interact with a world they made.
 5. **Balance meter:** Balanced, Wobbly or Falling apart, with one plain sentence saying why ("Too many hunters and not enough rabbits.").
 6. **Traits matter:** a creature without water breathing struggles in the ocean; pack hunters catch bigger food but need more of it; regenerative creatures bounce back after a hard season; endurance (the cockroach trait) lets a kind survive a bad season; a fire-making creature can warm the tundra. Students learn which traits fit which places by trying.
 7. **Adaptations are learned:** a creature that lives through three seasons in a biome may learn one of that biome's adaptations (thick fur in the tundra, night vision in a cave, camouflage in the forest). The student picks the one that fits; it is added to the creature's page as "learned".
-8. **Levels:** creatures gain a level after each balanced season. The student earns a **Naturalist rank** (Apprentice, Field Scout, Creature Keeper, Habitat Builder, Grand Naturalist) that unlocks new biomes, parts and recipes.
+8. **Energy check-ins:** every creature living in the Habitat, real ones they found and ones they made, shows energy clues as it moves: zooming in circles, bouncing, walking calmly, dragging slowly, yawning. Each season the student does an Energy check-in on a creature that needs one (section 8). Energy is part of the balance: crowded, overfed or overplayed creatures run high; hungry or lonely ones run low.
+9. **Levels:** creatures gain a level after each balanced season with their energy at just right. The student earns a **Naturalist rank** (Apprentice, Field Scout, Creature Keeper, Habitat Builder, Grand Naturalist) that unlocks new biomes, parts and recipes.
 
 Saved per student and private: their creatures, habitats, discovered pages, ingredients and potions.
 
 ## 6. Cauldron (potions)
 
-- **The Cookbook:** about 10 base recipes to start (her number). Ideas: Flying, Strength, Speed, Glow, Tiny, Giant, Calm, Bounce, Invisible (a see-through shimmer), Grow (for plants in a Habitat).
+- **The Cookbook:** about 10 base recipes to start (her number). Ideas: Flying, Strength, Speed, Glow, Tiny, Giant, Calm, Zip, Bounce, Grow (for plants in a Habitat).
 - **Discovered recipes:** brewing a base recipe unlocks a harder version with bigger needs: Flying unlocks Super Speed Flying; Glow unlocks Rainbow Glow; Strength unlocks Mountain Strength.
 - **Reading is the job:** the student reads the recipe card (read aloud on tap) and follows it.
 - **Order of operations:** each recipe is a list of steps: add, stir (a number of times), heat, wait, wand. Anything in the **small mixing bowl** happens first, like parentheses. Example: "Mix (grass + dew) in the bowl. Pour it in. Add the feather. Stir 3 times. Trace *fly*." Doing a step out of order is never a fail: the cauldron fizzles with a silly puff of smoke and a burp, the step list shows which step comes first, and they try again.
 - **Big magic effects:** smoke poofs, sparkles, bubbling, color swirls, a lid that rattles. Calm mode and reduced motion turn these down.
 - **Where potions go:**
-  - **Pets:** a Strength potion makes a pet glow and lift a tiny dumbbell. The effect is for fun and lasts a short time; it does not replace care or gym training.
+  - **Pets:** a Strength potion makes a pet glow and lift a tiny dumbbell, and it also counts toward gym training to a degree (her answer): +1 training for the trick the pet is working on (a full gym session gives +2), once a day per pet. Speed works the same way. Potions help training along; they never replace the gym or pet care.
   - **The student's own character:** a Flying potion lets their Town Square character float and fly for a minute; Tiny, Giant, Glow and Bounce work the same way.
-  - **Habitats:** Grow helps a struggling plant group; Calm brings a creature's energy back to just right.
+  - **Habitats:** Grow helps a struggling plant group; Calm brings a high-energy creature down toward just right; Zip brings a low-energy creature up.
 
 ## 7. Wands and cursive
 
-- The last step of every recipe is the spell: the student traces the spell word with a wand (a finger or an Apple Pencil). Sparkles follow the stroke.
-- Letters follow **Cursive Without Tears** shapes and stroke order: a start dot, a guide path, and a gentle check that the stroke went the right way. Close enough counts.
-- Spell words only use letters the class has already learned (see section 12).
-- Spell words grow with rank: *fly* and *glow* first, then *bounce* and *giant*, then *super speed*.
-- Spell tracing can also be practiced on its own from the Cauldron's spell book.
+Her answer (2026-10-13): "All letter have been taught. We are onto writing words. Writing the names of the creatures is a good place to have them write."
 
-## 8. Self-regulation: Energy and Zones
+- **Creature names are the main writing job.** Every time a student discovers a real creature, and every time they name their own, they write the name in cursive with the wand (a finger or an Apple Pencil). Sparkles follow the stroke. The name then appears in their handwriting on the Bestiary page and above the creature in the Habitat.
+- **Spells are words too:** the last step of every recipe is writing the spell word (*fly*, *glow*, *bounce*, *super speed*).
+- Letters follow **Cursive Without Tears** shapes and stroke order, with connected letters.
+- **Help fades as they grow** (the same fade ladder as Grammar Gus): first the whole word shows faintly to write over, then only start dots and a baseline, then just a blank line. A student can always tap Show me to see the word written once, slowly.
+- The check is gentle and counts close enough: each letter is checked for its shape and direction, and a letter that needs another try glows so the student knows exactly which one. Never a buzzer.
+- Practice on its own: the Cauldron's spell book lets students write any discovered creature name again.
 
-From her MyEnergy page (Autism Level UP!), which uses an energy scale from very high to sleepy:
+## 8. Energy check-ins for creatures
 
-- Every creature has an **Energy face** on a 5-step scale: very high (frazzled), high (excited), just right, low (droopy), very low (sleepy). We draw our own pixel faces in the same spirit; their artwork is not copied.
-- In the Habitat, energy is a game state students learn to read: crowded or overfed creatures run too high, hungry ones run low. The goal is "just right", and students fix it with space, food, rest or a Calm potion. This models the idea without ever telling a student how they feel.
-- When a student opens Supernature, they can do an optional quick **My Energy check-in** on the same scale. The result can suggest a matching potion ("Feeling too high? Try brewing a Calm potion."), and calm potions use their real calming tools as recipe steps (the stir is 5 slow breaths with a breathing circle).
-- Creature pages show a Zone too, using the Zones colors the dashboard already uses, so the two systems stay connected and never compete.
-- **Level up:** creatures level up, students earn Naturalist ranks, and new parts, biomes and recipes unlock in small, clear steps with a "what unlocks next" bar.
+Her answer (2026-10-13): "absolutely use a 5-step energy scale with the original faces. Incorporate this concept throughout this in supernature as it is language we are trying to develop. It should be Energy check-ins for creatures they've found or created living in their ecosystem."
+
+**The scale** uses the original faces from her MyEnergy page (Autism Level UP!), saved in the project at `public/games/supernature/energy/`:
+
+| Step | Face file | Words used everywhere |
+|---|---|---|
+| 5 | `very-high.png` (frazzled) | very high energy |
+| 4 | `high.png` (excited) | high energy |
+| 3 | `just-right.png` (calm smile) | just right energy |
+| 2 | `low.png` (droopy) | low energy |
+| 1 | `very-low.png` (yawning) | very low energy |
+| rest | `asleep.png` | asleep (shown when a creature naps or at night; not a step) |
+
+**The check-in** happens on creatures, never on the student: creatures they found or made that live in their Habitat.
+1. A creature that needs a check-in gets a small glowing face above it. The student taps it.
+2. **Notice the clues:** the creature acts out its energy (zooming, bouncing, calm walking, slow dragging, yawning), and a clue line is read aloud ("Griff is zooming in circles and can't sit still.").
+3. **Pick the face:** the 5 faces stand in a column, highest at the top, like her page. The student taps one.
+4. **Say it:** a sentence frame builds the language: "Griff has **high** energy." It is read aloud, and the student can tap 🔊 to hear it again.
+5. **Pick a tool** to help it get to just right: for high energy, quiet space, a slow walk, a Calm potion; for low energy, food, a friend, play, a Zip potion. The creature tries it, and its face moves toward just right.
+6. A wrong pick is never wrong out loud: the clue is shown again with the matching face gently lit.
+
+**Where the energy language shows up everywhere else:**
+- **Bestiary:** each page says the creature's usual energy.
+- **Creature Maker:** students choose their creature's usual energy.
+- **Habitat:** energy is part of the balance, and creatures level up when their energy is just right.
+- **Cauldron:** Calm and Zip potions move energy, and each recipe card says which way it moves it.
+- **Host lines** use the same words ("Your Kappa has very high energy. What could help?").
+- Wording stays exactly the same every time (very high, high, just right, low, very low), so the words become familiar.
+
+Zones of Regulation stays where it already lives in the dashboard; Supernature uses the energy scale so the two never compete.
 
 ## 9. Culture and respect: the rules and locks
 
@@ -132,16 +161,26 @@ Her rule: "prioritize culturally responsive teaching practices and add parameter
 - Ingredients earned from a creature are respectful (coral from the Mermaid, a lost feather from the Griffin); nothing is taken from sacred figures.
 - **No sharing:** no gallery, no sending, no showing other students' creatures. She can see every student's book from the teacher side.
 
-### Starter creature list for her approval (proposed setting in brackets)
+### Starter creature list: one per clickable region
 
-- **Europe:** Griffin, Greece [remix]; Pegasus, Greece [remix]; Cyclops, Greece [remix]; Hydra, Greece, regenerative heads, no blood [remix]; Unicorn, Scotland [remix]; Loch Ness Monster, Scotland [remix]; Selkie, Scotland and Ireland [remix]; Zeus, Athena, Poseidon, Thor, Odin, Freya [remix].
-- **Asia:** Long, the Chinese dragon, China [explore]; Fenghuang, China [explore]; Qilin, China [explore]; Kappa, Japan, mischievous and aquatic [remix]; Tanuki, Japan [remix]; Baku, Japan, eats bad dreams [remix]; Haetae, Korea [remix]; Simurgh, Iran [explore]; Naga and Garuda, India and Southeast Asia [explore].
-- **Africa:** Anansi, Ghana (Akan people), the trickster spider [explore]; Sphinx and Bennu, Egypt [remix]; Ra, Bastet, Anubis, ancient Egypt [remix]; Mokele-mbembe, Congo [remix]; Grootslang, South Africa [remix].
-- **North America:** Thunderbird, many Indigenous nations [explore]; Sasquatch, a Salish name [explore]; Jackalope, Wyoming, USA [remix]; Mothman, West Virginia, USA [remix]; Ogopogo, Canada (n'ha-a-itk of the Syilx people) [explore].
-- **South America:** Curupira, Brazil, forest guardian with backward feet [explore]; Iara, Brazil, river mermaid [explore]; Boto, the Amazon river dolphin [explore]; Alicanto, Chile, a bird that eats gold and silver [remix]; Quetzalcoatl, Mexico (Aztec) [explore].
-- **Oceania:** Bunyip, Australia (Aboriginal peoples) [explore]; Rainbow Serpent, Australia (Aboriginal peoples) [explore]; Taniwha, New Zealand (Maori) [explore]; Drop Bear, Australia, a joke creature [remix]; Yowie, Australia [remix].
-- **Oceans and seas:** Kraken, North Atlantic [remix]; Mermaids, worldwide [remix]; Charybdis, Mediterranean [remix]; Umibozu, Sea of Japan [remix]; sea serpents [remix].
-- **Antarctica:** no traditional creatures; the students' frontier.
+Her answer (2026-10-13): "start with one in each clickable region in the map. Start with continents and ocean." So the Globe opens with the seven continents and the five oceans, and each region starts with one creature. Seas and countries come later, once the first set works. Proposed picks (she can swap any):
+
+| Region | First creature | From | Setting |
+|---|---|---|---|
+| Europe | Griffin | Greece | remix ok |
+| Asia | Kappa, mischievous and aquatic | Japan | remix ok |
+| Africa | Sphinx | Egypt | remix ok |
+| North America | Jackalope | Wyoming, USA | remix ok |
+| South America | Curupira, forest guardian with backward feet | Brazil | explore only |
+| Oceania | Bunyip | Australia (Aboriginal peoples) | explore only |
+| Antarctica | none: no people lived there to tell stories, so it is the students' frontier for their own creatures | | |
+| Atlantic Ocean | Selkie | Scotland and Ireland | remix ok |
+| Pacific Ocean | Umibozu, the sea giant | Japan | remix ok |
+| Indian Ocean | Mermaid (sailors' stories) | worldwide | remix ok (her example: "Earned coral by exploring the Mermaid") |
+| Arctic Ocean | Kraken | Norway | remix ok |
+| Southern Ocean | none: like Antarctica, the students' frontier | | |
+
+The rest of the earlier list waits for the next round, still under her approval: Pegasus, Cyclops, Hydra, Unicorn, Loch Ness Monster, Fenghuang, Qilin, Baku, Haetae, Anansi, Bennu, Mokele-mbembe, Thunderbird, Sasquatch, Iara, Alicanto, Taniwha, Rainbow Serpent, Drop Bear, Charybdis, and the gods and goddesses (Zeus, Athena, Poseidon, Thor, Odin, Freya, Ra, Bastet, Anubis), with the same settings as before.
 
 ## 10. Ingredients and the Supernature Shop
 
@@ -160,26 +199,25 @@ Her rule: "prioritize culturally responsive teaching practices and add parameter
 - **iPad first:** swipe and pinch on the globe, big drag targets, no hover-only actions, both orientations, nothing overlapping.
 - **Bug and idea Report** bubble in the corner, like every game.
 
-## 12. What we need from her before building
+## 12. Her answers (all in, 2026-10-13) and what is still owed
 
-**Assets (she said she will send them):**
+1. **Starter list:** one creature in each clickable region, continents and oceans first (section 9).
+2. **Cursive:** every letter has been taught; students are writing words; creature names are the writing job (section 7).
+3. **Energy:** the 5-step energy scale with the original faces, used throughout, as Energy check-ins for creatures in their Habitat (section 8).
+4. **Potions on pets:** count toward gym training to a degree: +1 training, once a day per pet (section 6).
+
+**Still owed (she is sending them):**
 1. The host character (any pose; a few expressions if possible).
 2. Pixel art for real creatures, if she has a pack. If not, Claudia builds them from the same pixel parts the Creature Maker uses.
 3. Optional: a pixel book and page set, cauldron, wand, potion bottles, biome tiles, smoke and sparkle effects. Anything missing gets drawn in the same pixel style.
 
-**Answers (only four):**
-1. **The starter list:** approve, change, or remove creatures in section 9, including the Explore only and Remix ok marks.
-2. **Cursive:** which letters has the class learned so far in Cursive Without Tears? Spell words will only use those, and grow as the class learns more.
-3. **Energy check-in:** OK to use a 5-step energy scale with our own pixel faces, and to offer the optional My Energy check-in when Supernature opens?
-4. **Potion effects on pets:** for fun only (a glow and a short animation), or should a Strength potion also count toward gym training?
-
 ## 13. Build order (each step ships on its own)
 
-1. **Foundation:** Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (everything Hidden until she approves).
-2. **Creature Maker and Habitat** (her priority), with a simple list of approved real creatures to explore and remix.
+1. **Foundation:** Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (the 10 starter creatures start approved, everything else Hidden until she approves); the energy faces wired in.
+2. **Creature Maker and Habitat** (her priority), with the 10 starter creatures to explore and remix, Energy check-ins, and cursive naming.
 3. **Bestiary:** the pixel book, "???" pages, the trait sorting job, My Creatures.
 4. **Globe:** spin, zoom, continents, oceans and seas, countries, pins, earned ingredients.
 5. **Cauldron and Shop:** the Cookbook, order of operations, discovered recipes, effects, the ingredient economy.
 6. **Wand cursive** spells.
 7. **Potions out in the world:** pets, the student's Town Square character, Habitats.
-8. **Energy and level up** threaded through all of it (started in step 2, finished here).
+8. **Level up** threaded through all of it (started in step 2, finished here).
