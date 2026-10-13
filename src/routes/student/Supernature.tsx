@@ -2,16 +2,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
-import { SN, REGIONS, WORD_PARTS, INGREDIENTS, ING, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { SN, WORD_PARTS, INGREDIENTS, ING, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { useNavigate } from 'react-router-dom';
 import { drinkWorldPotion, type WorldPotion } from '../../lib/potionEffects';
-import { CREATURES, STARTERS, art, byId, setMade, type Made } from '../../lib/supernatureCreatures';
+import { byId, setMade, type Made } from '../../lib/supernatureCreatures';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 import SupernatureBook from './SupernatureBook';
 import SupernatureHabitat from './SupernatureHabitat';
 import SupernatureMaker from './SupernatureMaker';
+import SupernatureGlobe from './SupernatureGlobe';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
 // docs/SUPERNATURE_PLAN.md). Home is the Witch's House with the Cat Wizard as host. Every other room
@@ -104,7 +105,7 @@ export default function Supernature() {
             goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} goNames={() => go('names')} rankLevel={nat.level}
             onCheckin={() => patch({ checkins: (save.checkins ?? 0) + 1 })} />
         )}
-        {room === 'globe' && <Globe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
+        {room === 'globe' && <SupernatureGlobe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
         {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')}
           goMaker={openMaker} onRemove={(id) => patch({ made: made.filter((x) => x.id !== id) })} levels={levels} gold={nat.level >= 4} />}
         {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade} extraColors={nat.level >= 1 ? SPARKLY_COLORS : []}
@@ -202,77 +203,6 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       </button>
 
       <Host say={say} crown={crown} text="Welcome home! Tap anything with a name tag. The bookshelf is your Encyclopedia, and the door goes outside to your Habitat." />
-    </div>
-  );
-}
-
-/* ---------------- Globe ---------------- */
-function Globe({ bar, say, found, onFind, openPage }: { bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; found: string[]; onFind: (id: string) => void; openPage: (id: string) => void }) {
-  const [region, setRegion] = useState<string | null>(null);
-  const [last, setLast] = useState<string | null>(null);
-  const r = REGIONS.find((x) => x.id === region);
-  // The starter is always found first in each region, then the rest of that region's creatures.
-  const here = useMemo(() => CREATURES.filter((c) => c.region === region).sort((a, b) => Number(STARTERS.includes(b.id)) - Number(STARTERS.includes(a.id))), [region]);
-  const nextHidden = here.find((c) => !found.includes(c.id));
-  const shown = last ? byId(last) : undefined;
-  const explore = () => { if (!nextHidden) return; onFind(nextHidden.id); setLast(nextHidden.id); say(`You found the ${nextHidden.name}! ${nextHidden.story}`); };
-  return (
-    <div className="sn-room">
-      {bar({ extra: <span className="sn-chip">{found.length} of {CREATURES.length} creatures found</span> })}
-      <div className="sn-globe-wrap">
-        <img src={`${SN}ui/globe.png`} alt="Pixel globe" className="sn-globe" />
-        <img className="sn-sparkle" src={`${SN}theme/sparkle-4.png`} alt="" style={{ left: 40, top: 40, width: 40 }} />
-        <img className="sn-sparkle d2" src={`${SN}theme/sparkle-0.png`} alt="" style={{ left: 440, top: 560, width: 46 }} />
-      </div>
-      <div className="sn-regions">
-        {REGIONS.map((x) => {
-          const all = CREATURES.filter((c) => c.region === x.id);
-          const n = all.filter((c) => found.includes(c.id)).length;
-          return (
-            <button key={x.id} type="button" className={`sn-region ${x.kind}${region === x.id ? ' on' : ''}`} onClick={() => { snSound('tap'); setRegion(x.id); setLast(null); say(x.label); }}>
-              <b>{x.label}</b><small>{x.frontier ? 'frontier' : `${n} of ${all.length} found`}</small>
-            </button>
-          );
-        })}
-      </div>
-      <aside className="sn-side globe">
-        {!r && <Host wide say={say} text="Pick a continent or an ocean, then tap Explore to find the creatures hiding there. Each one you find moves into your Habitat and gets a page in your Encyclopedia." />}
-        {r && r.frontier && (
-          <div className="sn-card">
-            <h2>{r.label}</h2>
-            <p>No people lived here long ago to tell creature stories, so there are none to find. This is your frontier: you will be able to make your own creature for it in the Creature Maker.</p>
-          </div>
-        )}
-        {r && !r.frontier && (
-          <div className="sn-card">
-            <h2>{r.label}</h2>
-            <div className="sn-mini-grid">
-              {here.map((c) => {
-                const f = found.includes(c.id);
-                return (
-                  <button key={c.id} type="button" className={`sn-mini${last === c.id ? ' on' : ''}`} disabled={!f} onClick={() => setLast(c.id)} aria-label={f ? c.name : 'Not found yet'}>
-                    <img src={art(c.id)} alt="" className={f ? '' : 'sn-shadow'} />
-                  </button>
-                );
-              })}
-            </div>
-            {nextHidden
-              ? <button type="button" className="sn-btn" onClick={explore}>Explore {r.label}</button>
-              : <p className="sn-small">You found every creature here!</p>}
-            {shown && (
-              <div className="sn-found-card">
-                <div className="sn-row"><img src={art(shown.id)} alt="" className="sn-found-art" /><div><h3>{shown.name}</h3><small>say it: {shown.say}</small></div></div>
-                <p>{shown.story}</p>
-                {shown.ingredient && <div className="sn-row"><img src={shown.ingredient.img} alt="" className="sn-ing" /><span>Earned: {shown.ingredient.name}</span></div>}
-                <div className="sn-row">
-                  <button type="button" className="sn-btn2 small" onClick={() => say(`${shown.name}. ${shown.story}`)}>Listen</button>
-                  <button type="button" className="sn-btn2 small" onClick={() => openPage(shown.id)}>Open its page</button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </aside>
     </div>
   );
 }

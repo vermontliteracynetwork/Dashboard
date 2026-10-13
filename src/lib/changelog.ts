@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-globe",
+    date: "2026-10-13",
+    icon: "🌍",
+    title: "Spin the real globe!",
+    body: "The Supernature Globe is a real world map now. Drag to spin it, pinch or tap Zoom in to see every country's name, and tap a country or an ocean to see what lives there. Every creature has a pin where its story comes from, with a ? until you find it.",
+  },
+  {
     id: "2026-10-13-naturalist",
     date: "2026-10-13",
     icon: "🏅",
