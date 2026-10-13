@@ -17,7 +17,7 @@ import SupernatureWriting, { Icon } from './SupernatureWriting';
 type BarOpts = { back?: () => void; backLabel?: string; extra?: React.ReactNode };
 interface Draft {
   spec: Spec; inspired?: string; personality: string; social: 'pack' | 'loner'; smarts: number; diet: string; size: string; energy: Energy;
-  biome: Biome; region: string; sciParts: Part[]; friendly: string; sentence: string; fact: string; wrote: boolean;
+  biome: Biome; region: string; sciParts: Part[]; friendly: string; sentence: string; facts: string[]; wrote: boolean;
 }
 const STEPS = ['Start', 'Body', 'Parts', 'Look', 'Mind', 'Home', 'Name', 'Page'];
 const SAY = [
@@ -76,8 +76,8 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
   const palette = [...COLORS, ...extraColors];
   const editing = editId ? made.find((m) => m.id === editId) : undefined;
   const start: Draft = editing
-    ? { spec: editing.spec, inspired: editing.inspired, personality: editing.personality, social: editing.social, smarts: editing.smarts, diet: editing.diet, size: editing.size, energy: editing.energy, biome: editing.biome, region: editing.region, sciParts: editing.sciParts ?? [], friendly: editing.sci && editing.sci !== editing.name ? editing.name : '', sentence: editing.sentence, fact: editing.fact, wrote: !!editing.wrote }
-    : { spec: DEFAULT_SPEC, personality: 'curious', social: 'loner', smarts: 3, diet: 'plants', size: 'small', energy: 'just right', biome: 'forest', region: 'antarctica', sciParts: [], friendly: '', sentence: '', fact: '', wrote: false };
+    ? { spec: editing.spec, inspired: editing.inspired, personality: editing.personality, social: editing.social, smarts: editing.smarts, diet: editing.diet, size: editing.size, energy: editing.energy, biome: editing.biome, region: editing.region, sciParts: editing.sciParts ?? [], friendly: editing.sci && editing.sci !== editing.name ? editing.name : '', sentence: editing.sentence, facts: editing.facts ?? [editing.fact, '', ''].slice(0, 3), wrote: !!editing.wrote }
+    : { spec: DEFAULT_SPEC, personality: 'curious', social: 'loner', smarts: 3, diet: 'plants', size: 'small', energy: 'just right', biome: 'forest', region: 'antarctica', sciParts: [], friendly: '', sentence: '', facts: ['', '', ''], wrote: false };
   const [d, setD] = useState<Draft>(start);
   const [undo, setUndo] = useState<Draft[]>([]);
   const [redo, setRedo] = useState<Draft[]>([]);
@@ -100,7 +100,12 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
   const regionLabel = REGIONS.find((r) => r.id === d.region)?.label ?? '';
   const homeText = `${LANDS.find((l) => l.id === d.biome)!.label} in ${regionLabel}`;
   const full = !editing && made.length >= MAX_MADE;
-  const canSave = !!name && capOk && puncOk && !full;
+  // Her rule (Build Queue 115): the sentence and all three facts are required, each a short
+  // numbered line with a capital letter at the start and punctuation at the end.
+  const facts = d.facts.map((f) => f.trim());
+  const okLine = (t: string) => /^[A-Z]/.test(t) && /[.!?]$/.test(t);
+  const factsOk = facts.every((f) => f.length > 0 && okLine(f));
+  const canSave = !!name && capOk && puncOk && factsOk && !full;
   const tray = useMemo(() => {
     const sug = suggest(d.spec, d);
     return allParts ? WORD_PARTS : WORD_PARTS.filter((p) => sug.includes(p.text));
@@ -112,7 +117,7 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
   const save = () => {
     if (!canSave) return;
     const id = editing?.id ?? `m-${Date.now().toString(36)}`;
-    onSave({ id, spec: d.spec, name, sci: sci || undefined, sciParts: d.sciParts.length ? d.sciParts : undefined, inspired: d.inspired, personality: d.personality, social: d.social, smarts: d.smarts, diet: d.diet, size: d.size, energy: d.energy, biome: d.biome, region: d.region, homeText, sentence, fact: d.fact.trim(), wrote: d.wrote, created: editing?.created ?? new Date().toISOString() });
+    onSave({ id, spec: d.spec, name, sci: sci || undefined, sciParts: d.sciParts.length ? d.sciParts : undefined, inspired: d.inspired, personality: d.personality, social: d.social, smarts: d.smarts, diet: d.diet, size: d.size, energy: d.energy, biome: d.biome, region: d.region, homeText, sentence, fact: facts.join(' '), facts, wrote: d.wrote, created: editing?.created ?? new Date().toISOString() });
     snSound('done'); setSavedId(id); say(`${name} is saved! It has a page in My Creatures and it moved into your Habitat.`);
   };
 
@@ -245,14 +250,24 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
               <div className="sn-row">
                 <button type="button" className={`sn-btn2${d.wrote ? ' go' : ''}`} disabled={!name} onClick={() => setWrite(true)}>{d.wrote ? '✓ Wrote its name' : `Write ${name || 'its name'} with your wand`}</button>
               </div>
-              <label className="sn-field"><span>One sentence about it</span>
+              <label className="sn-field"><span>One sentence about it (needed)</span>
                 <textarea id="sn-sentence" value={d.sentence} rows={2} maxLength={160} onChange={(e) => setD({ ...d, sentence: e.target.value })} placeholder="My creature loves to splash in the river." /></label>
               <div className="sn-checks">
                 <span className={capOk ? 'ok' : ''}>{capOk ? '✓' : '○'} Starts with a capital letter</span>
                 <span className={puncOk ? 'ok' : ''}>{puncOk ? '✓' : '○'} Ends with punctuation</span>
               </div>
-              <label className="sn-field"><span>One fun fact (you can skip it)</span>
-                <textarea id="sn-fact" value={d.fact} rows={2} maxLength={160} onChange={(e) => setD({ ...d, fact: e.target.value })} /></label>
+              <div className="sn-field"><span>Three facts about it (all three needed)</span>
+                <ol className="sn-factlist">
+                  {d.facts.map((f, i) => (
+                    <li key={i}>
+                      <input id={`sn-fact-${i}`} value={f} maxLength={90} placeholder={['It lives near a cold river.', 'It eats glowing berries.', 'It can hold its breath for an hour.'][i]}
+                        onChange={(e) => setD({ ...d, facts: d.facts.map((x, j) => (j === i ? e.target.value : x)) })} aria-label={`Fact ${i + 1}`} />
+                      <span className={okLine(f.trim()) ? 'ok' : ''}>{okLine(f.trim()) ? '✓' : '○'}</span>
+                    </li>
+                  ))}
+                </ol>
+                <small>Each fact starts with a capital letter and ends with punctuation.</small>
+              </div>
             </>
           )}
           {step === 7 && (
@@ -264,10 +279,12 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
                 <dt>Energy</dt><dd className="sn-energy"><img src={ENERGY_FACE[d.energy]} alt="" className="sn-smooth" />{d.energy}</dd>
                 <dt>Body</dt><dd>{traits.join(', ')}</dd>
                 <dt>Mind</dt><dd>{d.personality}, {d.social === 'pack' ? 'lives in a pack' : 'lives alone'}, smarts {d.smarts} of 5, eats {d.diet}</dd>
-                <dt>About</dt><dd>{sentence || 'Write one sentence on the Name step.'} {d.fact}</dd>
+                <dt>About</dt><dd>{sentence || 'Write one sentence on the Name step.'}</dd>
+                <dt>Facts</dt><dd><ol className="sn-factview">{facts.map((f, i) => <li key={i}>{f || '...'}</li>)}</ol></dd>
               </dl>
               {!name && <p className="sn-warn">Give it a name on the Name step.</p>}
               {name && (!capOk || !puncOk) && <p className="sn-warn">Check your sentence on the Name step: a capital letter at the start and punctuation at the end.</p>}
+              {!factsOk && <p className="sn-warn">Write all three facts on the Name step, each with a capital letter and punctuation.</p>}
               {full && <p className="sn-warn">Your Encyclopedia holds {MAX_MADE} creatures. Remove one from My Creatures to make room.</p>}
               {!savedId
                 ? <button type="button" className="sn-btn" disabled={!canSave} onClick={save}>{editing ? 'Save changes' : 'Save to my Encyclopedia'}</button>

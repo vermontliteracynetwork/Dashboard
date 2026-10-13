@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-maker-facts",
+    date: "2026-10-13",
+    icon: "✍️",
+    title: "Three facts for every creature you make",
+    body: "In the Creature Maker, write one sentence and three facts about your creature. Each one starts with a capital letter and ends with punctuation.",
+  },
+  {
     id: "2026-10-13-cauldron-stick",
     date: "2026-10-13",
     icon: "🥄",

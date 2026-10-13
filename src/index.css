@@ -8144,3 +8144,11 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-write-meter i { position: absolute; left: 0; top: 0; bottom: 0; background: #57d3b8; transition: width 0.3s; }
 .sn-write-meter span { position: relative; display: block; text-align: center; font-weight: 700; font-size: 14px; line-height: 20px; }
 .sn-write-hint { top: 688px !important; font-size: 16px !important; }
+.sn-factlist { margin: 0; padding-left: 26px; display: flex; flex-direction: column; gap: 6px; color: #241f45; font-weight: 700; }
+.sn-factlist li { padding-left: 4px; }
+.sn-factlist li > * { vertical-align: middle; }
+.sn-factlist input { width: calc(100% - 40px); box-sizing: border-box; }
+.sn-factlist span { display: inline-block; width: 28px; text-align: center; color: #8a5a2e; }
+.sn-factlist span.ok { color: #2fa89a; }
+.sn-field small { font-weight: 400; color: #241f45; }
+.sn-factview { margin: 0; padding-left: 20px; }
