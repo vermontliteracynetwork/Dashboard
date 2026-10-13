@@ -110,7 +110,7 @@ This is where students' creatures interact with a world they made.
 4. **The food web** is a tap away: arrows from each food to whatever eats it (arrows show where the energy goes). Students can turn on "what if": hide one kind and watch a ripple show who is affected. This is the fragility lesson.
 5. **Balance meter:** Balanced, Wobbly or Falling apart, with one plain sentence saying why ("Too many hunters and not enough rabbits.").
 6. **Traits matter:** a creature without water breathing struggles in the ocean; pack hunters catch bigger food but need more of it; regenerative creatures bounce back after a hard season; endurance (the cockroach trait) lets a kind survive a bad season; a fire-making creature can warm the tundra. Students learn which traits fit which places by trying.
-7. **Adaptations are learned:** a creature that lives through three seasons in a biome may learn one of that biome's adaptations (thick fur in the tundra, night vision in a cave, camouflage in the forest). The student picks the one that fits; it is added to the creature's page as "learned".
+7. **Adaptations, done accurately:** a single creature can *learn a behavior* (hide in a burrow when the river rises, move to shade at noon, hibernate in winter); these are behavioral adaptations and show on its page as "learned". Body changes (thicker fur, longer legs, a harder shell) never happen to one creature: they appear across **generations** through evolution (section 16).
 8. **Energy check-ins:** every creature living in the Habitat, real ones they found and ones they made, shows energy clues as it moves: zooming in circles, bouncing, walking calmly, dragging slowly, yawning. Each season the student does an Energy check-in on a creature that needs one (section 8). Energy is part of the balance: crowded, overfed or overplayed creatures run high; hungry or lonely ones run low.
 9. **Levels:** creatures gain a level after each balanced season with their energy at just right. The student earns a **Naturalist rank** (Apprentice, Field Scout, Creature Keeper, Habitat Builder, Grand Naturalist) that unlocks new biomes, parts and recipes.
 
@@ -345,23 +345,110 @@ Saved in the project under `public/games/supernature/` (cut out on see-through b
 
 **Licenses: she confirmed all of her art is cleared to use (2026-10-13).**
 
-### She needs to upload
-1. **The host character:** covered by the six wizards, if she agrees.
-2. **The 10 starter creatures** as pixel sprites, in a similar size (32x32 or 48x48) and style: Griffin, Kappa, Sphinx, Jackalope, Curupira, Bunyip, Selkie, Umibozu, Mermaid, Kraken. Each needs an idle loop and a move loop (walk, swim or fly), 2 to 4 frames each. The "???" silhouettes are made from these automatically.
-3. **A modular creature parts kit:** pixel bodies, heads, eyes, arms (claws, flippers, sword-hands, tentacles), coverings, tails and wings that snap onto one shared body grid. Search terms that help: "modular pixel monster creator" or "pixel creature parts". If none can be found, Claudia draws them.
-4. **A spell book:** covered by her animated book and her tabbed book.
-5. **The Cauldron set:** the cauldron and wands are covered; still needed: a mixing bowl, a stirring spoon, and a shop shelf or stall.
-6. **The missing biomes:** desert (sand, cactus), tundra and snow, ocean floor (coral, kelp, seaweed), sky islands (clouds), and a cave.
-7. **The missing real animals for land food webs:** rabbit, deer, mouse, frog, songbird, owl, fox, snake and worm. Mushrooms are now covered.
-8. **Ingredient icons the packs do not have:** a grass blade, a dew drop, a pebble, a feather, a moonlight jar, a leaf, sand and salt. The silly shop items are eye of newt, toad burp, pixie dust, troll toenail and dragon sneeze. The rare items are phoenix ember, kraken ink, unicorn sparkle, star sap and thunder in a jar. Any she cannot find, Claudia draws.
-9. **Optional:** a magical background music loop, plus cauldron pop, page turn and wand sparkle sounds.
-10. **Not needed:** a world map. The pixel globe is made from free public map data.
+### She needs to upload (updated 2026-10-13, everything still missing in one list)
+**Must have before building the first steps:**
+1. **Witch's House room background** (pixel, wide, landscape): walls, floor, ceiling beam, round window, a door. The props she already sent sit on top of it.
+2. **Beast model on a sewing dummy** (the Bestiary object in the house) and a **front-facing potion vending machine** (the Shop).
+3. **The 10 starter creatures** as pixel sprites in one style and size (32x32 or 48x48): Griffin, Kappa, Sphinx, Jackalope, Curupira, Bunyip, Selkie, Umibozu, Mermaid, Kraken. Each with an idle loop and a move loop (walk, swim or fly), 2 to 4 frames. The "???" silhouettes are made from these.
+4. **A modular creature parts kit** that snaps onto one shared body grid: bodies (walker, flier, swimmer, slitherer, floater), heads, eyes (1 to 3), arms (claws, flippers, sword-hands, tentacles), tails, wings. Coverings are now covered by her materials. Search: "modular pixel monster creator" or "pixel creature parts". If none, Claudia draws them.
 
-## 15. Build order (each step ships on its own)
+**Needed for the Habitat, disasters and Be the creature:**
+5. **Land animals for food webs:** rabbit, deer, mouse, frog, songbird, owl, fox, snake, worm. Each with walk and idle frames (Be the creature needs move loops in 4 directions, or left and right at least).
+6. **Biome tiles:** desert (sand, cactus), tundra and snow, ocean floor (coral, kelp, seaweed), sky islands (clouds), cave, swamp is covered, grassland and forest are covered.
+7. **Disaster and weather effects:** rain, snow, wind lines, flood water rising, dry cracked ground, smoke and ash, lava glow for a volcano, lightning, plus "after" tiles (burned ground, new sprouts, moss and lichen for bare rock). The pixel explosions pack covers smoke and fire bursts.
+8. **Shelter props:** a burrow, a nest, a log, a cave mouth, a small bridge (for preparing before a disaster).
+9. **A joystick and a few big game buttons** in the same pixel style (for Be the creature). Claudia can draw these.
+
+**Needed for the Cauldron and Shop:**
+10. **A mixing bowl, a stirring spoon, a shop shelf.**
+11. **Ingredient icons not in her packs:** dew drop, feather, moonlight jar, salt; silly shop items (toad burp, pixie dust, troll toenail, dragon sneeze); rare items (phoenix ember, kraken ink, unicorn sparkle, star sap, thunder in a jar). Claudia draws any she cannot find.
+
+**Sound and music (section 17):**
+12. **Music loops (5 to 7):** the house (cozy), the Globe (wondering), the Habitat by day and by night, the Cauldron (bubbly), Be the creature (light adventure), a gentle tension loop for disaster signs, and short stingers for level up, new creature and new recipe. Free CC0 chiptune or fantasy packs work well (search "cozy fantasy music loop CC0" or "witch house music loop"). Her Serenitrove songs can fill in.
+13. **Sound effects:** page turn, card flip, quill scratch, wand sparkle, cauldron bubble loop, plop, stir swish, cork pop and pour, smoke poof, fizzle and burp, globe whoosh, creature calls (chirp, croak, rumble, buzz), footsteps, wing flaps, splash, rain, wind, distant rumble, fire crackle, vending machine clunk, coin clink, star twinkle. Kenney's interface and RPG audio packs (some already in the project) cover the clicks and coins.
+
+**Already covered (no upload needed):** host wizards, the books, wands, cauldron, spices, mushrooms, materials, UI kit, energy faces, the world map (made from free public map data), bugs and sea life, pixel smoke and sparkles.
+
+## 16. Disasters, playable creatures, adapting and evolving
+
+Her student's ideas (2026-10-13, as she described them): "how he wanted the environment to interact with natural disasters, food web with playable creatures, how they adapt and evolve." These live inside the Habitat, and every one of them is a guess-and-check experiment, never a punishment.
+
+### Natural disasters
+- **Real disasters, real science:** flood, drought, wildfire, blizzard, windstorm, volcanic eruption, earthquake, and an invasive species arriving. Magical ones for fun, clearly labeled as magic: Moonless Week, Rainbow Storm, Meteor Sparkle Shower.
+- **Signs first:** a disaster is never a surprise. Two seasons before, the Habitat shows signs (dark clouds and a rising river before a flood, dry cracked ground before a drought, a smoking mountain before an eruption), and the Mushroom Wizard reads them aloud. Students can **prepare**: move creatures to high ground, plant deep-rooted plants, build burrows and shelters, store food, or brew a potion (magic help is labeled as magic, so the real science stays clear).
+- **What happens is accurate:** a wildfire clears plants, then fast-growing plants return first and the ash feeds the soil (fire ecology); a flood spreads water creatures and leaves rich soil; a drought hits creatures that need lots of water first; a blizzard favors thick fur and hibernators; a volcano makes brand-new bare land where moss and lichen arrive first, then grasses, then shrubs (ecological succession); an invasive species eats food the natives need.
+- **No blood, no harm shown:** creatures run, fly, swim or burrow to safety, or "move away" with a little suitcase; groups get smaller as numbers on the counters, never as hurt animals. After every disaster comes a **recovery** season that shows the habitat healing.
+- **Predict, then see:** before each disaster and each season, the student predicts with one tap (up, same or down for each group). Then the season plays and the **Field Notebook** shows their prediction next to what happened, with one plain sentence about why. Predictions are never marked wrong; matching ones earn a star.
+
+### Playable creatures ("Be the creature")
+- Any creature in the Habitat, real or made, can be played. Tap it, then **Be this creature**.
+- The view zooms in and follows the creature. Move with a big on-screen joystick or tap-to-walk (both iPad friendly). Rounds are short (1 to 3 minutes) and end with a summary.
+- **Its diet is the goal:** herbivores find and eat plants; carnivores "catch" prey by tagging it, and the prey poofs safely back to its burrow; decomposers clear leftovers and feed the soil (a sparkle shows the soil getting richer).
+- **Its body changes how it plays:** wings fly over water, gills swim, night vision lights up the night, camouflage hides it in matching grass, speed and endurance set how far it can go.
+- **Stay safe and steady:** hide from hunters in tall grass, find water, rest when its Energy face drops low (the energy scale again), and find shelter when a disaster's signs appear.
+- Afterwards, the food web lights up the path the creature took ("You ate 6 leaves. A scorpion chased you twice. You hid in the grass.").
+
+### Adapting and evolving (accurate and simple)
+- **Generations:** every season, small creatures (bugs) have a new generation; big creatures every few seasons. Babies inherit their parents' traits with small differences (fur a little thicker or thinner, shell a little harder, color a little lighter or darker), shown as a 1 to 5 trait meter.
+- **Natural selection, step by step:** when the environment changes (a blizzard, a long drought, a new predator), creatures whose differences help them are more likely to survive and have babies. Over several generations, the trait meter for the whole group shifts. A **Generations chart** shows it ("Thick fur: 2 of 10 creatures in generation 1, 7 of 10 in generation 5").
+- **The language stays accurate:** "the group evolved over five generations", never "the creature evolved". Behaviors can be learned by one creature; body traits change across generations.
+- **Student-made creatures evolve too**, and the student names the new form with the Name Builder (a new science name from word parts, section 18), so the family tree of names grows (Pyrotriops, then Cryopyrotriops after a cold era).
+- **Sandbox:** a Time Machine slider runs many generations at once, and "What if" lets students change one thing (colder, wetter, a new predator) and watch what the group becomes. No wrong answers, only results to compare.
+
+## 17. Sound, music, animation and effects
+
+Her rule (2026-10-13): animations, effects, sound effects and music are all part of Supernature. Everything has a Music slider and a Sounds slider (separate), mute buttons, and Calm mode and reduced motion that soften or still them. Every sound that carries meaning has a matching visual cue, so nothing depends on hearing alone.
+
+- **Music (soft loops, different per room):** the Witch's House (cozy, slow), the Globe (wondering, wide), the Habitat by day and by night, the Cauldron (bubbly, playful), Be the Creature (light adventure), a gentle tension loop while a disaster's signs show, and short stingers for level up, a new creature found and a new recipe.
+- **Sound effects:** tap and select, name tags read aloud, page turns, card flips, the quill and wand while writing (a soft scratch with sparkle), a chime when a letter is right, a magic burst when a word is done, cauldron bubbling, ingredient plops, stir swishes, a cork pop and pour, the smoke poof, the fizzle and burp when steps go out of order, the globe whoosh when it spins, a soft lift when a continent rises, a sparkle when a creature pin is found, creature calls by body plan (chirps, croaks, rumbles, buzzes), footsteps, wing flaps and splashes, the season chime, gentle disaster sounds (rain, wind, a far rumble, a crackle), the vending machine clunk, coin clinks in the Shop, and a star twinkle.
+- **Animation:** every creature breathes and blinks when idle and has a move cycle; candles flicker; the cauldron bubbles and steams; herbs sway; the globe turns slowly and continents lift; her animated book turns its pages; cards flip; bottles shake when tapped; the wand leaves a sparkle trail; smoke poofs; the food web shows little dots of energy flowing along its arrows; population counters tick up and down; weather particles (rain, snow, falling leaves, ash) and a day and night tint move across the Habitat; stars burst on a level up.
+
+## 18. The Name Builder (creatures and potions)
+
+Her request (2026-10-13): "Potion and creature names should have a morphology builder to have a way students explore word parts and morphology."
+
+One Name Builder, used in two places:
+- **Creature names:** after the Creature Maker and whenever a group evolves (section 16), with tiles offered by the creature's traits (section 13).
+- **Potion names:** after a new potion is brewed or discovered, with tiles offered by what the potion does: aero (air), hydro (water), pyro (fire), cryo (cold), lumin (light), velo (fast), mega (huge), micro (tiny), fort (strong), lev (lift), dorm (sleep), vita (life), plus endings like -ify (to make) and -ium (a thing). Examples: Levitium (lev + ium, "a lifting thing"), Fortify (fort + ify, "to make strong"), Velo-Aero (fast air).
+
+How it works: a tray of tiles, a build line, the meaning built in plain words as tiles snap in ("lev = lift, ium = a thing"), a joining "o" or letter that pops in when needed, Listen, Undo and Redo, a "Try another" shuffle, and Save name. Students can also make silly combinations; the meaning still builds, so even a silly name teaches. Every new word part goes into the Word Part Book.
+
+## 19. The Encyclopedia (the pixel book)
+
+Her request (2026-10-13): "A pixel book encyclopedia should be included so students can flip through the facts for found creatures and have form fields to create/add a page for their created characters."
+
+- **Flip through it:** the Bestiary is a pixel encyclopedia students page through with a swipe or big arrow buttons (her page-turn animation and sound). A contents page lists every region with "???" for creatures not found yet; tapping one jumps to it.
+- **Facts on every found creature's page,** in the same order every time: picture; name and how to say it; where it comes from (with a small map); its story; body traits; habitat; diet and its place in the food web; usual energy; word parts in its name; one surprising true fact. Each fact has its own Listen button.
+- **Add a page for a created creature:** an "Add a page" button opens a form inside the book, one step at a time (Step 1 of 6), with a Back and Next on each step:
+  1. **Picture:** brought in from the Creature Maker.
+  2. **Names:** the science name from the Name Builder and a friendly name, written in cursive (or typed if the teacher allows).
+  3. **Home:** pick a biome and a place on the Globe (or the Antarctic frontier).
+  4. **Traits:** body traits filled in automatically; personality, social style, intelligence and diet as tap choices.
+  5. **Energy:** its usual energy on the 5 faces, and one clue sentence ("When Sparky is at high energy, it ___.").
+  6. **Facts:** a short description and one fun fact, written by the student, with the capital letter and punctuation checks.
+  Then a **preview** of the finished page, **Save page**, and Edit any time. Pages are private (no sharing).
+
+## 20. Screens, navigation and controls (iPad first)
+
+Her rule (2026-10-13): navigation and UI/UX are the priority; not too much at once; easy controls; undo and redo; a definite save; and views students can collapse, enlarge, zoom, shrink and move.
+
+- **One thing at a time:** each room shows one main job. Longer jobs are steppers (Step 2 of 5) with Back and Next. Extra panels start collapsed and open only when tapped. No screen shows more than one main panel and one helper panel at once.
+- **The same control bar on every screen, always in the same place:** Home (back to the Witch's House), Undo, Redo, Save, Zoom out, Zoom in, Fit, Full screen and Listen. Big buttons (at least 48 px), pictures and words on every button.
+- **Customize the view:** every panel has collapse, enlarge to full screen and a drag handle to move it; scenes (Globe, Habitat, creature stage, book, writing pad) pinch to zoom, drag with two fingers to pan and double-tap to fit. A **Reset layout** button puts everything back. Each student's layout is remembered.
+- **Undo and Redo** for every action in a room (placing a creature, adding a part, an ingredient, a word part tile, a pen stroke), as many steps as needed.
+- **A definite save:** everything autosaves as students work, and a **Save** button shows "Saved" with the time. Leaving with unsaved changes asks first ("Save before you go?") with Save, Do not save and Stay buttons.
+- **Touch first:** no hover anywhere; every drag also works as tap-to-pick then tap-to-place (for students who find dragging hard); long-press shows a name tag; both iPad orientations; nothing covers the main scene.
+- **Guess and check everywhere:** predictions before results (Habitat), Show me and Try again (writing, sorting), silly results instead of wrong ones (Cauldron, Morpheme Mixer).
+
+### Full-screen writing (cursive)
+Every writing strip (creature names, spells, the encyclopedia form) has an **Enlarge** button that opens a full-screen writing pad: the word large across the whole screen, tall guide lines, start dots, the student's wand, Show me, Undo stroke, Clear, Listen, and Done. It works with a finger or an Apple Pencil, and only one touch counts at a time so a resting hand does not draw.
+
+## 21. Build order (each step ships on its own)
 
 1. **Foundation:** the Witch's House home screen; Science Lab loses fantasy mode; Supernature app on the computer; saved data; the teacher approval screen for creatures (the 10 starter creatures start approved, everything else Hidden until she approves); the energy faces wired in.
-2. **Creature Maker and Habitat** (her priority), with the 10 starter creatures to explore and remix, Energy check-ins, cursive naming, and science names from word part tiles.
-3. **Bestiary:** the pixel book, "???" pages, the trait sorting job, decoding real names, the Word Part Book and Morpheme Mixer, My Creatures.
+2. **Creature Maker and Habitat** (her priority), with the 10 starter creatures to explore and remix, Energy check-ins, cursive naming, the Name Builder, predictions, and the shared control bar (Undo, Redo, Save, zoom, full screen).
+2b. **Disasters, Be the creature, and generations** (section 16).
+3. **Encyclopedia (Bestiary):** the pixel book you flip through, Add a page, "???" pages, the trait sorting job, decoding real names, the Word Part Book and Morpheme Mixer, My Creatures.
 4. **Globe:** spin, zoom, continents, oceans and seas, countries, pins, earned ingredients.
 5. **Cauldron and Shop:** the Cookbook, order of operations, discovered recipes, effects, the ingredient economy.
 6. **Wand cursive** spells.
