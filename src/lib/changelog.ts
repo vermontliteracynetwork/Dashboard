@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-naturalist",
+    date: "2026-10-13",
+    icon: "🏅",
+    title: "Naturalist ranks and creature cards",
+    body: "Everything you do in Supernature earns XP toward your Naturalist rank, from Apprentice to Grand Naturalist, and each rank unlocks something new. Creatures level up after a balanced season, and every creature has a collectible card. Tap the card button on its Encyclopedia page!",
+  },
+  {
     id: "2026-10-13-potions-world",
     date: "2026-10-13",
     icon: "🪽",

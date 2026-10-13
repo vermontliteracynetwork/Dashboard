@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ENERGY_FACE, REGIONS, SN, snSound } from '../../lib/supernature';
 import { CHAPTERS, CREATURES, MAX_MADE, art, byId, madeList, madeToCreature, type ChapterId, type Creature } from '../../lib/supernatureCreatures';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
+import { CardModal } from './SupernatureCards';
 
 // The Encyclopedia (her requests, 2026-10-13): a pixel book reached from the bookshelf. It opens on
 // a working table of contents; every chapter also has its own ribbon tab on the right edge, so any
@@ -16,10 +17,11 @@ const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 const inChapter = (id: ChapterId) => (id === 'mine' ? madeList().map(madeToCreature) : CREATURES.filter((c) => c.chapter === id));
 const regionLabel = (id: string) => REGIONS.find((r) => r.id === id)?.label ?? id;
 
-export default function SupernatureBook({ bar, say, found, start, goGlobe, goHome, goMaker, onRemove }: {
+export default function SupernatureBook({ bar, say, found, start, goGlobe, goHome, goMaker, onRemove, levels, gold }: {
   bar: Bar; say: (t: string) => void; found: string[]; start: string | null; goGlobe: () => void; goHome: () => void;
-  goMaker: (editId: string | null) => void; onRemove: (id: string) => void;
+  goMaker: (editId: string | null) => void; onRemove: (id: string) => void; levels: Record<string, number>; gold: boolean;
 }) {
+  const [cards, setCards] = useState<null | { start?: string }>(null);
   const first = start ? byId(start) : undefined;
   const [view, setView] = useState<View>(first ? first.chapter : 'toc');
   const [pick, setPick] = useState(first ? Math.max(0, inChapter(first.chapter).findIndex((c) => c.id === first.id)) : 0);
@@ -88,7 +90,7 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
             </div>
             <div className="sn-page right">
               {CHAPTERS.slice(4).map((ch, i) => tocRow(ch, i + 5))}
-              <p className="sn-toc-total">You found {found.length} of {CREATURES.length} creatures.</p>
+              <p className="sn-toc-total">You found {found.length} of {CREATURES.length} creatures. <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setCards({}); }}>🃏 My cards</button></p>
             </div>
           </>
         )}
@@ -137,7 +139,8 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
                     {isFound && <small>say it: {c.say}</small>}
                     <small>{c.group ? `${c.group} · ` : ''}{chapter.title}</small>
                   </div>
-                  {isFound && <button type="button" className="sn-listen" onClick={() => say(side === 'story' ? `${c.name}. ${c.tale}` : `${c.name}. ${c.story}`)} aria-label="Listen"><Icon d={LISTEN} /></button>}
+                  {isFound && <span className="sn-entry-btns"><button type="button" className="sn-listen" onClick={() => say(side === 'story' ? `${c.name}. ${c.tale}` : `${c.name}. ${c.story}`)} aria-label="Listen"><Icon d={LISTEN} /></button>
+                    <button type="button" className="sn-cardbtn" onClick={() => { snSound('open'); setCards({ start: c.id }); }} aria-label="See its card">🃏</button></span>}
                 </div>
                 {isFound ? (
                   <>
@@ -201,6 +204,7 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
         <span className="sn-book-where">{view === 'toc' ? `${CREATURES.length} creatures in ${CHAPTERS.length} chapters` : `${chapter?.title} · ${pick + 1} of ${list.length}`}</span>
         <button type="button" className="sn-btn2" onClick={() => flip(1)}>Next<Icon d="M9 5l7 7-7 7" /></button>
       </div>
+      {cards && <CardModal ids={[...found, ...madeList().map((m) => m.id)]} start={cards.start} levels={levels} gold={gold} say={say} onClose={() => setCards(null)} />}
       {write && c && <SupernatureWriting word={c.name} title="Write the name" onListen={() => say(c.name)} onClose={() => setWrite(false)} onDone={() => setWrite(false)} />}
     </div>
   );

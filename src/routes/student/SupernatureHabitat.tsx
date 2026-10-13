@@ -16,7 +16,7 @@ import { START_GROUP, runSeason, seasonName, type Eco, type SeasonResult } from 
 // timers that stop the moment the student leaves. Weather art and sounds are her heyheythere packs
 // (CC BY 4.0); ground and plants are her Craftpix swamp and field packs.
 
-type Weather = 'clear' | 'rain' | 'snow' | 'fog' | 'wind' | 'storm';
+type Weather = 'clear' | 'rain' | 'snow' | 'fog' | 'wind' | 'storm' | 'rainbow' | 'meteors';
 type Disaster = 'flood' | 'wildfire' | 'blizzard' | 'earthquake' | 'drought' | 'tornado';
 type TimeMode = 'auto' | 'day' | 'night';
 type Phase = 'warning' | 'active' | 'after';
@@ -119,10 +119,10 @@ const DECOR: Record<Biome, { src: string; x: number; y: number; w: number; filte
   ],
 };
 
-export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, usePotion, goCauldron, openPage, goGlobe, goNames }: {
+export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, usePotion, goCauldron, openPage, goGlobe, goNames, rankLevel, onCheckin }: {
   bar: (o?: { extra?: React.ReactNode }) => React.ReactNode; say: (t: string) => void; found: string[];
   saved: SnHabitat; onSave: (h: SnHabitat) => void; potions: string[]; usePotion: (name: string) => void;
-  goCauldron: (recipe: string) => void; openPage: (id: string) => void; goGlobe: () => void; goNames: () => void;
+  goCauldron: (recipe: string) => void; openPage: (id: string) => void; goGlobe: () => void; goNames: () => void; rankLevel: number; onCheckin: () => void;
 }) {
   // Found creatures plus the ones the student made in the Creature Maker.
   const roster = useMemo(() => [...madeList().slice(-6).map((m) => m.id), ...found.slice(-12)].map((id) => byId(id)).filter((c): c is Creature => !!c).slice(0, 16), [found]);
@@ -156,11 +156,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [playing, setPlaying] = useState<Creature | null>(null);
   const have = (n: string) => potions.filter((p) => p === n).length;
   const covered = live.length > 0 && live.every((l) => l.hide);
-  const night = timeMode === 'night' || (timeMode === 'auto' && clock >= 0.62);
+  const night = timeMode === 'night' || (timeMode === 'auto' && clock >= 0.62) || weather === 'meteors';
   const active = dis?.phase === 'active' ? dis.kind : null;
   const sel_ = live.find((l) => l.c.id === sel);
 
   const tell = (t: string, speak = false) => { setNote(t); if (speak) say(t); };
+  // Magic weathers unlock with the Naturalist rank (Build Queue 105). They never wear anyone out.
+  const weathers = [...WEATHERS, ...(rankLevel >= 2 ? [{ id: 'rainbow' as Weather, label: 'Rainbow Storm (magic)', icon: '🌈' }] : []), ...(rankLevel >= 3 ? [{ id: 'meteors' as Weather, label: 'Meteor Sparkles (magic)', icon: '☄️' }] : [])];
+  const [levels, setLevels] = useState<Record<string, number>>(saved.levels ?? {});
   const count = (id: string) => eco.groups[id] ?? START_GROUP;
   const eatsOf = (c: Creature) => c.eats ?? 'magic';
   const runIt = () => {
@@ -168,6 +171,11 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     const r = runSeason(eco, roster, { biome, weather, disaster: active });
     const ch = r.changes.find((x) => x.id === predict.id);
     setEco(r.next); setCaughtFx(r.caught); window.setTimeout(() => setCaughtFx([]), 2600);
+    // A creature gains a level after a balanced season with its energy at just right (plan section 5).
+    if (r.balance === 'Balanced') {
+      const up = live.filter((l) => l.energy === 'just right' && (r.next.groups[l.c.id] ?? 0) > 0 && (levels[l.c.id] ?? 1) < 10).map((l) => l.c.id);
+      if (up.length) { setLevels((lv) => { const n = { ...lv }; up.forEach((id) => { n[id] = (n[id] ?? 1) + 1; }); return n; }); snSound('learned'); r.sentence += ` Level up: ${up.map((id) => byId(id)?.name).join(', ')}!`; }
+    }
     snSound('season'); if (r.caught.length) snSound('poof');
     const real = ch ? (ch.after > ch.before ? 'up' : ch.after < ch.before ? 'down' : 'same') : 'same';
     setResult({ r, id: predict.id, guess: predict.guess === real ? 'match' : predict.guess }); setPredict(null);
@@ -195,7 +203,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups };
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels };
   const saveKey = `${biome}|${live.map((l) => l.hp).join(',')}|${eco.season}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
@@ -243,7 +251,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         else if (!active && weather === 'snow' && !l.c.likes.includes('snow') && tick % 3 === 0) hit(1, 'chilly');
         else if (!likes && l.c.move !== 'swim' && tick % 6 === 0 && hp > 2) hit(1, 'homesick');
       }
-      const calm = !dis && (weather === 'clear' || weather === 'fog' || weather === 'wind' || weather === 'rain');
+      const calm = !dis && (weather === 'clear' || weather === 'fog' || weather === 'wind' || weather === 'rain' || weather === 'rainbow' || weather === 'meteors');
       if (calm && hp > 0 && hp < 5 && (likes || l.c.move === 'swim') && tick % 4 === 0) hp += 1;
       if (hp === 0) status = 'asleep';
       else if (hp === 5) status = null;
@@ -258,8 +266,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         setNextSurprise(10 + Math.floor(Math.random() * 10));
         const r = Math.random();
         if (r < 0.45) {
-          const w = WEATHERS[Math.floor(Math.random() * WEATHERS.length)].id;
-          if (w !== weather) { if (weather === 'rain' && w === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w); tell(`Surprise! The weather changed: ${WEATHERS.find((x) => x.id === w)!.label.toLowerCase()}.`); }
+          const w = weathers[Math.floor(Math.random() * weathers.length)].id;
+          if (w !== weather) { if (weather === 'rain' && w === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w); tell(`Surprise! The weather changed: ${weathers.find((x) => x.id === w)!.label.toLowerCase()}.`); }
         } else if (r < 0.7) {
           const keys = Object.keys(DISASTERS) as Disaster[];
           startDisaster(keys[Math.floor(Math.random() * keys.length)]);
@@ -286,7 +294,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // One sound bed at a time.
   useEffect(() => {
     let loop: NatureLoop | null = night ? 'crickets_loop' : 'forest_day_loop';
-    if (weather === 'rain' || weather === 'storm' || active === 'flood') loop = 'rain_light_loop';
+    if (weather === 'rain' || weather === 'storm' || weather === 'rainbow' || active === 'flood') loop = 'rain_light_loop';
     if (weather === 'wind' || active === 'tornado') loop = 'wind_steady_loop';
     if (weather === 'snow' || active === 'blizzard') loop = 'blizzard_loop';
     if (active === 'wildfire') loop = 'torch_loop';
@@ -327,7 +335,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   ];
   const tapFace = (e: Energy) => {
     if (!sel_) return; setPick(e);
-    if (e === sel_.energy) { snSound('chime'); say(`${sel_.c.name} has ${sel_.energy} energy.`); } else snSound('fizzle');
+    if (e === sel_.energy) { snSound('chime'); onCheckin(); say(`${sel_.c.name} has ${sel_.energy} energy.`); } else snSound('fizzle');
   };
   const useTool = (tool: string) => {
     if (!sel_) return; snSound('learned');
@@ -374,7 +382,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <span className="sn-sparkles" />}
               {caughtFx.includes(l.c.id) && <span className="sn-catch" />}
-              <span className="sn-crit-name">{count(l.c.id) === 0 ? '🧳 moved away' : <>{l.c.name} <b>×{count(l.c.id)}</b>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
+              <span className="sn-crit-name">{count(l.c.id) === 0 ? '🧳 moved away' : <>{l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
           );
@@ -408,6 +416,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         )}
 
         {(weather === 'rain' || weather === 'storm' || active === 'flood') && <WeatherLayer kind="rain" opacity={weather === 'storm' ? 1 : 0.8} />}
+        {weather === 'rainbow' && <><div className="sn-rainbow" /><div className="sn-rainbow-rain"><WeatherLayer kind="rain" opacity={0.9} /></div></>}
+        {weather === 'meteors' && <div className="sn-meteors">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ left: 60 + i * 130, animationDelay: `${i * 0.7}s` }} />)}</div>}
         {(weather === 'snow' || active === 'blizzard') && <WeatherLayer kind="snow" />}
         {(weather === 'wind' || active === 'tornado' || active === 'blizzard') && <WeatherLayer kind="leaves" opacity={0.85} />}
         {(weather === 'fog' || active === 'wildfire') && <WeatherLayer kind="fog" opacity={0.7} dark={active === 'wildfire'} />}
@@ -438,7 +448,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-ib small" onClick={() => setSel(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button>
             </div>
             <div className="sn-hearts big" aria-label={`${sel_.hp} of 5 hearts`}>{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < sel_.hp ? 'full' : ''} />)}</div>
-            <p className="sn-pop-status">{sel_.status ? STATUS[sel_.status] : 'Happy and healthy.'}
+            <p className="sn-pop-status"><b>Level {levels[sel_.c.id] ?? 1}.</b> {sel_.status ? STATUS[sel_.status] : 'Happy and healthy.'}
               {sel_.status === 'homesick' && ` It likes: ${sel_.c.likes.map((b) => BIOMES.find((x) => x.id === b)!.label.toLowerCase()).join(', ')}.`}</p>
             {!checkIn ? (
               <div className="sn-pop-actions">
@@ -558,7 +568,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       <div className="sn-controls" onClick={(e) => e.stopPropagation()}>
         <button type="button" className={`sn-ctl${menu === 'land' ? ' on' : ''}`} onClick={() => setMenu(menu === 'land' ? null : 'land')}><span>{BIOMES.find((b) => b.id === biome)!.icon}</span>Land: {BIOMES.find((b) => b.id === biome)!.label}</button>
         <button type="button" className={`sn-ctl${menu === 'time' ? ' on' : ''}`} onClick={() => setMenu(menu === 'time' ? null : 'time')}><span>{night ? '🌙' : '☀️'}</span>Time: {timeMode === 'auto' ? (night ? 'Night' : 'Day') + ' (auto)' : timeMode === 'day' ? 'Day' : 'Night'}</button>
-        <button type="button" className={`sn-ctl${menu === 'weather' ? ' on' : ''}`} onClick={() => setMenu(menu === 'weather' ? null : 'weather')}><span>{WEATHERS.find((w) => w.id === weather)!.icon}</span>Weather: {WEATHERS.find((w) => w.id === weather)!.label}</button>
+        <button type="button" className={`sn-ctl${menu === 'weather' ? ' on' : ''}`} onClick={() => setMenu(menu === 'weather' ? null : 'weather')}><span>{weathers.find((w) => w.id === weather)!.icon}</span>Weather: {weathers.find((w) => w.id === weather)!.label}</button>
         <button type="button" className={`sn-ctl${menu === 'disaster' ? ' on' : ''}`} onClick={() => setMenu(menu === 'disaster' ? null : 'disaster')} disabled={!!dis}><span>⚠️</span>{dis ? `${DISASTERS[dis.kind].label}...` : 'Disasters'}</button>
         <button type="button" className={`sn-ctl${surprise ? ' on2' : ''}`} aria-pressed={surprise} onClick={() => { setSurprise(!surprise); tell(surprise ? 'Surprises are off. Only you change things.' : 'Surprises are on. Weather and events can change on their own.'); }}><span>🎲</span>Surprises: {surprise ? 'On' : 'Off'}</button>
         <span style={{ flex: 1 }} />
@@ -568,7 +578,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           <div className={`sn-menu ${menu}`} role="menu">
             {menu === 'land' && BIOMES.map((b) => <button key={b.id} type="button" className={biome === b.id ? 'on' : ''} onClick={() => { setBiome(b.id); setMenu(null); snSound('page'); tell(`The land is ${b.label.toLowerCase()}. Watch which creatures feel at home here.`); }}><span>{b.icon}</span>{b.label}</button>)}
             {menu === 'time' && ([['auto', '🔄', 'Day and night (auto)'], ['day', '☀️', 'Day'], ['night', '🌙', 'Night']] as const).map(([id, ic, label]) => <button key={id} type="button" className={timeMode === id ? 'on' : ''} onClick={() => { setTimeMode(id); setMenu(null); snSound('chime'); }}><span>{ic}</span>{label}</button>)}
-            {menu === 'weather' && WEATHERS.map((w) => <button key={w.id} type="button" className={weather === w.id ? 'on' : ''} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setMenu(null); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); tell(`The weather is ${w.label.toLowerCase()}.`); }}><span>{w.icon}</span>{w.label}</button>)}
+            {menu === 'weather' && weathers.map((w) => <button key={w.id} type="button" className={weather === w.id ? 'on' : ''} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setMenu(null); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); tell(`The weather is ${w.label.toLowerCase()}.`); }}><span>{w.icon}</span>{w.label}</button>)}
             {menu === 'disaster' && (Object.keys(DISASTERS) as Disaster[]).map((d) => <button key={d} type="button" onClick={() => startDisaster(d)}><span>{DISASTERS[d].icon}</span>{DISASTERS[d].label}</button>)}
           </div>
         )}

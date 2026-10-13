@@ -8064,3 +8064,40 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 /* Supernature potions out in the world (Build Queue 104). */
 .world-potion { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 60; padding: 10px 18px; border-radius: 999px; background: #4a4480; color: #f6f1ff; border: 3px solid #241f45; font-weight: 700; font-size: 17px; box-shadow: 0 4px 0 #241f45; pointer-events: none; }
 .sn-pet-potion { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #fff7e2; border: 2px solid #c8962a; border-radius: 12px; }
+
+/* Naturalist rank, levels and creature cards (Build Queue 105 and 109). */
+.sn-rank { min-height: 44px; padding: 0 14px; border-radius: 999px; background: #ffd970; color: #241f45; border: 3px solid #241f45; font-weight: 700; font-size: 14px; }
+.sn-crown { position: absolute; left: 44px; top: -26px; font-size: 34px; z-index: 4; }
+.sn-cat { position: relative; }
+.sn-xpbar { width: 100%; height: 18px; border-radius: 999px; background: #e8e0cc; border: 2px solid #241f45; overflow: hidden; }
+.sn-xpbar i { display: block; height: 100%; background: #57d3b8; }
+.sn-ranks { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.sn-ranks li { display: flex; gap: 10px; padding: 6px 10px; border-radius: 10px; background: #e8e0cc; font-size: 15px; }
+.sn-ranks li.got { background: #57d3b8; }
+.sn-ranks li b { min-width: 190px; }
+.sn-crit-name small { color: #9fe3ff; font-weight: 700; }
+.sn-rainbow-rain { position: absolute; inset: 0; z-index: 5; pointer-events: none; filter: hue-rotate(0deg) saturate(3); animation: snHue 3s linear infinite; }
+.sn-meteors { position: absolute; inset: 0; z-index: 5; pointer-events: none; }
+.sn-meteors i { position: absolute; top: -20px; width: 6px; height: 6px; border-radius: 50%; background: #fff6c4; box-shadow: 0 0 10px #ffd970, -18px -10px 0 -1px rgba(255, 246, 196, 0.6), -34px -18px 0 -2px rgba(255, 246, 196, 0.3); animation: snMeteor 3.2s linear infinite; }
+@keyframes snHue { from { filter: hue-rotate(0deg) saturate(3); } to { filter: hue-rotate(360deg) saturate(3); } }
+@keyframes snMeteor { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(260px, 620px); opacity: 0.2; } }
+.sn-entry-btns { display: flex; flex-direction: column; gap: 6px; }
+.sn-entry-head { grid-template-columns: 96px 1fr 44px; }
+.sn-cardbtn { width: 44px; height: 44px; padding: 0; border-radius: 50%; background: #ffd970; border: 3px solid #241f45; font-size: 20px; }
+.sn-cards { max-height: 680px; }
+.sn-card2 { width: 300px; display: flex; flex-direction: column; gap: 6px; padding: 10px; background: #fff7e2; color: #241f45; border: 6px solid var(--cc, #57d3b8); border-radius: 16px; box-shadow: 0 0 0 3px #241f45, 0 6px 0 3px #241f45; text-align: left; }
+.sn-card2.gold { border-color: #f2c14e; box-shadow: 0 0 0 3px #241f45, 0 0 18px 4px #ffd970; }
+.sn-card2-top { display: flex; justify-content: space-between; align-items: center; font-size: 19px; }
+.sn-card2-top span { padding: 2px 8px; border-radius: 999px; background: #4a4480; color: #f6f1ff; font-size: 13px; }
+.sn-card2-art { height: 170px; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #fff, var(--cc, #57d3b8)); border: 3px solid #241f45; border-radius: 10px; }
+.sn-card2-art img { width: 150px; height: 150px; object-fit: contain; image-rendering: pixelated; }
+.sn-card2-type { font-size: 12px; font-weight: 700; color: #8a5a2e; }
+.sn-card2 dl { display: grid; grid-template-columns: 56px 1fr; gap: 3px 8px; margin: 0; font-size: 13px; line-height: 1.3; }
+.sn-card2 dt { font-weight: 700; color: #8a5a2e; }
+.sn-card2 dd { margin: 0; }
+.sn-card2-flavor { font-size: 13px; font-style: italic; line-height: 1.35; border-top: 2px dashed #c8962a; padding-top: 6px; }
+.sn-card-side { display: flex; flex-direction: column; gap: 10px; }
+.sn-card-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; width: 100%; }
+.sn-card-mini { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px; background: #fff7e2; color: #241f45; border: 4px solid var(--cc, #57d3b8); border-radius: 10px; font-size: 12px; font-weight: 700; }
+.sn-card-mini img { width: 64px; height: 64px; object-fit: contain; image-rendering: pixelated; }
+.sn-toc-total .sn-chip-btn { margin-left: 6px; min-height: 36px; }

@@ -69,10 +69,11 @@ function fromCreature(id: string): Spec {
   });
 }
 
-export default function SupernatureMaker({ bar, say, found, made, editId, onSave, goBook, goHabitat, goNames }: {
+export default function SupernatureMaker({ bar, say, found, made, editId, onSave, goBook, goHabitat, goNames, extraColors }: {
   bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; found: string[]; made: Made[]; editId: string | null;
-  onSave: (m: Made) => void; goBook: (id: string | null) => void; goHabitat: () => void; goNames: () => void;
+  onSave: (m: Made) => void; goBook: (id: string | null) => void; goHabitat: () => void; goNames: () => void; extraColors: string[];
 }) {
+  const palette = [...COLORS, ...extraColors];
   const editing = editId ? made.find((m) => m.id === editId) : undefined;
   const start: Draft = editing
     ? { spec: editing.spec, inspired: editing.inspired, personality: editing.personality, social: editing.social, smarts: editing.smarts, diet: editing.diet, size: editing.size, energy: editing.energy, biome: editing.biome, region: editing.region, sciParts: editing.sciParts ?? [], friendly: editing.sci && editing.sci !== editing.name ? editing.name : '', sentence: editing.sentence, fact: editing.fact, wrote: !!editing.wrote }
@@ -192,9 +193,9 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
               <h3>Covering</h3>
               <div className="sn-mk-grid">{COVERS.map((c) => opt(c.label, d.spec.covering === c.id, () => spec({ covering: c.id }), { ...d.spec, covering: c.id }))}</div>
               <h3>Main color</h3>
-              <div className="sn-swatches">{COLORS.map((c) => <button key={c} type="button" className={`sn-swatch${d.spec.main === c ? ' on' : ''}`} style={{ background: c }} onClick={() => spec({ main: c })} aria-label={`Main color ${c}`} />)}</div>
+              <div className="sn-swatches">{palette.map((c) => <button key={c} type="button" className={`sn-swatch${d.spec.main === c ? ' on' : ''}`} style={{ background: c }} onClick={() => spec({ main: c })} aria-label={`Main color ${c}`} />)}</div>
               <h3>Second color</h3>
-              <div className="sn-swatches">{COLORS.map((c) => <button key={c} type="button" className={`sn-swatch${d.spec.accent === c ? ' on' : ''}`} style={{ background: c }} onClick={() => spec({ accent: c })} aria-label={`Second color ${c}`} />)}</div>
+              <div className="sn-swatches">{palette.map((c) => <button key={c} type="button" className={`sn-swatch${d.spec.accent === c ? ' on' : ''}`} style={{ background: c }} onClick={() => spec({ accent: c })} aria-label={`Second color ${c}`} />)}</div>
               <p className="sn-small">It will feel at home in: {likesFor(d.spec).join(', ')}.</p>
             </>
           )}

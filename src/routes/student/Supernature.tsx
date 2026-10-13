@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
-import { SN, REGIONS, WORD_PARTS, INGREDIENTS, ING, RECIPES, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { SN, REGIONS, WORD_PARTS, INGREDIENTS, ING, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +44,7 @@ export default function Supernature() {
   const [bookStart, setBookStart] = useState<string | null>(null);
   const [recipe, setRecipe] = useState(0);
   const [editId, setEditId] = useState<string | null>(null);
+  const [rankOpen, setRankOpen] = useState(false);
   const [sound, setSound] = useState(soundsOn());
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(null), 3600); return () => clearTimeout(t); }, [toast]);
@@ -60,6 +61,8 @@ export default function Supernature() {
   const navigate = useNavigate();
   const made = save.made ?? [];
   setMade(made);
+  const nat = naturalist(save);
+  const levels = save.habitat?.levels ?? {};
   const go = (r: Room) => { snSound(r === 'home' ? 'back' : 'open'); setRoom(r); };
   const openPage = (id: string | null) => { setBookStart(id); go('book'); };
   const openMaker = (id: string | null) => { setEditId(id); go('maker'); };
@@ -92,17 +95,19 @@ export default function Supernature() {
   return (
     <div className="sn-root">
       <div className="sn-stage" style={{ transform: `scale(${scale})` }}>
-        {room === 'home' && <Home bar={bar()} go={go} say={say} maker={() => openMaker(null)} />}
+        {room === 'home' && <Home bar={bar({ extra: <button type="button" className="sn-rank" onClick={() => { snSound('open'); setRankOpen(true); }}>🏅 {nat.rank.name} · {nat.xp} XP</button> })} go={go} say={say} maker={() => openMaker(null)} crown={nat.level >= 4} />}
+        {rankOpen && <RankCard nat={nat} say={say} onClose={() => setRankOpen(false)} />}
         {room === 'habitat' && (
           <SupernatureHabitat bar={bar} say={say} found={found} saved={save.habitat ?? {}} onSave={(h) => patch({ habitat: h })}
             potions={potions}
             usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }}
-            goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} goNames={() => go('names')} />
+            goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} goNames={() => go('names')} rankLevel={nat.level}
+            onCheckin={() => patch({ checkins: (save.checkins ?? 0) + 1 })} />
         )}
         {room === 'globe' && <Globe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
         {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')}
-          goMaker={openMaker} onRemove={(id) => patch({ made: made.filter((x) => x.id !== id) })} />}
-        {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade}
+          goMaker={openMaker} onRemove={(id) => patch({ made: made.filter((x) => x.id !== id) })} levels={levels} gold={nat.level >= 4} />}
+        {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade} extraColors={nat.level >= 1 ? SPARKLY_COLORS : []}
           goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
         {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} pantry={pantry} brewed={brewed} start={recipe}
           pets={allPets.filter((p) => p.studentId === student.id).map((p) => ({ id: p.id, name: p.customName }))} petDone={save.petDay === new Date().toDateString()}
@@ -125,11 +130,12 @@ export default function Supernature() {
   );
 }
 
-function Host({ text, say, wide, img = `${SN}theme/kitty-curiousIdleBreaker.gif`, name = 'Cat Wizard', smooth = true }: {
-  text: string; say: (t: string) => void; wide?: boolean; img?: string; name?: string; smooth?: boolean;
+function Host({ text, say, wide, img = `${SN}theme/kitty-curiousIdleBreaker.gif`, name = 'Cat Wizard', smooth = true, crown }: {
+  text: string; say: (t: string) => void; wide?: boolean; img?: string; name?: string; smooth?: boolean; crown?: boolean;
 }) {
   return (
     <div className="sn-cat">
+      {crown && <span className="sn-crown" aria-hidden="true">👑</span>}
       <img src={img} alt={name} className={smooth ? 'sn-smooth' : 'sn-host-pixel'} />
       <div className={`sn-dialog${wide ? ' wide' : ''}`}>
         <span className="sn-dialog-name">{name}</span>
@@ -144,7 +150,7 @@ function Host({ text, say, wide, img = `${SN}theme/kitty-curiousIdleBreaker.gif`
 // Her layout notes (2026-10-13): the door, bookshelf, fireplace and vending machine stand on the
 // line where the floor meets the wall; no mushrooms indoors; the globe sits on a table; the
 // bookshelf opens the Encyclopedia.
-function Home({ bar, go, say, maker }: { bar: React.ReactNode; go: (r: Room) => void; say: (t: string) => void; maker: () => void }) {
+function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Room) => void; say: (t: string) => void; maker: () => void; crown: boolean }) {
   const tag = (label: string, gold?: boolean) => <span className={`sn-tag${gold ? ' gold' : ''}`}>{label}</span>;
   const W = `${SN}witchy-pack/`;
   return (
@@ -197,7 +203,7 @@ function Home({ bar, go, say, maker }: { bar: React.ReactNode; go: (r: Room) => 
         </span>{tag('Creature Maker')}
       </button>
 
-      <Host say={say} text="Welcome home! Tap anything with a name tag. The bookshelf is your Encyclopedia, and the door goes outside to your Habitat." />
+      <Host say={say} crown={crown} text="Welcome home! Tap anything with a name tag. The bookshelf is your Encyclopedia, and the door goes outside to your Habitat." />
     </div>
   );
 }
@@ -498,6 +504,30 @@ function Names({ bar, say, names, onSave }: { bar: (o?: BarOpts) => React.ReactN
       </section>
       <div className="sn-trays">{group('start', 'Starts (come first)')}{group('main', 'Main ideas')}{group('end', 'Endings (come last)')}</div>
       {names.length > 0 && <p className="sn-saved-names">My names: {names.join(', ')}</p>}
+    </div>
+  );
+}
+
+/* ---------------- Naturalist rank (Build Queue 105) ---------------- */
+function RankCard({ nat, say, onClose }: { nat: ReturnType<typeof naturalist>; say: (t: string) => void; onClose: () => void }) {
+  const text = `You are a ${nat.rank.name} with ${nat.xp} XP.${nat.next ? ` ${nat.next.at - nat.xp} more XP to become a ${nat.next.name}.` : ' You reached the top rank!'}`;
+  return (
+    <div className="sn-modal" role="dialog" aria-label="Naturalist rank" onClick={onClose}>
+      <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+        <h2>🏅 {nat.rank.name}</h2>
+        <p>{text}</p>
+        {nat.next && <div className="sn-xpbar"><i style={{ width: `${Math.min(100, ((nat.xp - nat.rank.at) / (nat.next.at - nat.rank.at)) * 100)}%` }} /></div>}
+        <ul className="sn-notes">
+          {nat.parts.map((p) => <li key={p.label}><span>{p.label}</span><b>{p.n}</b><em>{p.each} XP each = {p.n * p.each} XP</em></li>)}
+        </ul>
+        <ul className="sn-ranks">
+          {RANKS.map((r, i) => <li key={r.name} className={i <= nat.level ? 'got' : ''}><b>{i <= nat.level ? '✓' : '🔒'} {r.name}</b><span>{r.at} XP: {r.unlock}</span></li>)}
+        </ul>
+        <div className="sn-row center">
+          <button type="button" className="sn-btn2" onClick={() => say(text)}>Listen</button>
+          <button type="button" className="sn-btn" onClick={onClose}>Keep exploring</button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -111,8 +111,8 @@ export const AERO = RECIPES[0];
 export const VITA = RECIPES[1];
 
 // Each student's progress, saved in their own row (no new tables).
-export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number> }
-export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; petDay?: string }
+export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number> }
+export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; petDay?: string; checkins?: number }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === owner));
@@ -158,4 +158,30 @@ export function setNatureLoop(name: NatureLoop | null, volume = 0.3) {
   loopEl = null; loopName = name;
   if (!name) return;
   try { const a = new Audio(`${SN}sounds/nature/${name}.wav`); a.loop = true; a.volume = volume; void a.play().catch(() => undefined); loopEl = a; } catch { /* fine */ }
+}
+
+// Naturalist rank (Build Queue 105; plan section 5). XP comes from everything a student does in
+// Supernature, so it never needs its own bookkeeping beyond check-ins and creature levels. Each
+// rank unlocks something new (nothing that was already open ever gets locked).
+export const RANKS = [
+  { name: 'Apprentice', at: 0, unlock: 'Welcome to Supernature!' },
+  { name: 'Field Scout', at: 60, unlock: '6 sparkly colors in the Creature Maker' },
+  { name: 'Creature Keeper', at: 160, unlock: 'Rainbow Storm, a magic weather for your Habitat' },
+  { name: 'Habitat Builder', at: 320, unlock: 'Meteor Sparkle Shower, a magic sky for your Habitat' },
+  { name: 'Grand Naturalist', at: 560, unlock: 'Gold creature cards and a crown for the Cat Wizard' },
+];
+export const SPARKLY_COLORS = ['#ff9de2', '#9de8ff', '#c9ff9d', '#ffd1a1', '#b9a1ff', '#fff27a'];
+export function naturalist(save: SnSave) {
+  const levels = Object.values(save.habitat?.levels ?? {}).reduce((a, n) => a + n, 0);
+  const parts = [
+    { label: 'creatures found', n: (save.found ?? []).length, each: 10 },
+    { label: 'creatures made', n: (save.made ?? []).length, each: 15 },
+    { label: 'recipes brewed', n: (save.brewed ?? []).length, each: 10 },
+    { label: 'seasons in the Habitat', n: save.habitat?.season ?? 0, each: 5 },
+    { label: 'creature levels', n: levels, each: 5 },
+    { label: 'energy check-ins', n: save.checkins ?? 0, each: 3 },
+  ];
+  const xp = parts.reduce((a, p) => a + p.n * p.each, 0);
+  let level = 0; RANKS.forEach((r, i) => { if (xp >= r.at) level = i; });
+  return { xp, level, rank: RANKS[level], next: RANKS[level + 1], parts };
 }
