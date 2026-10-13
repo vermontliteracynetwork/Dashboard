@@ -39,6 +39,8 @@ export const WORD_PARTS: (Part & { example: string })[] = [
   { text: 'ium', meaning: 'a thing', kind: 'end', example: 'aquarium' }, { text: 'ify', meaning: 'to make', kind: 'end', example: 'magnify' },
   { text: 'vore', meaning: 'eats', kind: 'end', example: 'herbivore' }, { text: 'ling', meaning: 'little', kind: 'end', example: 'duckling' },
   { text: 'phobe', meaning: 'is afraid of', kind: 'end', example: 'aquaphobe' },
+  { text: 'cera', meaning: 'horn', kind: 'main', example: 'triceratops' }, { text: 'derm', meaning: 'skin', kind: 'main', example: 'epidermis' },
+  { text: 'pter', meaning: 'wing', kind: 'main', example: 'pterodactyl' }, { text: 'saur', meaning: 'lizard', kind: 'end', example: 'dinosaur' },
 ];
 
 // The first Cookbook recipe. Steps happen in order, and the bowl always goes first (order of
@@ -83,7 +85,7 @@ export const RECIPES = [AERO, VITA];
 
 // Each student's progress, saved in their own row (no new tables).
 export interface SnHabitat { biome?: string; health?: Record<string, number> }
-export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat }
+export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[] }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === owner));

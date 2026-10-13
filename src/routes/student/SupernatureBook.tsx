@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ENERGY_FACE, REGIONS, SN, snSound } from '../../lib/supernature';
-import { CHAPTERS, CREATURES, art, byId, type ChapterId, type Creature } from '../../lib/supernatureCreatures';
+import { CHAPTERS, CREATURES, MAX_MADE, art, byId, madeList, madeToCreature, type ChapterId, type Creature } from '../../lib/supernatureCreatures';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 
 // The Encyclopedia (her requests, 2026-10-13): a pixel book reached from the bookshelf. It opens on
@@ -13,11 +13,12 @@ type View = 'toc' | ChapterId;
 type Bar = (o?: { back?: () => void; backLabel?: string; extra?: React.ReactNode }) => React.ReactNode;
 const READ_KEY = 'supernature.readstory';
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
-const inChapter = (id: ChapterId) => CREATURES.filter((c) => c.chapter === id);
+const inChapter = (id: ChapterId) => (id === 'mine' ? madeList().map(madeToCreature) : CREATURES.filter((c) => c.chapter === id));
 const regionLabel = (id: string) => REGIONS.find((r) => r.id === id)?.label ?? id;
 
-export default function SupernatureBook({ bar, say, found, start, goGlobe, goHome }: {
+export default function SupernatureBook({ bar, say, found, start, goGlobe, goHome, goMaker, onRemove }: {
   bar: Bar; say: (t: string) => void; found: string[]; start: string | null; goGlobe: () => void; goHome: () => void;
+  goMaker: (editId: string | null) => void; onRemove: (id: string) => void;
 }) {
   const first = start ? byId(start) : undefined;
   const [view, setView] = useState<View>(first ? first.chapter : 'toc');
@@ -25,10 +26,11 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
   const [side, setSide] = useState<'facts' | 'story'>('facts');
   const [readToMe, setReadToMe] = useState(() => { try { return localStorage.getItem(READ_KEY) !== 'off'; } catch { return true; } });
   const [write, setWrite] = useState(false);
+  const [sure, setSure] = useState<string | null>(null);
   const swipe = useRef<number | null>(null);
   const list = view === 'toc' ? [] : inChapter(view);
   const c: Creature | undefined = list[pick];
-  const isFound = !!c && found.includes(c.id);
+  const isFound = !!c && (found.includes(c.id) || c.chapter === 'mine');
   const chapterIdx = CHAPTERS.findIndex((ch) => ch.id === view);
   const chapter = CHAPTERS[chapterIdx];
 
@@ -49,14 +51,14 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
     openChapter(next.id, d > 0 ? 0 : inChapter(next.id).length - 1);
   };
   const setRead = (on: boolean) => { setReadToMe(on); try { localStorage.setItem(READ_KEY, on ? 'on' : 'off'); } catch { /* fine */ } };
-  const foundIn = (id: ChapterId) => inChapter(id).filter((x) => found.includes(x.id)).length;
+  const foundIn = (id: ChapterId) => (id === 'mine' ? madeList().length : inChapter(id).filter((x) => found.includes(x.id)).length);
 
   const tocRow = (ch: typeof CHAPTERS[number], n: number) => (
     <button key={ch.id} type="button" className="sn-toc-row" onClick={() => openChapter(ch.id)}>
       <span className="sn-toc-icon" style={{ background: ch.color }}><img src={art(ch.icon)} alt="" /></span>
       <span className="sn-toc-num">{n}</span>
       <span className="sn-toc-title">{ch.title}</span>
-      <span className="sn-toc-count">{foundIn(ch.id)} / {inChapter(ch.id).length}</span>
+      <span className="sn-toc-count">{foundIn(ch.id)} / {ch.id === 'mine' ? MAX_MADE : inChapter(ch.id).length}</span>
     </button>
   );
 
@@ -94,7 +96,7 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
         {view !== 'toc' && chapter && (
           <>
             {list.map((x, i) => {
-              const f = found.includes(x.id);
+              const f = found.includes(x.id) || x.chapter === 'mine';
               return (
                 <button key={x.id} type="button" className={`sn-slot2${i === pick ? ' on' : ''}`}
                   style={{ left: 52 + (i % 4) * 96, top: 44 + Math.floor(i / 4) * 96 }}
@@ -107,7 +109,7 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
             <div className="sn-chapter-box">
               <b>Chapter {chapterIdx + 1}: {chapter.title}</b>
               <span>{chapter.blurb}</span>
-              <span className="sn-chapter-found">{foundIn(chapter.id)} of {list.length} found</span>
+              <span className="sn-chapter-found">{chapter.id === 'mine' ? `${list.length} of ${MAX_MADE} made` : `${foundIn(chapter.id)} of ${list.length} found`}</span>
               {chapter.id === 'gods' && (
                 <div className="sn-toc-groups">
                   {(['Greek', 'Egyptian', 'Roman'] as const).map((g) => (
@@ -117,6 +119,15 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
               )}
             </div>
 
+            {!c && chapter.id === 'mine' && (
+              <div className="sn-page right sn-entry">
+                <div className="sn-entry-body hidden">
+                  <p>You have not made a creature yet.</p>
+                  <p>Make one in the Creature Maker, and its page will appear here.</p>
+                  <button type="button" className="sn-btn" onClick={() => goMaker(null)}>Open the Creature Maker</button>
+                </div>
+              </div>
+            )}
             {c && (
               <div className="sn-page right sn-entry">
                 <div className="sn-entry-head">
@@ -153,7 +164,10 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
                     <div className="sn-entry-foot">
                       {side === 'story'
                         ? <button type="button" className="sn-btn2 small" aria-pressed={readToMe} onClick={() => setRead(!readToMe)}>{readToMe ? 'Read to me: on' : 'Read to me: off'}</button>
-                        : <span />}
+                        : c.chapter === 'mine'
+                          ? <span className="sn-row"><button type="button" className="sn-btn2 small" onClick={() => goMaker(c.id)}>Change it</button>
+                              <button type="button" className="sn-btn2 small" onClick={() => { if (sure === c.id) { onRemove(c.id); setSure(null); setPick(0); } else setSure(c.id); }}>{sure === c.id ? 'Tap again to remove' : 'Remove'}</button></span>
+                          : <span />}
                       <button type="button" className="sn-btn2 small" onClick={() => setWrite(true)}>Write its name</button>
                     </div>
                   </>

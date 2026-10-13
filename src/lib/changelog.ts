@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-13-creature-maker",
+    date: "2026-10-13",
+    icon: "🧟",
+    title: "Build your own creature!",
+    body: "The Creature Maker is open. Frankenstein helps you pick a body, eyes, legs, a tail, wings, horns, a covering and colors, then its mind and its home. Build a science name from word parts, write its name with your wand, and save it to My Creatures. It moves right into your Habitat!",
+  },
+  {
     id: "2026-10-13-supernature-2",
     date: "2026-10-13",
     icon: "📖",

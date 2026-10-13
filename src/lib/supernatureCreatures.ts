@@ -5,11 +5,13 @@
 // and the Dragon come from her packs; the rest were drawn for Supernature (scripts/supernature-art).
 // Word histories and stories were checked for accuracy; she reviews region lists (plan section 10).
 
+import { bodyTraits, likesFor, moveFor, specUrl, type Spec } from './supernatureMaker';
+
 const SN = '/games/supernature/';
 type Energy = 'very high' | 'high' | 'just right' | 'low' | 'very low';
 interface Part { text: string; meaning: string; kind: 'start' | 'main' | 'end' }
 
-export type ChapterId = 'gods' | 'creatures' | 'spirits' | 'magical' | 'air' | 'water' | 'hybrids' | 'tricksters' | 'colossal';
+export type ChapterId = 'gods' | 'creatures' | 'spirits' | 'magical' | 'air' | 'water' | 'hybrids' | 'tricksters' | 'colossal' | 'mine';
 export interface Chapter { id: ChapterId; title: string; tab: string; blurb: string; icon: string; color: string }
 export const CHAPTERS: Chapter[] = [
   { id: 'gods', title: 'Gods and Goddesses', tab: 'Gods', icon: 'zeus', color: '#f2c14e', blurb: 'Powerful beings from the old stories of Greece, Egypt and Rome.' },
@@ -21,6 +23,7 @@ export const CHAPTERS: Chapter[] = [
   { id: 'hybrids', title: 'Hybrids', tab: 'Hybrids', icon: 'griffin', color: '#d9a636', blurb: 'Creatures made of two or more animals mixed together.' },
   { id: 'tricksters', title: 'Shapeshifters and Tricksters', tab: 'Tricksters', icon: 'kitsune', color: '#e0452f', blurb: 'Creatures that change their shape or win by being clever.' },
   { id: 'colossal', title: 'Colossal Creatures', tab: 'Colossal', icon: 'yeti', color: '#e8f4ff', blurb: 'Huge, hairy and hard to find: the giants of the mountains and forests.' },
+  { id: 'mine', title: 'My Creatures', tab: 'Mine', icon: 'frankie', color: '#57d3b8', blurb: 'Creatures you made in the Creature Maker. Only you can see them.' },
 ];
 
 export type Move = 'walk' | 'fly' | 'swim' | 'float';
@@ -33,7 +36,10 @@ export interface Creature {
   explore: 'explore' | 'remix'; respect?: string; starter?: boolean;
   ingredient?: { name: string; img: string };
 }
-export const art = (id: string) => `${SN}creatures/${id}.png`;
+export const art = (id: string) => {
+  const m = MADE.find((x) => x.id === id);
+  return m ? specUrl(m.spec) : `${SN}creatures/${id}.png`;
+};
 const ALL: Biome[] = ['grassland', 'forest', 'desert', 'snow', 'swamp'];
 const NATIVE = 'These stories belong to living Native nations. We learn about them with respect, and we do not remix them.';
 
@@ -373,4 +379,34 @@ export const CREATURES: Creature[] = [
 // The ten starters keep their place on the Globe: one per continent and ocean, found first.
 export const STARTERS = ['griffin', 'kappa', 'sphinx', 'jackalope', 'curupira', 'bunyip', 'selkie', 'umibozu', 'mermaid', 'kraken'];
 for (const c of CREATURES) if (STARTERS.includes(c.id)) c.starter = true;
-export const byId = (id: string) => CREATURES.find((c) => c.id === id);
+
+// Creatures the student made (Build Queue 98). They live in the student's save; the app registers
+// them here each render so the Encyclopedia, the Habitat and the art helper treat them like the rest.
+export interface Made {
+  id: string; spec: Spec; name: string; sci?: string; sciParts?: Part[]; inspired?: string;
+  personality: string; social: 'pack' | 'loner'; smarts: number; diet: string; size: string; energy: Energy;
+  biome: Biome; region: string; homeText: string; sentence: string; fact: string; wrote?: boolean; created: string;
+}
+export const MAX_MADE = 12;
+let MADE: Made[] = [];
+export function setMade(list: Made[]) { MADE = list; }
+export const madeList = () => MADE;
+export function madeToCreature(m: Made): Creature {
+  const insp = m.inspired ? CREATURES.find((c) => c.id === m.inspired) : undefined;
+  const body = bodyTraits(m.spec);
+  return {
+    id: m.id, name: m.name, say: m.name, chapter: 'mine', region: m.region,
+    from: insp ? `Made by you, inspired by the ${insp.name} (${insp.from})` : 'Made by you', home: m.homeText, size: m.size,
+    power: body.slice(0, 2).join(' and ') || 'its own kind of magic', energy: m.energy,
+    traits: [...body, m.personality, m.social === 'pack' ? 'lives in a pack' : 'lives alone', `smarts ${m.smarts} of 5`, `eats ${m.diet}`],
+    move: moveFor(m.spec), likes: [...new Set<Biome>([m.biome, ...likesFor(m.spec)])],
+    story: m.sentence, tale: [m.sentence, m.fact].filter(Boolean).join(' '),
+    nameParts: m.sciParts, nameNote: m.sci && m.sci !== m.name ? `Its science name is ${m.sci}.` : 'You named it.', explore: 'explore',
+  };
+}
+export const byId = (id: string): Creature | undefined => {
+  const c = CREATURES.find((x) => x.id === id);
+  if (c) return c;
+  const m = MADE.find((x) => x.id === id);
+  return m ? madeToCreature(m) : undefined;
+};

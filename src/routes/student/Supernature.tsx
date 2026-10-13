@@ -3,10 +3,11 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
 import { SN, REGIONS, WORD_PARTS, SHELF, RECIPES, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
-import { CREATURES, STARTERS, art, byId } from '../../lib/supernatureCreatures';
+import { CREATURES, STARTERS, art, byId, setMade, type Made } from '../../lib/supernatureCreatures';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 import SupernatureBook from './SupernatureBook';
 import SupernatureHabitat from './SupernatureHabitat';
+import SupernatureMaker from './SupernatureMaker';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
 // docs/SUPERNATURE_PLAN.md). Home is the Witch's House with the Cat Wizard as host. Every other room
@@ -38,6 +39,7 @@ export default function Supernature() {
   const [room, setRoom] = useState<Room>('home');
   const [bookStart, setBookStart] = useState<string | null>(null);
   const [recipe, setRecipe] = useState(0);
+  const [editId, setEditId] = useState<string | null>(null);
   const [sound, setSound] = useState(soundsOn());
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => { if (!toast) return; const t = window.setTimeout(() => setToast(null), 3600); return () => clearTimeout(t); }, [toast]);
@@ -46,8 +48,12 @@ export default function Supernature() {
   const say = (t: string) => speak(t, tts);
   const found = save.found ?? [];
   const potions = save.potions ?? [];
+  const made = save.made ?? [];
+  setMade(made);
   const go = (r: Room) => { snSound(r === 'home' ? 'back' : 'open'); setRoom(r); };
   const openPage = (id: string | null) => { setBookStart(id); go('book'); };
+  const openMaker = (id: string | null) => { setEditId(id); go('maker'); };
+  const saveMade = (m: Made) => patch({ made: made.some((x) => x.id === m.id) ? made.map((x) => (x.id === m.id ? m : x)) : [...made, m] });
   const toggleSound = () => { setSoundsOn(!sound); setSound(!sound); };
 
   const bar = (o?: BarOpts) => (
@@ -76,7 +82,7 @@ export default function Supernature() {
   return (
     <div className="sn-root">
       <div className="sn-stage" style={{ transform: `scale(${scale})` }}>
-        {room === 'home' && <Home bar={bar()} go={go} say={say} />}
+        {room === 'home' && <Home bar={bar()} go={go} say={say} maker={() => openMaker(null)} />}
         {room === 'habitat' && (
           <SupernatureHabitat bar={bar} say={say} found={found} saved={save.habitat ?? {}} onSave={(h) => patch({ habitat: h })}
             vitas={potions.filter((p) => p === 'Vita').length}
@@ -84,11 +90,14 @@ export default function Supernature() {
             goCauldron={() => { setRecipe(1); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} />
         )}
         {room === 'globe' && <Globe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
-        {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')} />}
+        {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')}
+          goMaker={openMaker} onRemove={(id) => patch({ made: made.filter((x) => x.id !== id) })} />}
+        {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade}
+          goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
         {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} start={recipe}
           onBrewed={(name) => patch({ potions: [...potions, name] })} goNames={() => go('names')} goHabitat={() => go('habitat')} />}
         {room === 'names' && <Names bar={bar} say={say} names={save.names ?? []} onSave={(n) => patch({ names: [...(save.names ?? []), n] })} />}
-        {(room === 'maker' || room === 'shop') && <ComingNext bar={bar} room={room} say={say} goNames={() => go('names')} />}
+        {room === 'shop' && <ComingNext bar={bar} say={say} />}
         {toast && <div className="sn-toast" role="status">{toast}</div>}
       </div>
     </div>
@@ -114,7 +123,7 @@ function Host({ text, say, wide, img = `${SN}theme/kitty-curiousIdleBreaker.gif`
 // Her layout notes (2026-10-13): the door, bookshelf, fireplace and vending machine stand on the
 // line where the floor meets the wall; no mushrooms indoors; the globe sits on a table; the
 // bookshelf opens the Encyclopedia.
-function Home({ bar, go, say }: { bar: React.ReactNode; go: (r: Room) => void; say: (t: string) => void }) {
+function Home({ bar, go, say, maker }: { bar: React.ReactNode; go: (r: Room) => void; say: (t: string) => void; maker: () => void }) {
   const tag = (label: string, gold?: boolean) => <span className={`sn-tag${gold ? ' gold' : ''}`}>{label}</span>;
   const W = `${SN}witchy-pack/`;
   return (
@@ -158,7 +167,7 @@ function Home({ bar, go, say }: { bar: React.ReactNode; go: (r: Room) => void; s
       </button>
 
       <div className="sn-rug" />
-      <button type="button" className="sn-obj" style={{ left: 560, top: 540, width: 280 }} onClick={() => go('maker')} aria-label="Creature Maker">
+      <button type="button" className="sn-obj" style={{ left: 560, top: 540, width: 280 }} onClick={maker} aria-label="Creature Maker">
         <span style={{ position: 'relative', width: 280, height: 160, display: 'block' }}>
           <img src={`${SN}furniture/witch_table.png`} alt="" style={{ position: 'absolute', left: 0, bottom: 0, width: 180 }} />
           <img src={`${SN}furniture/witch_crystal_ball.png`} alt="" style={{ position: 'absolute', left: 72, top: 14, width: 40 }} />
@@ -368,26 +377,13 @@ function Names({ bar, say, names, onSave }: { bar: (o?: BarOpts) => React.ReactN
   );
 }
 
-function ComingNext({ bar, room, say, goNames }: { bar: (o?: BarOpts) => React.ReactNode; room: Room; say: (t: string) => void; goNames: () => void }) {
+function ComingNext({ bar, say }: { bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void }) {
   return (
     <div className="sn-room">
       {bar()}
       <div className="sn-next">
-        {room === 'shop' ? (
-          <>
-            <img src={`${SN}theme/vending-machine.png`} alt="" className="sn-smooth" style={{ width: 300 }} />
-            <Host wide say={say} text="The Shop opens soon. You will buy rare ingredients here with your real money." />
-          </>
-        ) : (
-          <>
-            <img src={`${SN}furniture/witch_table.png`} alt="" style={{ width: 300 }} />
-            <div className="sn-next-col">
-              <Host wide say={say} img={`${SN}creatures/frankie.png`} name="Frankenstein" smooth={false}
-                text="I am your Creature Maker helper! This lab opens soon. You will pick a body, parts, a covering, its mind and its name, one step at a time. You can already build names in the Name Builder." />
-              <button type="button" className="sn-btn" onClick={goNames}>Open the Name Builder</button>
-            </div>
-          </>
-        )}
+        <img src={`${SN}theme/vending-machine.png`} alt="" className="sn-smooth" style={{ width: 300 }} />
+        <Host wide say={say} text="The Shop opens soon. You will buy rare ingredients here with your real money." />
       </div>
     </div>
   );

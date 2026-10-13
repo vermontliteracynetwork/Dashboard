@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ENERGY_FACE, ENERGY_STEPS, SN, natureSound, setNatureLoop, snSound, type Energy, type NatureLoop, type SnHabitat } from '../../lib/supernature';
-import { art, byId, type Biome, type Creature } from '../../lib/supernatureCreatures';
+import { art, byId, madeList, type Biome, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
@@ -121,7 +121,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, vit
   saved: SnHabitat; onSave: (h: SnHabitat) => void; vitas: number; onUseVita: () => void;
   goCauldron: () => void; openPage: (id: string) => void; goGlobe: () => void;
 }) {
-  const roster = useMemo(() => found.slice(-12).map((id) => byId(id)).filter((c): c is Creature => !!c), [found]);
+  // Found creatures plus the ones the student made in the Creature Maker.
+  const roster = useMemo(() => [...madeList().slice(-6).map((m) => m.id), ...found.slice(-12)].map((id) => byId(id)).filter((c): c is Creature => !!c).slice(0, 16), [found]);
   const [live, setLive] = useState<Live[]>(() => roster.map((c, i) => ({ c, ...place(c, i), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
   const [biome, setBiome] = useState<Biome>((saved.biome as Biome) || 'grassland');
   const [weather, setWeather] = useState<Weather>('clear');
@@ -319,7 +320,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, vit
 
         {roster.length === 0 && (
           <div className="sn-hab-empty">
-            <p>No creatures live here yet. Find creatures on the Globe, and they will come to live in your Habitat.</p>
+            <p>No creatures live here yet. Find creatures on the Globe or make one in the Creature Maker, and they will come to live in your Habitat.</p>
             <button type="button" className="sn-btn" onClick={goGlobe}>Go to the Globe</button>
           </div>
         )}
