@@ -80,8 +80,8 @@ const WEATHERS: { id: Weather; label: string; icon: string; img?: string; does: 
 ];
 const DIS_IMG: Partial<Record<Disaster, string>> = { wildfire: `${SPELL}firebolt.png`, blizzard: `${SPELL}glacial-eruption.png`, earthquake: `${SPELL}earth-spike.png`, tornado: `${SPELL}tornado.png` };
 const DIS_DOES: Record<Disaster, string> = {
-  flood: 'Water rises. Swimmers and fliers are safe.', wildfire: 'Fire spreads. Swimmers and fiery creatures are safe.', blizzard: 'Freezing snow. Thick fur and swimmers are safe.',
-  earthquake: 'No warning! Fliers and swimmers are safe.', drought: 'No rain, and the pond shrinks. Desert bodies are safe.', tornado: 'Spinning wind. Tough, heavy creatures are safe; fliers get tossed.',
+  flood: 'Water rises. Swimmers and fliers are safe. Plants wash away, but swamp plants hold on.', wildfire: 'Fire spreads. Swimmers and fiery creatures are safe. Plants burn.', blizzard: 'Freezing snow. Thick fur and swimmers are safe. Plants freeze until spring.',
+  earthquake: 'No warning! Fliers and swimmers are safe.', drought: 'No rain, and the pond shrinks. Desert bodies are safe. Plants dry up.', tornado: 'Spinning wind. Tough, heavy creatures are safe; fliers get tossed.',
 };
 // The potion hotbar (Build Queue 117): creature potions arm, then a tap or a drag gives them;
 // Habitat potions work right away.
@@ -238,7 +238,11 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [placing, setPlacing] = useState<{ id: string; mode: 'add' | 'remove' } | null>(null);
   const [outTray, setOutTray] = useState(false);
   // Plants, wild critters and the garden (Build Queue 135, 136).
-  const [plots, setPlots] = useState<Record<string, ({ plant: string; at: number } | null)[]>>(saved.plots ?? {});
+  type Plot = { plant: string; at: number; frozenAt?: number; frozenAbs?: number; dead?: 'burnt' | 'dried' };
+  const [plots, setPlots] = useState<Record<string, (Plot | null)[]>>(saved.plots ?? {});
+  // Disasters change the vegetation of a biome (Build Queue 143): burnt, washed away or dried until the
+  // next season, frozen until spring.
+  const [veg, setVeg] = useState<Record<string, { kind: 'burnt' | 'washed' | 'dried' | 'frozen'; abs: number }>>(saved.veg ?? {});
   const [picked, setPicked] = useState<string[]>(saved.picked ?? []);
   const [book, setBook] = useState<string[]>(saved.book ?? []);
   const [card, setCard] = useState<{ id: string; first: boolean; note?: string } | null>(null);
@@ -289,11 +293,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const have = (n: string) => potions.filter((p) => p === n).length;
   const covered = live.length > 0 && live.every((l) => l.hide);
   const night = timeMode === 'night' || (timeMode === 'auto' && clk.night) || weather === 'meteors';
-  const active = dis?.phase === 'active' ? dis.kind : null;
+  // Her rule (2026-10-14): no flood and no rainbow underwater.
+  const active = dis?.phase === 'active' && !(biome === 'ocean' && dis.kind === 'flood') ? dis.kind : null;
   const sel_ = live.find((l) => l.c.id === sel);
   const roster: Creature[] = live.map((l) => l.c);
   // In winter rain falls as snow; in summer snow falls as rain.
-  const wx: Weather = season === 'Winter' && weather === 'rain' ? 'snow' : season === 'Summer' && weather === 'snow' ? 'rain' : weather;
+  const wx: Weather = biome === 'ocean' && weather === 'rainbow' ? 'clear' : season === 'Winter' && weather === 'rain' ? 'snow' : season === 'Summer' && weather === 'snow' ? 'rain' : weather;
   const shielded = (id: string, status?: string) => !!status && (buffs[id] ?? []).some((b) => SHIELD[b]?.includes(status));
   // Every creature's reaction to what is happening right now (Build Queue 118), including the season
   // and any season potion protecting it (120, 121).
@@ -434,11 +439,47 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   // Plants and critters (Build Queue 135, 136).
   const place_ = biome as PlantPlace;
-  const wild = wildSpots(place_, clk.abs).filter((w) => !picked.includes(w.key));
+  const vg = veg[place_];
+  const lost = vg && (vg.kind === 'frozen' || vg.abs === clk.abs) ? vg.kind : null;
+  // Real survivors: swamp and sea plants handle floods, desert plants handle drought, winter plants handle ice.
+  const survives = (id: string, kind: Disaster | 'burnt' | 'washed' | 'dried' | 'frozen') => { const p = PLANT(id); if (!p) return false; return kind === 'flood' || kind === 'washed' ? p.where.includes('swamp') || p.where.includes('ocean') : kind === 'drought' || kind === 'dried' ? p.where.includes('desert') : kind === 'blizzard' || kind === 'frozen' ? !!p.winter : false; };
+  const wild = wildSpots(place_, clk.abs).filter((w) => !picked.includes(w.key) && (!lost || lost === 'frozen' ? true : !!w.plant && survives(w.plant, lost)));
   const myPlots = (plots[place_] ?? [null, null, null, null]).concat([null, null, null, null]).slice(0, 4);
-  const stage = (pl: { at: number }) => (now - pl.at >= GROWN_MS ? 'grown' : now - pl.at >= SPROUT_MS ? 'sprout' : 'seed');
+  const stage = (pl: Plot) => { if (pl.dead) return 'dead'; const t = (pl.frozenAt ?? now) - pl.at; return t >= GROWN_MS ? 'grown' : t >= SPROUT_MS ? 'sprout' : 'seed'; };
+  const names_ = (ids: string[]) => [...new Set(ids.map((id) => PLANT(id)?.name).filter(Boolean))].join(', ');
+  // What a disaster does to the plants in this biome (Build Queue 143). Underwater plants are safe.
+  // Say what the weather does to the garden when it changes (Build Queue 143).
+  const plantWx = useRef(wx);
+  useEffect(() => {
+    if (plantWx.current === wx) return; plantWx.current = wx;
+    if (biome === 'ocean' || !myPlots.some((pl) => pl && !pl.dead && !pl.frozenAt && stage(pl) !== 'grown')) return;
+    const t = wx === 'rain' || wx === 'storm' ? 'Rain waters the garden: the plants grow twice as fast.' : wx === 'rainbow' ? 'Magic rainbow rain: the garden grows three times as fast!' : wx === 'snow' ? 'Brr! Snow is too cold: the garden stops growing until it warms up.' : null;
+    if (t) window.setTimeout(() => tell(t), 2500);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wx]);
+  const hitPlants = (kind: Disaster) => {
+    if (place_ === 'ocean' || !['wildfire', 'flood', 'drought', 'blizzard'].includes(kind)) return;
+    const growing = myPlots.filter((pl): pl is Plot => !!pl && !pl.dead && !pl.frozenAt);
+    const kept = growing.filter((pl) => survives(pl.plant, kind)).map((pl) => pl.plant);
+    const keptWild = wildSpots(place_, clk.abs).filter((w) => w.plant && !picked.includes(w.key) && survives(w.plant, kind)).map((w) => w.plant!);
+    const strong = names_([...kept, ...keptWild]);
+    if (kind === 'blizzard') {
+      setPlots((m) => ({ ...m, [place_]: (m[place_] ?? []).map((pl) => (pl && !pl.dead && !pl.frozenAt && !survives(pl.plant, kind) ? { ...pl, frozenAt: Date.now(), frozenAbs: clk.abs } : pl)) }));
+      setVeg((v) => ({ ...v, [place_]: { kind: 'frozen', abs: clk.abs } }));
+      tell(`The blizzard froze the plants here. They stop growing and wait under the ice until spring, when they thaw.${strong ? ` Winter plants like ${strong} keep growing.` : ''}`, true);
+      return;
+    }
+    const look = kind === 'wildfire' ? 'burnt' : kind === 'flood' ? 'washed' : 'dried';
+    setVeg((v) => ({ ...v, [place_]: { kind: look, abs: clk.abs } }));
+    setPlots((m) => ({ ...m, [place_]: (m[place_] ?? []).map((pl) => (!pl || pl.dead || survives(pl.plant, kind) ? pl : kind === 'flood' ? null : { ...pl, dead: kind === 'wildfire' ? 'burnt' : 'dried', frozenAt: undefined })) }));
+    setEco((x) => ({ ...x, plants: Math.max(1, x.plants - 3) }));
+    tell(kind === 'wildfire' ? 'The wildfire burned the plants here, and the ground is black with ash. Plant eaters will find less food. Real science: ash makes the soil rich, so new green shoots grow back next season.'
+      : kind === 'flood' ? `The flood washed the plants away.${strong ? ` ${strong} held on: swamp plants love wet ground.` : ''} Plant eaters will find less food until the plants grow back next season.`
+      : `With no rain, the plants dried up and turned brown.${strong ? ` ${strong} made it: desert plants store water.` : ''} Plant eaters will find less food until the rain comes back.`, true);
+  };
   const learn = (id: string, note?: string) => { const first = !book.includes(id); if (first) setBook((b) => [...b, id]); setCard({ id, first, note }); };
   const collect = (w: { key: string; plant?: string; critter?: string }) => {
+    if (lost === 'frozen' && w.plant && !survives(w.plant, 'frozen')) { snSound('fizzle'); tell(`${PLANT(w.plant)?.name} is frozen solid. It thaws in spring.`); return; }
     setPicked((p) => [...p, w.key]);
     if (w.critter) { snSound('found'); learn(w.critter, 'You spotted it! Watch, do not touch. It is in your Plant and Critter Book now.'); return; }
     const pl = PLANT(w.plant!); if (!pl) return;
@@ -453,6 +494,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   const harvest = (i: number) => {
     const pl = myPlots[i]; if (!pl) return; const p = PLANT(pl.plant); if (!p) return;
+    if (pl.dead) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[i] = null; return { ...m, [place_]: row }; }); snSound('tap'); tell(pl.dead === 'burnt' ? `You cleared the burnt ${p.name}. The ash makes the soil rich. Plant something new!` : `You cleared the dried ${p.name}. Plant something new, or try a desert plant that saves water.`, true); return; }
+    if (pl.frozenAt) { snSound('fizzle'); tell(`${p.name} is frozen under the ice. It thaws and grows again in spring.`, true); return; }
     if (stage(pl) !== 'grown') { tell(`${p.name} is still growing. ${stage(pl) === 'seed' ? 'It sprouts soon.' : 'Almost ready!'}`); return; }
     setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[i] = null; return { ...m, [place_]: row }; });
     if (p.kind !== 'harmful') addPantry(`p_${p.id}`, 2);
@@ -500,8 +543,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -523,6 +566,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       if (dis.left > 1) setDis({ ...dis, left: dis.left - 1 });
       else if (dis.phase === 'warning') {
         setDis({ kind: dis.kind, phase: 'active', left: 4 });
+        hitPlants(dis.kind);
         if (dis.kind === 'wildfire') natureSound('fire', 0.6);
         if (dis.kind === 'flood') natureSound('splash', 0.6);
         if (dis.kind === 'blizzard') natureSound('ice', 0.6);
@@ -531,6 +575,22 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       } else if (dis.phase === 'active') { setDis({ kind: dis.kind, phase: 'after', left: 2 }); tell(DISASTERS[dis.kind].after, true); if (dis.kind === 'drought') setWeather('rain'); }
       else setDis(null);
     }
+    // Weather changes the gardens too (Build Queue 143): rain waters them (twice as fast), a rainbow storm
+    // three times as fast, snow is too cold to grow. Underwater gardens do not feel the weather.
+    const push = wx === 'rain' || wx === 'storm' ? -3000 : wx === 'rainbow' ? -6000 : wx === 'snow' ? 3000 : 0;
+    const thaw = season === 'Spring';
+    if (push || thaw) setPlots((m) => {
+      let changed = false; let thawed = 0;
+      const out = Object.fromEntries(Object.entries(m).map(([place, row]) => [place, row.map((pl) => {
+        if (!pl || pl.dead) return pl;
+        if (pl.frozenAt) { if (thaw && pl.frozenAbs !== clk.abs) { changed = true; thawed++; return { plant: pl.plant, at: pl.at + (Date.now() - pl.frozenAt) }; } return pl; }
+        if (!push || place === 'ocean' || Date.now() - pl.at >= GROWN_MS) return pl;
+        changed = true; return { ...pl, at: Math.min(Date.now(), pl.at + push) };
+      })]));
+      if (thawed) window.setTimeout(() => tell(`Spring is here! ${thawed} frozen plant${thawed === 1 ? '' : 's'} thawed and started growing again.`, true), 0);
+      return changed ? out : m;
+    });
+    if (thaw && Object.values(veg).some((v) => v.kind === 'frozen' && v.abs !== clk.abs)) setVeg((v) => Object.fromEntries(Object.entries(v).filter(([, x]) => !(x.kind === 'frozen' && x.abs !== clk.abs))));
     // creatures: wear out, rest, recover
     setLive((ls) => ls.map((l) => {
       let hp = l.hp; let status = l.status;
@@ -580,7 +640,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         if (a) {
           setAct({ id: l.c.id, a }); window.setTimeout(() => setAct((x) => (x?.id === l.c.id ? null : x)), 4500);
           if (a.fx === 'heal') { const f = can.filter((x) => x !== l && x.hp < 5)[0]; if (f) { setLive((ls) => ls.map((x) => (x.c.id === f.c.id ? { ...x, hp: Math.min(5, x.hp + 1) } : x))); sparkleOn(f.c.id); tell(`${l.c.name} ${a.text}. ${f.c.name} feels better.`); } }
-          else if (a.fx === 'grow') { const idx = myPlots.findIndex((pl) => pl && stage(pl) !== 'grown'); if (idx >= 0) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[idx] = { ...row[idx]!, at: row[idx]!.at - 60000 }; return { ...m, [place_]: row }; }); tell(`${l.c.name} ${a.text}. A garden plant grew faster!`); } }
+          else if (a.fx === 'grow') { const idx = myPlots.findIndex((pl) => pl && !pl.dead && !pl.frozenAt && stage(pl) !== 'grown'); if (idx >= 0) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[idx] = { ...row[idx]!, at: row[idx]!.at - 60000 }; return { ...m, [place_]: row }; }); tell(`${l.c.name} ${a.text}. A garden plant grew faster!`); } }
           else if (a.fx === 'flash') { setFlash(true); natureSound('thunder', 0.25); window.setTimeout(() => setFlash(false), 200); }
           else if (a.fx === 'splash') natureSound('splash', 0.35);
           else if (a.fx === 'howl') natureSound('owl', 0.3);
@@ -670,7 +730,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         setNextSurprise(10 + Math.floor(Math.random() * 10));
         const r = Math.random();
         if (r < 0.45) {
-          const pool = [...SEASON_WX[season], ...weathers.filter((x) => x.id === 'rainbow' || x.id === 'meteors').map((x) => x.id)];
+          const pool = [...SEASON_WX[season], ...weathers.filter((x) => (x.id === 'rainbow' && biome !== 'ocean') || x.id === 'meteors').map((x) => x.id)];
           const w = pool[Math.floor(Math.random() * pool.length)];
           if (w !== weather) { if (weather === 'rain' && w === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w); tell(`Surprise! The weather changed: ${weathers.find((x) => x.id === w)!.label.toLowerCase()}.`); }
         } else if (r < 0.7) {
@@ -740,7 +800,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (have(name) < 1) return;
     usePotion(name); snSound('done'); setArmed(null);
     if (name === 'Lumin') { setGlow(true); tell('Lumin! Floating lights will glow all night in your Habitat.', true); }
-    if (name === 'Germina') { setPlots((m) => ({ ...m, [place_]: (m[place_] ?? []).map((pl) => (pl ? { ...pl, at: Date.now() - GROWN_MS } : pl)) })); tell('Germina! Every plant growing here is ready to harvest.', true); }
+    if (name === 'Germina') { setPlots((m) => ({ ...m, [place_]: (m[place_] ?? []).map((pl) => (pl && !pl.dead && !pl.frozenAt ? { ...pl, at: Date.now() - GROWN_MS } : pl)) })); tell('Germina! Every plant growing here is ready to harvest.', true); }
     if (name === 'Megavita') { setLive((ls) => ls.map((l) => ({ ...l, hp: 5, status: null }))); tell('Megavita! Every creature has all 5 hearts again.', true); }
     if (name === 'Redux') {
       const ids = Object.keys(faded); const back = all.filter((c) => ids.includes(c.id));
@@ -879,17 +939,20 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         </button>
         </>}
 
+        {lost && <div className={`sn-veg ${lost}`} aria-hidden="true">{lost === 'burnt' && Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: 90 + i * 150, top: 300 + ((i * 53) % 160) }} />)}</div>}
         {wild.map((w) => (
-          <button key={w.key} type="button" className={`sn-wild${w.critter ? ' critter' : ''}`} style={{ left: w.x, top: w.y }} onClick={(e) => { e.stopPropagation(); collect(w); }}
+          <button key={w.key} type="button" className={`sn-wild${w.critter ? ' critter' : ''}${lost === 'frozen' && w.plant && !survives(w.plant, 'frozen') ? ' frozen' : ''}`} style={{ left: w.x, top: w.y }} onClick={(e) => { e.stopPropagation(); collect(w); }}
             aria-label={w.critter ? `A critter: ${CRITTERS.find((c) => c.id === w.critter)?.name}. Tap to spot it.` : `A wild plant: ${PLANT(w.plant!)?.name}. Tap to pick it.`}>
             {w.plant === 'snapjaw' ? <span className="sn-snapjaw" style={{ backgroundImage: `url(${SNAPJAW_STRIP})` }} /> : <img src={w.critter ? CRITTERS.find((c) => c.id === w.critter)!.img : plantImg(w.plant!)} alt="" />}
           </button>
         ))}
         {myPlots.map((pl, i) => { const xy = PLOTS[place_][i]; return (
-          <button key={`plot${i}`} type="button" className={`sn-plot${pl ? ` ${stage(pl)}` : ''}`} style={{ left: xy.x, top: xy.y }} onClick={(e) => { e.stopPropagation(); if (pl) harvest(i); else { snSound('tap'); setSeedFor(i); } }}
-            aria-label={pl ? `${PLANT(pl.plant)?.name}: ${stage(pl) === 'grown' ? 'ready to harvest' : 'growing'}` : 'An empty garden spot. Tap to plant.'}>
+          <button key={`plot${i}`} type="button" className={`sn-plot${pl ? ` ${stage(pl)}${pl.dead ? ` ${pl.dead}` : ''}${pl.frozenAt ? ' frozen' : ''}` : ''}${pl && !pl.dead && !pl.frozenAt && biome !== 'ocean' && (wx === 'rain' || wx === 'storm' || wx === 'rainbow') && stage(pl) !== 'grown' ? ' watered' : ''}`} style={{ left: xy.x, top: xy.y }} onClick={(e) => { e.stopPropagation(); if (pl) harvest(i); else { snSound('tap'); setSeedFor(i); } }}
+            aria-label={pl ? `${PLANT(pl.plant)?.name}: ${pl.dead ? `${pl.dead}, tap to clear it` : pl.frozenAt ? 'frozen until spring' : stage(pl) === 'grown' ? 'ready to harvest' : 'growing'}` : 'An empty garden spot. Tap to plant.'}>
             <img src={plantImg('mound')} alt="" />
             {pl && <img className="grow" src={stage(pl) === 'seed' ? plantImg('seed') : stage(pl) === 'sprout' ? plantImg('sprout') : plantImg(pl.plant)} alt="" />}
+            {pl?.frozenAt && <span className="sn-plot-ice">❄️</span>}
+            {pl?.dead && <span className="sn-plot-ready">🧹</span>}
             {pl && stage(pl) === 'grown' && <span className="sn-plot-ready">✋</span>}
             {!pl && <span className="sn-plot-plus">+</span>}
           </button>
@@ -1326,8 +1389,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <div className="sn-tray2-row">
               {menu === 'land' && BIOMES.map((b) => <button key={b.id} type="button" className={`sn-opt3${biome === b.id ? ' on' : ''}`} onClick={() => { setBiome(b.id); setMenu(null); snSound('page'); tell(`The land is ${b.label.toLowerCase()}. ${b.does}`); }}><img src={b.img} alt="" /><b>{b.label}</b><small>{b.does}</small></button>)}
               {menu === 'time' && ([['auto', '🔄', 'Day and night', 'Follows the Habitat clock: 1 minute of day, then 1 minute of night.'], ['day', '☀️', 'Day', 'Always day.'], ['night', '🌙', 'Night', 'Always night. Night creatures wake up.']] as const).map(([id, ic, label, does]) => <button key={id} type="button" className={`sn-opt3${timeMode === id ? ' on' : ''}`} onClick={() => { setTimeMode(id); setMenu(null); snSound('chime'); tell(does); }}><span>{ic}</span><b>{label}</b><small>{does}</small></button>)}
-              {menu === 'weather' && weathers.map((w) => <button key={w.id} type="button" className={`sn-opt3${weather === w.id ? ' on' : ''}`} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setMenu(null); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); if (season === 'Winter' && w.id === 'rain') tell('In winter, rain falls as snow!'); if (season === 'Summer' && w.id === 'snow') tell('In summer it is too warm for snow, so it rains instead.'); }}>{w.img ? <img src={w.img} alt="" /> : <span>{w.icon}</span>}<b>{w.label}</b><small>{w.does}</small></button>)}
-              {menu === 'disaster' && (Object.keys(DISASTERS) as Disaster[]).map((d) => <button key={d} type="button" className="sn-opt3" onClick={() => startDisaster(d)}>{DIS_IMG[d] ? <img src={DIS_IMG[d]} alt="" /> : <span>{DISASTERS[d].icon}</span>}<b>{DISASTERS[d].label}</b><small>{DIS_DOES[d]}</small></button>)}
+              {menu === 'weather' && weathers.filter((w) => !(biome === 'ocean' && w.id === 'rainbow')).map((w) => <button key={w.id} type="button" className={`sn-opt3${weather === w.id ? ' on' : ''}`} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setMenu(null); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); if (season === 'Winter' && w.id === 'rain') tell('In winter, rain falls as snow!'); if (season === 'Summer' && w.id === 'snow') tell('In summer it is too warm for snow, so it rains instead.'); }}>{w.img ? <img src={w.img} alt="" /> : <span>{w.icon}</span>}<b>{w.label}</b><small>{w.does}</small></button>)}
+              {menu === 'disaster' && (Object.keys(DISASTERS) as Disaster[]).filter((d) => !(biome === 'ocean' && d === 'flood')).map((d) => <button key={d} type="button" className="sn-opt3" onClick={() => startDisaster(d)}>{DIS_IMG[d] ? <img src={DIS_IMG[d]} alt="" /> : <span>{DISASTERS[d].icon}</span>}<b>{DISASTERS[d].label}</b><small>{DIS_DOES[d]}</small></button>)}
             </div>
           </div>
         )}

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-plants-and-disasters",
+    date: "2026-10-14",
+    icon: "🌋",
+    title: "Disasters change the plants",
+    body: "In the Habitat, a wildfire burns the plants, a flood washes them away and a drought dries them up, until the next season. A blizzard freezes plants until spring. Swamp, desert and winter plants are tougher! Rain makes your garden grow faster, and snow makes it stop. No floods or rainbows underwater anymore.",
+  },
+  {
     id: "2026-10-14-pop-cards",
     date: "2026-10-14",
     icon: "🪟",

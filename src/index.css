@@ -8653,3 +8653,19 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .snp-modal:has(> .snp.folded) { background: transparent; pointer-events: none; align-items: flex-end; padding-bottom: 18px; box-sizing: border-box; }
 .snp-modal > .snp { pointer-events: auto; }
 @media (prefers-reduced-motion: reduce) { .snp { transition: none; } }
+
+/* Disasters change the vegetation (Build Queue 143) */
+.sn-veg { position: absolute; left: 0; right: 0; top: 230px; bottom: 0; z-index: 1; pointer-events: none; }
+.sn-veg.burnt { background: linear-gradient(rgba(40, 32, 30, 0) 0, rgba(40, 32, 30, 0.55) 14%, rgba(48, 40, 36, 0.62)); }
+.sn-veg.burnt i { position: absolute; width: 14px; height: 34px; background: #2b2220; border: 2px solid #17110f; box-shadow: 10px 22px 0 -4px #3a302c, -12px 26px 0 -5px #3a302c; }
+.sn-veg.washed { background: linear-gradient(rgba(122, 92, 58, 0) 0, rgba(122, 92, 58, 0.5) 18%, rgba(96, 74, 50, 0.55)), radial-gradient(ellipse 60px 14px at 30% 70%, rgba(110, 170, 210, 0.6) 60%, transparent 62%), radial-gradient(ellipse 80px 16px at 70% 80%, rgba(110, 170, 210, 0.6) 60%, transparent 62%); }
+.sn-veg.dried { background: linear-gradient(rgba(196, 160, 90, 0) 0, rgba(196, 160, 90, 0.5) 15%, rgba(178, 140, 76, 0.55)); }
+.sn-veg.frozen { background: linear-gradient(rgba(220, 240, 255, 0) 0, rgba(220, 240, 255, 0.5) 15%, rgba(206, 232, 250, 0.6)); }
+.sn-wild.frozen { animation: none; }
+.sn-wild.frozen img, .sn-plot.frozen .grow { filter: saturate(0.3) brightness(1.25) hue-rotate(160deg) drop-shadow(0 0 4px #bfe6ff); }
+.sn-plot.dead .grow { animation: none; }
+.sn-plot.burnt .grow { filter: brightness(0.25) sepia(1); transform: scaleY(0.7); }
+.sn-plot.dried .grow { filter: sepia(1) saturate(0.5) brightness(0.85); transform: rotate(14deg) scaleY(0.85); }
+.sn-plot-ice { position: absolute; right: -4px; top: -6px; font-size: 18px; }
+.sn-plot.watered::after { content: '💧'; position: absolute; left: -6px; top: -4px; font-size: 16px; animation: snBob 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .sn-plot.watered::after { animation: none; } }
