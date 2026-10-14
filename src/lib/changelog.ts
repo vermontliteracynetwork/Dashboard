@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-azalea-help",
+    date: "2026-10-14",
+    icon: "📷",
+    title: "Azalea helps you say it",
+    body: "Azalea now shows you what to say, like \"When I tapped the Cast button, nothing happened.\" Tap a sentence starter, add a photo of the problem, pick the game it is about, and listen to your whole message before you send it.",
+  },
+  {
     id: "2026-10-14-azalea",
     date: "2026-10-14",
     icon: "🐱",

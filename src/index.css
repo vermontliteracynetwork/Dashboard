@@ -8350,3 +8350,45 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 @keyframes azPop { from { transform: scale(0.3); } to { transform: scale(1); } }
 @media (max-width: 640px) { .report-card.az { flex-direction: column; align-items: stretch; } .az-cat { width: 120px; align-self: center; } .az-say::before { display: none; } .az-choices { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .az-cat, .az-choice.nudge, .az-tool.live, .az-star { animation: none; } }
+
+/* Azalea: prompts, photos, game pictures (Build Queue 129, 130) and her log in the inbox */
+.az-model { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 8px 12px; background: #eef7ff; border: 2px dashed #5b8bd6; border-radius: 12px; font-size: 1rem; }
+.az-model b { font-size: 1.1rem; }
+.az-frames { display: flex; flex-wrap: wrap; gap: 6px; }
+.az-frame { min-height: 44px; padding: 0 12px; border-radius: 999px; border: 2px solid #5b8bd6; background: #fff; font: inherit; font-size: 0.98rem; font-weight: 700; color: #26407a; cursor: pointer; touch-action: manipulation; }
+.az-heard { margin: 0; padding: 6px 10px; background: #fff8d6; border-radius: 10px; font-size: 1rem; }
+.az-choices.games { grid-template-columns: repeat(3, 1fr); max-height: 300px; overflow-y: auto; padding-right: 4px; }
+.az-choice.game { flex-direction: column; align-items: center; justify-content: flex-start; text-align: center; gap: 4px; font-size: 0.9rem; }
+.az-choice.game img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; }
+.az-choice img { width: 64px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 6px; flex: none; }
+.az-photo { position: relative; display: inline-flex; align-items: center; }
+.az-photo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.az-photos { display: flex; flex-wrap: wrap; gap: 8px; }
+.az-photos span { position: relative; }
+.az-photos img { width: 110px; height: 80px; object-fit: cover; border-radius: 10px; border: 2px solid #d9c49a; }
+.az-photos button { position: absolute; top: -8px; right: -8px; width: 32px; height: 32px; border-radius: 50%; border: 2px solid #8a1f1f; background: #fff; color: #8a1f1f; font-weight: 900; cursor: pointer; }
+.az-log { display: flex; flex-direction: column; gap: 16px; }
+.az-log-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.az-log-head img { width: 56px; height: 56px; border-radius: 50%; border: 3px solid #e0782a; }
+.az-log-head h2 { margin: 0; }
+.az-log-head p { margin: 0; opacity: 0.75; }
+.az-log-head select { min-height: 40px; border-radius: 10px; padding: 0 8px; font: inherit; }
+.az-log-tabs { display: inline-flex; gap: 4px; padding: 4px; background: rgba(0, 0, 0, 0.06); border-radius: 12px; }
+.az-log-tabs button { min-height: 40px; padding: 0 12px; border: 0; border-radius: 9px; background: transparent; font: inherit; font-weight: 700; cursor: pointer; }
+.az-log-tabs button.on { background: #fff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+.az-log-tabs.big button { min-height: 46px; font-size: 1rem; }
+.az-log-open { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.az-log-day h3 { margin: 0 0 6px; }
+.az-log-day h3 small { font-weight: 600; opacity: 0.65; margin-left: 8px; }
+.az-log-scroll { overflow-x: auto; border-radius: 12px; border: 1px solid rgba(0, 0, 0, 0.12); }
+.az-log-table { width: 100%; border-collapse: collapse; font-size: 0.92rem; background: #fff; color: #222; }
+.az-log-table th { position: sticky; top: 0; text-align: left; padding: 8px; background: #fff3e6; border-bottom: 2px solid #e0782a; white-space: nowrap; }
+.az-log-table td { padding: 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+.az-log-table td.said { min-width: 220px; max-width: 360px; }
+.az-log-table td.det { min-width: 200px; font-size: 0.85rem; }
+.az-log-table .tx { margin-top: 4px; padding: 4px 6px; background: #f3f0ff; border-radius: 6px; font-size: 0.85rem; }
+.az-log-table audio { width: 200px; height: 34px; }
+.az-log-table tr.done { opacity: 0.55; }
+.az-log-table tr.urgent td:first-child { box-shadow: inset 4px 0 0 #d23c3c; }
+.az-log-photo { padding: 0; border: 0; background: none; cursor: zoom-in; margin-right: 4px; }
+.az-log-photo img { width: 56px; height: 42px; object-fit: cover; border-radius: 6px; }

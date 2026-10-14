@@ -5,6 +5,7 @@ import { StylePortrait } from '../../style/StylePortrait';
 import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 import { resolveGameReport, useAllGameReports, type GameReport } from '../../lib/gameReports';
 import { formatMoney } from '../../lib/money';
+import AzaleaLog from '../../components/AzaleaLog';
 
 type InboxItem =
   | { kind: 'help'; id: string; studentId: string; timestamp: string; done: boolean }
@@ -67,6 +68,7 @@ export default function ReviewInbox() {
 
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
+  const [view, setView] = useState<'all' | 'azalea'>('all');
 
   const items: InboxItem[] = [
     ...helpPings.map((h): InboxItem => ({ kind: 'help', id: h.id, studentId: h.studentId, timestamp: h.timestamp, done: h.resolved })),
@@ -127,6 +129,11 @@ export default function ReviewInbox() {
       <TeacherNav />
       <div className="container stack">
         <h1>📥 Inbox</h1>
+        <div className="az-log-tabs big" role="tablist">
+          <button type="button" role="tab" aria-selected={view === 'all'} className={view === 'all' ? 'on' : ''} onClick={() => setView('all')}>📥 Everything</button>
+          <button type="button" role="tab" aria-selected={view === 'azalea'} className={view === 'azalea' ? 'on' : ''} onClick={() => setView('azalea')}>🐱 Azalea's log (bugs and ideas)</button>
+        </div>
+        {view === 'azalea' ? <AzaleaLog nameFor={nameFor} onPhoto={setZoomedPhoto} /> : <>
         {items.length === 0 ? (
           <p style={{ opacity: 0.7 }}>Nothing here yet.</p>
         ) : (
@@ -168,8 +175,9 @@ export default function ReviewInbox() {
                         {nameFor(item.studentId)} sent feedback — {CATEGORY_LABEL[item.category] ?? item.category}
                         {item.customLabel ? ` (${item.customLabel})` : ''}
                         {item.subcategoryLabel ? <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{item.subcategoryLabel}</div> : null}
-                        {item.text && <div style={{ fontSize: '0.85rem', marginTop: 4, fontStyle: 'italic', whiteSpace: 'pre-line' }}>"{item.text.replace(/\n?🎙️ Voice memo \(\d+ seconds\): \S+/, '')}"</div>}
-                        {/* Azalea's reports can carry a student's voice memo (2026-10-14). */}
+                        {item.text && <div style={{ fontSize: '0.85rem', marginTop: 4, fontStyle: 'italic', whiteSpace: 'pre-line' }}>"{item.text.replace(/\n?🎙️ Voice memo \(\d+ seconds\): \S+/, '').replace(/\n?📷 Photo: \S+/g, '')}"</div>}
+                        {/* Azalea's reports can carry a student's voice memo and photos (2026-10-14). */}
+                        {[...(item.text?.matchAll(/📷 Photo: (\S+)/g) ?? [])].map((m) => <button key={m[1]} type="button" className="inbox-photo-thumb" onClick={() => setZoomedPhoto(m[1])} title="View the photo"><img src={m[1]} alt="Student's photo of the bug" /></button>)}
                         {item.text?.match(/🎙️ Voice memo \((\d+) seconds\): (\S+)/) && <div style={{ marginTop: 6 }}>🎙️ Voice memo: <audio controls preload="none" src={item.text.match(/🎙️ Voice memo \(\d+ seconds\): (\S+)/)![1]} style={{ verticalAlign: 'middle', height: 36 }} /></div>}
                       </>
                     ) : (
@@ -202,6 +210,7 @@ export default function ReviewInbox() {
             ))}
           </div>
         )}
+        </>}
 
         {zoomedPhoto && (
           <div className="overlay-backdrop" onClick={() => setZoomedPhoto(null)}>
