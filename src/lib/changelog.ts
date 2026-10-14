@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-predator-word",
+    date: "2026-10-14",
+    icon: "🦁",
+    title: "Predators and prey",
+    body: "Supernature now uses the real science word: animals that catch other animals are called predators, and the animals they catch are prey.",
+  },
+  {
     id: "2026-10-14-one-of-each-god",
     date: "2026-10-14",
     icon: "👑",

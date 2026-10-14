@@ -93,7 +93,7 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
       else if (f >= 1) why = liked ? 'Well fed, and the group is as big as it can get.' : 'Well fed, but this land is not its favorite.';
       else if (f >= 0.5) why = 'It found some food, but not a lot.';
       else { n -= 1; why = e === 'plants' ? 'Not enough plants to eat.' : e === 'leftovers' ? 'Not enough leftovers to clean up.' : 'Not enough to catch.'; }
-      if (caught.includes(c.id)) why = `Hunters caught some, and they ran back to their burrows. ${why}`;
+      if (caught.includes(c.id)) why = `Predators caught some, and they ran back to their burrows. ${why}`;
       n = Math.max(0, Math.min(10, n));
       if (n === 0) why = `${why} The group packed up and moved away to find food.`;
     }
@@ -106,8 +106,8 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
   const balance = shrank === 0 && away === 0 ? 'Balanced' : shrank <= 2 && away === 0 ? 'Wobbly' : 'Falling apart';
   const hungryHunters = changes.some((x) => x.after < x.before && eats(roster.find((c) => c.id === x.id)!) === 'meat');
   const sentence = plants <= 1 && plantEaters > 0 ? 'There are not enough plants for the plant eaters.'
-    : hungryHunters ? 'Too many hunters and not enough food for them to catch.'
-    : caught.length > 1 ? 'The hunters are catching a lot of the plant eaters.'
+    : hungryHunters ? 'Too many predators and not enough food for them to catch.'
+    : caught.length > 1 ? 'The predators are catching a lot of the plant eaters.'
     : shrank ? 'Some groups did not find enough food.' : 'Food and eaters are balanced.';
   for (const id of Object.keys(g)) g[id] = Math.min(groupCap(id), g[id]);
   return { next: { season: eco.season + 1, plants, mush, groups: g }, changes, plantsBefore, balance, sentence, caught };

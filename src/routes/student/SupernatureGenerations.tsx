@@ -19,7 +19,7 @@ const TRAITS: Record<Trait, { label: string; low: string; high: string }> = {
   shell: { label: 'Shell', low: 'soft shell', high: 'hard shell' },
 };
 const WORLDS: Record<World, string> = {
-  home: 'Like my Habitat', cold: 'Much colder', hot: 'Much hotter', hunter: 'A new hunter arrives', dark: 'A dark forest', snowy: 'Snowy white land',
+  home: 'Like my Habitat', cold: 'Much colder', hot: 'Much hotter', hunter: 'A new predator arrives', dark: 'A dark forest', snowy: 'Snowy white land',
 };
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 const SHADE = ['#f6efe0', '#e6c98a', '#c9873a', '#8a5a2e', '#4a3220'];

@@ -130,6 +130,6 @@ export function preBattle(me: Fighter, them: Fighter, record: { w: number; l: nu
   if (record?.l) { conf -= 12 * Math.min(3, record.l); lines.push(`${me.name} remembers losing to ${them.name} ${record.l === 1 ? 'once' : `${record.l} times`}, so it feels less confident. That is normal. Practice helps!`); }
   if (record?.w) { conf += 8 * Math.min(3, record.w); lines.push(`${me.name} remembers winning against ${them.name}. It feels braver!`); }
   if (them.hunter && me.preyable) { conf -= 15; lines.push(`Uh oh: ${them.species}s hunt creatures like ${me.species}s. ${me.name}'s knees are a little wobbly.`); }
-  if (me.hunter && them.preyable) { conf += 5; lines.push(`${me.name} is a hunter, and ${them.species}s are on its menu. It stands a little taller.`); }
+  if (me.hunter && them.preyable) { conf += 5; lines.push(`${me.name} is a predator, and ${them.species}s are on its menu. It stands a little taller.`); }
   return { conf: Math.max(5, Math.min(100, conf)), lines };
 }

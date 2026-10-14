@@ -18,14 +18,14 @@ export type SkillId =
 export interface Skill { id: SkillId; name: string; icon: string; does: string; tag?: Tag; group: 'Moving' | 'Body' | 'Adapting' | 'Escaping and hunting' | 'Magic' }
 export const SKILLS: Skill[] = [
   { id: 'swimming', name: 'Swimming', icon: '🏊', does: 'Swims and dives. Can live in the Ocean.', tag: 'swim', group: 'Moving' },
-  { id: 'flying', name: 'Flying', icon: '🪽', does: 'Flies above floods and away from walking hunters.', tag: 'fly', group: 'Moving' },
+  { id: 'flying', name: 'Flying', icon: '🪽', does: 'Flies above floods and away from walking predators.', tag: 'fly', group: 'Moving' },
   { id: 'floating', name: 'Floating', icon: '🫧', does: 'Floats over water and shaking ground.', tag: 'float', group: 'Moving' },
   { id: 'warmCoat', name: 'Warm coat', icon: '🧥', does: 'Stays warm in winter, snow and blizzards.', tag: 'warm', group: 'Body' },
   { id: 'desertBody', name: 'Desert body', icon: '🏜️', does: 'Saves water and loves the heat.', tag: 'heat', group: 'Body' },
   { id: 'toughHide', name: 'Tough hide', icon: '🪨', does: 'Stands strong in storms and tornadoes.', tag: 'tough', group: 'Body' },
   { id: 'fireBody', name: 'Fire body', icon: '🔥', does: 'Not bothered by fire, and toasty in winter.', tag: 'fire', group: 'Body' },
   { id: 'nightEyes', name: 'Night eyes', icon: '🌙', does: 'Sees in the dark and explores at night.', tag: 'night', group: 'Body' },
-  { id: 'magicShield', name: 'Magic shield', icon: '✨', does: 'Magic keeps it safe from weather and disasters (not from hunters).', tag: 'magic', group: 'Magic' },
+  { id: 'magicShield', name: 'Magic shield', icon: '✨', does: 'Magic keeps it safe from weather and disasters (not from predators).', tag: 'magic', group: 'Magic' },
   { id: 'earthMagic', name: 'Earth magic', icon: '⛰️', does: 'Tunnels into the ground, where nothing can attack it.', group: 'Magic' },
   { id: 'quakeProof', name: 'Earthquake immunity', icon: '🫨', does: 'Keeps its balance in an earthquake.', group: 'Adapting' },
   { id: 'stormRider', name: 'Storm rider', icon: '⛈️', does: 'Safe in storms and tornadoes, even when flying.', group: 'Adapting' },
@@ -35,11 +35,11 @@ export const SKILLS: Skill[] = [
   { id: 'fishOutOfWater', name: 'Fish out of water', icon: '🐟', does: 'A water creature that adapted to live on land too.', group: 'Adapting' },
   { id: 'shadeSeeker', name: 'Shade seeker', icon: '🌳', does: 'Finds shade, so thick fur stays cool in summer.', group: 'Adapting' },
   { id: 'hibernate', name: 'Hibernation', icon: '💤', does: 'Sleeps safely through the winter cold.', group: 'Adapting' },
-  { id: 'speed', name: 'Fast runner', icon: '💨', does: 'Runs away from hunters.', group: 'Escaping and hunting' },
-  { id: 'camouflage', name: 'Camouflage', icon: '🍃', does: 'Blends in, so hunters walk right past.', group: 'Escaping and hunting' },
-  { id: 'smarts', name: 'Clever', icon: '🧠', does: 'Outsmarts hunters with tricks.', group: 'Escaping and hunting' },
-  { id: 'keenNose', name: 'Keen nose', icon: '👃', does: 'Smells hunters coming, or finds food.', group: 'Escaping and hunting' },
-  { id: 'sneak', name: 'Sneaky hunter', icon: '🐾', does: 'Sneaks up quietly when it hunts.', group: 'Escaping and hunting' },
+  { id: 'speed', name: 'Fast runner', icon: '💨', does: 'Runs away from predators.', group: 'Escaping and hunting' },
+  { id: 'camouflage', name: 'Camouflage', icon: '🍃', does: 'Blends in, so predators walk right past.', group: 'Escaping and hunting' },
+  { id: 'smarts', name: 'Clever', icon: '🧠', does: 'Outsmarts predators with tricks.', group: 'Escaping and hunting' },
+  { id: 'keenNose', name: 'Keen nose', icon: '👃', does: 'Smells predators coming, or finds food.', group: 'Escaping and hunting' },
+  { id: 'sneak', name: 'Sneaky predator', icon: '🐾', does: 'Sneaks up quietly when it hunts.', group: 'Escaping and hunting' },
   { id: 'packTeam', name: 'Pack teamwork', icon: '🤝', does: 'Works with its group to hunt or to stay safe.', group: 'Escaping and hunting' },
 ];
 export const SKILL = (id: SkillId) => SKILLS.find((s) => s.id === id)!;
@@ -106,8 +106,8 @@ export function escapeChance(prey: Creature, pk: SkillSet, _hunter: Creature, hk
   return { p: Math.max(0.12, Math.min(0.92, p)), how: best };
 }
 export const HOW_ESCAPED: Record<string, string> = {
-  speed: 'ran away too fast to catch', camouflage: 'blended in, and the hunter walked right past', smarts: 'outsmarted the hunter with a clever trick',
-  keenNose: 'smelled the hunter coming and slipped away', flying: 'flew up where the hunter could not reach', swimming: 'dove deep where the hunter could not follow', luck: 'got lucky and hid just in time',
+  speed: 'ran away too fast to catch', camouflage: 'blended in, and the predator walked right past', smarts: 'outsmarted the predator with a clever trick',
+  keenNose: 'smelled the predator coming and slipped away', flying: 'flew up where the predator could not reach', swimming: 'dove deep where the predator could not follow', luck: 'got lucky and hid just in time',
 };
 
 // Feelings from survival (her words: "zones of regulation, real emotional language, survival needs
@@ -117,7 +117,7 @@ export type Zone = 'blue' | 'green' | 'yellow' | 'red';
 export interface Feeling { zone: Zone; word: string; size: 1 | 2 | 3; because: string; need: string }
 export interface FeelInput { name: string; hp: number; status: string | null; hurting: boolean; disaster: boolean; hunted: boolean; escaped: boolean; hungry: boolean; homesick: boolean; lonely: boolean; hibernating: boolean; grew: boolean }
 export function feelingOf(x: FeelInput): Feeling {
-  if (x.hunted) return { zone: 'red', word: 'scared', size: 3, because: 'a hunter is chasing it', need: 'safety: a place to hide or a way to escape' };
+  if (x.hunted) return { zone: 'red', word: 'scared', size: 3, because: 'a predator is chasing it', need: 'safety: a place to hide or a way to escape' };
   if (x.hp === 0) return { zone: 'blue', word: 'exhausted', size: 3, because: 'it has no hearts left', need: 'rest and a Vita potion' };
   if (x.hibernating) return { zone: 'blue', word: 'sleepy', size: 2, because: 'it is hibernating through the winter', need: 'quiet rest until spring' };
   if (x.status && ['sneezy', 'tummy', 'sticky', 'itchy', 'stung', 'startled'].includes(x.status)) return { zone: 'yellow', word: 'uncomfortable', size: 2, because: 'it ate or touched a harmful plant', need: 'rest, or an Antidota or Herba potion' };
@@ -126,7 +126,7 @@ export function feelingOf(x: FeelInput): Feeling {
     const need = x.status === 'chilly' ? 'warmth: the shelter or a Thermo potion' : x.status === 'hot' ? 'shade: the shelter or an Umbra potion' : x.status === 'thirsty' ? 'water: a Hydro or Aqua potion' : 'shelter';
     return { zone: 'yellow', word: x.status === 'chilly' || x.status === 'hot' ? 'uncomfortable' : 'worried', size: 2, because: x.status === 'chilly' ? 'it is too cold' : x.status === 'hot' ? 'it is too hot' : x.status === 'thirsty' ? 'it is thirsty' : 'the weather is hard on its body', need };
   }
-  if (x.escaped) return { zone: 'yellow', word: 'shaky but proud', size: 1, because: 'it just escaped from a hunter', need: 'a calm place to catch its breath' };
+  if (x.escaped) return { zone: 'yellow', word: 'shaky but proud', size: 1, because: 'it just escaped from a predator', need: 'a calm place to catch its breath' };
   if (x.hungry) return { zone: 'yellow', word: 'frustrated', size: x.hp <= 2 ? 3 : 2, because: 'it could not find enough food', need: 'food: more plants or prey in its biome' };
   if (x.lonely) return { zone: 'blue', word: 'lonely', size: 2, because: 'it lives in a pack but its group is very small', need: 'friends: a bigger group' };
   if (x.homesick) return { zone: 'blue', word: 'sad', size: 1, because: 'it misses its favorite land', need: 'its home biome, or a Patria potion' };

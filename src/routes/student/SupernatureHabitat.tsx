@@ -428,7 +428,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     for (const l of live) {
       if (l.hide || count(l.c.id) === 0) continue;
       if (l.hp <= 1) warnOf(l.c.id, 'tired', `${l.hp === 0 ? 'it has no hearts left' : 'it has only 1 heart left'}. If it has no hearts when ${season.toLowerCase()} ends, it will fade away until spring`, 'Give it a Vita or Herba potion, or move it to a land it likes so it can rest and get its hearts back.', ['vita', 'herba', 'move']);
-      if (count(l.c.id) === 1 && live.some((h) => h !== l && !h.hide && isHunter(h.c) && home(h.c) === home(l.c) && canBeHunted(l.c, sk(l.c)))) warnOf(l.c.id, 'last', 'it is the last one in its family, and hunters live in its land', 'It will hide safely, but its family cannot grow with hunters around. Move it to a land without hunters, or train Camouflage or Fast runner.', ['move', 'train']);
+      if (count(l.c.id) === 1 && live.some((h) => h !== l && !h.hide && isHunter(h.c) && home(h.c) === home(l.c) && canBeHunted(l.c, sk(l.c)))) warnOf(l.c.id, 'last', 'it is the last one in its family, and predators live in its land', 'It will hide safely, but its family cannot grow with predators around. Move it to a land without predators, or train Camouflage or Fast runner.', ['move', 'train']);
       if (l.status === 'homesick' && l.hp <= 3) warnOf(l.c.id, 'homesick', `it misses the land it loves (the ${likesOf(l.c)})`, `Move it to the ${likesOf(l.c)}.`, ['move']);
     }
     // A minute and a half before the season ends, look ahead: who would move away to find food?
@@ -503,8 +503,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const keepByHunters = (l: Live) => {
     const m: Record<string, View> = {};
     for (const h of live) if (h !== l && isHunter(h.c) && home(h.c) === home(l.c)) { const v = likedElsewhere(h); if (v) m[h.c.id] = v; }
-    if (!Object.keys(m).length) { tell('The hunters here have nowhere else they like to live, so they stay. Try another change.', true); return; }
-    doneWarn(); resolveAsk(l.c.id); showRipple(l.c, `Moving the hunters away from ${nameOf(l)}`, eco, m); setHomes((h) => ({ ...h, ...m })); snSound('pickup');
+    if (!Object.keys(m).length) { tell('The predators here have nowhere else they like to live, so they stay. Try another change.', true); return; }
+    doneWarn(); resolveAsk(l.c.id); showRipple(l.c, `Moving the predators away from ${nameOf(l)}`, eco, m); setHomes((h) => ({ ...h, ...m })); snSound('pickup');
   };
 
   // Family members on screen follow the family size; a bigger family means a new generation was born.
@@ -642,7 +642,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     const where = mode === 'add' ? (biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome) : home(c);
     const near = live.filter((l) => l.c.id !== id && home(l.c) === where).map((l) => l.c);
     const lines: string[] = [];
-    if (isHunter(c)) { const prey = near.filter((p) => canBeHunted(p, sk(p))); if (prey.length) lines.push(mode === 'add' ? `${prey.map((p) => p.name).join(', ')} could be hunted by ${c.name}.` : `${prey.map((p) => p.name).join(', ')} will be safer: one less hunter.`); }
+    if (isHunter(c)) { const prey = near.filter((p) => canBeHunted(p, sk(p))); if (prey.length) lines.push(mode === 'add' ? `${prey.map((p) => p.name).join(', ')} could be hunted by ${c.name}.` : `${prey.map((p) => p.name).join(', ')} will be safer: one less predator.`); }
     if (c.eats === 'plants' || c.eats === 'both') lines.push(mode === 'add' ? 'Plants will be eaten faster.' : 'More plants will be left for the plant eaters.');
     const hunters = near.filter((h) => isHunter(h) && canBeHunted(c, startSkills(c)));
     if (hunters.length) lines.push(mode === 'add' ? `${hunters.map((h) => h.name).join(', ')} will have more food to catch.` : `${hunters.map((h) => h.name).join(', ')} will have less food to catch.`);
@@ -1213,7 +1213,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <b>⚔️ Wild battle · {Math.max(0, 30 - Math.floor((now - wb.start) / 1000))}s</b>
             <div className="sn-wb-row">
               {[wb.h, wb.p].map((f, i) => (
-                <div key={f.id} className="sn-wb-side"><small>{i === 0 ? '🐾 Hunter' : '🐇 Prey'}</small><span>{f.name}</span>
+                <div key={f.id} className="sn-wb-side"><small>{i === 0 ? '🐾 Predator' : '🐇 Prey'}</small><span>{f.name}</span>
                   <div className="sb-m health"><span>💚</span><i><b style={{ width: `${(f.health / f.maxHealth) * 100}%` }} /></i><em>{f.health}</em></div>
                   <div className="sb-m conf"><span>💪</span><i><b style={{ width: `${f.confidence}%` }} /></i><em>{f.confidence}</em></div>
                 </div>
@@ -1407,7 +1407,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {a.step === 1 && <>
                 {(() => { const v = likedElsewhere(l); return v && (warn.acts.includes('move')) ? <button type="button" className="sn-btn2 go" onClick={() => keepByMoving(l, v)}>🗺️ Move it to the {viewLabel(v).toLowerCase()}<small> a land it likes</small></button> : null; })()}
                 {(a.reason === 'food' || a.reason.startsWith('ripple')) && (l.c.eats === 'plants' || l.c.eats === 'both') && <button type="button" className="sn-btn2 go" onClick={() => keepByPlants(l)}>🌱 Grow more plants<small> more food for plant eaters</small></button>}
-                {a.reason === 'last' && <button type="button" className="sn-btn2 go" onClick={() => keepByHunters(l)}>🦊 Move the hunters away<small> to lands they like</small></button>}
+                {a.reason === 'last' && <button type="button" className="sn-btn2 go" onClick={() => keepByHunters(l)}>🦊 Move the predators away<small> to lands they like</small></button>}
                 {warn.acts.includes('vita') && have('Vita') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Vita', l.c.id); doneWarn(); }}><img src={POTION_ICON.Vita} alt="" />Give Vita ({have('Vita')})</button>}
                 {warn.acts.includes('herba') && have('Herba') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Herba', l.c.id); doneWarn(); }}><img src={POTION_ICON.Herba} alt="" />Give Herba ({have('Herba')})</button>}
                 {warn.acts.includes('vita') && have('Vita') < 1 && have('Herba') < 1 && <button type="button" className="sn-btn2" onClick={() => { doneWarn(); goCauldron('Vita'); }}>Brew a Vita potion</button>}
@@ -1706,7 +1706,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                   </div>
                   <div className="sn-web-grid low">
                     {col('Leftover eaters and mushrooms (they feed the soil, so plants grow)', [...by(['leftovers']), node('mush', '🍄 Mushrooms', null, eco.mush)])}
-                    {col('Magic eaters (they need no food, but hunters can catch them)', by(['magic']))}
+                    {col('Magic eaters (they need no food, but predators can catch them)', by(['magic']))}
                   </div>
                   {whatIf && <p className="sn-small"><b>What if?</b> {whatIf === 'sun' ? 'Without the sun, no plants could grow, and every eater would get hungry.' : 'Orange ones would get hungry; green ones would grow. Everything in a food web is connected.'}</p>}
                 </>

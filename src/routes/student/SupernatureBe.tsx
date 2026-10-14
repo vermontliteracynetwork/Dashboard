@@ -40,7 +40,7 @@ export default function SupernatureBe({ c, roster, biome, say, onClose }: { c: C
   const [done, setDone] = useState(false);
   const [msg, setMsg] = useState(() => {
     const goal = eats === 'plants' ? 'Find plants to eat.' : eats === 'meat' ? 'Tag your prey. Tagged prey poofs safely back to its burrow.' : eats === 'both' ? 'Eat plants or tag prey.' : eats === 'leftovers' ? 'Clean up the leftover logs. You feed the soil!' : 'Gather the magic sparkles.';
-    return `You are the ${c.name}! ${goal}${canBeChased ? ' If a hunter comes, hide in a bush.' : ''} Tap anywhere to walk there.`;
+    return `You are the ${c.name}! ${goal}${canBeChased ? ' If a predator comes, hide in a bush.' : ''} Tap anywhere to walk there.`;
   });
   const area = useRef<HTMLDivElement | null>(null);
   const joyEl = useRef<HTMLDivElement | null>(null);
@@ -61,7 +61,7 @@ export default function SupernatureBe({ c, roster, biome, say, onClose }: { c: C
       const isMoving = !!(mx || my);
       s.p.x = Math.max(30, Math.min(W - 30, s.p.x + mx * sp * dt)); s.p.y = Math.max(40, Math.min(H - 30, s.p.y + my * sp * dt));
       const hidden = canBeChased && BUSHES.some((b) => Math.hypot(b.x - s.p.x, b.y - s.p.y) < 60);
-      if (hidden && !s.wasHidden && s.hunter) { s.hid += 1; setMsg('You hid in the bush. The hunter cannot see you!'); }
+      if (hidden && !s.wasHidden && s.hunter) { s.hid += 1; setMsg('You hid in the bush. The predator cannot see you!'); }
       s.wasHidden = hidden;
       // energy: moving wears it down, resting near a bush brings it to just right
       if (isMoving) { s.moveT += dt; s.restT = 0; if (s.moveT > 7) { s.moveT = 0; s.energy = Math.max(0, s.energy - 1); } }
@@ -95,7 +95,7 @@ export default function SupernatureBe({ c, roster, biome, say, onClose }: { c: C
           const dx = tx - h.x, dy = ty - h.y, d = Math.hypot(dx, dy) || 1;
           h.x += (dx / d) * 150 * dt; h.y += (dy / d) * 150 * dt;
           if (!hidden && Math.hypot(h.x - s.p.x, h.y - s.p.y) < 44) { s.chased += 1; s.p = { x: BURROW.x + 40, y: BURROW.y - 40 }; s.goal = null; s.energy = Math.max(0, s.energy - 1); setMsg('You got chased! You ran back to your burrow, safe and sound.'); snSound('back'); s.hunter = null; s.nextHunter = 16; }
-          else if (h.t <= 0) { s.hunter = null; s.nextHunter = 14 + Math.random() * 8; setMsg('The hunter went away.'); }
+          else if (h.t <= 0) { s.hunter = null; s.nextHunter = 14 + Math.random() * 8; setMsg('The predator went away.'); }
         }
       }
       if (s.time <= 0) { setDone(true); snSound('done'); return; }
@@ -110,7 +110,7 @@ export default function SupernatureBe({ c, roster, biome, say, onClose }: { c: C
   const s = st.current;
   const word = eats === 'meat' ? 'tagged' : eats === 'leftovers' ? 'cleaned up' : eats === 'magic' ? 'gathered' : 'ate';
   const noun = eats === 'meat' ? 'prey' : eats === 'leftovers' ? 'logs' : eats === 'magic' ? 'sparkles' : 'snacks';
-  const summary = `You ${word} ${s.ate} ${noun}.${canBeChased ? ` A hunter chased you ${s.chased} ${s.chased === 1 ? 'time' : 'times'}, and you hid in a bush ${s.hid} ${s.hid === 1 ? 'time' : 'times'}.` : ''} Your energy was just right for ${Math.round(s.justRight)} seconds.${eats === 'leftovers' ? ' Every log you cleaned up made the soil richer for the plants.' : eats === 'meat' ? ' Every tagged creature ran home safe to its burrow.' : ''}`;
+  const summary = `You ${word} ${s.ate} ${noun}.${canBeChased ? ` A predator chased you ${s.chased} ${s.chased === 1 ? 'time' : 'times'}, and you hid in a bush ${s.hid} ${s.hid === 1 ? 'time' : 'times'}.` : ''} Your energy was just right for ${Math.round(s.justRight)} seconds.${eats === 'leftovers' ? ' Every log you cleaned up made the soil richer for the plants.' : eats === 'meat' ? ' Every tagged creature ran home safe to its burrow.' : ''}`;
 
   const tapWorld = (e: React.PointerEvent) => {
     if (done || paused) return;
