@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { snSound } from '../../lib/supernature';
 import { art, type Biome, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
+import PopCard from './SupernaturePopCard';
 
 // Generations and adapting (Build Queue 102; plan section 16). A group of 10 creatures, each with a
 // trait from 1 to 5. Every generation, the ones whose trait fits the land a little better are a
@@ -67,8 +68,8 @@ export default function SupernatureGenerations({ roster, biome, disaster, say, o
       : `The group evolved over ${gens.length - 1} generations. ${shift > 0 ? `${T.high[0].toUpperCase()}${T.high.slice(1)}: ${highFirst} of 10 in generation 1, ${highLast} of 10 in generation ${gens.length}.` : `${T.low[0].toUpperCase()}${T.low.slice(1)}: ${lowFirst} of 10 in generation 1, ${lowLast} of 10 in generation ${gens.length}.`} No single creature changed its body. Babies that fit this world a little better survived and had more babies.`;
   const shown = gens.slice(-8);
   return (
-    <div className="sn-modal" role="dialog" aria-label="Generations">
-      <div className="sn-modal-card paper wide sn-gen">
+    <div className="sn-modal snp-modal" role="dialog" aria-label="Generations">
+      <PopCard className="sn-modal-card paper wide sn-gen" title="Generations">
         <div className="sn-row between" style={{ width: '100%' }}>
           <h2>🧬 Generations</h2>
           <button type="button" className="sn-ib small light" onClick={onClose} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button>
@@ -103,7 +104,7 @@ export default function SupernatureGenerations({ roster, biome, disaster, say, o
           <button type="button" className="sn-listen" onClick={() => say(summary)} aria-label="Listen"><Icon d={LISTEN} /></button>
         </div>
         {gens.length > 5 && Math.abs(shift) >= 0.8 && <button type="button" className="sn-btn" onClick={goNames}>Name the new form in the Name Builder</button>}
-      </div>
+      </PopCard>
     </div>
   );
 }

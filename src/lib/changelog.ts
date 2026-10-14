@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-pop-cards",
+    date: "2026-10-14",
+    icon: "🪟",
+    title: "Cards you can move, fold and scroll",
+    body: "In Supernature, every pop-up card has a grip bar on top. Drag it to move the card, or drag it far away and let go to close it. Tap the arrow to fold it small so you can see the Habitat. Use the up and down buttons on the side to see everything on the card.",
+  },
+  {
     id: "2026-10-14-pixel-effects",
     date: "2026-10-14",
     icon: "💥",

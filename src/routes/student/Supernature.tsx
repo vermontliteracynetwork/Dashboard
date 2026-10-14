@@ -13,6 +13,7 @@ import SupernatureMaker from './SupernatureMaker';
 import SupernatureBattle from './SupernatureBattle';
 import SupernatureSpellBook from './SupernatureSpellBook';
 import SupernatureGlobe from './SupernatureGlobe';
+import PopCard from './SupernaturePopCard';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
 // docs/SUPERNATURE_PLAN.md). Home is the Witch's House with the Cat Wizard as host. Every other room
@@ -482,8 +483,8 @@ function Names({ bar, say, names, onSave }: { bar: (o?: BarOpts) => React.ReactN
 function RankCard({ nat, say, onClose }: { nat: ReturnType<typeof naturalist>; say: (t: string) => void; onClose: () => void }) {
   const text = `You are a ${nat.rank.name} with ${nat.xp} XP.${nat.next ? ` ${nat.next.at - nat.xp} more XP to become a ${nat.next.name}.` : ' You reached the top rank!'}`;
   return (
-    <div className="sn-modal" role="dialog" aria-label="Naturalist rank" onClick={onClose}>
-      <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+    <div className="sn-modal snp-modal" role="dialog" aria-label="Naturalist rank" onClick={onClose}>
+      <PopCard className="sn-modal-card paper wide" title="Naturalist rank" onClose={onClose}>
         <h2>🏅 {nat.rank.name}</h2>
         <p>{text}</p>
         {nat.next && <div className="sn-xpbar"><i style={{ width: `${Math.min(100, ((nat.xp - nat.rank.at) / (nat.next.at - nat.rank.at)) * 100)}%` }} /></div>}
@@ -497,7 +498,7 @@ function RankCard({ nat, say, onClose }: { nat: ReturnType<typeof naturalist>; s
           <button type="button" className="sn-btn2" onClick={() => say(text)}>Listen</button>
           <button type="button" className="sn-btn" onClick={onClose}>Keep exploring</button>
         </div>
-      </div>
+      </PopCard>
     </div>
   );
 }

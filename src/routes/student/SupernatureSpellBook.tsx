@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { RECIPES, WORD_PARTS, snSound, type Part, type SnSave } from '../../lib/supernature';
 import { splitName, syllables, type MorphPart } from '../../lib/supernatureMorphemes';
 import { Icon } from './SupernatureWriting';
+import PopCard from './SupernaturePopCard';
 
 // The Spell Book (Build Queue 114, her words: "magic spells they create (and that are there) should also
 // be rooted in morphology and word parts", with her 111 Greek and Latin activities: the Spellbook,
@@ -154,8 +155,8 @@ export default function SupernatureSpellBook({ bar, say, book, onSave, onRemove 
       </div>
 
       {open && (
-        <div className="sn-modal" role="dialog" aria-label={open.name} onClick={() => setOpen(null)}>
-          <div className="sn-modal-card paper sbk-page" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label={open.name} onClick={() => setOpen(null)}>
+          <PopCard className="sn-modal-card paper sbk-page" title={open.name} onClose={() => setOpen(null)}>
             <h2>{KIND[open.type].icon} {open.name}</h2>
             <div className="sbk-parts">{open.parts.map((p, i) => <span key={i} className={`sn-tile ${p.kind}`}>{p.text}<small>{p.meaning}</small></span>)}</div>
             {open.art && <img src={open.art} alt={`Drawing of ${open.name}`} />}
@@ -165,7 +166,7 @@ export default function SupernatureSpellBook({ bar, say, book, onSave, onRemove 
               <button type="button" className="sn-btn2" onClick={() => { onRemove(open.id); setOpen(null); }}>Remove</button>
               <button type="button" className="sn-btn" onClick={() => setOpen(null)}>Close</button>
             </div>
-          </div>
+          </PopCard>
         </div>
       )}
     </div>

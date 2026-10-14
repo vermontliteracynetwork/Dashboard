@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ENERGY_FACE, snSound } from '../../lib/supernature';
 import { CHAPTERS, art, byId, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
+import PopCard from './SupernaturePopCard';
 
 // Creature cards (Build Queue 109, from her Pond Froggy card reference): a private collectible card
 // for every found or made creature. Gold frames come with the Grand Naturalist rank.
@@ -28,8 +29,8 @@ export function CardModal({ ids, start, levels, gold, say, onClose }: { ids: str
   const [pick, setPick] = useState<string | null>(start ?? null);
   const c = pick ? byId(pick) : undefined;
   return (
-    <div className="sn-modal" role="dialog" aria-label="Creature cards" onClick={onClose}>
-      <div className="sn-modal-card paper wide sn-cards" onClick={(e) => e.stopPropagation()}>
+    <div className="sn-modal snp-modal" role="dialog" aria-label="Creature cards" onClick={onClose}>
+      <PopCard className="sn-modal-card paper wide sn-cards" title="Creature cards" onClose={onClose}>
         <div className="sn-row between" style={{ width: '100%' }}>
           <h2>🃏 {c ? c.name : `My cards (${ids.length})`}</h2>
           <button type="button" className="sn-ib small light" onClick={onClose} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button>
@@ -51,7 +52,7 @@ export function CardModal({ ids, start, levels, gold, say, onClose }: { ids: str
             ); })}
           </div>
         )}
-      </div>
+      </PopCard>
     </div>
   );
 }

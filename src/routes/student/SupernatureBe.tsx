@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ENERGY_FACE, ENERGY_STEPS, SN, snSound } from '../../lib/supernature';
 import { art, type Biome, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
+import PopCard from './SupernaturePopCard';
 
 // Be the creature (Build Queue 103; plan section 16). Play any creature in the Habitat for 90
 // seconds. Tap anywhere to walk there, or use the big joystick. Its diet is the goal: plant eaters
@@ -148,8 +149,8 @@ export default function SupernatureBe({ c, roster, biome, say, onClose }: { c: C
         </div>
       </div>
       {done && (
-        <div className="sn-modal" role="dialog" aria-label="Round summary">
-          <div className="sn-modal-card paper">
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Round summary">
+          <PopCard className="sn-modal-card paper" title="Round summary">
             <img src={art(c.id)} alt="" style={{ width: 96, height: 96 }} />
             <h2>Great job, {c.name}!</h2>
             <p>{summary}</p>
@@ -158,7 +159,7 @@ export default function SupernatureBe({ c, roster, biome, say, onClose }: { c: C
               <button type="button" className="sn-btn2" onClick={() => { Object.assign(st.current, { time: ROUND, ate: 0, chased: 0, hid: 0, justRight: 0, energy: 2, hunter: null, nextHunter: 14, p: { x: BURROW.x + 40, y: BURROW.y - 40 } }); setDone(false); }}>Play again</button>
               <button type="button" className="sn-btn" onClick={onClose}>Back to the Habitat</button>
             </div>
-          </div>
+          </PopCard>
         </div>
       )}
     </div>

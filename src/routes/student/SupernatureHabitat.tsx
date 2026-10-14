@@ -20,6 +20,7 @@ import {
   skillTags, startSkills, type SkillId, type SkillSet,
 } from '../../lib/supernatureSkills';
 import { SEASONS, SEASON_ICON, START_GROUP, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
+import PopCard from './SupernaturePopCard';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
 // has found live here; the scene fills the screen and help opens next to a creature only when it is
@@ -1008,11 +1009,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
 
         {sel_ && (
-          <div className="sn-pop" style={{ left: Math.min(W - 350, spot(sel_).x < 600 ? spot(sel_).x + 110 : spot(sel_).x - 350), top: Math.max(10, Math.min(H - 380, spot(sel_).y - 40)) }} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`${sel_.c.name}`}>
+          <PopCard key={sel_.c.id} className="sn-pop" style={{ left: Math.min(W - 350, spot(sel_).x < 600 ? spot(sel_).x + 110 : spot(sel_).x - 350), top: Math.max(10, Math.min(H - 380, spot(sel_).y - 40)) }} maxH={H - Math.max(10, Math.min(H - 380, spot(sel_).y - 40)) - 10} title={sel_.c.name} onClose={() => setSel(null)}>
             <div className="sn-pop-head">
               <img src={art(sel_.c.id)} alt="" />
               <h2>{sel_.c.name}</h2>
-              <button type="button" className="sn-ib small" onClick={() => setSel(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button>
             </div>
             <div className="sn-hearts big" aria-label={`${sel_.hp} of 5 hearts`}>{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < sel_.hp ? 'full' : ''} />)}</div>
             {reactions[sel_.c.id] && <p className={`sn-pop-react${reactions[sel_.c.id].hit ? ' bad' : ''}`}>{reactions[sel_.c.id].icon} {reactions[sel_.c.id].text}{reactions[sel_.c.id].because ? <><br /><b>Why:</b> {reactions[sel_.c.id].because}.</> : null}</p>}
@@ -1070,15 +1070,15 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 <button type="button" className="sn-btn2 small" onClick={() => setCheckIn(false)}>Done</button>
               </>
             )}
-          </div>
+          </PopCard>
         )}
       </div>
 
       {playing && <SupernatureBe c={playing} roster={roster} biome={land} say={say} onClose={() => setPlaying(null)} />}
       {gensOpen && <SupernatureGenerations roster={roster} biome={land} disaster={active} say={say} onClose={() => setGensOpen(false)} goNames={goNames} />}
       {card && (() => { const p = PLANT(card.id); const cr = CRITTERS.find((x) => x.id === card.id); const text = p ? `${p.name}. ${KIND_LABEL[p.kind].slice(2)}. ${p.lore} Alchemy: ${p.alchemy} It grows in the ${p.where.join(' or ')}.` : cr ? `${cr.name}. ${cr.lore}` : ''; return (
-        <div className="sn-modal" role="dialog" aria-label="New discovery" onClick={() => setCard(null)}>
-          <div className="sn-modal-card paper sn-plantcard" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label="New discovery" onClick={() => setCard(null)}>
+          <PopCard className="sn-modal-card paper sn-plantcard" title="New discovery" onClose={() => setCard(null)}>
             {card.first && <span className="sn-new">✨ New for your book!</span>}
             <img src={p ? plantImg(p.id) : cr!.img} alt="" />
             <h2>{p ? p.name : cr!.name}</h2>
@@ -1087,12 +1087,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <p>{p ? p.lore : cr!.lore}</p>
             {p && <p className="sn-small"><b>🧪 Alchemy:</b> {p.alchemy} <b>🌍 Grows in:</b> {p.where.join(', ')}{p.winter ? ' (even in winter)' : ''}.</p>}
             <div className="sn-row center"><button type="button" className="sn-btn2" onClick={() => say(text)}>🔊 Listen</button><button type="button" className="sn-btn" onClick={() => setCard(null)}>Keep exploring</button></div>
-          </div>
+          </PopCard>
         </div>
       ); })()}
       {seedFor !== null && (
-        <div className="sn-modal" role="dialog" aria-label="Plant a seed" onClick={() => setSeedFor(null)}>
-          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Plant a seed" onClick={() => setSeedFor(null)}>
+          <PopCard className="sn-modal-card paper wide" title="Plant a seed" onClose={() => setSeedFor(null)}>
             <h2>🌱 What will you plant in the {viewLabel(biome).toLowerCase()}?</h2>
             <p className="sn-small">You can plant anything you have found. Plants only grow where they could really live.</p>
             {book.filter((id) => PLANT(id)).length === 0 ? <p>Find wild plants first: tap the plants growing around the Habitat.</p> : (
@@ -1103,12 +1103,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               ); })}</div>
             )}
             <button type="button" className="sn-btn" onClick={() => setSeedFor(null)}>Close</button>
-          </div>
+          </PopCard>
         </div>
       )}
       {bookOpen && (
-        <div className="sn-modal" role="dialog" aria-label="Plant and Critter Book" onClick={() => setBookOpen(false)}>
-          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Plant and Critter Book" onClick={() => setBookOpen(false)}>
+          <PopCard className="sn-modal-card paper wide" title="Plant and Critter Book" onClose={() => setBookOpen(false)}>
             <h2>🌿 Plant and Critter Book</h2>
             <p className="sn-small"><b>Plant lore: {lore.rank}</b> · {book.length} of {PLANTS.length + CRITTERS.length} found{lore.next ? ` · ${lore.next.at - book.length} more to become ${lore.next.name}` : ''}. Tap a plant or critter you found to read about it.</p>
             <div className="sn-train-grid">
@@ -1119,12 +1119,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               ); })}
             </div>
             <button type="button" className="sn-btn" onClick={() => setBookOpen(false)}>Close</button>
-          </div>
+          </PopCard>
         </div>
       )}
       {naming && (() => { const c = live.find((l) => l.c.id === naming)?.c; if (!c) return null; const n = Math.max(1, Math.min(10, count(c.id))); return (
-        <div className="sn-modal" role="dialog" aria-label={`Name the ${c.name} family`} onClick={() => setNaming(null)}>
-          <div className="sn-modal-card paper" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label={`Name the ${c.name} family`} onClick={() => setNaming(null)}>
+          <PopCard className="sn-modal-card paper" title={`Name the ${c.name} family`} onClose={() => setNaming(null)}>
             <h2>✏️ Name the {c.name} family</h2>
             <p className="sn-small">There {n === 1 ? 'is 1' : `are ${n}`} in the family. Give each one its own name. Names start with a capital letter. The first one shows in the Habitat, and the first three can battle.</p>
             <div className="sn-namelist">{Array.from({ length: n }, (_, i) => (
@@ -1134,26 +1134,26 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               </label>
             ))}</div>
             <button type="button" className="sn-btn" onClick={() => { snSound('done'); setNaming(null); tell(`Names saved for the ${c.name} family!`); }}>Save names</button>
-          </div>
+          </PopCard>
         </div>
       ); })()}
       {outTray && (
-        <div className="sn-modal" role="dialog" aria-label="Creatures not in play" onClick={() => setOutTray(false)}>
-          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Creatures not in play" onClick={() => setOutTray(false)}>
+          <PopCard className="sn-modal-card paper wide" title="Creatures not in play" onClose={() => setOutTray(false)}>
             <h2>🧺 Creatures not in the Habitat</h2>
             <p className="sn-small">Not every creature has to be in play. Pick one to put it in the {viewLabel(biome).toLowerCase()}.</p>
             {outList.length === 0 ? <p>Every creature you found is in the Habitat. Tap a creature and choose Take out of the Habitat to give it a rest.</p> : (
               <div className="sn-pick-row">{outList.map((c) => <button key={c.id} type="button" className="sn-opt dark" onClick={() => { setOutTray(false); setPlacing({ id: c.id, mode: 'add' }); }}><img src={art(c.id)} alt="" /><span>{c.name}</span></button>)}</div>
             )}
             <button type="button" className="sn-btn" onClick={() => setOutTray(false)}>Close</button>
-          </div>
+          </PopCard>
         </div>
       )}
       {placing && (() => { const c = all.find((x) => x.id === placing.id); if (!c) return null; const adding = placing.mode === 'add'; const where = adding ? (biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome) : home(c); const lines = webChange(c.id, placing.mode); const text = adding
         ? `Put ${c.name} in the ${viewLabel(where).toLowerCase()}? ${c.name} will come into play. It starts over at level 0 with its 3 starting skills. The food web will change: ${lines.join(' ')}`
         : `Take ${c.name} out of the Habitat? ${c.name} will no longer be in play. Its levels and the skills it learned will start over from zero when you put it back. The food web in the ${viewLabel(where).toLowerCase()} will change: ${lines.join(' ')}`; return (
-        <div className="sn-modal" role="alertdialog" aria-label={adding ? 'Put a creature in' : 'Take a creature out'}>
-          <div className="sn-modal-card paper sn-confirm">
+        <div className="sn-modal snp-modal" role="alertdialog" aria-label={adding ? 'Put a creature in' : 'Take a creature out'}>
+          <PopCard className="sn-modal-card paper sn-confirm" title={adding ? 'Put a creature in' : 'Take a creature out'}>
             <img src={art(c.id)} alt="" className="sn-confirm-art" />
             <h2>{adding ? `Put ${c.name} in the ${viewLabel(where).toLowerCase()}?` : `Take ${c.name} out of the Habitat?`}</h2>
             <ul className="sn-confirm-list">
@@ -1166,7 +1166,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-btn2" onClick={() => setPlacing(null)}>{adding ? 'Not now' : `Keep ${c.name}`}</button>
               <button type="button" className="sn-btn" onClick={() => { setPlacing(null); if (adding) addCreature(c.id); else removeCreature(c.id); }}>{adding ? 'Yes, put it in' : 'Yes, take it out'}</button>
             </div>
-          </div>
+          </PopCard>
         </div>
       ); })()}
       {train && (() => { const l = live.find((x) => x.c.id === train.id); if (!l) return null; const k = sk(l.c); const full = Object.keys(k).length >= MAX_SKILLS; return train.skill && train.q ? (
@@ -1175,8 +1175,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           done={prog[l.c.id]?.[train.skill] ?? 0} total={has(k, train.skill) ? LEVEL_COST : LEARN_COST}
           onCorrectAnswer={trainRight} onSkip={() => setTrain({ ...train, q: nextQ(train.q?.id) })} onExit={() => setTrain({ ...train, skill: null, q: null })} ttsSettings={ttsSettings} />
       ) : (
-        <div className="sn-modal" role="dialog" aria-label={`Train ${l.c.name}`} onClick={() => setTrain(null)}>
-          <div className="sn-modal-card paper wide sn-train" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label={`Train ${l.c.name}`} onClick={() => setTrain(null)}>
+          <PopCard className="sn-modal-card paper wide sn-train" title={`Train ${l.c.name}`} onClose={() => setTrain(null)}>
             <div className="sn-row between" style={{ width: '100%' }}><h2><img src={art(l.c.id)} alt="" /> Train {l.c.name}</h2><button type="button" className="sn-ib small light" onClick={() => setTrain(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button></div>
             <p className="sn-small">Every right answer trains a skill. {LEVEL_COST} right answers raise a skill one level (up to {MAX_LEVEL}). {LEARN_COST} right answers teach a new skill, which is how a creature adapts. It can have {MAX_SKILLS} skills.</p>
             <h3>Make a skill stronger</h3>
@@ -1191,12 +1191,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 <span>{x.icon}</span><b>{x.name}</b><small>{!ok ? why : helpsNow(l.c, x.id) ? `⭐ Helps right now. ${x.does}` : x.does}</small>{ok && <small>{prog[l.c.id]?.[x.id] ?? 0} of {LEARN_COST}</small>}
               </button>
             ))}</div>
-          </div>
+          </PopCard>
         </div>
       ); })()}
       {reactOpen && (
-        <div className="sn-modal" role="dialog" aria-label="How they react" onClick={() => setReactOpen(false)}>
-          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label="How they react" onClick={() => setReactOpen(false)}>
+          <PopCard className="sn-modal-card paper wide" title="How they react" onClose={() => setReactOpen(false)}>
             <h2>👀 How they react: {situation}</h2>
             <p className="sn-small">Every creature's body decides what happens to it. Change the land, the weather or the time, or start a disaster, and watch them adapt.</p>
             <ul className="sn-notes react">
@@ -1213,12 +1213,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-btn2" onClick={() => say(live.map((l) => reactions[l.c.id]?.text).filter(Boolean).join(' '))}>Listen</button>
               <button type="button" className="sn-btn" onClick={() => setReactOpen(false)}>Keep exploring</button>
             </div>
-          </div>
+          </PopCard>
         </div>
       )}
       {predict && (
-        <div className="sn-modal" role="dialog" aria-label="Predict the season">
-          <div className="sn-modal-card">
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Predict the season">
+          <PopCard className="sn-modal-card" title="Predict the season">
             <h2>Before {season.toLowerCase()} ends: what will happen?</h2>
             <p className="sn-small">Seasons change on their own every 10 minutes. Pick a group and guess: when {season.toLowerCase()} ends ({mmss(clk.left)} left), will it have more, fewer or the same? Guessing is how scientists learn!</p>
             <div className="sn-pick-row">
@@ -1235,12 +1235,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-btn2" onClick={() => setPredict(null)}>Not yet</button>
               <button type="button" className="sn-btn" disabled={!predict.guess} onClick={lockGuess}>Save my guess</button>
             </div>
-          </div>
+          </PopCard>
         </div>
       )}
       {result && (
-        <div className="sn-modal" role="dialog" aria-label="Field Notebook">
-          <div className="sn-modal-card paper wide">
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Field Notebook">
+          <PopCard className="sn-modal-card paper wide" title="Field Notebook">
             <h2>Field Notebook: {SEASON_ICON[seasonName(result.r.next.season - 1)]} {seasonName(result.r.next.season - 1)}{result.away > 1 ? ` (and ${result.away - 1} more while you were away)` : ''}</h2>
             {result.away > 0 && <p className="sn-small">While you were away, everyone waited in the shelter. Creatures that were asleep with 0 hearts did not make it.</p>}
             <p className={`sn-balance ${result.r.balance === 'Balanced' ? 'ok' : result.r.balance === 'Wobbly' ? 'warn' : 'bad'}`}>{result.r.balance}: {result.r.sentence}</p>
@@ -1258,12 +1258,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-btn2" onClick={() => say(`${result.r.balance}. ${result.r.sentence} ${result.lost.length ? `${result.lost.map((id) => byId(id)?.name).join(', ')} did not survive. ` : ''}${result.ups.length ? `Level up: ${result.ups.map((id) => byId(id)?.name).join(', ')}. ` : ''}${result.r.changes.map((x) => `${byId(x.id)?.name}: ${x.before} to ${x.after}. ${x.why}`).join(' ')}`)}>Listen</button>
               <button type="button" className="sn-btn" onClick={() => setResult(null)}>Keep exploring</button>
             </div>
-          </div>
+          </PopCard>
         </div>
       )}
       {web && (
-        <div className="sn-modal" role="dialog" aria-label="Food web" onClick={() => setWeb(false)}>
-          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Food web" onClick={() => setWeb(false)}>
+          <PopCard className="sn-modal-card paper wide" title="Food web" onClose={() => setWeb(false)}>
             <h2>Food web: the energy goes →</h2>
             <p className="sn-small">Tap anything to ask: what if it moved away?</p>
             {(() => {
@@ -1295,7 +1295,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               );
             })()}
             <button type="button" className="sn-btn" onClick={() => setWeb(false)}>Close</button>
-          </div>
+          </PopCard>
         </div>
       )}
 

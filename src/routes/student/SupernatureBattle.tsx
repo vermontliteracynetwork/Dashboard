@@ -12,6 +12,7 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { Icon } from './SupernatureWriting';
 import { Fx, HIT_FX, ORB_FX } from './SupernatureFx';
+import PopCard from './SupernaturePopCard';
 
 // Creature Battles (Build Queue 137): pick one of your Habitat creatures (each family member can have
 // its own name), pick a wild opponent (two cards with skill bars, or roll the dice), maybe drink a
@@ -325,8 +326,8 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
           onExit={() => { reset('foe'); }} ttsSettings={ttsSettings} />
       )}
       {logOpen && (
-        <div className="sn-modal" role="dialog" aria-label="Battle log" onClick={() => setLogOpen(false)}>
-          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Battle log" onClick={() => setLogOpen(false)}>
+          <PopCard className="sn-modal-card paper wide" title="Battle log" onClose={() => setLogOpen(false)}>
             <h2>📖 Battle Log</h2>
             {bs.npcs.length === 0 ? <p>No battles yet. Every creature you battle is saved here, so you can battle it again.</p> : (
               <div className="sb-logtable">
@@ -342,7 +343,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
             )}
             {!mine && bs.npcs.length > 0 && <p className="sn-small">Pick your fighter first, then you can battle any of them again.</p>}
             <button type="button" className="sn-btn" onClick={() => setLogOpen(false)}>Close</button>
-          </div>
+          </PopCard>
         </div>
       )}
     </div>
