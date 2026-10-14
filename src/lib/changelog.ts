@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-bigger-gardens",
+    date: "2026-10-14",
+    icon: "🌱",
+    title: "Bigger gardens that grow faster",
+    body: "Every land in the Habitat has 10 garden spots now. Seeds sprout in 30 seconds and are ready in 90 seconds. Wild plants grow back every day, so there is always something new to find.",
+  },
+  {
     id: "2026-10-14-real-weather",
     date: "2026-10-14",
     icon: "🌪️",

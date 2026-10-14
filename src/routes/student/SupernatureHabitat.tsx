@@ -12,7 +12,7 @@ import { useStore } from '../../store/store';
 import { drawQuestion, pickableSets } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
-import { madePlantIds, CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
+import { madePlantIds, CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, PLOT_N, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
 import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
 import { Fx, HIT_FX, ORB_FX, type FxKey } from './SupernatureFx';
 import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, type Aff, type Fighter } from '../../lib/supernatureBattle';
@@ -730,8 +730,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const lost = vg && (vg.kind === 'frozen' || vg.abs === clk.abs) ? vg.kind : null;
   // Real survivors: swamp and sea plants handle floods, desert plants handle drought, winter plants handle ice.
   const survives = (id: string, kind: Disaster | 'burnt' | 'washed' | 'dried' | 'frozen') => { const p = PLANT(id); if (!p) return false; return kind === 'flood' || kind === 'washed' ? p.where.includes('swamp') || p.where.includes('ocean') : kind === 'drought' || kind === 'dried' ? p.where.includes('desert') : kind === 'blizzard' || kind === 'frozen' ? !!p.winter : false; };
-  const wild = wildSpots(place_, clk.abs).filter((w) => !picked.includes(w.key) && (!lost || lost === 'frozen' ? true : !!w.plant && survives(w.plant, lost)));
-  const myPlots = (plots[place_] ?? [null, null, null, null]).concat([null, null, null, null]).slice(0, 4);
+  const day = Math.floor(now / 86_400_000);
+  const wild = wildSpots(place_, clk.abs, day).filter((w) => !picked.includes(w.key) && (!lost || lost === 'frozen' ? true : !!w.plant && survives(w.plant, lost)));
+  const myPlots = [...(plots[place_] ?? []), ...Array(PLOT_N).fill(null)].slice(0, PLOT_N) as (Plot | null)[];
   const stage = (pl: Plot) => { if (pl.dead) return 'dead'; const t = (pl.frozenAt ?? now) - pl.at; return t >= GROWN_MS ? 'grown' : t >= SPROUT_MS ? 'sprout' : 'seed'; };
   const names_ = (ids: string[]) => [...new Set(ids.map((id) => PLANT(id)?.name).filter(Boolean))].join(', ');
   // What a disaster does to the plants in this biome (Build Queue 143). Underwater plants are safe.
@@ -748,7 +749,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (place_ === 'ocean' || !['wildfire', 'flood', 'drought', 'blizzard'].includes(kind)) return;
     const growing = myPlots.filter((pl): pl is Plot => !!pl && !pl.dead && !pl.frozenAt);
     const kept = growing.filter((pl) => survives(pl.plant, kind)).map((pl) => pl.plant);
-    const keptWild = wildSpots(place_, clk.abs).filter((w) => w.plant && !picked.includes(w.key) && survives(w.plant, kind)).map((w) => w.plant!);
+    const keptWild = wildSpots(place_, clk.abs, day).filter((w) => w.plant && !picked.includes(w.key) && survives(w.plant, kind)).map((w) => w.plant!);
     const strong = names_([...kept, ...keptWild]);
     if (kind === 'blizzard') {
       setPlots((m) => ({ ...m, [place_]: (m[place_] ?? []).map((pl) => (pl && !pl.dead && !pl.frozenAt && !survives(pl.plant, kind) ? { ...pl, frozenAt: Date.now(), frozenAbs: clk.abs } : pl)) }));
@@ -776,15 +777,15 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const plantIt = (i: number, id: string) => {
     const pl = PLANT(id); if (!pl) return;
     const g = canGrow(pl, place_, season); if (!g.ok) { tell(g.why!, true); return; }
-    setPlots((m) => { const row = (m[place_] ?? [null, null, null, null]).slice(0, 4); while (row.length < 4) row.push(null); row[i] = { plant: id, at: Date.now() }; return { ...m, [place_]: row }; });
-    setSeedFor(null); snSound('pickup'); tell(`You planted ${pl.name}. It sprouts in 1 minute and is ready to harvest in 3 minutes.`, true);
+    setPlots((m) => { const row = (m[place_] ?? []).slice(0, PLOT_N); while (row.length < PLOT_N) row.push(null); row[i] = { plant: id, at: Date.now() }; return { ...m, [place_]: row }; });
+    setSeedFor(null); snSound('pickup'); tell(`You planted ${pl.name}. It sprouts in 30 seconds and is ready to harvest in 90 seconds.`, true);
   };
   const harvest = (i: number) => {
     const pl = myPlots[i]; if (!pl) return; const p = PLANT(pl.plant); if (!p) return;
-    if (pl.dead) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[i] = null; return { ...m, [place_]: row }; }); snSound('tap'); tell(pl.dead === 'burnt' ? `You cleared the burnt ${p.name}. The ash makes the soil rich. Plant something new!` : `You cleared the dried ${p.name}. Plant something new, or try a desert plant that saves water.`, true); return; }
+    if (pl.dead) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, PLOT_N); row[i] = null; return { ...m, [place_]: row }; }); snSound('tap'); tell(pl.dead === 'burnt' ? `You cleared the burnt ${p.name}. The ash makes the soil rich. Plant something new!` : `You cleared the dried ${p.name}. Plant something new, or try a desert plant that saves water.`, true); return; }
     if (pl.frozenAt) { snSound('fizzle'); tell(`${p.name} is frozen under the ice. It thaws and grows again in spring.`, true); return; }
     if (stage(pl) !== 'grown') { tell(`${p.name} is still growing. ${stage(pl) === 'seed' ? 'It sprouts soon.' : 'Almost ready!'}`); return; }
-    setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[i] = null; return { ...m, [place_]: row }; });
+    setPlots((m) => { const row = (m[place_] ?? []).slice(0, PLOT_N); row[i] = null; return { ...m, [place_]: row }; });
     if (p.kind !== 'harmful') addPantry(`p_${p.id}`, 2);
     snSound('done'); sparkleOn('');
     tell(p.kind === 'harmful' ? `You harvested ${p.name} with gloves. It is harmful, so it is not for potions.` : `You harvested 2 ${p.name}! They went into your pantry for the Cauldron.`, true);
@@ -958,7 +959,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         if (a) {
           setAct({ id: l.c.id, a }); window.setTimeout(() => setAct((x) => (x?.id === l.c.id ? null : x)), 4500);
           if (a.fx === 'heal') { const f = can.filter((x) => x !== l && x.hp < 5)[0]; if (f) { setLive((ls) => ls.map((x) => (x.c.id === f.c.id ? { ...x, hp: Math.min(5, x.hp + 1) } : x))); sparkleOn(f.c.id); tell(`${l.c.name} ${a.text}. ${f.c.name} feels better.`); } }
-          else if (a.fx === 'grow') { const idx = myPlots.findIndex((pl) => pl && !pl.dead && !pl.frozenAt && stage(pl) !== 'grown'); if (idx >= 0) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[idx] = { ...row[idx]!, at: row[idx]!.at - 60000 }; return { ...m, [place_]: row }; }); tell(`${l.c.name} ${a.text}. A garden plant grew faster!`); } }
+          else if (a.fx === 'grow') { const idx = myPlots.findIndex((pl) => pl && !pl.dead && !pl.frozenAt && stage(pl) !== 'grown'); if (idx >= 0) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, PLOT_N); row[idx] = { ...row[idx]!, at: row[idx]!.at - 60000 }; return { ...m, [place_]: row }; }); tell(`${l.c.name} ${a.text}. A garden plant grew faster!`); } }
           else if (a.fx === 'flash') { setFlash(true); natureSound('thunder', 0.25); window.setTimeout(() => setFlash(false), 200); }
           else if (a.fx === 'splash') natureSound('splash', 0.35);
           else if (a.fx === 'howl') natureSound('owl', 0.3);

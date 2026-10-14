@@ -81,27 +81,28 @@ export function canGrow(p: Plant, place: PlantPlace, season: string): { ok: bool
   if (season === 'Winter' && !p.winter && place !== 'ocean') return { ok: false, why: 'It is winter: it is too cold for it to grow until spring.' };
   return { ok: true };
 }
-// Growing time: 1 minute to sprout, 2 more to be ready (it keeps growing while the student is away).
-export const SPROUT_MS = 60_000, GROWN_MS = 180_000;
+// Growing time (Build Queue 190, her words 2026-10-14: "growing faster than currently"): 30 seconds to sprout, 90 seconds
+// to be ready (was 1 and 3 minutes). It keeps growing while the student is away.
+export const SPROUT_MS = 30_000, GROWN_MS = 90_000;
 
-// Wild plants and critters sprinkled sparsely and randomly in each biome, new every season.
-export function wildSpots(place: PlantPlace, abs: number): { key: string; plant?: string; critter?: string; x: number; y: number }[] {
-  let seed = (abs * 9301 + place.length * 49297 + place.charCodeAt(0) * 233) % 233280;
+// Wild plants and critters sprinkled sparsely and randomly in each biome. They grow back every day (Build Queue 190, her
+// words: "plants should grow every day"): a new day brings new wild plants, even ones that were picked.
+export function wildSpots(place: PlantPlace, abs: number, day = 0): { key: string; plant?: string; critter?: string; x: number; y: number }[] {
+  let seed = (abs * 9301 + day * 7919 + place.length * 49297 + place.charCodeAt(0) * 233) % 233280;
   const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
   const plants = [...PLANTS, ...MADE_PLANTS].filter((p) => p.where.includes(place));
   const critters = CRITTERS.filter((c) => c.where.includes(place));
   const out: { key: string; plant?: string; critter?: string; x: number; y: number }[] = [];
   const n = 3 + Math.floor(rnd() * 2);
-  for (let i = 0; i < n && plants.length; i++) out.push({ key: `${abs}:${place}:p${i}`, plant: plants[Math.floor(rnd() * plants.length)].id, x: 250 + Math.floor(rnd() * 520), y: place === 'ocean' ? 470 + Math.floor(rnd() * 40) : 230 + Math.floor(rnd() * 260) });
-  if (critters.length && rnd() < 0.8) out.push({ key: `${abs}:${place}:c`, critter: critters[Math.floor(rnd() * critters.length)].id, x: 260 + Math.floor(rnd() * 500), y: place === 'ocean' ? 480 : 250 + Math.floor(rnd() * 220) });
+  for (let i = 0; i < n && plants.length; i++) out.push({ key: `${abs}:${day}:${place}:p${i}`, plant: plants[Math.floor(rnd() * plants.length)].id, x: 250 + Math.floor(rnd() * 520), y: place === 'ocean' ? 470 + Math.floor(rnd() * 40) : 230 + Math.floor(rnd() * 260) });
+  if (critters.length && rnd() < 0.8) out.push({ key: `${abs}:${day}:${place}:c`, critter: critters[Math.floor(rnd() * critters.length)].id, x: 260 + Math.floor(rnd() * 500), y: place === 'ocean' ? 480 : 250 + Math.floor(rnd() * 220) });
   return out;
 }
-// Garden plots in each biome (fixed spots near the bottom, clear of the pond and the shelter).
+// Garden plots in each biome (Build Queue 190, her words: "each biome should have up to 10 plants in each"): 10 plots in two
+// rows near the bottom, clear of the pond and the shelter.
+export const PLOT_N = 10;
+const rows = (x0: number, step: number, y1: number, y2: number) => Array.from({ length: PLOT_N }, (_, i) => ({ x: x0 + (i % 5) * step + (i >= 5 ? step / 2 : 0), y: i < 5 ? y1 : y2 }));
 export const PLOTS: Record<PlantPlace, { x: number; y: number }[]> = {
-  grassland: [{ x: 300, y: 500 }, { x: 390, y: 500 }, { x: 480, y: 500 }, { x: 570, y: 500 }],
-  forest: [{ x: 300, y: 500 }, { x: 390, y: 500 }, { x: 480, y: 500 }, { x: 570, y: 500 }],
-  desert: [{ x: 300, y: 500 }, { x: 390, y: 500 }, { x: 480, y: 500 }, { x: 570, y: 500 }],
-  snow: [{ x: 300, y: 500 }, { x: 390, y: 500 }, { x: 480, y: 500 }, { x: 570, y: 500 }],
-  swamp: [{ x: 300, y: 500 }, { x: 390, y: 500 }, { x: 480, y: 500 }, { x: 570, y: 500 }],
-  ocean: [{ x: 420, y: 500 }, { x: 520, y: 500 }, { x: 620, y: 500 }, { x: 720, y: 500 }],
+  grassland: rows(220, 84, 448, 512), forest: rows(220, 84, 448, 512), desert: rows(220, 84, 448, 512),
+  snow: rows(220, 84, 448, 512), swamp: rows(220, 84, 448, 512), ocean: rows(300, 96, 440, 506),
 };
