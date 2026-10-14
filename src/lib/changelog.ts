@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-supernature-bar",
+    date: "2026-10-14",
+    icon: "🎛️",
+    title: "New Supernature buttons",
+    body: "Every Supernature room has the same top buttons now: 🔊 to hear what to do, 💾 to see when your work was saved, and a full screen button. In the Creature Maker, Plant Maker, Name Builder and Spell Book you can Undo and Redo too.",
+  },
+  {
     id: "2026-10-14-listen-everywhere",
     date: "2026-10-14",
     icon: "🔊",

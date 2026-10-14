@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
-import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, type SnSave, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { byId, setMade, type Made } from '../../lib/supernatureCreatures';
@@ -33,6 +33,27 @@ const ROOM_TITLE: Record<Room, string> = {
   names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles', spells: 'Spell Book', plants: 'Plant Maker', elements: 'Element Book',
 };
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
+// The shared control bar (Build Queue 106, plan section 20): Listen, Undo and Redo in the making rooms, Save with the
+// time, and Full screen, always in the same place.
+const ROOM_HELP: Record<Room, string> = {
+  home: 'Welcome home! Tap anything with a name tag to open it. The bookshelf holds all your books, and the door goes outside to your Habitat.',
+  habitat: 'Your Habitat. Tap a creature to check on it. Use the potion bar to help, and the arrows to visit the other lands. The list button shows every complaint and request.',
+  globe: 'The Globe. Tap a place to explore it and find its creature.',
+  book: 'The Encyclopedia. Turn the pages to read about every creature you have found.',
+  cauldron: 'The Cauldron. Pick a recipe, drag elements into the pot, then heat, stir, chill or zap it, and tap Brew.',
+  names: 'The Name Builder. Put word parts together to make a name.',
+  maker: 'The Creature Maker. Pick body parts and colors, then give your creature a name.',
+  shop: 'The Shop. Buy ingredients with your real money.',
+  battle: 'Creature Battles. Pick a creature, then answer questions to power it up.',
+  spells: 'The Spell Book. Build spells from word parts.',
+  plants: 'The Plant Maker. Pick roots, a stem, leaves and flowers. Real plant science decides where it can live.',
+  elements: 'The Element Book. Turn the pages to learn every element, its magic name and its real job.',
+};
+// Undo and Redo cover the making rooms' work (creatures, plants, names, spells). Money, potions and the Habitat are
+// left out on purpose: undoing a purchase or a potion would not give the money or the question work back.
+const UNDO_KEYS = ['made', 'madePlants', 'names', 'spellbook'] as const;
+const UNDO_ROOMS: Room[] = ['maker', 'plants', 'names', 'spells'];
+const fsEl = () => (document.fullscreenElement ?? (document as unknown as { webkitFullscreenElement?: Element }).webkitFullscreenElement) ?? null;
 
 function useFit() {
   const calc = () => Math.min(window.innerWidth / STAGE_W, window.innerHeight / STAGE_H);
@@ -45,7 +66,24 @@ export default function Supernature() {
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const back = useBack();
   const scale = useFit();
-  const { save, patch } = useSupernature(student?.id ?? null);
+  const { save, patch: rawPatch } = useSupernature(student?.id ?? null);
+  const hist = useRef<{ past: Partial<SnSave>[]; future: Partial<SnSave>[] }>({ past: [], future: [] });
+  const [, setHistN] = useState(0);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [full, setFull] = useState(false);
+  useEffect(() => { const on = () => setFull(!!fsEl()); document.addEventListener('fullscreenchange', on); document.addEventListener('webkitfullscreenchange', on); return () => { document.removeEventListener('fullscreenchange', on); document.removeEventListener('webkitfullscreenchange', on); }; }, []);
+  const snap = (): Partial<SnSave> => Object.fromEntries(UNDO_KEYS.map((k) => [k, save[k] ?? null])) as Partial<SnSave>;
+  const patch = (p: Partial<SnSave>) => {
+    if (UNDO_KEYS.some((k) => k in p)) { hist.current.past = [...hist.current.past, snap()].slice(-30); hist.current.future = []; setHistN((n) => n + 1); }
+    rawPatch(p); setSavedAt(Date.now());
+  };
+  const undo = () => { const h = hist.current; const prev = h.past.pop(); if (!prev) return; h.future.push(snap()); rawPatch(prev); setSavedAt(Date.now()); setHistN((n) => n + 1); snSound('back'); };
+  const redo = () => { const h = hist.current; const next = h.future.pop(); if (!next) return; h.past.push(snap()); rawPatch(next); setSavedAt(Date.now()); setHistN((n) => n + 1); snSound('tap'); };
+  const toggleFull = () => {
+    const d = document as unknown as { exitFullscreen?: () => Promise<void>; webkitExitFullscreen?: () => void };
+    const el = document.documentElement as unknown as { requestFullscreen?: () => Promise<void>; webkitRequestFullscreen?: () => void };
+    try { if (fsEl()) { (d.exitFullscreen ?? d.webkitExitFullscreen)?.call(document); } else { (el.requestFullscreen ?? el.webkitRequestFullscreen)?.call(document.documentElement); } } catch { /* not supported */ }
+  };
   const [room, setRoom] = useState<Room>('home');
   const [bookStart, setBookStart] = useState<string | null>(null);
   const [recipe, setRecipe] = useState(0);
@@ -81,7 +119,13 @@ export default function Supernature() {
       <h1 className="sn-title">{ROOM_TITLE[room]}</h1>
       {o?.extra}
       <span style={{ flex: 1 }} />
-      <span className="sn-saved">Saved</span>
+      <button type="button" className="sn-ib small" onClick={() => say(ROOM_HELP[room])} aria-label="Listen: what to do here"><Icon d={LISTEN} /></button>
+      {UNDO_ROOMS.includes(room) && <>
+        <button type="button" className="sn-ib small" onClick={undo} disabled={!hist.current.past.length} aria-label="Undo"><Icon d="M9 6L4 11l5 5 M4 11h10a5 5 0 0 1 0 10h-4" /></button>
+        <button type="button" className="sn-ib small" onClick={redo} disabled={!hist.current.future.length} aria-label="Redo"><Icon d="M15 6l5 5-5 5 M20 11H10a5 5 0 0 0 0 10h4" /></button>
+      </>}
+      <button type="button" className="sn-saved" onClick={() => { setSavedAt(Date.now()); snSound('chime'); }} aria-label="Save">💾 {savedAt ? new Date(savedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : 'Saved'}</button>
+      <button type="button" className="sn-ib small" onClick={toggleFull} aria-label={full ? 'Leave full screen' : 'Full screen'}><Icon d={full ? 'M9 4v5H4 M15 4v5h5 M9 20v-5H4 M15 20v-5h5' : 'M4 9V4h5 M20 9V4h-5 M4 15v5h5 M20 15v5h-5'} /></button>
       <button type="button" className="sn-ib" onClick={toggleSound} aria-pressed={sound}><Icon d={sound ? 'M4 9h4l5-4v14l-5-4H4z M16 8c1.6 1.4 1.6 6.6 0 8 M19 5c3 3 3 11 0 14' : 'M4 9h4l5-4v14l-5-4H4z M16 9l4 6 M20 9l-4 6'} />{sound ? 'Sounds on' : 'Sounds off'}</button>
       {room !== 'home' && <button type="button" className="sn-ib sn-home" onClick={() => go('home')} aria-label="Home: back to the witch's house"><Icon d="M3 11l9-7 9 7 M5 10v10h14V10" />Home</button>}
     </div>

@@ -9153,3 +9153,10 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .listen-fab span { font-size: 24px; line-height: 1; }
 .listen-fab small { font-size: 11px; font-weight: 800; }
 .listen-fab:focus-visible { outline: 4px solid #ffd970; outline-offset: 2px; }
+
+/* Shared Supernature control bar (Build Queue 106). */
+button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; white-space: nowrap; }
+.sn-bar { overflow: hidden; }
+.sn-bar .sn-title { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sn-bar .sn-chip { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.sn-bar .sn-ib, .sn-bar .sn-saved { flex-shrink: 0; }

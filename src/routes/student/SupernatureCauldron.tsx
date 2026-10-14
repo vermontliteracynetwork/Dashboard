@@ -355,9 +355,9 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     <div className="sn-room cz">
       {bar({ extra: <>
         <span className="sn-chip">🧪 {potions.length}</span>
-        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setTable(true); }}>▦ Periodic table</button>
-        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setBook(null); }}>📖 Element Book</button>
-        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setRxList(true); }}>⚗️ Reactions {found.length}/{REACTIONS.length}</button>
+        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setTable(true); }} aria-label="Periodic table">▦ Table</button>
+        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setBook(null); }} aria-label="Element Book">📖 Elements</button>
+        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setRxList(true); }} aria-label={`Reactions found: ${found.length} of ${REACTIONS.length}`}>⚗️ {found.length}/{REACTIONS.length}</button>
       </> })}
 
       <section className="cz-shelf" aria-label="Shelf">
