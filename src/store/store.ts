@@ -276,6 +276,7 @@ interface AppState {
   studentFeedback: StudentFeedback[];
   submitFeedback: (studentId: string, category: StudentFeedback['category'], subcategoryLabel: string | undefined, customLabel: string | undefined, text: string) => void;
   resolveFeedback: (id: string) => void;
+  amendFeedback: (id: string, text: string) => void;
   quizStruggles: QuizStruggle[];
   flagQuizStruggle: (studentId: string, subject: Subject, task: Task, questionPrompt: string) => void;
   resolveQuizStruggle: (id: string) => void;
@@ -2737,6 +2738,12 @@ export const useStore = create<AppState>()(
 
       resolveFeedback: (id) => {
         set((s) => ({ studentFeedback: s.studentFeedback.map((f) => (f.id === id ? { ...f, resolved: true } : f)) }));
+        const updated = get().studentFeedback.find((f) => f.id === id);
+        if (updated) pushStudentFeedback(updated);
+      },
+      // Adds to a report after it was sent (the Inbox writes down a voice memo's transcript, Build Queue 145).
+      amendFeedback: (id, text) => {
+        set((s) => ({ studentFeedback: s.studentFeedback.map((f) => (f.id === id ? { ...f, text } : f)) }));
         const updated = get().studentFeedback.find((f) => f.id === id);
         if (updated) pushStudentFeedback(updated);
       },
