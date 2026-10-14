@@ -52,7 +52,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
   // Your fighters: every Habitat creature in play, one card per named family member.
   const fighters = useMemo(() => {
     const all = [...madeList().slice(-6).map((m) => m.id), ...(save.found ?? []).slice(-12)].map((id) => byId(id)).filter((c): c is Creature => !!c).slice(0, 16)
-      .filter((c) => !(hab.out ?? []).includes(c.id) && hab.faded?.[c.id] === undefined);
+      .filter((c) => !(hab.out ?? []).includes(c.id) && hab.faded?.[c.id] === undefined && !(hab.gone ?? []).includes(c.id));
     return all.flatMap((c) => {
       const n = Math.max(1, Math.min(3, hab.groups?.[c.id] ?? 3));
       const k = ((hab.skills?.[c.id] as SkillSet | undefined) ?? startSkills(c));

@@ -263,7 +263,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const placingKin = useRef<string | null>(null);
   const ttsSettings = useStore((st) => st.students.find((x) => x.id === st.currentStudentId)?.ttsSettings);
   const questionSets = useStore((st) => st.questionSets);
-  const [live, setLive] = useState<Live[]>(() => all.filter((c) => saved.faded?.[c.id] === undefined && !(saved.out ?? []).includes(c.id)).map((c, i, arr) => ({ c, ...place(c, i, arr.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
+  const [live, setLive] = useState<Live[]>(() => all.filter((c) => saved.faded?.[c.id] === undefined && !(saved.out ?? []).includes(c.id) && !(saved.gone ?? []).includes(c.id)).map((c, i, arr) => ({ c, ...place(c, i, arr.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
   const [biome, setBiome] = useState<View>((saved.biome as View) || 'grassland');
   const land: Biome = biome === 'ocean' ? 'grassland' : biome;
   // Each creature is assigned a biome and can be moved (Build Queue 125).
@@ -333,11 +333,47 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [warns, setWarns] = useState<Warn[]>([]);
   const warned = useRef(new Set<string>());
   const predicted = useRef(-1);
+  // Three requests before leaving for good (Build Queue 164, her words 2026-10-14: "creatures should only
+  // want to completely leave with no return if they have asked the student to meet basic needs (1st
+  // request), upgrade their skills (2nd request) then they ask to move them (3rd request), if all 3 requests
+  // are failed or denyed then the creature should leave and not return"). Each request gives the reason,
+  // waits about 2 minutes of Habitat time, and moves to the next one if it is turned down or nobody helps.
+  // Fixing the trouble at any point ends the requests. A creature that leaves for good never comes back.
+  type Ask = { step: 1 | 2 | 3; reason: string; because: string; help: string; acts: Warn['acts']; until: number; skill?: SkillId | null; to?: View | null };
+  const ASK_TICKS = 40;
+  const [asks, setAsks] = useState<Record<string, Ask>>(() => Object.fromEntries(Object.entries(saved.asks ?? {}).map(([id, a]) => [id, { ...(a as unknown as Ask), until: ASK_TICKS }])));
+  const [gone, setGone] = useState<string[]>(saved.gone ?? []);
+  const [left, setLeft] = useState<{ id: string; name: string; because: string; skill?: SkillId | null; denied: boolean } | null>(null);
   const warnOf = (id: string, reason: string, because: string, help: string, acts: Warn['acts']) => {
+    if (asks[id] || gone.includes(id)) return;
     const key = `${id}:${reason}:${clk.abs}`;
     if (warned.current.has(key) || warns.some((w) => w.id === id)) return;
-    warned.current.add(key); setWarns((w) => [...w, { key, id, reason, because, help, acts }]);
+    warned.current.add(key);
+    setAsks((m) => ({ ...m, [id]: { step: 1, reason, because, help, acts, until: tick + ASK_TICKS } }));
+    setWarns((w) => [...w, { key, id, reason, because, help, acts }]);
   };
+  const resolveAsk = (id: string, msg?: string) => {
+    if (!asks[id]) return;
+    setAsks((m) => { const n = { ...m }; delete n[id]; return n; }); setWarns((w) => w.filter((x) => x.id !== id));
+    if (msg) { tell(msg, true); snSound('learned'); }
+  };
+  const escalate = (id: string, denied: boolean) => {
+    const a = asks[id]; const l = live.find((x) => x.c.id === id); if (!a || !l) return;
+    if (a.step === 3) {
+      setAsks((m) => { const n = { ...m }; delete n[id]; return n; }); setWarns((w) => w.filter((x) => x.id !== id));
+      setGone((g) => [...new Set([...g, id])]); setLive((ls) => ls.filter((x) => x.c.id !== id)); setEco((x) => ({ ...x, groups: { ...x.groups, [id]: 0 } }));
+      if (sel === id) setSel(null);
+      setLeft({ id, name: nameOf(l), because: a.because, skill: a.skill, denied }); snSound('close');
+      return;
+    }
+    let next: 2 | 3 = a.step === 1 ? 2 : 3;
+    const skill = next === 2 ? adaptFor(l, a.reason) : null;
+    if (next === 2 && !skill) next = 3;
+    const to = next === 3 ? likedElsewhere(l) : null;
+    setAsks((m) => ({ ...m, [id]: { ...a, step: next, until: tick + ASK_TICKS, skill, to } }));
+    setWarns((w) => [...w.filter((x) => x.id !== id), { key: `${id}:step${next}:${Date.now()}`, id, reason: a.reason, because: a.because, help: a.help, acts: a.acts }]);
+  };
+  const showAsk = (id: string) => { const a = asks[id]; if (!a) return; setSel(null); setWarns((w) => [{ key: `${id}:again:${Date.now()}`, id, reason: a.reason, because: a.because, help: a.help, acts: a.acts }, ...w.filter((x) => x.id !== id)]); };
   const moveTo = (c: Creature, v: View) => { snSound('pickup'); setHomes((h) => ({ ...h, [c.id]: v })); setBiome(v); tell(`${c.name} moved to the ${viewLabel(v).toLowerCase()}. Watch how its body handles it!`, true); };
   useEffect(() => {
     if (!live.length) return;
@@ -361,6 +397,15 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   useEffect(() => {
     if (!tick) return;
     const likesOf = (c: Creature) => c.likes.map((b) => BIOMES.find((x) => x.id === b)?.label.toLowerCase() ?? b).join(' or ');
+    // Requests: fixed, learned, or waited too long.
+    for (const [id, a] of Object.entries(asks)) {
+      const l = live.find((x) => x.c.id === id); if (!l) continue;
+      const fixed = a.reason === 'tired' ? l.hp >= 3 : a.reason === 'homesick' ? l.status !== 'homesick'
+        : a.reason === 'last' ? count(id) > 1 || !live.some((h) => h !== l && !h.hide && isHunter(h.c) && home(h.c) === home(l.c) && canBeHunted(l.c, sk(l.c))) : false;
+      if (fixed) { resolveAsk(id, `${nameOf(l)} feels better now. Thank you for helping! It is staying.`); continue; }
+      if (a.step === 2 && a.skill && has(sk(l.c), a.skill)) { resolveAsk(id, `${nameOf(l)} learned ${SKILL(a.skill).name}. Now it can handle it. It is staying!`); continue; }
+      if (tick >= a.until) escalate(id, false);
+    }
     for (const l of live) {
       if (l.hide || count(l.c.id) === 0) continue;
       if (l.hp <= 1) warnOf(l.c.id, 'tired', `${l.hp === 0 ? 'it has no hearts left' : 'it has only 1 heart left'}. If it has no hearts when ${season.toLowerCase()} ends, it will fade away until spring`, 'Give it a Vita or Herba potion, or move it to a land it likes so it can rest and get its hearts back.', ['vita', 'herba', 'move']);
@@ -434,13 +479,13 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     setRipple({ title: change, lines: lines.length ? lines : ['No other creature is affected. 👍'] });
     say(`${change}. ${lines.length ? lines.join(' ').replace(/[⬇️⬆️🐾🛡️⚠️]/gu, '') : 'No other creature is affected.'}`);
   };
-  const keepByMoving = (l: Live, v: View) => { doneWarn(); showRipple(l.c, `Moving ${nameOf(l)} to the ${viewLabel(v).toLowerCase()}`, eco, { [l.c.id]: v }); setHomes((h) => ({ ...h, [l.c.id]: v })); setBiome(v); snSound('pickup'); };
-  const keepByPlants = (l: Live) => { doneWarn(); const ne = { ...eco, plants: Math.min(12, eco.plants + 4) }; showRipple(l.c, `Growing more plants for ${nameOf(l)}`, ne, {}); setEco(ne); snSound('pickup'); };
+  const keepByMoving = (l: Live, v: View) => { doneWarn(); resolveAsk(l.c.id); showRipple(l.c, `Moving ${nameOf(l)} to the ${viewLabel(v).toLowerCase()}`, eco, { [l.c.id]: v }); setHomes((h) => ({ ...h, [l.c.id]: v })); setBiome(v); snSound('pickup'); };
+  const keepByPlants = (l: Live) => { doneWarn(); resolveAsk(l.c.id); const ne = { ...eco, plants: Math.min(12, eco.plants + 4) }; showRipple(l.c, `Growing more plants for ${nameOf(l)}`, ne, {}); setEco(ne); snSound('pickup'); };
   const keepByHunters = (l: Live) => {
     const m: Record<string, View> = {};
     for (const h of live) if (h !== l && isHunter(h.c) && home(h.c) === home(l.c)) { const v = likedElsewhere(h); if (v) m[h.c.id] = v; }
     if (!Object.keys(m).length) { tell('The hunters here have nowhere else they like to live, so they stay. Try another change.', true); return; }
-    doneWarn(); showRipple(l.c, `Moving the hunters away from ${nameOf(l)}`, eco, m); setHomes((h) => ({ ...h, ...m })); snSound('pickup');
+    doneWarn(); resolveAsk(l.c.id); showRipple(l.c, `Moving the hunters away from ${nameOf(l)}`, eco, m); setHomes((h) => ({ ...h, ...m })); snSound('pickup');
   };
 
   // Family members on screen follow the family size; a bigger family means a new generation was born.
@@ -553,7 +598,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const helpsNow = (c: Creature, s: SkillId) => { const k = { ...sk(c), [s]: 1 }; const now = reactions[c.id]; if (!now?.hit) return false; return react(c, { weather: wx, disaster: active, night, biome: home(c), season }, { tags: skillTags(k), skills: Object.keys(k) }).hit === 0; };
   // Taking creatures out of the Habitat and putting them back (her rule: a confirmation that says they
   // leave play, their levels start over from zero, and the biome's food web changes).
-  const outList = all.filter((c) => !live.some((l) => l.c.id === c.id) && faded[c.id] === undefined);
+  const outList = all.filter((c) => !live.some((l) => l.c.id === c.id) && faded[c.id] === undefined && !gone.includes(c.id));
   const removeCreature = (id: string) => {
     const c = live.find((l) => l.c.id === id)?.c; if (!c) return;
     setLive((ls) => ls.filter((l) => l.c.id !== id)); setOut((o) => [...o.filter((x) => x !== id), id]);
@@ -690,8 +735,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, asks: asks as unknown as SnHabitat['asks'], gone, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${Object.entries(asks).map(([k, a]) => `${k}${a.step}`).join()}|${gone.join()}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1170,7 +1215,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <Fx k="potion" size={150} className="sn-critfx" />}
               {caughtFx.includes(l.c.id) && <Fx k="poof" size={150} className="sn-critfx" />}
-              <span className="sn-crit-name"><i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
+              <span className="sn-crit-name">{asks[l.c.id] && <b className="sn-ask-badge" aria-label={`Request ${asks[l.c.id].step} of 3`}>💬{asks[l.c.id].step}</b>}<i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
             </span>
@@ -1287,22 +1332,43 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <div className="sn-pop-actions"><button type="button" className="sn-btn2 go" onClick={() => setRipple(null)}>👍 Got it</button></div>
           </PopCard>
         )}
-        {warn && !sel && !rippleCard && !births[0] && !addAsk && (() => { const l = live.find((x) => x.c.id === warn.id); if (!l) return null; const text = `${nameOf(l)} is thinking about leaving because ${warn.because}.`; return (
-          <PopCard key={warn.key} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title={`${nameOf(l)} might leave`} onClose={doneWarn}>
-            <div className="sn-pop-head"><img src={art(l.c.id)} alt="" /><h2>🧳 {text}</h2></div>
-            <p className="sn-leave-help"><b>How to help:</b> {warn.help}<button type="button" className="sn-listen" onClick={() => say(`${text} ${warn.help}`)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
-            <p className="sn-leave-sub">Make a change to keep it here:</p>
+        {left && (
+          <PopCard key={`left-${left.id}`} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title={`${left.name} left`} onClose={() => setLeft(null)}>
+            <div className="sn-pop-head"><img src={art(left.id)} alt="" style={{ opacity: 0.6 }} /><h2>🧳 {left.name} left the Habitat for good.</h2></div>
+            <p className="sn-leave-help">It asked 3 times because {left.because}: first for its basic needs, {left.skill ? `then to learn ${SKILL(left.skill).name}, ` : 'then for help, '}and then to move. {left.denied ? 'The last answer was no.' : 'Nobody answered in time.'} It went to find a new home far away, and it will not come back. You can still read its page in the Encyclopedia.
+              <button type="button" className="sn-listen" onClick={() => say(`${left.name} left the Habitat for good. It went to find a new home far away.`)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
+            <p className="sn-small">Next time, answer a creature's requests: meet its needs, help it learn a skill, or let it move.</p>
+            <div className="sn-pop-actions"><button type="button" className="sn-btn2 go" onClick={() => setLeft(null)}>👍 Got it</button></div>
+          </PopCard>
+        )}
+        {warn && !sel && !rippleCard && !births[0] && !addAsk && !left && (() => {
+          const l = live.find((x) => x.c.id === warn.id); const a = asks[warn.id]; if (!l || !a) return null;
+          const secs = Math.max(0, (a.until - tick) * 3); const wait = secs >= 90 ? 'about 2 minutes' : secs >= 45 ? 'about 1 minute' : 'a few seconds';
+          const head = a.step === 1 ? `${nameOf(l)} is thinking about leaving because ${a.because}.` : a.step === 2 ? `${nameOf(l)} still needs help because ${a.because}.` : `${nameOf(l)} asks to move${a.to ? ` to the ${viewLabel(a.to).toLowerCase()}` : ''} because ${a.because}.`;
+          const ask = a.step === 1 ? `First, it asks for its basic needs: ${a.help}` : a.step === 2 ? `Now it asks to learn ${SKILL(a.skill!).name}: ${SKILL(a.skill!).does}` : a.to ? `It likes the ${viewLabel(a.to).toLowerCase()}. Will you move it there?` : 'Pick a land where it can live better.';
+          return (
+          <PopCard key={warn.key} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title={`${nameOf(l)}: request ${a.step} of 3`} onClose={doneWarn}>
+            <span className="sn-ask-steps" aria-label={`Request ${a.step} of 3`}>{['Needs', 'Skills', 'Move'].map((t, k) => <i key={t} className={k + 1 === a.step ? 'on' : k + 1 < a.step ? 'done' : ''}>{k + 1}. {t}</i>)}</span>
+            <div className="sn-pop-head"><img src={art(l.c.id)} alt="" /><h2>🧳 {head}</h2></div>
+            <p className="sn-leave-help"><b>{a.step === 3 ? 'Its request:' : 'How to help:'}</b> {ask}<button type="button" className="sn-listen" onClick={() => say(`${head} ${ask}`)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
             <div className="sn-pop-actions">
-              {(() => { const sid = adaptFor(l, warn.reason); return sid ? <button type="button" className="sn-btn2 go" onClick={() => { doneWarn(); startTrain(l.c.id, sid); }}>🧬 Adapt: learn {SKILL(sid).name}<small> {SKILL(sid).does} (answer questions)</small></button> : null; })()}
-              {(() => { const v = likedElsewhere(l); return v ? <button type="button" className="sn-btn2 go" onClick={() => keepByMoving(l, v)}>🗺️ Move it to the {viewLabel(v).toLowerCase()}<small> a land it likes</small></button> : null; })()}
-              {(warn.reason === 'food' || warn.reason.startsWith('ripple')) && (l.c.eats === 'plants' || l.c.eats === 'both') && <button type="button" className="sn-btn2 go" onClick={() => keepByPlants(l)}>🌱 Grow more plants<small> more food for plant eaters</small></button>}
-              {warn.reason === 'last' && <button type="button" className="sn-btn2 go" onClick={() => keepByHunters(l)}>🦊 Move the hunters away<small> to lands they like</small></button>}
-              {warn.acts.includes('vita') && have('Vita') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Vita', l.c.id); doneWarn(); }}><img src={POTION_ICON.Vita} alt="" />Give Vita ({have('Vita')})</button>}
-              {warn.acts.includes('herba') && have('Herba') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Herba', l.c.id); doneWarn(); }}><img src={POTION_ICON.Herba} alt="" />Give Herba ({have('Herba')})</button>}
-              {warn.acts.includes('vita') && have('Vita') < 1 && have('Herba') < 1 && <button type="button" className="sn-btn2" onClick={() => { doneWarn(); goCauldron('Vita'); }}>Brew a Vita potion</button>}
-              {!likedElsewhere(l) && warn.acts.includes('move') && <button type="button" className="sn-btn2" onClick={() => { doneWarn(); setSel(l.c.id); }}>🗺️ Pick a new land</button>}
-              <button type="button" className="sn-btn2" onClick={doneWarn}>👍 Got it</button>
+              {a.step === 1 && <>
+                {(() => { const v = likedElsewhere(l); return v && (warn.acts.includes('move')) ? <button type="button" className="sn-btn2 go" onClick={() => keepByMoving(l, v)}>🗺️ Move it to the {viewLabel(v).toLowerCase()}<small> a land it likes</small></button> : null; })()}
+                {(a.reason === 'food' || a.reason.startsWith('ripple')) && (l.c.eats === 'plants' || l.c.eats === 'both') && <button type="button" className="sn-btn2 go" onClick={() => keepByPlants(l)}>🌱 Grow more plants<small> more food for plant eaters</small></button>}
+                {a.reason === 'last' && <button type="button" className="sn-btn2 go" onClick={() => keepByHunters(l)}>🦊 Move the hunters away<small> to lands they like</small></button>}
+                {warn.acts.includes('vita') && have('Vita') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Vita', l.c.id); doneWarn(); }}><img src={POTION_ICON.Vita} alt="" />Give Vita ({have('Vita')})</button>}
+                {warn.acts.includes('herba') && have('Herba') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Herba', l.c.id); doneWarn(); }}><img src={POTION_ICON.Herba} alt="" />Give Herba ({have('Herba')})</button>}
+                {warn.acts.includes('vita') && have('Vita') < 1 && have('Herba') < 1 && <button type="button" className="sn-btn2" onClick={() => { doneWarn(); goCauldron('Vita'); }}>Brew a Vita potion</button>}
+                {!likedElsewhere(l) && warn.acts.includes('move') && <button type="button" className="sn-btn2" onClick={() => { doneWarn(); setSel(l.c.id); }}>🗺️ Pick a new land</button>}
+              </>}
+              {a.step === 2 && a.skill && <button type="button" className="sn-btn2 go" onClick={() => { doneWarn(); startTrain(l.c.id, a.skill!); }}>📚 Train {SKILL(a.skill).name} now<small> answer questions to learn it</small></button>}
+              {a.step === 3 && (a.to
+                ? <button type="button" className="sn-btn2 go" onClick={() => keepByMoving(l, a.to!)}>✅ Yes, move it to the {viewLabel(a.to).toLowerCase()}</button>
+                : <button type="button" className="sn-btn2 go" onClick={() => { resolveAsk(l.c.id); setSel(l.c.id); }}>🗺️ Pick a land for it</button>)}
+              <button type="button" className="sn-btn2" onClick={() => { doneWarn(); escalate(l.c.id, true); }}>{a.step === 3 ? '🙅 No, it stays here' : '🙅 Not now'}</button>
+              <button type="button" className="sn-btn2" onClick={doneWarn}>👍 I will help soon</button>
             </div>
+            <p className="sn-small">{a.step === 3 ? `If you say no or wait (${wait}), it leaves for good and does not come back.` : `It waits ${wait}. If nobody helps, it makes request ${a.step + 1} of 3. After 3 requests, it leaves for good.`}</p>
           </PopCard>
         ); })()}
         {sel_ && (
@@ -1347,6 +1413,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 <button type="button" className="sn-btn2 go" disabled={sel_.hp === 0} onClick={() => { snSound('open'); setPlaying(sel_.c); setSel(null); }}>🎮 Be this creature</button>
                 <button type="button" className="sn-btn2" onClick={() => openPage(sel_.c.id)}>Read its page</button>
                 <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setNaming(sel_.c.id); }}>✏️ Name the family</button>
+                {asks[sel_.c.id] && <button type="button" className="sn-btn2 go" onClick={() => showAsk(sel_.c.id)}>💬 See its request ({asks[sel_.c.id].step} of 3)</button>}
                 <button type="button" className="sn-btn2 go" onClick={() => { snSound('tap'); setAddAsk(sel_.c.id); }}>➕ Add another {sel_.c.name}</button>
                 <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setPlacing({ id: sel_.c.id, mode: 'remove' }); }}>🧺 Take out of the Habitat</button>
               </div>

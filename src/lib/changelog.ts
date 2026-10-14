@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-three-requests",
+    date: "2026-10-14",
+    icon: "💬",
+    title: "Creatures ask 3 times before leaving",
+    body: "When a creature is unhappy, it tells you why and asks for help 3 times: first for its basic needs, then to learn a new skill, then to move to a land it likes. Help it any time and it stays! If all 3 requests get a no, it leaves for good. Look for the speech bubble on its name tag.",
+  },
+  {
     id: "2026-10-14-say-it-first",
     date: "2026-10-14",
     icon: "🎙️",
