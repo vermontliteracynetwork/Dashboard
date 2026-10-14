@@ -33,8 +33,9 @@ import PopCard from './SupernaturePopCard';
 // timers that stop the moment the student leaves. Weather art and sounds are her heyheythere packs
 // (CC BY 4.0); ground and plants are her Craftpix swamp and field packs.
 
-type Weather = 'clear' | 'rain' | 'snow' | 'fog' | 'wind' | 'storm' | 'rainbow' | 'meteors';
-type Disaster = 'flood' | 'wildfire' | 'blizzard' | 'earthquake' | 'drought' | 'tornado';
+type Weather = 'clear' | 'rain' | 'snow' | 'fog' | 'wind' | 'storm' | 'rainbow' | 'meteors' | 'hail';
+type CoreDis = 'flood' | 'wildfire' | 'blizzard' | 'earthquake' | 'drought' | 'tornado';
+type Disaster = CoreDis | 'whirlpool' | 'tsunami' | 'duststorm' | 'hurricane' | 'noreaster' | 'avalanche';
 type TimeMode = 'auto' | 'day' | 'night';
 type Phase = 'warning' | 'active' | 'after';
 interface Live { c: Creature; x: number; y: number; d: number; t: number; hp: number; status: string | null; energy: Energy; hide: boolean }
@@ -53,6 +54,39 @@ const DIS_FX: Partial<Record<Disaster, { k: FxKey; spots: [number, number, numbe
   blizzard: { k: 'frost', spots: [[90, 140, 110], [420, 90, 130], [760, 160, 110], [980, 80, 120], [260, 330, 100], [620, 360, 110]] },
   flood: { k: 'splash', spots: [[140, 470, 120], [420, 500, 130], [700, 470, 120], [950, 500, 130]] },
   drought: { k: 'dust', spots: [[100, 420, 150], [380, 460, 160], [660, 410, 150], [920, 450, 160]] },
+  duststorm: { k: 'dust', spots: [[80, 300, 170], [330, 380, 190], [600, 320, 180], [860, 400, 190], [1000, 260, 160]] },
+  hurricane: { k: 'splash', spots: [[140, 470, 120], [420, 500, 130], [700, 470, 120], [950, 500, 130]] },
+  noreaster: { k: 'frost', spots: [[90, 140, 120], [420, 90, 140], [760, 160, 120], [980, 80, 130], [260, 330, 110], [620, 360, 120]] },
+  tsunami: { k: 'splash', spots: [[120, 120, 170], [420, 90, 190], [720, 120, 170], [1000, 100, 180]] },
+};
+// Real weather by place (Build Queue 188 and 189, her words 2026-10-14: "change tornado in water to be whirlpool, add tsnami for
+// ocean, add dust storm in desert, add hurricane to grasslands, forest, and swamp. add noreaster to snow (whiteout conditions)...
+// add hail to weather. add actual meterological logic... it cannot rain in the snowy tundra, it cannot flood in a desert (or
+// rain unless very rare)" and "add draught to desert and avalanches to tundra"). Each disaster only happens where and when it
+// really can, and the creature and plant rules use the core kind it is most like.
+const DIS_WHERE: Record<Disaster, View[]> = {
+  flood: ['grassland', 'forest', 'swamp'], wildfire: ['grassland', 'forest'], blizzard: ['snow', 'grassland', 'forest'],
+  earthquake: ['grassland', 'forest', 'desert', 'snow', 'swamp'], drought: ['grassland', 'forest', 'swamp', 'desert'], tornado: ['grassland', 'forest', 'swamp'],
+  whirlpool: ['ocean'], tsunami: ['ocean'], duststorm: ['desert'], hurricane: ['grassland', 'forest', 'swamp'], noreaster: ['snow'], avalanche: ['snow'],
+};
+const ALL_SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'];
+const DIS_WHEN: Record<Disaster, string[]> = {
+  flood: ['Spring', 'Fall'], wildfire: ['Summer', 'Fall'], blizzard: ['Winter'], earthquake: ALL_SEASONS, drought: ['Summer', 'Fall'], tornado: ['Spring', 'Summer'],
+  whirlpool: ALL_SEASONS, tsunami: ALL_SEASONS, duststorm: ['Spring', 'Summer', 'Fall'], hurricane: ['Summer', 'Fall'], noreaster: ['Fall', 'Winter', 'Spring'], avalanche: ['Winter', 'Spring'],
+};
+// The desert can have a drought in any season: it is always dry, and a drought makes it drier.
+const canHappen = (d: Disaster, v: View, season: string) => DIS_WHERE[d].includes(v) && (DIS_WHEN[d].includes(season) || (d === 'drought' && v === 'desert') || (v === 'snow' && d === 'blizzard'));
+const BASE: Record<Disaster, CoreDis> = {
+  flood: 'flood', wildfire: 'wildfire', blizzard: 'blizzard', earthquake: 'earthquake', drought: 'drought', tornado: 'tornado',
+  whirlpool: 'tornado', tsunami: 'tornado', duststorm: 'tornado', hurricane: 'tornado', noreaster: 'blizzard', avalanche: 'earthquake',
+};
+// What it does to plants: a hurricane floods them, dust dries them, a nor'easter or avalanche freezes them.
+const PLANT_HIT: Record<Disaster, CoreDis> = { ...BASE, hurricane: 'flood', duststorm: 'drought', avalanche: 'blizzard' };
+// Weather each land really gets. No rain or hail in the snowy tundra; the hot desert almost never rains and never snows.
+const WX_WHERE: Record<View, Weather[]> = {
+  grassland: ['clear', 'rain', 'snow', 'fog', 'wind', 'storm', 'hail'], forest: ['clear', 'rain', 'snow', 'fog', 'wind', 'storm', 'hail'],
+  swamp: ['clear', 'rain', 'snow', 'fog', 'wind', 'storm', 'hail'], ocean: ['clear', 'rain', 'snow', 'fog', 'wind', 'storm', 'hail'],
+  desert: ['clear', 'fog', 'wind'], snow: ['clear', 'snow', 'fog', 'wind'],
 };
 const PX = `${SN}habitat/px/`;
 // Views (Build Queue 123, her words): left and right arrows on the sides of the screen move between
@@ -78,11 +112,15 @@ const WEATHERS: { id: Weather; label: string; icon: string; img?: string; does: 
   { id: 'fog', label: 'Fog', icon: '🌫️', img: `${SPELL}cyclone-ward.png`, does: 'Hard to see. Everyone moves slowly.' },
   { id: 'wind', label: 'Wind', icon: '🍃', img: `${SPELL}verdant-cycle.png`, does: 'Fliers glide, and leaves blow around.' },
   { id: 'storm', label: 'Storm', icon: '⛈️', img: `${SPELL}dark-bolt.png`, does: 'Thunder and lightning! Fliers and walkers get soaked.' },
+  { id: 'hail', label: 'Hail', icon: '🧊', does: 'Balls of ice fall from tall thunderstorm clouds. Take cover!' },
 ];
-const DIS_IMG: Partial<Record<Disaster, string>> = { wildfire: `${SPELL}firebolt.png`, blizzard: `${SPELL}glacial-eruption.png`, earthquake: `${SPELL}earth-spike.png`, tornado: `${SPELL}tornado.png` };
+const DIS_IMG: Partial<Record<Disaster, string>> = { wildfire: `${SPELL}firebolt.png`, blizzard: `${SPELL}glacial-eruption.png`, earthquake: `${SPELL}earth-spike.png`, tornado: `${SPELL}tornado.png`, whirlpool: `${SPELL}cyclone-ward.png`, hurricane: `${SPELL}tornado.png`, noreaster: `${SPELL}glacial-eruption.png`, avalanche: `${SPELL}ice-spikes.png` };
 const DIS_DOES: Record<Disaster, string> = {
   flood: 'Water rises. Swimmers and fliers are safe. Plants wash away, but swamp plants hold on.', wildfire: 'Fire spreads. Swimmers and fiery creatures are safe. Plants burn.', blizzard: 'Freezing snow. Thick fur and swimmers are safe. Plants freeze until spring.',
   earthquake: 'No warning! Fliers and swimmers are safe.', drought: 'No rain, and the pond shrinks. Desert bodies are safe. Plants dry up.', tornado: 'Spinning wind. Tough, heavy creatures are safe; fliers get tossed.',
+  whirlpool: 'Spinning water. Deep swimmers are safe; creatures near the surface get spun.', tsunami: 'A giant wave. Deep swimmers are safe; surface swimmers get tossed.',
+  duststorm: 'Blowing sand. Desert bodies are safe; fliers get tossed. Plants dry out.', hurricane: 'Huge wind and rain. Tough, heavy creatures are safe; fliers get tossed. Plants wash away.',
+  noreaster: 'Whiteout snow and wind. Thick fur is safe. Plants freeze.', avalanche: 'Sliding snow, almost no warning. Fliers are safe; walkers take cover. Plants freeze.',
 };
 // The potion hotbar (Build Queue 117): creature potions arm, then a tap or a drag gives them;
 // Habitat potions work right away.
@@ -111,13 +149,10 @@ const SHIELD: Record<string, string[]> = {
 };
 // Surprises fit the season (Build Queue 120): snow in winter, wildfires and droughts in summer.
 const SEASON_WX: Record<string, Weather[]> = {
-  Spring: ['rain', 'rain', 'clear', 'fog', 'wind', 'storm'], Summer: ['clear', 'clear', 'storm', 'wind', 'rain'],
+  Spring: ['rain', 'rain', 'clear', 'fog', 'wind', 'storm', 'hail'], Summer: ['clear', 'clear', 'storm', 'wind', 'rain', 'hail'],
   Fall: ['wind', 'wind', 'fog', 'rain', 'clear'], Winter: ['snow', 'snow', 'clear', 'fog', 'wind'],
 };
-const SEASON_DIS: Record<string, Disaster[]> = {
-  Spring: ['flood', 'tornado', 'earthquake'], Summer: ['wildfire', 'drought', 'tornado', 'earthquake'],
-  Fall: ['wildfire', 'flood', 'tornado', 'earthquake'], Winter: ['blizzard', 'blizzard', 'earthquake'],
-};
+
 // Sky colors at noon for each season; dawn and dusk blend toward orange (like the Farm's sun).
 const SKY: Record<string, [string, string]> = { Spring: ['#8fcfff', '#e3f4ff'], Summer: ['#4fb3ff', '#c8ecff'], Fall: ['#9fb8d8', '#f4dcb0'], Winter: ['#b9c8dc', '#eef2f8'] };
 const mixHex = (a: string, b: string, k: number) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - k) + parseInt(b.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
@@ -132,6 +167,12 @@ const DISASTERS: Record<Disaster, { label: string; icon: string; sign: string; a
   earthquake: { label: 'Earthquake', icon: '🫨', sign: 'Earthquakes come with almost no warning. Scientists cannot predict them yet.', after: 'The shaking stopped. Earthquakes happen when giant pieces of the Earth\'s crust slip past each other.' },
   drought: { label: 'Drought', icon: '🌵', sign: 'Signs of a drought: no rain for many weeks, and the pond is shrinking.', after: 'The rain came back and the pond is filling up. Desert creatures handle dry times best.' },
   tornado: { label: 'Tornado', icon: '🌪️', sign: 'Signs of a tornado: a dark green sky, hail, and a loud roar like a train.', after: 'The tornado passed. Taking cover in a strong shelter is the safest thing to do.' },
+  whirlpool: { label: 'Whirlpool', icon: '🌀', sign: 'Signs of a whirlpool: two strong ocean currents are meeting, and the water starts to spin.', after: 'The whirlpool slowed down. Whirlpools form where tides and currents crash into each other.' },
+  tsunami: { label: 'Tsunami', icon: '🌊', sign: 'Signs of a tsunami: the sea floor shook, and the water pulls far back from the shore.', after: 'The giant wave passed. Tsunamis are started by earthquakes under the ocean, not by wind.' },
+  duststorm: { label: 'Dust storm', icon: '🟫', sign: 'Signs of a dust storm: strong hot wind and a brown wall of dust on the horizon.', after: 'The dust settled. Dust storms happen when strong wind picks up dry, loose sand.' },
+  hurricane: { label: 'Hurricane', icon: '🌀', sign: 'Signs of a hurricane: warm, wet air, huge spinning clouds, and wind and rain getting stronger for days.', after: 'The hurricane is over. Hurricanes form over warm ocean water and lose power over land.' },
+  noreaster: { label: "Nor'easter", icon: '🌨️', sign: "Signs of a nor'easter: freezing wind from the northeast, and snow so thick you cannot see. That is a whiteout.", after: "The nor'easter moved away. Its wind blows from the northeast, and that is how it got its name." },
+  avalanche: { label: 'Avalanche', icon: '🏔️', sign: 'Signs of an avalanche: lots of new snow on a steep slope, and cracking sounds in the snow.', after: 'The snow stopped sliding. Avalanches happen when a heavy layer of snow breaks loose on a steep slope.' },
 };
 const CLUE: Record<Energy, string> = {
   'very high': "is zooming in circles and can't sit still", high: 'is bouncing around and chasing everything',
@@ -291,6 +332,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const home = (c: Creature): View => homes[c.id] ?? homeOf(c);
   const [temp, setTemp] = useState<Record<string, 'float' | 'fast' | 'zoom'>>({});
   const [weather, setWeather] = useState<Weather>('clear');
+  const [desertRain, setDesertRain] = useState(false);
   const [timeMode, setTimeMode] = useState<TimeMode>('auto');
   const [dis, setDis] = useState<{ kind: Disaster; phase: Phase; left: number } | null>(null);
   const [surprise, setSurprise] = useState(true);
@@ -323,11 +365,20 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const covered = live.length > 0 && live.every((l) => l.hide);
   const night = timeMode === 'night' || (timeMode === 'auto' && clk.night) || weather === 'meteors';
   // Her rule (2026-10-14): no flood and no rainbow underwater.
-  const active = dis?.phase === 'active' && !(biome === 'ocean' && dis.kind === 'flood') ? dis.kind : null;
+  // rk = the real disaster on screen; active = the core kind the creature rules know (Build Queue 188).
+  const rk: Disaster | null = dis?.phase === 'active' && DIS_WHERE[dis.kind].includes(biome) ? dis.kind : null;
+  const active: CoreDis | null = rk ? BASE[rk] : null;
   const sel_ = live.find((l) => l.c.id === sel);
   const roster: Creature[] = live.map((l) => l.c);
   // In winter rain falls as snow; in summer snow falls as rain.
-  const wx: Weather = biome === 'ocean' && weather === 'rainbow' ? 'clear' : season === 'Winter' && weather === 'rain' ? 'snow' : season === 'Summer' && weather === 'snow' ? 'rain' : weather;
+  // Real weather (Build Queue 188): the tundra turns rain, storms and hail to snow; the hot desert stays dry (rain only on a
+  // rare desert rain day) and never snows; winter rain and hail fall as snow; summer snow falls as rain.
+  const wxShow: Weather = biome === 'ocean' && weather === 'rainbow' ? 'clear'
+    : biome === 'snow' ? (['rain', 'storm', 'hail', 'rainbow'].includes(weather) ? 'snow' : weather)
+    : biome === 'desert' ? (weather === 'snow' ? 'clear' : ['rain', 'storm', 'hail'].includes(weather) && !desertRain ? (weather === 'rain' ? 'clear' : 'wind') : weather)
+    : season === 'Winter' && (weather === 'rain' || weather === 'hail') ? 'snow' : season === 'Summer' && weather === 'snow' ? 'rain' : weather;
+  // Hail comes from thunderstorms, so creatures react to it like a storm.
+  const wx: Weather = wxShow === 'hail' ? 'storm' : wxShow;
   const shielded = (id: string, status?: string) => !!status && (buffs[id] ?? []).some((b) => SHIELD[b]?.includes(status));
   // Every creature's reaction to what is happening right now (Build Queue 118), including the season
   // and any season potion protecting it (120, 121).
@@ -342,7 +393,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const reactions = useMemo(() => Object.fromEntries(live.map((l) => [l.c.id, reactFor(l.c)])) as Record<string, Reaction>,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [live.length, wx, active, night, homes, season, buffs, skills]);
-  const situation = active ? DISASTERS[active].label.toLowerCase() : wx !== 'clear' ? wx : night ? 'night' : season.toLowerCase();
+  const situation = rk ? DISASTERS[rk].label.toLowerCase() : wxShow !== 'clear' ? wxShow : night ? 'night' : season.toLowerCase();
   const here = live.filter((l) => home(l.c) === biome);
   const spot = (l: Live) => { const i = here.indexOf(l); return biome === 'ocean' ? oceanPlace(Math.max(0, i)) : place(l.c, Math.max(0, i), here.slice(0, Math.max(0, i)).filter((x) => x.c.move === 'swim').length); };
   const go = (dir: 1 | -1) => { const i = VIEWS.findIndex((v) => v.id === biome); const n = VIEWS[(i + dir + VIEWS.length) % VIEWS.length]; snSound('page'); setSel(null); setBiome(n.id); const k = live.filter((l) => home(l.c) === n.id).length; tell(`${n.icon} ${n.label}: ${k ? `${k} ${k === 1 ? 'creature lives' : 'creatures live'} here.` : 'Nobody lives here yet. Tap a creature and move it here to see how it reacts.'}`); };
@@ -832,13 +883,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       if (dis.left > 1) setDis({ ...dis, left: dis.left - 1 });
       else if (dis.phase === 'warning') {
         setDis({ kind: dis.kind, phase: 'active', left: 4 });
-        hitPlants(dis.kind);
+        hitPlants(PLANT_HIT[dis.kind]);
         if (dis.kind === 'wildfire') natureSound('fire', 0.6);
-        if (dis.kind === 'flood') natureSound('splash', 0.6);
-        if (dis.kind === 'blizzard') natureSound('ice', 0.6);
-        if (dis.kind === 'tornado') natureSound('whoosh', 0.7);
+        if (dis.kind === 'flood' || dis.kind === 'tsunami' || dis.kind === 'whirlpool') natureSound('splash', 0.6);
+        if (dis.kind === 'blizzard' || dis.kind === 'noreaster') natureSound('ice', 0.6);
+        if (dis.kind === 'tornado' || dis.kind === 'hurricane' || dis.kind === 'duststorm' || dis.kind === 'avalanche') natureSound('whoosh', 0.7);
+        if (dis.kind === 'hurricane') natureSound('thunder', 0.5);
         tell(`The ${DISASTERS[dis.kind].label.toLowerCase()} is here!`);
-      } else if (dis.phase === 'active') { setDis({ kind: dis.kind, phase: 'after', left: 2 }); tell(DISASTERS[dis.kind].after, true); if (dis.kind === 'drought') setWeather('rain'); }
+      } else if (dis.phase === 'active') { setDis({ kind: dis.kind, phase: 'after', left: 2 }); tell(DISASTERS[dis.kind].after, true); if (dis.kind === 'drought') setWeather(biome === 'desert' ? 'clear' : 'rain'); }
       else setDis(null);
     }
     // Weather changes the gardens too (Build Queue 143): rain waters them (twice as fast), a rainbow storm
@@ -1006,12 +1058,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         setNextSurprise(10 + Math.floor(Math.random() * 10));
         const r = Math.random();
         if (r < 0.45) {
-          const pool = [...SEASON_WX[season], ...weathers.filter((x) => (x.id === 'rainbow' && biome !== 'ocean') || x.id === 'meteors').map((x) => x.id)];
-          const w = pool[Math.floor(Math.random() * pool.length)];
+          const pool = [...SEASON_WX[season].filter((x) => WX_WHERE[biome].includes(x)), ...weathers.filter((x) => (x.id === 'rainbow' && biome !== 'ocean' && biome !== 'snow' && biome !== 'desert') || x.id === 'meteors').map((x) => x.id)];
+          // A rare desert rain day (about 1 surprise in 15 in the desert).
+          if (biome === 'desert' && Math.random() < 0.07) { setDesertRain(true); setWeather('rain'); tell('A rare desert rain! Deserts get very little rain, so plants race to grow and flowers bloom while it lasts.'); return; }
+          const w = pool[Math.floor(Math.random() * pool.length)] ?? 'clear';
           if (w !== weather) { if (weather === 'rain' && w === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w); tell(`Surprise! The weather changed: ${weathers.find((x) => x.id === w)!.label.toLowerCase()}.`); }
         } else if (r < 0.7) {
-          const keys = SEASON_DIS[season];
-          startDisaster(keys[Math.floor(Math.random() * keys.length)]);
+          const keys = (Object.keys(DISASTERS) as Disaster[]).filter((d) => canHappen(d, biome, season) && (d !== 'tsunami' || Math.random() < 0.4));
+          if (keys.length) startDisaster(keys[Math.floor(Math.random() * keys.length)]);
         } else if (night) {
           setExtra('star'); window.setTimeout(() => setExtra(null), 4000); tell('Surprise! A shooting star zoomed across the night sky.');
         } else if (live.length >= 2) {
@@ -1027,7 +1081,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Lightning in a thunderstorm.
   useEffect(() => {
-    if (wx !== 'storm' && active !== 'tornado') return;
+    if (wx !== 'storm' && rk !== 'tornado' && rk !== 'hurricane') return;
     const t = window.setInterval(() => { setFlash(true); natureSound(Math.random() < 0.5 ? 'thunder' : 'lightning', 0.5); window.setTimeout(() => setFlash(false), 220); }, 6500);
     return () => window.clearInterval(t);
   }, [wx, active]);
@@ -1089,7 +1143,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       tell(`Redux! ${back.map((c) => c.name).join(', ')} came back to your Habitat.`, true);
     }
     if ((name === 'Cryo' && active === 'wildfire') || (name === 'Aqua' && active === 'drought') || (name === 'Pyro' && active === 'blizzard')) {
-      setDis({ kind: dis!.kind, phase: 'after', left: 2 }); tell(`The ${name} potion stopped the ${dis!.kind}! ${DISASTERS[dis!.kind].after}`, true);
+      setDis({ kind: dis!.kind, phase: 'after', left: 2 }); tell(`The ${name} potion stopped the ${DISASTERS[dis!.kind].label.toLowerCase()}! ${DISASTERS[dis!.kind].after}`, true);
     }
   };
   const tapSlot = (h: typeof HOT[number]) => {
@@ -1165,11 +1219,11 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const lift = Math.sin(Math.PI * arcT);
   const [noonTop, noonBot] = SKY[season];
   const dayline = `linear-gradient(${mixHex('#f29a5a', noonTop, Math.min(1, lift * 1.7))}, ${mixHex('#ffd6a0', noonBot, Math.min(1, lift * 1.7))})`;
-  const sky = active === 'wildfire' ? 'linear-gradient(#f2a35a, #f6d0a0)' : active === 'tornado' ? 'linear-gradient(#5a7a5a, #9ab08a)'
+  const sky = rk === 'wildfire' ? 'linear-gradient(#f2a35a, #f6d0a0)' : rk === 'duststorm' ? 'linear-gradient(#b8854a, #e6c48e)' : rk === 'noreaster' || rk === 'avalanche' ? 'linear-gradient(#cfd8e2, #f4f7fa)' : rk === 'hurricane' ? 'linear-gradient(#4a5468, #7a8498)' : active === 'tornado' ? 'linear-gradient(#5a7a5a, #9ab08a)'
     : night ? (season === 'Winter' ? 'linear-gradient(#1e2448, #4a5080)' : 'linear-gradient(#141238, #3a3470)') : wx === 'storm' ? 'linear-gradient(#5b6380, #8a92a8)'
     : wx === 'rain' || wx === 'snow' ? 'linear-gradient(#8fa2bc, #c3cfdc)' : dayline;
   const sunPos = { left: 16 + arcT * (W - 96), top: 120 - lift * 104 };
-  const pond = active === 'drought' ? 0.6 : active === 'flood' ? 1.15 : 1;
+  const pond = active === 'drought' ? 0.6 : active === 'flood' || rk === 'hurricane' ? 1.15 : 1;
 
   return (
     <div className="sn-room">
@@ -1346,19 +1400,25 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           </div>
         )}
 
-        {(wx === 'rain' || wx === 'storm' || active === 'flood') && <WeatherLayer kind="rain" opacity={wx === 'storm' ? 1 : 0.8} />}
+        {(wx === 'rain' || wx === 'storm' || active === 'flood' || rk === 'hurricane') && <WeatherLayer kind="rain" opacity={wx === 'storm' || rk === 'hurricane' ? 1 : 0.8} />}
+        {wxShow === 'hail' && <div className="sn-hail" aria-hidden="true">{Array.from({ length: 28 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 7) * 0.13}s`, animationDuration: `${0.55 + (i % 4) * 0.1}s` }} />)}</div>}
         {wx === 'rainbow' && <><div className="sn-rainbow" /><div className="sn-rainbow-rain"><WeatherLayer kind="rain" opacity={0.9} /></div></>}
         {wx === 'meteors' && <div className="sn-meteors">{Array.from({ length: 8 }, (_, i) => <i key={i} style={{ left: 60 + i * 130, animationDelay: `${i * 0.7}s` }} />)}</div>}
         {(wx === 'snow' || active === 'blizzard') && <WeatherLayer kind="snow" />}
+        {rk === 'noreaster' && <div className="sn-whiteout" aria-hidden="true" />}
+        {rk === 'avalanche' && <div className="sn-avalanche" aria-hidden="true"><i /><i /><i /></div>}
+        {rk === 'whirlpool' && <div className="sn-whirlpool" aria-hidden="true"><i /><Fx k="twister" size={170} loop /></div>}
+        {rk === 'tsunami' && <div className="sn-tsunami" aria-hidden="true" />}
+        {rk === 'duststorm' && <div className="sn-duststorm" aria-hidden="true" />}
         {season === 'Winter' && wx === 'clear' && !active && <WeatherLayer kind="snow" opacity={0.35} />}
         {/* Her rule: falling leaves only in fall. */}
-        {season === 'Fall' && <WeatherLayer kind="leaves" opacity={wx === 'wind' || active === 'tornado' ? 0.95 : 0.6} />}
+        {season === 'Fall' && <WeatherLayer kind="leaves" opacity={wx === 'wind' || rk === 'tornado' || rk === 'hurricane' ? 0.95 : 0.6} />}
         {season === 'Spring' && !active && wx !== 'storm' && <div className="sn-petals" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ left: 60 + i * 112, animationDelay: `${i * 0.9}s` }} />)}</div>}
         {(wx === 'fog' || active === 'wildfire') && <WeatherLayer kind="fog" opacity={0.7} dark={active === 'wildfire'} />}
-        {active === 'flood' && <div className="sn-flood" />}
+        {(rk === 'flood' || rk === 'hurricane') && <div className="sn-flood" />}
         {active === 'wildfire' && <div className="sn-fire">{Array.from({ length: 9 }, (_, i) => <Fx key={i} k="flame" size={74} loop delay={i * 0.11} style={{ position: 'absolute', left: 150 + i * 92, bottom: i % 2 ? 230 : 130 }} />)}</div>}
-        {active === 'tornado' && <div className="sn-tornado"><Fx k="twister" size={180} loop /><Fx k="twister" size={140} loop delay={0.2} /><Fx k="twister" size={100} loop delay={0.4} /></div>}
-        {active && DIS_FX[active] && <div className="sn-disfx">{DIS_FX[active]!.spots.map(([x, y, sz], i) => <Fx key={i} k={DIS_FX[active]!.k} size={sz} loop delay={i * 0.17} style={{ left: x, top: y }} />)}</div>}
+        {rk === 'tornado' && <div className="sn-tornado"><Fx k="twister" size={180} loop /><Fx k="twister" size={140} loop delay={0.2} /><Fx k="twister" size={100} loop delay={0.4} /></div>}
+        {rk && DIS_FX[rk] && <div className={`sn-disfx dfx-${rk}`}>{DIS_FX[rk]!.spots.map(([x, y, sz], i) => <Fx key={i} k={DIS_FX[rk]!.k} size={sz} loop delay={i * 0.17} style={{ left: x, top: y }} />)}</div>}
         {night && <div className="sn-night" />}
         {night && (glow || season === 'Spring' || season === 'Summer') && <div className={`sn-fireflies${glow ? ' lumin' : ''}`}>{Array.from({ length: glow ? 36 : season === 'Summer' ? 16 : 8 }, (_, i) => <i key={i} style={{ left: 40 + ((i * 97) % 1060), top: 120 + ((i * 53) % 420), animationDelay: `${(i % 10) * 0.4}s` }} />)}</div>}
         {flash && <div className="sn-flash" />}
@@ -1795,8 +1855,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <div className="sn-tray2-row">
               {menu === 'land' && BIOMES.map((b) => <button key={b.id} type="button" className={`sn-opt3${biome === b.id ? ' on' : ''}`} onClick={() => { setBiome(b.id); setMenu(null); snSound('page'); tell(`The land is ${b.label.toLowerCase()}. ${b.does}`); }}><img src={b.img} alt="" /><b>{b.label}</b><small>{b.does}</small></button>)}
               {menu === 'time' && ([['auto', '🔄', 'Day and night', 'Follows the Habitat clock: 1 minute of day, then 1 minute of night.'], ['day', '☀️', 'Day', 'Always day.'], ['night', '🌙', 'Night', 'Always night. Night creatures wake up.']] as const).map(([id, ic, label, does]) => <button key={id} type="button" className={`sn-opt3${timeMode === id ? ' on' : ''}`} onClick={() => { setTimeMode(id); setMenu(null); snSound('chime'); tell(does); }}><span>{ic}</span><b>{label}</b><small>{does}</small></button>)}
-              {menu === 'weather' && weathers.filter((w) => !(biome === 'ocean' && w.id === 'rainbow')).map((w) => <button key={w.id} type="button" className={`sn-opt3${weather === w.id ? ' on' : ''}`} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setMenu(null); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); if (season === 'Winter' && w.id === 'rain') tell('In winter, rain falls as snow!'); if (season === 'Summer' && w.id === 'snow') tell('In summer it is too warm for snow, so it rains instead.'); }}>{w.img ? <img src={w.img} alt="" /> : <span>{w.icon}</span>}<b>{w.label}</b><small>{w.does}</small></button>)}
-              {menu === 'disaster' && (Object.keys(DISASTERS) as Disaster[]).filter((d) => !(biome === 'ocean' && d === 'flood')).map((d) => <button key={d} type="button" className="sn-opt3" onClick={() => startDisaster(d)}>{DIS_IMG[d] ? <img src={DIS_IMG[d]} alt="" /> : <span>{DISASTERS[d].icon}</span>}<b>{DISASTERS[d].label}</b><small>{DIS_DOES[d]}</small></button>)}
+              {menu === 'weather' && weathers.filter((w) => WX_WHERE[biome].includes(w.id) || ((w.id === 'rainbow' || w.id === 'meteors') && biome !== 'ocean')).map((w) => <button key={w.id} type="button" className={`sn-opt3${weather === w.id ? ' on' : ''}`} onClick={() => { if (weather === 'rain' && w.id === 'clear') { setExtra('rainbow'); window.setTimeout(() => setExtra(null), 9000); } setWeather(w.id); setDesertRain(false); setMenu(null); if (biome !== 'snow' && biome !== 'desert' && season === 'Winter' && w.id === 'hail') tell('In winter, hail clouds drop snow instead.'); natureSound(w.id === 'storm' ? 'thunder' : 'gust', 0.4); if (season === 'Winter' && w.id === 'rain') tell('In winter, rain falls as snow!'); if (season === 'Summer' && w.id === 'snow') tell('In summer it is too warm for snow, so it rains instead.'); }}>{w.img ? <img src={w.img} alt="" /> : <span>{w.icon}</span>}<b>{w.label}</b><small>{w.does}</small></button>)}
+              {menu === 'disaster' && (Object.keys(DISASTERS) as Disaster[]).filter((d) => canHappen(d, biome, season)).map((d) => <button key={d} type="button" className="sn-opt3" onClick={() => startDisaster(d)}>{DIS_IMG[d] ? <img src={DIS_IMG[d]} alt="" /> : <span>{DISASTERS[d].icon}</span>}<b>{DISASTERS[d].label}</b><small>{DIS_DOES[d]}</small></button>)}
             </div>
           </div>
         )}

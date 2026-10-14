@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-real-weather",
+    date: "2026-10-14",
+    icon: "🌪️",
+    title: "Real weather in every land",
+    body: "The Habitat follows real weather science now. The ocean gets whirlpools and tsunamis, the desert gets dust storms and droughts, and the grassland, forest and swamp get hurricanes. The snowy tundra gets nor'easters with whiteouts and avalanches. New weather: hail! It never rains in the tundra, and the desert almost never rains.",
+  },
+  {
     id: "2026-10-14-potion-glow",
     date: "2026-10-14",
     icon: "✨",
