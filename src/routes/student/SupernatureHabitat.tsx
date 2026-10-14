@@ -229,7 +229,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [hunt, setHunt] = useState<{ hunter: string; prey: string; phase: 'chase' | 'escaped' | 'caught'; how?: string } | null>(null);
   // Wild battles (Build Queue 140): a real predator and its prey battle on their own for up to 30
   // seconds, only while the student is watching that biome. Watch only: nothing to tap.
-  const [wb, setWb] = useState<{ h: Fighter; p: Fighter; start: number; turn: 'h' | 'p'; line: string; proj: { from: 'h' | 'p'; icon: string; aff: Aff } | null; boom?: { on: 'h' | 'p'; k: FxKey } | null } | null>(null);
+  const [wb, setWb] = useState<{ h: Fighter; p: Fighter; start: number; turn: 'h' | 'p'; line: string; proj: { from: 'h' | 'p'; icon: string; aff: Aff } | null; boom?: { on: 'h' | 'p'; k: FxKey } | null; where?: View } | null>(null);
   const nextWild = useRef(0);
   const [escapedAt, setEscapedAt] = useState<Record<string, number>>({});
   const [grewAt, setGrewAt] = useState<Record<string, number>>({});
@@ -802,6 +802,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     // A wild battle in progress: one move every heartbeat (3 seconds), up to 30 seconds.
     if (wb && (!live.some((l) => l.c.id === wb.h.id && !l.hide) || !live.some((l) => l.c.id === wb.p.id && !l.hide))) { setWb(null); }
     else if (wb) {
+      // A wild battle keeps going when the student looks at another land, but only shows (and only makes
+      // sounds and messages) in its own land (Build Queue 161).
+      const wbSeen = (wb.where ?? biome) === biome;
       const finish = (caught0: boolean, why0: string) => {
         let caught = caught0; let why = why0;
         setWb((w) => (w ? { ...w, proj: null, line: why } : w));
@@ -809,9 +812,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         if (caught && count(wb.p.id) <= 1) { caught = false; why = `🏁 ${wb.p.name} is the last one in its family, so it hid safely in its den. The hunt is over.`; }
         if (caught) {
           setEco((x) => ({ ...x, groups: { ...x.groups, [wb.p.id]: Math.max(0, (x.groups[wb.p.id] ?? START_GROUP) - 1) } }));
-          setCaughtFx([wb.p.id]); window.setTimeout(() => setCaughtFx([]), 2400); snSound('poof');
-        } else { setEscapedAt((m) => ({ ...m, [wb.p.id]: Date.now() })); snSound('chime'); }
-        tell(why, true); nextWild.current = tick + 12;
+          setCaughtFx([wb.p.id]); window.setTimeout(() => setCaughtFx([]), 2400); if (wbSeen) snSound('poof');
+        } else { setEscapedAt((m) => ({ ...m, [wb.p.id]: Date.now() })); if (wbSeen) snSound('chime'); }
+        if (wbSeen) tell(why, true); nextWild.current = tick + 12;
         window.setTimeout(() => setWb(null), 3500);
       };
       if (wb.line.startsWith('🏁')) return;
@@ -830,7 +833,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       const na = { ...atk, confidence: Math.min(100, Math.max(5, atk.confidence + (r.hit ? 4 : -4))) };
       const line = `${r.text}${r.hit ? ` ${def.name} loses ${r.dmg} health.` : ''}${atk.energy === 'very high' && !r.hit ? ' Too much energy!' : ''}`;
       setWb({ ...wb, h: wb.turn === 'h' ? na : nd, p: wb.turn === 'h' ? nd : na, turn: wb.turn === 'h' ? 'p' : 'h', line, proj: { from: wb.turn, icon: AFF[best].icon, aff: best }, boom: null });
-      snSound(r.hit ? 'poof' : 'tap');
+      if (wbSeen) snSound(r.hit ? 'poof' : 'tap');
       const on = wb.turn === 'h' ? 'p' : 'h';
       window.setTimeout(() => setWb((w) => (w ? { ...w, proj: null, boom: { on, k: r.hit ? HIT_FX[best] : 'miss' } } : w)), 1100);
       window.setTimeout(() => setWb((w) => (w ? { ...w, boom: null } : w)), 2400);
@@ -850,7 +853,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         if (inView && !wb && tick >= nextWild.current) {
           const mk = (l: Live) => { const k = sk(l.c); const hl = healthOf(l.hp, levels[l.c.id] ?? 1, (seen[l.c.id] ?? []).length); return makeFighter(l.c.id, names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name, l.c, k, l.energy, hl, confidenceOf(magicOf(k, affOf(l.c)), hl, 0, 0, null)); };
           const hf = mk(h); const pf = mk(p); pf.confidence = Math.max(5, pf.confidence - 15);
-          setWb({ h: hf, p: pf, start: Date.now(), turn: 'h', line: `${hf.name} is hunting ${pf.name}! A wild battle begins.`, proj: null });
+          setWb({ h: hf, p: pf, start: Date.now(), turn: 'h', line: `${hf.name} is hunting ${pf.name}! A wild battle begins.`, proj: null, where: biome });
           natureSound('whoosh', 0.35); tell(`Wild battle! ${hf.name} is hunting ${pf.name}. Watch what happens: their skills, energy and confidence decide it.`, true);
           return;
         }
@@ -1110,7 +1113,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             {!pl && <span className="sn-plot-plus">+</span>}
           </button>
         ); })}
-        {wb && (
+        {wb && (wb.where ?? biome) === biome && (
           <div className="sn-wb" aria-live="polite">
             <b>⚔️ Wild battle · {Math.max(0, 30 - Math.floor((now - wb.start) / 1000))}s</b>
             <div className="sn-wb-row">
@@ -1124,8 +1127,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <p>{wb.line}</p>
           </div>
         )}
-        {wb?.proj && <span className={`sn-wbproj from-${wb.proj.from}`} style={{ top: biome === 'ocean' ? 300 : 340 }} aria-hidden="true"><Fx k={ORB_FX[wb.proj.aff]} size={90} loop /></span>}
-        {wb?.boom && <Fx k={wb.boom.k} size={170} className="sn-wbboom" style={{ left: (wb.boom.on === 'h' ? 420 : 640) - 30, top: (biome === 'ocean' ? 280 : 320) - 40 }} />}
+        {wb?.proj && (wb.where ?? biome) === biome && <span className={`sn-wbproj from-${wb.proj.from}`} style={{ top: biome === 'ocean' ? 300 : 340 }} aria-hidden="true"><Fx k={ORB_FX[wb.proj.aff]} size={90} loop /></span>}
+        {wb?.boom && (wb.where ?? biome) === biome && <Fx k={wb.boom.k} size={170} className="sn-wbboom" style={{ left: (wb.boom.on === 'h' ? 420 : 640) - 30, top: (biome === 'ocean' ? 280 : 320) - 40 }} />}
         {here.map((l, i) => {
           const sp = spot(l); const tp = temp[l.c.id];
           const k = tp === 'fast' || tp === 'zoom' ? 0.35 : SPEED[l.energy];
