@@ -3,6 +3,7 @@ import { snSound } from '../../lib/supernature';
 import { BLOOMS, DEFAULT_PLANT, KIND_CHOICES, LEAVES, PLANT_COLORS, PLANT_WORD_PARTS, ROOTS, STEMS, plantUrl, whereItLives, type MadePlant, type PlantSpec } from '../../lib/supernaturePlantMaker';
 import type { PlantKind, PlantPlace } from '../../lib/supernaturePlants';
 import { Icon } from './SupernatureWriting';
+import SayItMemo from './SayItMemo';
 
 // The Plant Maker (Build Queue 157, her words 2026-10-14: "similar to creature maker, lets add an abiklity
 // to create plants that exsist within the biomes"). Pick real plant parts (roots, stem, leaves, flowers or
@@ -85,6 +86,7 @@ export default function SupernaturePlantMaker({ bar, say, made, onSave, onRemove
           {name && !nameOk && <p className="sn-small">Start with a capital letter and use letters only.</p>}
         </div>
         <div className="pm-row"><b>💬 One sentence about it <small>(you can skip this)</small></b>
+          <SayItMemo label="Say it first, then copy your words" />
           <textarea id="pm-sentence" rows={2} value={sentence} maxLength={180} placeholder="Example: It hides spines under its leaves." onChange={(e) => setSentence(e.target.value)} />
         </div>
         <div className="pm-save">

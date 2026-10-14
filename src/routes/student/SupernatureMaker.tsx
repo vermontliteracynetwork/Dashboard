@@ -7,6 +7,7 @@ import {
 } from '../../lib/supernatureMaker';
 import { TAG_EFFECTS, TAG_WORDS, react, tagsOf } from '../../lib/supernatureAdapt';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
+import SayItMemo from './SayItMemo';
 
 // The Creature Maker (Build Queue 98; plan sections 5, 18 and 19). Frankenstein hosts (her pick).
 // One step at a time with Back and Next: Start (from scratch, remix a found creature, a Spark
@@ -102,11 +103,12 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
   const water = d.spec.plan === 'swimmer';
   const homeText = water ? `Lakes, rivers and seas in ${regionLabel}` : `${LANDS.find((l) => l.id === d.biome)!.label} in ${regionLabel}`;
   const full = !editing && made.length >= MAX_MADE;
-  // Her rule (Build Queue 115): the sentence and all three facts are required, each a short
-  // numbered line with a capital letter at the start and punctuation at the end.
+  // Her rule (Build Queue 115): the sentence is required, with a capital letter at the start and
+  // punctuation at the end. Facts are optional now (Build Queue 162, her words 2026-10-14: "creature facts
+  // should be optional"); any fact a student does write still needs a capital letter and punctuation.
   const facts = d.facts.map((f) => f.trim());
   const okLine = (t: string) => /^[A-Z]/.test(t) && /[.!?]$/.test(t);
-  const factsOk = facts.every((f) => f.length > 0 && okLine(f));
+  const factsOk = facts.every((f) => !f || okLine(f));
   const canSave = !!name && capOk && puncOk && factsOk && !full;
   const tray = useMemo(() => {
     const sug = suggest(d.spec, d);
@@ -266,7 +268,8 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
                 <span className={capOk ? 'ok' : ''}>{capOk ? '✓' : '○'} Starts with a capital letter</span>
                 <span className={puncOk ? 'ok' : ''}>{puncOk ? '✓' : '○'} Ends with punctuation</span>
               </div>
-              <div className="sn-field"><span>Three facts about it (all three needed)</span>
+              <SayItMemo prompt="Tell your creature's sentence or facts out loud. Your words show up so you can copy them." />
+              <div className="sn-field"><span>Facts about it (you can skip these)</span>
                 <ol className="sn-factlist">
                   {d.facts.map((f, i) => (
                     <li key={i}>
@@ -276,7 +279,7 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
                     </li>
                   ))}
                 </ol>
-                <small>Each fact starts with a capital letter and ends with punctuation.</small>
+                <small>A fact you write starts with a capital letter and ends with punctuation.</small>
               </div>
             </>
           )}
@@ -290,11 +293,11 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
                 <dt>Body</dt><dd>{traits.join(', ')}</dd>
                 <dt>Mind</dt><dd>{d.personality}, {d.social === 'pack' ? 'lives in a pack' : 'lives alone'}, smarts {d.smarts} of 5, eats {d.diet}</dd>
                 <dt>About</dt><dd>{sentence || 'Write one sentence on the Name step.'}</dd>
-                <dt>Facts</dt><dd><ol className="sn-factview">{facts.map((f, i) => <li key={i}>{f || '...'}</li>)}</ol></dd>
+                {facts.some(Boolean) && <><dt>Facts</dt><dd><ol className="sn-factview">{facts.filter(Boolean).map((f, i) => <li key={i}>{f}</li>)}</ol></dd></>}
               </dl>
               {!name && <p className="sn-warn">Give it a name on the Name step.</p>}
               {name && (!capOk || !puncOk) && <p className="sn-warn">Check your sentence on the Name step: a capital letter at the start and punctuation at the end.</p>}
-              {!factsOk && <p className="sn-warn">Write all three facts on the Name step, each with a capital letter and punctuation.</p>}
+              {!factsOk && <p className="sn-warn">Check your facts on the Name step: each one you write needs a capital letter and punctuation.</p>}
               {full && <p className="sn-warn">Your Encyclopedia holds {MAX_MADE} creatures. Remove one from My Creatures to make room.</p>}
               {!savedId
                 ? <button type="button" className="sn-btn" disabled={!canSave} onClick={save}>{editing ? 'Save changes' : 'Save to my Encyclopedia'}</button>

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-say-it-first",
+    date: "2026-10-14",
+    icon: "🎙️",
+    title: "Say it first, then write it",
+    body: "In the Creature Maker and the Plant Maker, tap Record my idea and say it out loud. Your words show up big, and you can play your voice back. Then copy your words into the box. Creature facts are optional now too.",
+  },
+  {
     id: "2026-10-14-plant-maker",
     date: "2026-10-14",
     icon: "🌿",
