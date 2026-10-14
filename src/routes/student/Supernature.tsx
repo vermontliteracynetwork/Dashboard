@@ -98,7 +98,8 @@ export default function Supernature() {
             potions={potions}
             usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }}
             goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} goNames={() => go('names')} rankLevel={nat.level}
-            onCheckin={() => patch({ checkins: (save.checkins ?? 0) + 1 })} />
+            onCheckin={() => patch({ checkins: (save.checkins ?? 0) + 1 })}
+            addPantry={(id, n) => patch({ pantry: { ...pantry, [id]: (pantry[id] ?? 0) + n } })} />
         )}
         {room === 'globe' && <SupernatureGlobe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
         {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')}
@@ -313,7 +314,8 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
               <button type="button" className="sn-listen" onClick={() => say(`${R.name}. ${R.meaning}. ${R.does} ${R.steps.map((x, i) => `Step ${i + 1}. ${x.text}`).join(' ')}`)} aria-label="Read the recipe aloud"><Icon d={LISTEN} /></button></div>
             <p className="sn-small">{R.meaning}. {R.does} <b>Use it:</b> {R.where}. You have {count(R.name)}.</p>
             <ol>{R.steps.map((x, i) => <li key={i} className={i < step || done ? 'done' : i === step ? 'now' : ''}><b>{i + 1}</b><span>{x.text}{x.need === 'stir' && i === step ? ` (${stirs} of ${x.times})` : ''}</span></li>)}</ol>
-            {buyList.length > 0 && <p className="sn-small">From the Shop: {buyList.map((id) => `${ING(id).name} ${has(id) ? '✓' : `(${formatMoney(ING(id).price)})`}`).join(', ')}</p>}
+            {buyList.filter((id) => ING(id).tier !== 'wild').length > 0 && <p className="sn-small">From the Shop: {buyList.filter((id) => ING(id).tier !== 'wild').map((id) => `${ING(id).name} ${has(id) ? '✓' : `(${formatMoney(ING(id).price)})`}`).join(', ')}</p>}
+            {buyList.some((id) => ING(id).tier === 'wild') && <p className="sn-small">🌿 From the Habitat (find or grow them): {buyList.filter((id) => ING(id).tier === 'wild').map((id) => `${ING(id).name} ${has(id) ? '✓' : `(you have ${pantry[id] ?? 0})`}`).join(', ')}</p>}
           </>
         )}
       </section>
@@ -405,8 +407,8 @@ function Shop({ bar, say, coins, pantry, earned, onBuy, goCauldron }: {
         </div>
         {(shelf === 'all' ? KINDS : shelf === 'rare' ? [] : KINDS.filter((k) => k.id === shelf)).map((k) => (
           <div key={k.id} className="sn-shop-shelf">
-            <span className="sn-label">{k.label} ({INGREDIENTS.filter((x) => x.kind === k.id && x.tier !== 'free').length})</span>
-            <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.kind === k.id && x.tier !== 'free').sort((a, b) => a.price - b.price).map(tile)}</div>
+            <span className="sn-label">{k.label} ({INGREDIENTS.filter((x) => x.kind === k.id && (x.tier === 'basic' || x.tier === 'rare')).length})</span>
+            <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.kind === k.id && (x.tier === 'basic' || x.tier === 'rare')).sort((a, b) => a.price - b.price).map(tile)}</div>
           </div>
         ))}
         {shelf === 'rare' && <div className="sn-shop-grid">{INGREDIENTS.filter((x) => x.tier === 'rare').sort((a, b) => a.price - b.price).map(tile)}</div>}

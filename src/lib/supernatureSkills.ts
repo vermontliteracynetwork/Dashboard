@@ -120,6 +120,7 @@ export function feelingOf(x: FeelInput): Feeling {
   if (x.hunted) return { zone: 'red', word: 'scared', size: 3, because: 'a hunter is chasing it', need: 'safety: a place to hide or a way to escape' };
   if (x.hp === 0) return { zone: 'blue', word: 'exhausted', size: 3, because: 'it has no hearts left', need: 'rest and a Vita potion' };
   if (x.hibernating) return { zone: 'blue', word: 'sleepy', size: 2, because: 'it is hibernating through the winter', need: 'quiet rest until spring' };
+  if (x.status && ['sneezy', 'tummy', 'sticky', 'itchy', 'stung', 'startled'].includes(x.status)) return { zone: 'yellow', word: 'uncomfortable', size: 2, because: 'it ate or touched a harmful plant', need: 'rest, or an Antidota or Herba potion' };
   if (x.hurting && x.disaster) return { zone: 'red', word: 'frightened', size: 2, because: 'a disaster is happening and its body is not made for it', need: 'shelter, or a potion that protects it' };
   if (x.hurting) {
     const need = x.status === 'chilly' ? 'warmth: the shelter or a Thermo potion' : x.status === 'hot' ? 'shade: the shelter or an Umbra potion' : x.status === 'thirsty' ? 'water: a Hydro or Aqua potion' : 'shelter';

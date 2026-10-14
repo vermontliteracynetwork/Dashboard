@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-habitat-plants",
+    date: "2026-10-14",
+    icon: "🌿",
+    title: "Plants to find, grow and brew",
+    body: "Look for sparkling plants and critters in every Habitat biome. Healing plants help creatures, but some plants are harmful, so be careful! Grow plants in the garden spots, harvest them for new potions like Herba and Calma, and fill your Plant and Critter Book. Creatures act like themselves too: watch Anubis weigh a feather on his scale.",
+  },
+  {
     id: "2026-10-14-creature-skills",
     date: "2026-10-14",
     icon: "🧬",

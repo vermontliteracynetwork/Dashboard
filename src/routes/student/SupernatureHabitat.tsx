@@ -11,6 +11,8 @@ import { useStore } from '../../store/store';
 import { drawQuestion, pickableSets } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
+import { CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
+import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
 import {
   HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, canBeHunted, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
@@ -87,11 +89,14 @@ const HOT: { name: string; who: 'one' | 'all'; does: string }[] = [
   // Potions only work inside Supernature (her rule, 2026-10-13): these four used to be for Town Square and pets.
   { name: 'Aero', who: 'one', does: 'floats up and flies for 1 minute' }, { name: 'Velo', who: 'one', does: 'runs super fast for 1 minute' },
   { name: 'Veloaero', who: 'one', does: 'zooms around the sky for 1 minute' }, { name: 'Fort', who: 'one', does: 'stands strong in tornadoes and earthquakes this season' },
+  // Plant potions (Build Queue 136).
+  { name: 'Herba', who: 'one', does: 'plant medicine: 2 hearts and no plant troubles' }, { name: 'Calma', who: 'one', does: 'feels calm (Green Zone) this season' },
+  { name: 'Antidota', who: 'one', does: 'cures and blocks harmful plants this season' }, { name: 'Germina', who: 'all', does: 'every plant here is ready to harvest' },
 ];
 // What each season potion protects against (the status a hard time would give).
 const SHIELD: Record<string, string[]> = {
   Thermo: ['chilly'], Umbra: ['hot'], Hydro: ['thirsty'], Ancora: ['tossed'], Pneumo: ['smoky'], Sicco: ['soggy'], Stabil: ['dizzy'], Patria: ['homesick'],
-  Somnus: ['chilly', 'hot', 'thirsty', 'homesick', 'soggy'], Fort: ['dizzy', 'tossed'],
+  Somnus: ['chilly', 'hot', 'thirsty', 'homesick', 'soggy'], Fort: ['dizzy', 'tossed'], Antidota: ['sneezy', 'tummy', 'sticky', 'itchy', 'stung', 'startled'],
 };
 // Surprises fit the season (Build Queue 120): snow in winter, wildfires and droughts in summer.
 const SEASON_WX: Record<string, Weather[]> = {
@@ -124,6 +129,7 @@ const CLUE: Record<Energy, string> = {
 const TOOLS: Record<'up' | 'down', string[]> = { down: ['Quiet space', 'Slow walk', 'Deep breaths'], up: ['Snack', 'Play with a friend', 'Stretch'] };
 const SPEED: Record<Energy, number> = { 'very high': 0.45, high: 0.7, 'just right': 1, low: 1.5, 'very low': 0 };
 const STATUS: Record<string, string> = {
+  ...EFFECT_STATUS,
   soggy: '💧 Soggy and cold from the water', smoky: '💨 Coughing from the smoke', chilly: '❄️ Chilly and shivering',
   dizzy: '💫 Dizzy from all the shaking', thirsty: '🌵 Thirsty and dry', hot: '🥵 Too hot in its thick fur', tossed: '🌪️ Tossed around by the wind', homesick: '🏠 Homesick for its kind of land', asleep: '😴 Worn out and asleep. Give it a Vita potion before the season ends, or it will not survive.',
 };
@@ -190,10 +196,10 @@ const DECOR: Record<Biome, { src: string; x: number; y: number; w: number; filte
   ],
 };
 
-export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, usePotion, goCauldron, openPage, goGlobe, goNames, rankLevel, onCheckin }: {
+export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, usePotion, goCauldron, openPage, goGlobe, goNames, rankLevel, onCheckin, addPantry }: {
   bar: (o?: { extra?: React.ReactNode }) => React.ReactNode; say: (t: string) => void; found: string[];
   saved: SnHabitat; onSave: (h: SnHabitat) => void; potions: string[]; usePotion: (name: string) => void;
-  goCauldron: (recipe: string) => void; openPage: (id: string) => void; goGlobe: () => void; goNames: () => void; rankLevel: number; onCheckin: () => void;
+  goCauldron: (recipe: string) => void; openPage: (id: string) => void; goGlobe: () => void; goNames: () => void; rankLevel: number; onCheckin: () => void; addPantry: (id: string, n: number) => void;
 }) {
   // Found creatures plus the ones the student made in the Creature Maker.
   const all = useMemo(() => [...madeList().slice(-6).map((m) => m.id), ...found.slice(-12)].map((id) => byId(id)).filter((c): c is Creature => !!c).slice(0, 16), [found]);
@@ -217,6 +223,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [train, setTrain] = useState<{ id: string; skill: SkillId | null; q: MCQuestion | null } | null>(null);
   const [placing, setPlacing] = useState<{ id: string; mode: 'add' | 'remove' } | null>(null);
   const [outTray, setOutTray] = useState(false);
+  // Plants, wild critters and the garden (Build Queue 135, 136).
+  const [plots, setPlots] = useState<Record<string, ({ plant: string; at: number } | null)[]>>(saved.plots ?? {});
+  const [picked, setPicked] = useState<string[]>(saved.picked ?? []);
+  const [book, setBook] = useState<string[]>(saved.book ?? []);
+  const [card, setCard] = useState<{ id: string; first: boolean; note?: string } | null>(null);
+  const [seedFor, setSeedFor] = useState<number | null>(null);
+  const [bookOpen, setBookOpen] = useState(false);
+  const [act, setAct] = useState<{ id: string; a: Act } | null>(null);
   const ttsSettings = useStore((st) => st.students.find((x) => x.id === st.currentStudentId)?.ttsSettings);
   const questionSets = useStore((st) => st.questionSets);
   const [live, setLive] = useState<Live[]>(() => all.filter((c) => saved.faded?.[c.id] === undefined && !(saved.out ?? []).includes(c.id)).map((c, i, arr) => ({ c, ...place(c, i, arr.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
@@ -401,6 +415,39 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (!lines.length) lines.push(mode === 'add' ? 'It will share the biome with the creatures there.' : 'The other creatures there will have a little more room.');
     return lines;
   };
+  // Plants and critters (Build Queue 135, 136).
+  const place_ = biome as PlantPlace;
+  const wild = wildSpots(place_, clk.abs).filter((w) => !picked.includes(w.key));
+  const myPlots = (plots[place_] ?? [null, null, null, null]).concat([null, null, null, null]).slice(0, 4);
+  const stage = (pl: { at: number }) => (now - pl.at >= GROWN_MS ? 'grown' : now - pl.at >= SPROUT_MS ? 'sprout' : 'seed');
+  const learn = (id: string, note?: string) => { const first = !book.includes(id); if (first) setBook((b) => [...b, id]); setCard({ id, first, note }); };
+  const collect = (w: { key: string; plant?: string; critter?: string }) => {
+    setPicked((p) => [...p, w.key]);
+    if (w.critter) { snSound('found'); learn(w.critter, 'You spotted it! Watch, do not touch. It is in your Plant and Critter Book now.'); return; }
+    const pl = PLANT(w.plant!); if (!pl) return;
+    if (pl.kind === 'harmful') { snSound('fizzle'); learn(pl.id, `Careful! ${pl.name} is a harmful plant. You picked it with gloves to learn about it. It is not for potions.`); return; }
+    snSound('pickup'); addPantry(`p_${pl.id}`, 1); learn(pl.id, `You picked ${pl.name}. It went into your pantry for the Cauldron.`);
+  };
+  const plantIt = (i: number, id: string) => {
+    const pl = PLANT(id); if (!pl) return;
+    const g = canGrow(pl, place_, season); if (!g.ok) { tell(g.why!, true); return; }
+    setPlots((m) => { const row = (m[place_] ?? [null, null, null, null]).slice(0, 4); while (row.length < 4) row.push(null); row[i] = { plant: id, at: Date.now() }; return { ...m, [place_]: row }; });
+    setSeedFor(null); snSound('pickup'); tell(`You planted ${pl.name}. It sprouts in 1 minute and is ready to harvest in 3 minutes.`, true);
+  };
+  const harvest = (i: number) => {
+    const pl = myPlots[i]; if (!pl) return; const p = PLANT(pl.plant); if (!p) return;
+    if (stage(pl) !== 'grown') { tell(`${p.name} is still growing. ${stage(pl) === 'seed' ? 'It sprouts soon.' : 'Almost ready!'}`); return; }
+    setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[i] = null; return { ...m, [place_]: row }; });
+    if (p.kind !== 'harmful') addPantry(`p_${p.id}`, 2);
+    snSound('done'); sparkleOn('');
+    tell(p.kind === 'harmful' ? `You harvested ${p.name} with gloves. It is harmful, so it is not for potions.` : `You harvested 2 ${p.name}! They went into your pantry for the Cauldron.`, true);
+  };
+  const feelFor = (l: Live) => {
+    const f = feelingOf({ name: l.c.name, hp: l.hp, status: l.status, hurting: (reactions[l.c.id]?.hit ?? 0) > 0, disaster: !!active, hunted: hunt?.prey === l.c.id && hunt.phase === 'chase', escaped: Date.now() - (escapedAt[l.c.id] ?? 0) < 20000, hungry: hungryIds.includes(l.c.id), homesick: l.status === 'homesick', lonely: /pack/.test(l.c.traits.join(' ')) && count(l.c.id) === 1, hibernating: reactions[l.c.id]?.pose === 'sleep' && season === 'Winter', grew: Date.now() - (grewAt[l.c.id] ?? 0) < 30000 });
+    if ((buffs[l.c.id] ?? []).includes('Calma') && f.zone !== 'green' && !(hunt?.prey === l.c.id && hunt.phase === 'chase')) return { zone: 'green' as const, word: 'calm', size: 2 as const, because: `a Calma potion helps it stay calm even though ${f.because}`, need: f.need };
+    return f;
+  };
+  const lore = loreRank(book.length);
   // What if a group moved away? Who would get hungry, and who would grow (plan section 5: fragility).
   const ripple = (id: string): Record<string, 'hungry' | 'grow'> => {
     const out: Record<string, 'hungry' | 'grow'> = {};
@@ -436,8 +483,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}`;
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${picked.length}|${book.length}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -489,6 +536,43 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       else if (hp === 5) status = null;
       return hp === l.hp && status === l.status ? l : { ...l, hp, status };
     }));
+    // Plant eaters nibble wild plants: healing ones help, harmful ones cause trouble (Build Queue 136).
+    if (tick % 8 === 5 && wild.some((w) => w.plant)) {
+      const eaters = here.filter((l) => (l.c.eats === 'plants' || l.c.eats === 'both') && l.hp > 0 && !l.hide);
+      const w = wild.filter((x) => x.plant)[Math.floor(Math.random() * wild.filter((x) => x.plant).length)];
+      const pl = PLANT(w.plant!);
+      if (eaters.length && pl && Math.random() < 0.6) {
+        const e = eaters[Math.floor(Math.random() * eaters.length)];
+        setPicked((p) => [...p, w.key]);
+        if (pl.kind === 'harmful') {
+          if ((buffs[e.c.id] ?? []).includes('Antidota')) tell(`${e.c.name} sniffed the ${pl.name} but its Antidota potion kept it safe.`);
+          else { setLive((ls) => ls.map((l) => (l === e ? { ...l, hp: Math.max(0, l.hp - 1), status: pl.status ?? 'tummy' } : l))); tell(`${e.c.name} ate some ${pl.name} and ${pl.eaten}. Some plants are harmful! An Antidota or Herba potion helps.`, true); }
+        } else {
+          setLive((ls) => ls.map((l) => (l === e ? { ...l, hp: Math.min(5, l.hp + (pl.kind === 'healing' ? 2 : 1)) } : l))); sparkleOn(e.c.id);
+          tell(`${e.c.name} ate some ${pl.name} and ${pl.eaten}.${pl.kind === 'healing' ? ' Healing plants help creatures feel better.' : ''}`);
+        }
+      }
+    }
+    // Each creature acts like itself (Build Queue 135): Anubis weighs a feather, Golem stomps, a unicorn heals.
+    if (tick % 4 === 1 && !hunt) {
+      const can = here.filter((l) => l.hp > 0 && !l.hide && count(l.c.id) > 0);
+      if (can.length) {
+        const l = can[Math.floor(Math.random() * can.length)];
+        const acts = behaviorOf(l.c).acts.filter((a) => !a.night || night);
+        const a = acts[Math.floor(Math.random() * acts.length)];
+        if (a) {
+          setAct({ id: l.c.id, a }); window.setTimeout(() => setAct((x) => (x?.id === l.c.id ? null : x)), 4500);
+          if (a.fx === 'heal') { const f = can.filter((x) => x !== l && x.hp < 5)[0]; if (f) { setLive((ls) => ls.map((x) => (x.c.id === f.c.id ? { ...x, hp: Math.min(5, x.hp + 1) } : x))); sparkleOn(f.c.id); tell(`${l.c.name} ${a.text}. ${f.c.name} feels better.`); } }
+          else if (a.fx === 'grow') { const idx = myPlots.findIndex((pl) => pl && stage(pl) !== 'grown'); if (idx >= 0) { setPlots((m) => { const row = (m[place_] ?? []).slice(0, 4); row[idx] = { ...row[idx]!, at: row[idx]!.at - 60000 }; return { ...m, [place_]: row }; }); tell(`${l.c.name} ${a.text}. A garden plant grew faster!`); } }
+          else if (a.fx === 'flash') { setFlash(true); natureSound('thunder', 0.25); window.setTimeout(() => setFlash(false), 200); }
+          else if (a.fx === 'splash') natureSound('splash', 0.35);
+          else if (a.fx === 'howl') natureSound('owl', 0.3);
+          else if (a.fx === 'rumble') natureSound('whoosh', 0.25);
+          else if (a.fx === 'hide') { setLive((ls) => ls.map((x) => (x.c.id === l.c.id ? { ...x, hide: true } : x))); window.setTimeout(() => setLive((ls) => ls.map((x) => (x.c.id === l.c.id ? { ...x, hide: false } : x))), 3500); }
+          else sparkleOn(l.c.id);
+        }
+      }
+    }
     // Hunting (Build Queue 134): every so often a hunter stalks a creature in its own biome. The prey's
     // skills decide if it escapes; a caught one makes the family one smaller (it poofs away, never hurt).
     if (!hunt && tick % 6 === 3 && !dis) {
@@ -586,7 +670,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       tell(name === 'Aero' ? `${sel_.c.name} floats up and flies for one minute!` : name === 'Velo' ? `${sel_.c.name} runs super fast for one minute!` : `${sel_.c.name} zooms around the sky at super speed for one minute!`, true);
     }
     if (name === 'Mega') { setGiant(sel_.c.id); window.setTimeout(() => setGiant(null), 60000); tell(`Whoa! ${sel_.c.name} is giant for one minute.`, true); }
-    if (SHIELD[name] || name === 'Nidus') {
+    if (name === 'Herba') { setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, hp: Math.min(5, l.hp + 2), status: null } : l))); tell(`Plant medicine! ${sel_.c.name} got 2 hearts back, and its plant troubles are gone.`, true); }
+    if (name === 'Antidota') setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id && l.status && EFFECT_STATUS[l.status] ? { ...l, status: null } : l)));
+    if (SHIELD[name] || name === 'Nidus' || name === 'Calma') {
       setBuffs((b) => ({ ...b, [sel_.c.id]: [...(b[sel_.c.id] ?? []), name] }));
       if (name === 'Somnus') setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, energy: 'very low' } : l)));
       tell(`The ${name} potion worked! ${sel_.c.name} is set: ${HOT.find((h) => h.name === name)!.does}.`, true);
@@ -596,6 +682,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (have(name) < 1) return;
     usePotion(name); snSound('done'); setArmed(null);
     if (name === 'Lumin') { setGlow(true); tell('Lumin! Floating lights will glow all night in your Habitat.', true); }
+    if (name === 'Germina') { setPlots((m) => ({ ...m, [place_]: (m[place_] ?? []).map((pl) => (pl ? { ...pl, at: Date.now() - GROWN_MS } : pl)) })); tell('Germina! Every plant growing here is ready to harvest.', true); }
     if (name === 'Megavita') { setLive((ls) => ls.map((l) => ({ ...l, hp: 5, status: null }))); tell('Megavita! Every creature has all 5 hearts again.', true); }
     if (name === 'Redux') {
       const ids = Object.keys(faded); const back = all.filter((c) => ids.includes(c.id));
@@ -615,6 +702,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (h.who === 'one') { setArmed(armed === h.name ? null : h.name); setSel(null); return; }
     const need = h.name === 'Cryo' ? 'wildfire' : h.name === 'Aqua' ? 'drought' : h.name === 'Pyro' ? 'blizzard' : null;
     if (need && active !== need) { tell(`${h.name} ${h.does}. There is no ${need} right now, so save it for later.`); return; }
+    if (h.name === 'Germina' && !myPlots.some((pl) => pl && stage(pl) !== 'grown')) { tell('Germina makes garden plants grow right away. Plant something in this biome first.'); return; }
     if (h.name === 'Redux' && !Object.keys(faded).length) { tell('Redux brings back families that did not survive. Everyone is here right now, so save it for later.'); return; }
     habitatPotion(h.name);
   };
@@ -638,6 +726,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       case 'Aero': return !t.has('fly') && temp[l.c.id] === undefined;
       case 'Velo': case 'Veloaero': return temp[l.c.id] === undefined;
       case 'Fort': return !t.has('tough');
+      case 'Herba': return l.hp < 5 || !!(l.status && EFFECT_STATUS[l.status]);
+      case 'Calma': return true;
+      case 'Antidota': return true;
       case 'Nidus': return breedsIn(l.c) !== null && breedsIn(l.c) !== season;
       default: return false;
     }
@@ -730,6 +821,21 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         </button>
         </>}
 
+        {wild.map((w) => (
+          <button key={w.key} type="button" className={`sn-wild${w.critter ? ' critter' : ''}`} style={{ left: w.x, top: w.y }} onClick={(e) => { e.stopPropagation(); collect(w); }}
+            aria-label={w.critter ? `A critter: ${CRITTERS.find((c) => c.id === w.critter)?.name}. Tap to spot it.` : `A wild plant: ${PLANT(w.plant!)?.name}. Tap to pick it.`}>
+            {w.plant === 'snapjaw' ? <span className="sn-snapjaw" style={{ backgroundImage: `url(${SNAPJAW_STRIP})` }} /> : <img src={w.critter ? CRITTERS.find((c) => c.id === w.critter)!.img : plantImg(w.plant!)} alt="" />}
+          </button>
+        ))}
+        {myPlots.map((pl, i) => { const xy = PLOTS[place_][i]; return (
+          <button key={`plot${i}`} type="button" className={`sn-plot${pl ? ` ${stage(pl)}` : ''}`} style={{ left: xy.x, top: xy.y }} onClick={(e) => { e.stopPropagation(); if (pl) harvest(i); else { snSound('tap'); setSeedFor(i); } }}
+            aria-label={pl ? `${PLANT(pl.plant)?.name}: ${stage(pl) === 'grown' ? 'ready to harvest' : 'growing'}` : 'An empty garden spot. Tap to plant.'}>
+            <img src={plantImg('mound')} alt="" />
+            {pl && <img className="grow" src={stage(pl) === 'seed' ? plantImg('seed') : stage(pl) === 'sprout' ? plantImg('sprout') : plantImg(pl.plant)} alt="" />}
+            {pl && stage(pl) === 'grown' && <span className="sn-plot-ready">✋</span>}
+            {!pl && <span className="sn-plot-plus">+</span>}
+          </button>
+        ); })}
         {here.map((l, i) => {
           const sp = spot(l); const tp = temp[l.c.id];
           const k = tp === 'fast' || tp === 'zoom' ? 0.35 : SPEED[l.energy];
@@ -742,12 +848,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           if (hunt?.prey === l.c.id && hunt.phase === 'escaped' && !l.hide) { pos.left = Math.max(20, Math.min(W - 120, sp.x + (sp.x > 560 ? 220 : -220))); pos.top = Math.max(20, sp.y - (hunt.how === 'flying' ? 160 : 20)); }
           // A water creature that adapted with Fish out of water walks on land (Build Queue 134).
           const mv = tp === 'float' || tp === 'zoom' ? 'fly' : biome === 'ocean' ? 'swim' : l.c.move === 'swim' && has(sk(l.c), 'fishOutOfWater') ? 'walk' : l.c.move;
-          const feel = feelingOf({ name: l.c.name, hp: l.hp, status: l.status, hurting: (reactions[l.c.id]?.hit ?? 0) > 0, disaster: !!active, hunted: hunt?.prey === l.c.id && hunt.phase === 'chase', escaped: Date.now() - (escapedAt[l.c.id] ?? 0) < 20000, hungry: hungryIds.includes(l.c.id), homesick: l.status === 'homesick', lonely: /pack/.test(l.c.traits.join(' ')) && count(l.c.id) === 1, hibernating: reactions[l.c.id]?.pose === 'sleep' && season === 'Winter', grew: Date.now() - (grewAt[l.c.id] ?? 0) < 30000 });
+          const feel = feelFor(l);
+          const style = behaviorOf(l.c).style;
           return (
-            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
+            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''} st-${style}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
               style={{ ...pos, zIndex: mv === 'fly' ? 4 : 3, ['--d' as string]: `${sp.d}px`, ['--t' as string]: `${sp.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s` }}
               onClick={(e) => { e.stopPropagation(); if (armed) { if (fits(armed, l)) giveTo(armed, l.c.id); else tell(`${l.c.name} does not need ${armed} right now.`); return; } snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. ${reactions[l.c.id]?.text ?? ''} Tap to check on it.`}>
-              {reactions[l.c.id] && reactions[l.c.id].word !== 'at home' && !l.hide && <span className={`sn-react${reactions[l.c.id].hit ? ' bad' : ''}`}>{reactions[l.c.id].icon} {reactions[l.c.id].word}</span>}
+              {act?.id === l.c.id && !l.hide ? <span className="sn-react act">{act.a.icon} {act.a.text}</span>
+                : reactions[l.c.id] && reactions[l.c.id].word !== 'at home' && !l.hide && <span className={`sn-react${reactions[l.c.id].hit ? ' bad' : ''}`}>{reactions[l.c.id].icon} {reactions[l.c.id].word}</span>}
               <img src={art(l.c.id)} alt="" />
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <span className="sn-sparkles" />}
@@ -774,6 +882,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-railbtn go" aria-label="Guess the season" title="Guess the season" onClick={() => { snSound('tap'); setArmed(null); setPredict({ id: guess?.id ?? roster.find((c) => count(c.id) > 0)?.id ?? roster[0].id, guess: guess?.guess ?? null }); }}><span>🔮</span></button>
               <button type="button" className="sn-railbtn" aria-label="How they react" title="How they react" onClick={() => { snSound('page'); setReactOpen(true); }}><span>👀</span></button>
               <button type="button" className="sn-railbtn" aria-label="Food web" title="Food web" onClick={() => { snSound('page'); setWeb(true); setWhatIf(null); }}><span>🕸️</span></button>
+              <button type="button" className="sn-railbtn" aria-label="Plant and Critter Book" title="Plant and Critter Book" onClick={() => { snSound('open'); setBookOpen(true); }}><span>🌿</span></button>
               <button type="button" className="sn-railbtn" aria-label="Generations" title="Generations" onClick={() => { snSound('open'); setGensOpen(true); }}><span>🧬</span></button>
             </div>
           </>
@@ -832,7 +941,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             </div>
             <div className="sn-hearts big" aria-label={`${sel_.hp} of 5 hearts`}>{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < sel_.hp ? 'full' : ''} />)}</div>
             {reactions[sel_.c.id] && <p className={`sn-pop-react${reactions[sel_.c.id].hit ? ' bad' : ''}`}>{reactions[sel_.c.id].icon} {reactions[sel_.c.id].text}{reactions[sel_.c.id].because ? <><br /><b>Why:</b> {reactions[sel_.c.id].because}.</> : null}</p>}
-            {(() => { const f = feelingOf({ name: sel_.c.name, hp: sel_.hp, status: sel_.status, hurting: (reactions[sel_.c.id]?.hit ?? 0) > 0, disaster: !!active, hunted: hunt?.prey === sel_.c.id && hunt.phase === 'chase', escaped: Date.now() - (escapedAt[sel_.c.id] ?? 0) < 20000, hungry: hungryIds.includes(sel_.c.id), homesick: sel_.status === 'homesick', lonely: /pack/.test(sel_.c.traits.join(' ')) && count(sel_.c.id) === 1, hibernating: reactions[sel_.c.id]?.pose === 'sleep' && season === 'Winter', grew: Date.now() - (grewAt[sel_.c.id] ?? 0) < 30000 }); const t = feelingSentence(sel_.c.name, f); return (
+            {(() => { const f = feelFor(sel_); const t = feelingSentence(sel_.c.name, f); return (
               <p className={`sn-feel ${f.zone}`}><b>{ZONE_NAME[f.zone]}:</b> {t}<button type="button" className="sn-listen" onClick={() => say(t)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
             ); })()}
             <div className="sn-pop-skills">
@@ -886,6 +995,52 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
       {playing && <SupernatureBe c={playing} roster={roster} biome={land} say={say} onClose={() => setPlaying(null)} />}
       {gensOpen && <SupernatureGenerations roster={roster} biome={land} disaster={active} say={say} onClose={() => setGensOpen(false)} goNames={goNames} />}
+      {card && (() => { const p = PLANT(card.id); const cr = CRITTERS.find((x) => x.id === card.id); const text = p ? `${p.name}. ${KIND_LABEL[p.kind].slice(2)}. ${p.lore} Alchemy: ${p.alchemy} It grows in the ${p.where.join(' or ')}.` : cr ? `${cr.name}. ${cr.lore}` : ''; return (
+        <div className="sn-modal" role="dialog" aria-label="New discovery" onClick={() => setCard(null)}>
+          <div className="sn-modal-card paper sn-plantcard" onClick={(e) => e.stopPropagation()}>
+            {card.first && <span className="sn-new">✨ New for your book!</span>}
+            <img src={p ? plantImg(p.id) : cr!.img} alt="" />
+            <h2>{p ? p.name : cr!.name}</h2>
+            {p && <span className={`sn-kind ${p.kind}`}>{KIND_LABEL[p.kind]}</span>}
+            {card.note && <p className="sn-small"><b>{card.note}</b></p>}
+            <p>{p ? p.lore : cr!.lore}</p>
+            {p && <p className="sn-small"><b>🧪 Alchemy:</b> {p.alchemy} <b>🌍 Grows in:</b> {p.where.join(', ')}{p.winter ? ' (even in winter)' : ''}.</p>}
+            <div className="sn-row center"><button type="button" className="sn-btn2" onClick={() => say(text)}>🔊 Listen</button><button type="button" className="sn-btn" onClick={() => setCard(null)}>Keep exploring</button></div>
+          </div>
+        </div>
+      ); })()}
+      {seedFor !== null && (
+        <div className="sn-modal" role="dialog" aria-label="Plant a seed" onClick={() => setSeedFor(null)}>
+          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+            <h2>🌱 What will you plant in the {viewLabel(biome).toLowerCase()}?</h2>
+            <p className="sn-small">You can plant anything you have found. Plants only grow where they could really live.</p>
+            {book.filter((id) => PLANT(id)).length === 0 ? <p>Find wild plants first: tap the plants growing around the Habitat.</p> : (
+              <div className="sn-train-grid">{book.filter((id) => PLANT(id)).map((id) => { const p = PLANT(id)!; const g = canGrow(p, place_, season); return (
+                <button key={id} type="button" className="sn-train-opt" disabled={!g.ok} onClick={() => plantIt(seedFor, id)} title={g.why ?? p.lore}>
+                  <img src={plantImg(id)} alt="" style={{ width: 48, height: 48, imageRendering: 'pixelated' }} /><b>{p.name}</b><small>{g.ok ? KIND_LABEL[p.kind] : g.why}</small>
+                </button>
+              ); })}</div>
+            )}
+            <button type="button" className="sn-btn" onClick={() => setSeedFor(null)}>Close</button>
+          </div>
+        </div>
+      )}
+      {bookOpen && (
+        <div className="sn-modal" role="dialog" aria-label="Plant and Critter Book" onClick={() => setBookOpen(false)}>
+          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+            <h2>🌿 Plant and Critter Book</h2>
+            <p className="sn-small"><b>Plant lore: {lore.rank}</b> · {book.length} of {PLANTS.length + CRITTERS.length} found{lore.next ? ` · ${lore.next.at - book.length} more to become ${lore.next.name}` : ''}. Tap a plant or critter you found to read about it.</p>
+            <div className="sn-train-grid">
+              {[...PLANTS.map((p) => ({ id: p.id, name: p.name, img: plantImg(p.id), kind: KIND_LABEL[p.kind] })), ...CRITTERS.map((c) => ({ id: c.id, name: c.name, img: c.img, kind: '🐞 Critter' }))].map((x) => { const got = book.includes(x.id); return (
+                <button key={x.id} type="button" className={`sn-train-opt${got ? '' : ' unknown'}`} disabled={!got} onClick={() => { setBookOpen(false); setCard({ id: x.id, first: false }); }}>
+                  <img src={x.img} alt="" style={{ width: 48, height: 48, objectFit: 'contain', imageRendering: 'pixelated' }} /><b>{got ? x.name : '???'}</b><small>{got ? x.kind : 'Not found yet'}</small>
+                </button>
+              ); })}
+            </div>
+            <button type="button" className="sn-btn" onClick={() => setBookOpen(false)}>Close</button>
+          </div>
+        </div>
+      )}
       {outTray && (
         <div className="sn-modal" role="dialog" aria-label="Creatures not in play" onClick={() => setOutTray(false)}>
           <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>

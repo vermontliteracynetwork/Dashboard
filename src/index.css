@@ -8444,3 +8444,36 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-confirm-art { width: 96px; height: 96px; image-rendering: pixelated; }
 .sn-confirm-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 17px; line-height: 1.4; }
 @media (prefers-reduced-motion: reduce) { .sn-crit.hunting.run > img:first-child, .sn-crit.prey-chase > img:first-child { animation: none; } }
+
+/* Plants, garden, critters and creature styles (Build Queue 135, 136) */
+.sn-wild { position: absolute; z-index: 2; width: 56px; height: 56px; padding: 0; background: none; border: 0; cursor: pointer; transform-origin: bottom center; animation: snWeed 2.8s ease-in-out infinite alternate; }
+.sn-wild img { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 2px 0 rgba(36, 31, 69, 0.35)); }
+.sn-wild.critter { animation: snBob 1.6s ease-in-out infinite; }
+.sn-wild.critter img { width: 40px; height: 40px; }
+.sn-wild::after { content: ''; position: absolute; left: 50%; top: -6px; width: 8px; height: 8px; background: #fff6a8; transform: translateX(-50%) rotate(45deg); animation: snTwinkle 1.8s ease-in-out infinite; }
+.sn-plot { position: absolute; z-index: 2; width: 72px; height: 72px; padding: 0; background: none; border: 0; cursor: pointer; }
+.sn-plot > img:first-child { position: absolute; left: 0; bottom: 0; width: 72px; height: 72px; image-rendering: pixelated; }
+.sn-plot .grow { position: absolute; left: 8px; bottom: 14px; width: 56px; height: 56px; image-rendering: pixelated; transform-origin: bottom center; transition: transform 0.6s; }
+.sn-plot.grown .grow { animation: snWeed 2.4s ease-in-out infinite alternate; }
+.sn-plot-plus { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); width: 26px; height: 26px; border: 2px dashed #f6f1ff; color: #f6f1ff; font-weight: 900; line-height: 22px; text-align: center; background: rgba(36, 31, 69, 0.35); }
+.sn-plot-ready { position: absolute; right: -4px; top: -6px; padding: 2px 4px; background: #ffd970; border: 2px solid #241f45; font-size: 14px; animation: snBob 1s ease-in-out infinite; }
+.sn-crit.st-divine > img:first-child { filter: drop-shadow(0 0 4px #ffd970) drop-shadow(0 0 8px rgba(255, 217, 112, 0.6)); }
+.sn-crit.st-divine.walk { animation-name: snFloat; }
+.sn-crit.st-divine.walk > img:first-child { animation: snFace var(--t) step-end infinite; }
+.sn-crit.st-stomp.walk > img:first-child { animation: snFace var(--t) step-end infinite, snStomp 0.9s ease-in-out infinite; }
+.sn-crit.st-prowl.walk > img:first-child { transform: scaleY(0.92); }
+.sn-crit.st-hop.walk > img:first-child { animation: snFace var(--t) step-end infinite, snHop 0.7s ease-in-out infinite; }
+@keyframes snStomp { 0%, 100% { translate: 0 0; } 50% { translate: 0 3px; } }
+@keyframes snHop { 0%, 100% { translate: 0 0; } 40% { translate: 0 -10px; } }
+.sn-react.act { background: #fff7e2; color: #3b2414; max-width: 220px; white-space: normal; text-align: center; top: -28px; z-index: 3; }
+.sn-plantcard { max-width: 520px; align-items: center; text-align: center; }
+.sn-plantcard img { width: 120px; height: 120px; object-fit: contain; image-rendering: pixelated; }
+.sn-plantcard p { margin: 0; font-size: 17px; line-height: 1.45; }
+.sn-new { padding: 4px 12px; background: #ffd970; border: 2px solid #241f45; font-weight: 800; }
+.sn-kind { padding: 2px 10px; border: 2px solid #241f45; font-weight: 800; }
+.sn-kind.healing { background: #dcf3e1; } .sn-kind.food { background: #fff3c4; } .sn-kind.magic { background: #e9ddff; } .sn-kind.harmful { background: #fbdcd6; }
+.sn-train-opt.unknown img { filter: brightness(0); opacity: 0.35; }
+@media (prefers-reduced-motion: reduce) { .sn-wild, .sn-wild.critter, .sn-wild::after, .sn-plot.grown .grow, .sn-plot-ready { animation: none; } }
+.sn-snapjaw { display: block; width: 84px; height: 84px; margin: -14px; background-size: 1176px 84px; background-repeat: no-repeat; image-rendering: pixelated; animation: snSnap 2.2s steps(14) infinite; }
+@keyframes snSnap { to { background-position-x: -1176px; } }
+@media (prefers-reduced-motion: reduce) { .sn-snapjaw { animation: none; } }

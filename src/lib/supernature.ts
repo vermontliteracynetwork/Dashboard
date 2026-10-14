@@ -46,7 +46,7 @@ export const WORD_PARTS: (Part & { example: string })[] = [
 // Ingredients (Build Queue 100, plan section 10, her spec): base ones like a glass bottle or grass
 // are free; the rest are bought in the Shop with real money, $1 to $10, and rare ones $15 to $50.
 // A few are also earned by exploring the Globe. Gross humor stays out of the base ingredients.
-export type Tier = 'free' | 'basic' | 'rare';
+export type Tier = 'free' | 'basic' | 'rare' | 'wild';
 export type Kind = 'spice' | 'herb' | 'nature' | 'critter' | 'relic';
 export interface Ingredient { id: string; name: string; img: string; tier: Tier; price: number; note?: string; earnedAs?: string; kind?: Kind }
 // The Shop's shelves (Build Queue 122, her words: "make sure the store function has lots of variety
@@ -132,6 +132,12 @@ const OLD_KIND: Record<string, Kind> = {
   phoenix: 'critter', dragonscale: 'critter', moonlight: 'relic', frozenflame: 'relic',
 };
 for (const g of INGREDIENTS) if (!g.kind && OLD_KIND[g.id]) g.kind = OLD_KIND[g.id];
+// Wild plants picked or harvested in the Habitat (Build Queue 136). Not sold in the Shop: students find
+// or grow them. Harmful plants are not ingredients.
+for (const [id, name] of [['chamomile', 'chamomile'], ['lavender', 'lavender'], ['peppermint', 'peppermint'], ['echinacea', 'coneflower'], ['clover', 'clover'], ['fern', 'fern frond'],
+  ['glowcap', 'glowcap mushroom'], ['willow', 'willow bark'], ['cattail', 'cattail'], ['waterlily', 'water lily'], ['arcticmoss', 'arctic moss'], ['snowlotus', 'snow lotus'],
+  ['aloe', 'aloe leaf'], ['pricklypear', 'prickly pear'], ['sagebrush', 'sagebrush'], ['kelp', 'kelp'], ['coral', 'coral piece']] as const)
+  INGREDIENTS.push({ id: `p_${id}`, name, img: `${SN}plants/${id}.png`, tier: 'wild', price: 0, kind: 'herb', note: 'Find it or grow it in the Habitat.' });
 export const ING = (id: string) => INGREDIENTS.find((x) => x.id === id)!;
 
 // The Cookbook (Build Queue 101, plan section 6): 10 base recipes, and discovered recipes that
@@ -176,13 +182,18 @@ export const RECIPES: Recipe[] = [
   r('Stabil', 'stabil means steady, like stable', 'Steady feet: one walker stays steady in an earthquake this season.', 'Habitat: give it to a walker', ['grass', 'stoneheart'], ['turmeric'], 4, 'stabil'),
   r('Patria', 'patri means homeland, like patriot', 'Makes any land feel like home: no homesickness this season.', 'Habitat: give it to one creature', ['grass', 'dew'], ['bayleaf', 'oakbark'], 3, 'patria'),
   r('Nidus', 'nid means nest', 'A cozy nest: a group can have babies even when it is not its baby season.', 'Habitat: give it to one creature', ['grass', 'fairywing'], ['juniper', 'sesame'], 3, 'nidus'),
+  // Plant potions (Build Queue 136): made from plants the student finds or grows in the Habitat.
+  r('Herba', 'herb means plant', 'Plant medicine: heals one creature 2 hearts and clears plant troubles.', 'Habitat: give it to one creature', ['p_aloe', 'p_willow'], ['dew'], 3, 'herba'),
+  r('Calma', 'calm means quiet and still', 'Helps one creature feel calm (Green Zone) for the season, even in hard times.', 'Habitat: give it to one creature', ['p_chamomile', 'p_lavender'], ['p_waterlily'], 2, 'calma'),
+  r('Germina', 'germin means sprout, like germinate', 'Every plant growing in this biome is ready to harvest right away.', 'Habitat: Potions hotbar', ['p_clover', 'p_fern'], ['grass'], 4, 'germina'),
+  r('Antidota', 'anti means against, like antidote', 'Cures one creature that ate a harmful plant and protects it from them this season.', 'Habitat: give it to one creature', ['p_peppermint', 'p_echinacea'], ['dew'], 3, 'antidota'),
   r('Redux', 're means back and dux means to lead', 'Leads every creature family that did not survive back to your Habitat right away.', 'Habitat: Potions hotbar', ['dew', 'heartforest'], ['phoenix'], 5, 'redux', 'Vita'),
 ];
 export const AERO = RECIPES[0];
 export const VITA = RECIPES[1];
 
 // Each student's progress, saved in their own row (no new tables).
-export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]>; homes?: Record<string, string>; skills?: Record<string, Record<string, number>>; train?: Record<string, Record<string, number>>; out?: string[] }
+export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]>; homes?: Record<string, string>; skills?: Record<string, Record<string, number>>; train?: Record<string, Record<string, number>>; out?: string[]; plots?: Record<string, ({ plant: string; at: number } | null)[]>; picked?: string[]; book?: string[] }
 export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; petDay?: string; checkins?: number }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';
@@ -264,5 +275,6 @@ export const POTION_ICON: Record<string, string> = {
   Lumin: `${BREW}bottled_moonlight.png`, Cryo: `${BREW}ghost_essence.png`, Aqua: `${BREW}mana_draught.png`, Fort: `${BREW}mystery_potion.png`,
   Velo: `${BREW}memory_tonic.png`, Mega: `${BREW}transformation_serum.png`, Veloaero: `${BREW}bottled_storm.png`, Megavita: `${BREW}friendship_philter.png`,
   Pyro: `${BREW}dragonfire_flask.png`,
+  Herba: `${SN}plants/aloe.png`, Calma: `${SN}plants/lavender.png`, Germina: `${SN}plants/sprout.png`, Antidota: `${SN}plants/peppermint.png`,
   ...Object.fromEntries(['Thermo', 'Umbra', 'Hydro', 'Somnus', 'Ancora', 'Pneumo', 'Sicco', 'Stabil', 'Patria', 'Nidus', 'Redux'].map((n) => [n, `${SN}potions/${n.toLowerCase()}.png`])),
 };
