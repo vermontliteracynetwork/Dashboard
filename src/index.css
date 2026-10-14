@@ -8996,3 +8996,21 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .cz-purp.on { background: #ffd970; box-shadow: 0 0 0 3px #4a2a6e; }
 .cz-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 @media (prefers-reduced-motion: reduce) { .cz-item.glow, .cz-act.glow, .cz-glowbtn, .cz-bottle.bubbly i, .cz-smoke i, .cz-foam b, .cz-foam i { animation: none; } }
+
+/* Random wandering in the Habitat (Build Queue 172): the button moves with `translate`, the picture faces
+   the way it goes and moves its own way for each kind of move. */
+.sn-crit.rw, .sn-crit.rw.walk, .sn-crit.rw.fly, .sn-crit.rw.swim, .sn-crit.rw.st-divine.walk { animation: none; }
+.sn-crit.sn-crit.rw.rw > img:first-child { animation: none; transform-origin: 50% 100%; }
+.sn-crit.sn-crit.rw.face-l > img:first-child { scale: -1 1; }
+.sn-crit.sn-crit.rw.pose-none.w-walk > img:first-child { animation: snStep 0.42s ease-in-out infinite alternate; }
+.sn-crit.sn-crit.rw.pose-none.w-run > img:first-child { animation: snStep 0.18s ease-in-out infinite alternate; rotate: 4deg; }
+.sn-crit.sn-crit.rw.face-l.pose-none.w-run > img:first-child { rotate: -4deg; }
+.sn-crit.sn-crit.rw.pose-none.w-hop > img:first-child { animation: snHop 0.55s ease-in-out infinite; }
+.sn-crit.sn-crit.rw.pose-none.w-look > img:first-child { animation: snLook 1.6s ease-in-out infinite; }
+.sn-crit.sn-crit.rw.pose-none.w-sit > img:first-child { transform: scaleY(0.86); transition: transform 0.4s; }
+.sn-crit.sn-crit.rw.st-stomp.pose-none.w-walk > img:first-child { animation: snStomp 0.9s ease-in-out infinite; }
+.sn-crit.sn-crit.rw.st-divine.pose-none > img:first-child { animation: snBob 2.4s ease-in-out infinite; }
+.sn-crit.sn-crit.sn-crit.rw.fly.pose-none > img:first-child { animation: snFlutter 0.45s ease-in-out infinite alternate; }
+.sn-crit.sn-crit.sn-crit.rw.swim.pose-none > img:first-child { animation: snBob 1.6s ease-in-out infinite; }
+@keyframes snStep { from { translate: 0 0; } to { translate: 0 -4px; } }
+@keyframes snLook { 0%, 100% { rotate: 0deg; } 30% { rotate: -7deg; } 70% { rotate: 7deg; } }

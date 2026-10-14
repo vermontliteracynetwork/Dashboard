@@ -138,6 +138,25 @@ const CLUE: Record<Energy, string> = {
 };
 const TOOLS: Record<'up' | 'down', string[]> = { down: ['Quiet space', 'Slow walk', 'Deep breaths'], up: ['Snack', 'Play with a friend', 'Stretch'] };
 const SPEED: Record<Energy, number> = { 'very high': 0.45, high: 0.7, 'just right': 1, low: 1.5, 'very low': 0 };
+// Every creature wanders its own way (Build Queue 172, her words 2026-10-14: "randomize animations (walking,
+// moving) of creatures in habitats"). Each one picks its next move at random: a stroll somewhere new, a quick
+// dash, a hop, a stop to look around, a sit, or a turn. Busier energy moves faster; low energy dawdles.
+type WMode = 'walk' | 'run' | 'hop' | 'look' | 'sit' | 'turn';
+type Wander = { x: number; y: number; face: 1 | -1; mode: WMode; dur: number; until: number };
+type WMove = 'walk' | 'fly' | 'swim' | 'sea';
+const W_RANGE: Record<WMove, [number, number]> = { walk: [150, 40], fly: [130, 55], swim: [45, 14], sea: [110, 60] };
+function nextMove(w: Wander | undefined, move: WMove, k: number, now: number): Wander {
+  const x0 = w?.x ?? 0, y0 = w?.y ?? 0, f0 = w?.face ?? 1, r = Math.random();
+  const mode: WMode = move === 'walk' ? (r < 0.42 ? 'walk' : r < 0.55 ? 'run' : r < 0.68 ? 'hop' : r < 0.83 ? 'look' : r < 0.93 ? 'sit' : 'turn')
+    : r < 0.6 ? 'walk' : r < 0.75 ? 'run' : r < 0.9 ? 'look' : 'turn';
+  if (mode === 'look' || mode === 'sit') return { x: x0, y: y0, face: f0, mode, dur: 0, until: now + 1500 + Math.random() * 3000 };
+  if (mode === 'turn') return { x: x0, y: y0, face: f0 === 1 ? -1 : 1, mode, dur: 0, until: now + 600 + Math.random() * 900 };
+  const [rx, ry] = W_RANGE[move];
+  const x = Math.round((Math.random() * 2 - 1) * rx), y = Math.round((Math.random() * 2 - 1) * ry);
+  const speed = (mode === 'run' ? 125 : mode === 'hop' ? 60 : 36) / Math.max(0.3, k);
+  const dur = Math.max(0.6, Math.hypot(x - x0, y - y0) / speed);
+  return { x, y, face: Math.abs(x - x0) < 4 ? f0 : x > x0 ? 1 : -1, mode, dur, until: now + dur * 1000 + 250 + Math.random() * 1400 };
+}
 const STATUS: Record<string, string> = {
   ...EFFECT_STATUS,
   soggy: '💧 Soggy and cold from the water', smoky: '💨 Coughing from the smoke', chilly: '❄️ Chilly and shivering',
@@ -719,6 +738,36 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // One heartbeat every 3 seconds while this screen is open. Leaving stops everything.
   useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 3000); return () => window.clearInterval(t); }, []);
   useEffect(() => { const t = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(t); }, []);
+  // Random wandering (Build Queue 172): who can wander right now, then a small clock that gives each one its next move.
+  const [wander, setWander] = useState<Record<string, Wander>>({});
+  const wanderKeys = useRef<{ key: string; move: WMove; k: number }[]>([]);
+  wanderKeys.current = here.flatMap((l) => {
+    const k = SPEED[l.energy]; if (!k || l.hp === 0 || l.hide) return [];
+    const move: WMove = biome === 'ocean' ? 'sea' : l.c.move === 'swim' && !has(sk(l.c), 'fishOutOfWater') ? 'swim' : l.c.move === 'fly' ? 'fly' : 'walk';
+    return [{ key: l.c.id, move, k }, ...(kin[l.c.id] ?? []).flatMap((m, j) => (m.hp > 0 ? [{ key: `${l.c.id}#${j}`, move, k: k * 1.15 }] : []))];
+  });
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+    const t = window.setInterval(() => {
+      const now = Date.now();
+      setWander((prev) => {
+        let next: Record<string, Wander> | null = null;
+        for (const { key, move, k } of wanderKeys.current) {
+          const w = prev[key];
+          if ((w && w.until > now) || Math.random() < 0.35) continue;
+          next = next ?? { ...prev }; next[key] = nextMove(w, move, k, now);
+        }
+        return next ?? prev;
+      });
+    }, 700);
+    return () => window.clearInterval(t);
+  }, []);
+  // The wander offset, kept inside the scene, as a class and a style for one creature button.
+  const wanderOf = (key: string, left: number, top: number, on: boolean) => {
+    const w = wander[key]; if (!on || !w) return { cls: '', style: {} as React.CSSProperties };
+    const x = Math.max(10 - left, Math.min(W - 100 - left, w.x)), y = Math.max(10 - top, Math.min(H - 100 - top, w.y));
+    return { cls: ` rw w-${w.mode}${w.face < 0 ? ' face-l' : ''}`, style: { translate: `${x}px ${y}px`, transition: `translate ${w.dur || 0.3}s ${w.mode === 'run' ? 'linear' : 'ease-in-out'}, left 1.6s ease-in-out, top 1.6s ease-in-out, opacity 1.2s` } as React.CSSProperties };
+  };
   const goRef = useRef(go); goRef.current = go;
   useEffect(() => {
     const k = (e: KeyboardEvent) => { if ((e.target as HTMLElement)?.tagName === 'INPUT') return; if (e.key === 'ArrowLeft') goRef.current(-1); if (e.key === 'ArrowRight') goRef.current(1); };
@@ -1194,20 +1243,22 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           const style = behaviorOf(l.c).style;
           const kinRow = l.hide || count(l.c.id) === 0 ? [] : (kin[l.c.id] ?? []);
           const OFF = [{ x: -78, y: 30 }, { x: 82, y: 34 }, { x: -24, y: 70 }];
+          const roam = !still && !l.hide && !hunting && !(wb && (wb.h.id === l.c.id || wb.p.id === l.c.id)) && hunt?.prey !== l.c.id && tp !== 'float' && tp !== 'zoom' && !['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '');
+          const wMain = wanderOf(l.c.id, pos.left, pos.top, roam);
           return (
             <span key={l.c.id} className="sn-family">
-            {kinRow.map((m, j) => (
-              <button key={`${l.c.id}#${j}`} type="button" className={`sn-crit sn-kin ${mv} st-${style}${m.hp === 0 ? ' still' : ''}${Date.now() - m.born < 20000 ? ' newborn' : ''}`}
-                style={{ left: Math.max(10, Math.min(W - 90, rest.left + OFF[j].x)), top: Math.max(10, Math.min(H - 90, rest.top + OFF[j].y)), zIndex: 3, ['--d' as string]: `${-sp.d * 0.6}px`, ['--t' as string]: `${(sp.t + j * 2) * (k || 1)}s`, animationDelay: `${-(i + j + 1) * 1.3}s` }}
+            {kinRow.map((m, j) => { const kl = Math.max(10, Math.min(W - 90, rest.left + OFF[j].x)), kt = Math.max(10, Math.min(H - 90, rest.top + OFF[j].y)); const wk = wanderOf(`${l.c.id}#${j}`, kl, kt, m.hp > 0 && !still); return (
+              <button key={`${l.c.id}#${j}`} type="button" className={`sn-crit sn-kin ${mv} st-${style}${m.hp === 0 ? ' still' : ''}${Date.now() - m.born < 20000 ? ' newborn' : ''} pose-none${wk.cls}`}
+                style={{ left: kl, top: kt, zIndex: 3, ['--d' as string]: `${-sp.d * 0.6}px`, ['--t' as string]: `${(sp.t + j * 2) * (k || 1)}s`, animationDelay: `${-(i + j + 1) * 1.3}s`, ...wk.style }}
                 onClick={(e) => { e.stopPropagation(); snSound('tap'); setKinSel({ id: l.c.id, i: j }); setSel(null); }} aria-label={`${kinName(l.c, j)}, a ${l.c.name} in the family. ${m.hp} of 5 hearts. Tap to care for it.`}>
                 <img src={art(l.c.id)} alt="" />
                 {m.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
                 <span className="sn-crit-name">{kinName(l.c, j)}</span>
                 <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < m.hp ? 'full' : ''} />)}</span>
               </button>
-            ))}
-            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''}${wb?.h.id === l.c.id ? ' wb-h' : wb?.p.id === l.c.id ? ' wb-p' : ''} st-${style}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
-              style={{ ...pos, zIndex: mv === 'fly' ? 4 : 3, ['--d' as string]: `${sp.d}px`, ['--t' as string]: `${sp.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s` }}
+            ); })}
+            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''}${wb?.h.id === l.c.id ? ' wb-h' : wb?.p.id === l.c.id ? ' wb-p' : ''} st-${style}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}${wMain.cls}`}
+              style={{ ...pos, zIndex: mv === 'fly' ? 4 : 3, ['--d' as string]: `${sp.d}px`, ['--t' as string]: `${sp.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s`, ...wMain.style }}
               onClick={(e) => { e.stopPropagation(); if (armed) { if (fits(armed, l)) giveTo(armed, l.c.id); else tell(`${l.c.name} does not need ${armed} right now.`); return; } snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. ${reactions[l.c.id]?.text ?? ''} Tap to check on it.`}>
               {act?.id === l.c.id && !l.hide ? <span className="sn-react act">{act.a.icon} {act.a.text}</span>
                 : reactions[l.c.id] && reactions[l.c.id].word !== 'at home' && !l.hide && <span className={`sn-react${reactions[l.c.id].hit ? ' bad' : ''}`}>{reactions[l.c.id].icon} {reactions[l.c.id].word}</span>}

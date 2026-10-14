@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-creatures-wander",
+    date: "2026-10-14",
+    icon: "🐾",
+    title: "Creatures wander their own way",
+    body: "Watch your Habitat! Every creature moves its own way now. They stroll to new spots, dash, hop, stop to look around, sit down and turn. Creatures with lots of energy zip around, and tired ones take it slow.",
+  },
+  {
     id: "2026-10-14-new-cauldron",
     date: "2026-10-14",
     icon: "🧙",
