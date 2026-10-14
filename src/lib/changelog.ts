@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-battles-clear",
+    date: "2026-10-14",
+    icon: "👉",
+    title: "Creature battles are easier to play",
+    body: "Battles now tell you exactly what to do next at the top of the screen, and read it out loud. The button to tap glows. Move buttons are bigger and say what each move does. And now it is only 2 questions each round!",
+  },
+  {
     id: "2026-10-14-azalea-quick",
     date: "2026-10-14",
     icon: "🐱",

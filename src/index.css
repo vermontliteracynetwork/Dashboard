@@ -8697,3 +8697,28 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .az-log-table .dev { opacity: 0.6; font-size: 0.8rem; }
 .az-log-play { min-height: 36px; padding: 0 8px; font-size: 0.85rem; margin-bottom: 4px; }
 .az-log-fix { min-height: 36px; padding: 0 8px; font-size: 0.85rem; white-space: normal; }
+
+/* Creature battles: one clear next step, iPad-sized (Build Queue 147) */
+.sbx-guide { position: absolute; z-index: 7; left: 10px; right: 10px; top: 10px; display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: rgba(36, 31, 69, 0.94); color: #f6f1ff; border: 3px solid #241f45; border-radius: 14px; box-shadow: 0 4px 0 #241f45; }
+.sbx-steps { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; flex: none; }
+.sbx-steps li { display: flex; align-items: center; gap: 4px; min-height: 36px; padding: 0 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); font-size: 14px; font-weight: 800; }
+.sbx-steps li span { font-size: 12px; font-weight: 700; }
+.sbx-steps li.on { background: #ffd970; color: #241f45; }
+.sbx-steps li.done { background: #57d3b8; color: #241f45; }
+.sbx-steps li:not(.on) span { display: none; }
+.sbx-now { flex: 1; min-width: 0; margin: 0; display: flex; align-items: center; gap: 8px; font-size: 20px; font-weight: 800; line-height: 1.25; }
+.sbx-now span { font-size: 26px; animation: sbxPoint 1.2s ease-in-out infinite; }
+@keyframes sbxPoint { 50% { transform: translateX(5px); } }
+.sb-arena .sb-panel { top: 90px; }
+.sb-center { top: 92px; }
+.sbx-go { animation: sbxGlow 1.4s ease-in-out infinite; }
+@keyframes sbxGlow { 50% { box-shadow: 0 0 0 4px #ffd970, 0 0 22px 6px rgba(255, 217, 112, 0.85); } }
+.sb-move { min-height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 18px; }
+.sb-move small { font-size: 12px; font-weight: 700; opacity: 0.8; }
+.sb-pick { min-height: 150px; }
+.sb-pick img { width: 96px; height: 96px; }
+.sb-pot { width: 84px; min-height: 76px; }
+.sb-pot img { width: 44px; height: 44px; }
+.sb-pot small { font-size: 12px; }
+.sb-card .sn-btn, .sb-moves .sn-btn { min-height: 56px; font-size: 18px; }
+@media (prefers-reduced-motion: reduce) { .sbx-go, .sbx-now span { animation: none; } .sbx-go { box-shadow: 0 0 0 4px #ffd970; } }

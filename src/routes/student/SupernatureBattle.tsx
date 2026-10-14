@@ -29,7 +29,8 @@ const METERS = (magic: number, health: number, conf: number) => (
     ))}
   </div>
 );
-const QUESTIONS_PER_ROUND = 3;
+// Two questions a round (her words, 2026-10-14: "reduce questions needed for attacks in battle to two questions").
+const QUESTIONS_PER_ROUND = 2;
 const STEP_TO_RIGHT: Record<Energy, Energy> = { 'very high': 'high', high: 'just right', 'just right': 'just right', low: 'just right', 'very low': 'low' };
 const BATTLE_POTIONS: Record<string, string> = {
   Aero: 'Flying for this battle: harder to hit', Velo: 'Speed for this battle: goes first more', Fort: 'Tough for this battle: takes less', Mega: 'Power for this battle: hits harder',
@@ -79,6 +80,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
   const [fx, setFx] = useState<{ side: 'me' | 'foe'; kind: 'hit' | 'miss'; aff: Aff | 'tackle' } | null>(null);
   const [won, setWon] = useState<boolean | null>(null);
   const timer = useRef<number | null>(null);
+  const quiet = useRef(false); // the next guide line was already said as part of a longer line
   useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); }, []);
   const custom = (id: string) => (bs.aff?.[id] as Aff[] | undefined);
   const accuracy = (fk: string) => { const a = bs.acc?.[fk]; return a && a.total ? a.right / a.total : null; };
@@ -101,7 +103,10 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
     foeF.confidence = foePre.conf;
     setFoeNpc(n); setMe(myF); setFoe(foeF); setDrank([]);
     const intro = [`${myF.name} faces ${foeF.name}!`, ...pre.lines, `${myF.name} feels ${confWord(myF.confidence)} and ${ENERGY_FX[myF.energy].line}`];
-    setLines(intro); speak(intro.join(' '));
+    const skip = !Object.keys(BATTLE_POTIONS).some((p) => potions.includes(p));
+    setLines(intro); speak(`${intro.join(' ')} ${skip ? `Your turn! Tap one move for ${myF.name}.` : 'You can tap a potion to drink it. Then tap Start the battle.'}`); quiet.current = true;
+    // No battle potions to drink: skip the potion step and go straight to the fight.
+    if (!Object.keys(BATTLE_POTIONS).some((p) => potions.includes(p))) { startWith(myF, foeF); return; }
     setPhase('prep');
   };
   const drink = (name: string) => {
@@ -115,16 +120,17 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
     if (name === 'Viv' || name === 'Dorm') f.energy = 'just right';
     setMe(f); add(`${f.name} drank ${name}: ${BATTLE_POTIONS[name]}.`);
   };
-  const start = () => {
-    if (!me || !foe) return;
+  const startWith = (m: Fighter, f: Fighter) => {
     setPhase('fight'); setStage('choose'); setRound(1); setFocus(0.5);
-    add(`Round 1! ${speedOf(me) >= speedOf(foe) ? `${me.name} is quick and ready.` : `${foe.name} looks quick. Stay calm!`} Pick an action for ${me.name}.`);
+    add(`Round 1! ${speedOf(m) >= speedOf(f) ? `${m.name} is quick and ready.` : `${f.name} looks quick. Stay calm!`}`, false);
   };
+  const start = () => { if (me && foe) startWith(me, foe); };
   const end = (iWon: boolean, a: Fighter, b: Fighter) => {
     setWon(iWon); setPhase('done'); setProj(null); snSound(iWon ? 'learned' : 'close');
     const npcs = bs.npcs.some((x) => x.id === foeNpc!.id) ? bs.npcs : [...bs.npcs, foeNpc!];
     setBs({ ...bs, npcs, log: [...bs.log, { npc: foeNpc!.id, fighter: mine!.key, fighterName: mine!.name, won: iWon, at: new Date().toISOString() }] });
-    speak(iWon ? `${b.name} tapped out. ${a.name} wins! High fives all around. ${a.name} will remember this and feel braver next time.` : `${a.name} tapped out. ${b.name} wins this time. It is okay to lose: every battle is practice. ${a.name} might feel a little nervous next time, and that is a normal feeling.`);
+    quiet.current = true;
+    speak(iWon ? `${b.name} tapped out. ${a.name} wins! High fives all around. ${a.name} will remember this and feel braver next time. Tap Rematch to battle again.` : `${a.name} tapped out. ${b.name} wins this time. It is okay to lose: every battle is practice. ${a.name} might feel a little nervous next time, and that is a normal feeling. Tap Rematch to try again.`);
   };
   const wait = (ms: number, fn: () => void) => { timer.current = window.setTimeout(fn, ms); };
   // The opponent answers the student's action with one of its own.
@@ -152,7 +158,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
   // A 3 to 5 second pause to watch, then three questions in the regular question view.
   const toPause = (m: Fighter, f: Fighter) => {
     setStage('pause'); const secs = 3 + Math.floor(Math.random() * 3); setCountdown(secs);
-    add(`Get ready: ${QUESTIONS_PER_ROUND} questions power up ${m.name} for the next round!`, false);
+    void m;
     let left = secs; const tickDown = () => { left -= 1; setCountdown(left); if (left <= 0) { setStage('questions'); setQs({ q: nextQ(), n: 0, right: 0, wrong: false }); } else wait(1000, tickDown); };
     wait(1000, tickDown); void f;
   };
@@ -167,7 +173,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
     const acc = bs.acc?.[me.key] ?? { right: 0, total: 0 };
     setBs({ ...bs, acc: { ...(bs.acc ?? {}), [me.key]: { right: acc.right + right, total: acc.total + QUESTIONS_PER_ROUND } } });
     setQs(null); setFocus(f); setMe(nm); setStage('choose'); setRound((r) => r + 1); snSound(right === QUESTIONS_PER_ROUND ? 'learned' : 'chime');
-    add(`${right} of ${QUESTIONS_PER_ROUND} right on the first try! ${right === QUESTIONS_PER_ROUND ? `${nm.name} is fully powered up and feels confident!` : right >= 2 ? `${nm.name} feels good.` : `${nm.name} feels a little unsure, but it keeps trying.`} Round ${round + 1}: pick an action.`);
+    add(`${right} of ${QUESTIONS_PER_ROUND} right on the first try! ${right === QUESTIONS_PER_ROUND ? `${nm.name} is fully powered up and feels confident!` : right >= 1 ? `${nm.name} feels good.` : `${nm.name} feels a little unsure, but it keeps trying.`}`, false);
   };
   const act = (aff: Aff | 'tackle' | 'breath' | 'vita') => {
     if (stage !== 'choose' || !me || !foe) return;
@@ -188,6 +194,26 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
     });
   };
   const reset = (to: 'pick' | 'foe') => { if (timer.current) window.clearTimeout(timer.current); setPhase(to); setMe(null); setFoe(null); setLines([]); setWon(null); setQs(null); setProj(null); if (to === 'foe') setCards([randomNpc(), randomNpc()]); };
+
+  // One clear next step on every screen (Build Queue 147, her words 2026-10-14: "the screens to navigate in
+  // the battles are hard to do. student has said "what do i do? do i click here? what is it telling me to
+  // do?""). The guide says it, reads it aloud, and the one thing to tap glows.
+  const stepNo = phase === 'pick' ? 1 : phase === 'foe' ? 2 : phase === 'prep' ? 3 : 4;
+  const doNow = phase === 'pick' ? (mine && mine.c.chapter === 'mine' ? `Pick 1 or 2 powers for ${mine.name}, then tap Next.` : 'Tap the creature you want to battle with.')
+    : phase === 'foe' ? 'Tap ⚔️ Battle under the opponent you want. Or tap 🎲 for a surprise.'
+    : phase === 'prep' ? 'You can tap a potion to drink it. Then tap ⚔️ Start the battle.'
+    : phase === 'done' ? (won ? 'You won! Tap 🔁 Rematch to battle again.' : 'Good try! Tap 🔁 Rematch to try again.')
+    : stage === 'choose' ? `Your turn! Tap one move for ${me?.name ?? 'your creature'}.`
+    : stage === 'mine' ? `Just watch. ${me?.name ?? ''} is doing its move.`
+    : stage === 'theirs' ? `Just watch. ${foe?.name ?? ''} is moving now.`
+    : stage === 'pause' ? `Questions are coming. Right answers power up ${me?.name ?? 'your creature'}.`
+    : 'Answer the question.';
+  useEffect(() => {
+    if (quiet.current) { quiet.current = false; return; }
+    if (phase !== 'fight' || stage === 'choose') speak(doNow);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doNow]);
+  const MOVE_TIP = (a: Aff) => `Strong vs ${AFF[a].beats.map((b) => AFF[b].label).join(' and ')}`;
 
   const fighterCard = (f: Fighter, side: 'me' | 'foe') => (
     <div className={`sb-side ${side}${fx?.side === side ? ` ${fx.kind}` : ''}`}>
@@ -211,7 +237,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
         {METERS(n.magic ?? 50, n.health ?? 60, n.confidence)}
         <small><img src={ENERGY_FACE[n.energy]} alt="" className="sn-smooth" style={{ width: 22, verticalAlign: 'middle' }} /> {n.energy} energy · {confWord(n.confidence)}</small>
         {(r.w > 0 || r.l > 0) && <small>Your record: {r.w} wins, {r.l} losses</small>}
-        <button type="button" className="sn-btn" onClick={() => choose(n)}>⚔️ Battle</button>
+        <button type="button" className="sn-btn sbx-go" onClick={() => choose(n)}>⚔️ Battle</button>
       </div>
     );
   };
@@ -221,18 +247,23 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
       {bar({ extra: <span className="sn-chip">{phase === 'pick' ? 'Pick your fighter' : phase === 'foe' ? 'Pick an opponent' : phase === 'prep' ? 'Get ready' : phase === 'fight' ? `Round ${round}`  : 'Battle over'}</span> })}
       <div className="sb-arena">
         <div className="sb-sky" /><div className="sb-ground" />
-        <div className="sb-tools">
+        <div className="sbx-guide" role="status">
+          <ol className="sbx-steps" aria-label={`Step ${stepNo} of 4`}>
+            {['Your fighter', 'Opponent', 'Get ready', 'Battle'].map((t, i) => <li key={t} className={i + 1 === stepNo ? 'on' : i + 1 < stepNo ? 'done' : ''}>{i + 1 < stepNo ? '✓' : i + 1}<span>{t}</span></li>)}
+          </ol>
+          <p className="sbx-now"><span aria-hidden>👉</span>{doNow}</p>
+          <button type="button" className="sn-ib small light" onClick={() => say(doNow)} aria-label="Listen">🔊</button>
           <button type="button" className="sn-ib small light" onClick={() => setLogOpen(true)} aria-label="Battle log" title="Battle log">📖</button>
-          <button type="button" className="sn-ib small light" onClick={() => setReadOn(!readOn)} aria-label={readOn ? 'Read aloud is on' : 'Read aloud is off'} title="Read aloud">{readOn ? '🔊' : '🔇'}</button>
+          <button type="button" className="sn-ib small light" onClick={() => setReadOn(!readOn)} aria-label={readOn ? 'Read aloud is on' : 'Read aloud is off'} title="Read aloud">{readOn ? '🔔' : '🔕'}</button>
         </div>
 
         {phase === 'pick' && (
           <div className="sb-panel">
             <h2>Who will battle?</h2>
-            <p className="sn-small">Pick one of your Habitat creatures. Its skills, speed and energy decide how it battles. Name your creatures in the Habitat to give each one its own name.</p>
+            <p className="sn-small">Its skills, speed and energy decide how it battles.</p>
             {fighters.length === 0 ? <p>Find creatures on the Globe first. They live in your Habitat, and then they can battle.</p> : (
               <div className="sb-grid">{fighters.map((f) => { return (
-                <button key={f.key} type="button" className={`sb-pick${mine?.key === f.key ? ' on' : ''}`} onClick={() => { snSound('tap'); setMine(f); }}>
+                <button key={f.key} type="button" className={`sb-pick${mine?.key === f.key ? ' on' : ''}`} onClick={() => { snSound('tap'); setMine(f); if (f.c.chapter !== 'mine') { setCards([randomNpc(), randomNpc()]); setPhase('foe'); } }}>
                   <img src={art(f.c.id)} alt="" /><b>{f.name}</b><small>{f.c.name} · {affOf(f.c, custom(f.c.id)).map((a) => AFF[a].icon).join(' ')}</small>
                   {METERS(magicOf(f.k, affOf(f.c, custom(f.c.id))), f.health, confFor(f))}
                 </button>
@@ -243,7 +274,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
                 <button key={a} type="button" className={`sn-chip-btn${on ? ' on' : ''}`} onClick={() => { const next = on ? cur.filter((x) => x !== a) : [...cur, a].slice(-2); setBs({ ...bs, aff: { ...(bs.aff ?? {}), [mine.c.id]: next.length ? next : cur } }); }}>{AFF[a].icon} {AFF[a].label}</button>
               ); })}</div>
             )}
-            <button type="button" className="sn-btn" disabled={!mine} onClick={() => { snSound('page'); setPhase('foe'); }}>Next: pick an opponent</button>
+            {mine && mine.c.chapter === 'mine' && <button type="button" className="sn-btn sbx-go" onClick={() => { snSound('page'); setPhase('foe'); }}>Next: pick an opponent</button>}
           </div>
         )}
 
@@ -254,7 +285,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
               {cards.map(npcCard)}
               <div className="sb-card dice">
                 <span className="sb-dice">🎲</span><b>Random opponent</b><small>Roll the dice for a surprise creature with surprise skills!</small>
-                <button type="button" className="sn-btn" onClick={() => { snSound('poof'); choose(randomNpc()); }}>🎲 Roll and battle</button>
+                <button type="button" className="sn-btn sbx-go" onClick={() => { snSound('poof'); choose(randomNpc()); }}>🎲 Roll and battle</button>
               </div>
             </div>
             <div className="sn-row center">
@@ -277,22 +308,22 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
                       <img src={POTION_ICON[p]} alt="" /><small>{p} ({n})</small>
                     </button>
                   ); })}</div>
-                  <button type="button" className="sn-btn" onClick={start}>⚔️ Start the battle</button>
+                  <button type="button" className="sn-btn sbx-go" onClick={start}>⚔️ Start the battle</button>
                 </div>
               )}
               {phase === 'fight' && (
                 <div className="sb-moves">
                   {stage === 'choose' && <>
-                    <b className="sb-turn">Round {round}: pick an action for {me.name}</b>
+                    <b className="sb-turn">Round {round}: your turn</b>
                     <div className="sb-movegrid">
-                      {me.aff.map((a) => <button key={a} type="button" className={`sb-move ${a}`} onClick={() => act(a)}>{AFF[a].icon} {AFF[a].move}</button>)}
-                      <button type="button" className="sb-move" onClick={() => act('tackle')}>💥 Tackle</button>
-                      <button type="button" className="sb-move calm" onClick={() => act('breath')}>🌬️ Deep breath</button>
-                      {potions.includes('Vita') && <button type="button" className="sb-move" onClick={() => act('vita')}>❤️ Drink Vita</button>}
+                      {me.aff.map((a) => <button key={a} type="button" className={`sb-move sbx-go ${a}`} onClick={() => act(a)}>{AFF[a].icon} {AFF[a].move}<small>{MOVE_TIP(a)}</small></button>)}
+                      <button type="button" className="sb-move sbx-go" onClick={() => act('tackle')}>💥 Tackle<small>A simple bump</small></button>
+                      <button type="button" className="sb-move sbx-go calm" onClick={() => act('breath')}>🌬️ Deep breath<small>Calmer and braver</small></button>
+                      {potions.includes('Vita') && <button type="button" className="sb-move sbx-go" onClick={() => act('vita')}>❤️ Drink Vita<small>Gets 20 health back</small></button>}
                     </div>
                     <small>{focus >= 0.99 ? '⚡ Fully powered up from last round!' : focus >= 0.6 ? 'Powered up from last round.' : 'Answer questions well to power up the next round.'}</small>
                   </>}
-                  {(stage === 'mine' || stage === 'theirs') && <b className="sb-turn">{stage === 'mine' ? `${me.name} is acting... watch!` : `${foe.name} answers back... watch!`}</b>}
+                  {(stage === 'mine' || stage === 'theirs') && <b className="sb-turn">👀 {stage === 'mine' ? `${me.name} is moving. Watch!` : `${foe.name} is moving. Watch!`}</b>}
                   {stage === 'pause' && <><b className="sb-turn">Get ready: {QUESTIONS_PER_ROUND} questions!</b><span className="sb-count">{countdown}</span><small>Right answers power up {me.name} and build its confidence.</small></>}
                   {stage === 'questions' && <b className="sb-turn">Question {(qs?.n ?? 0) + 1} of {QUESTIONS_PER_ROUND}</b>}
                 </div>
@@ -302,7 +333,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
                   <b className="sb-turn">{won ? `🏆 ${me.name} wins!` : `🤝 ${foe.name} wins this time`}</b>
                   <small>{won ? 'High fives all around! Winning makes it braver next time.' : 'It is okay to lose. Every battle is practice, and feeling nervous next time is normal.'}</small>
                   <div className="sn-row center">
-                    <button type="button" className="sn-btn" onClick={() => { const n = foeNpc!; reset('foe'); window.setTimeout(() => choose(n), 0); }}>🔁 Rematch</button>
+                    <button type="button" className="sn-btn sbx-go" onClick={() => { const n = foeNpc!; reset('foe'); window.setTimeout(() => choose(n), 0); }}>🔁 Rematch</button>
                     <button type="button" className="sn-btn2" onClick={() => reset('foe')}>New opponent</button>
                     <button type="button" className="sn-btn2" onClick={() => reset('pick')}>New fighter</button>
                   </div>
