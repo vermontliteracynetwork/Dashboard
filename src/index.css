@@ -8763,3 +8763,52 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 @keyframes snKinBorn { from { transform: scale(0.2); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } }
 .sn-birth { border-color: #9fe3a0; box-shadow: 0 6px 0 #241f45, 0 0 0 3px #9fe3a0; }
 @media (prefers-reduced-motion: reduce) { .sn-kin.newborn img { animation: none; } }
+
+/* Supernature Mixing Lab: the Science Lab's real chemistry in pixel flasks (Build Queue 156) */
+.mx { position: absolute; inset: 0; }
+.mx-shelf { position: absolute; left: 14px; top: 84px; width: 330px; height: 662px; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 14px; background: #4a4480; color: #f6f1ff; border: 4px solid #241f45; border-radius: 14px; box-shadow: 0 5px 0 #241f45; }
+.mx-bottles { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; align-content: start; padding-right: 4px; }
+.mx-bottle { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 104px; padding: 6px 4px; background: #2e2250; color: #f6f1ff; border: 3px solid #1a1530; border-radius: 10px; font: inherit; cursor: grab; touch-action: none; }
+.mx-bottle b { font-size: 12px; line-height: 1.15; text-align: center; }
+.mx-bottle small { font-size: 11px; opacity: 0.8; }
+.mx-vial { position: relative; display: block; width: 30px; height: 46px; background: linear-gradient(transparent 38%, var(--c) 38%); border: 3px solid #f6f1ff; border-radius: 4px 4px 10px 10px; box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.25); image-rendering: pixelated; }
+.mx-vial::before { content: ''; position: absolute; left: 7px; top: -9px; width: 10px; height: 7px; background: #b8875a; border: 2px solid #241f45; }
+.mx-vial.powder { background: linear-gradient(transparent 62%, var(--c) 62%); }
+.mx-vial.gas { background: radial-gradient(circle at 50% 55%, var(--c) 0 40%, transparent 42%); }
+.mx-vial.solid { background: linear-gradient(transparent 55%, var(--c) 55% 80%, transparent 80%); }
+.mx-bench { position: absolute; left: 356px; top: 84px; width: 810px; height: 662px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #f1e3bf; color: #241f45; border: 4px solid #241f45; border-radius: 14px; box-shadow: 0 5px 0 #241f45; }
+.mx-rank { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+.mx-rank .sn-btn2 { margin-left: auto; }
+.mx-flasks { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: end; }
+.mx-station { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.mx-flask { position: relative; width: 200px; height: 300px; padding: 0; background: none; border: 0; cursor: pointer; }
+.mx-glass { position: absolute; left: 30px; right: 30px; top: 40px; bottom: 30px; overflow: hidden; background: rgba(255, 255, 255, 0.45); border: 5px solid #241f45; border-radius: 30px 30px 50% 50% / 20px 20px 46% 46%; box-shadow: inset -10px 0 0 rgba(255, 255, 255, 0.35); }
+.mx-glass::before { content: ''; position: absolute; left: 34%; top: -40px; width: 32%; height: 46px; border: 5px solid #241f45; border-bottom: 0; background: rgba(255, 255, 255, 0.45); }
+.mx-liquid { position: absolute; left: 0; right: 0; bottom: 0; transition: height 0.6s, background 0.6s; box-shadow: inset 0 6px 0 rgba(255, 255, 255, 0.35); }
+.mx-bubbles i { position: absolute; bottom: 8px; width: 10px; height: 10px; border: 2px solid rgba(255, 255, 255, 0.8); border-radius: 50%; animation: mxBubble 2.4s linear infinite; }
+.mx-bubbles i:nth-child(1) { left: 25%; } .mx-bubbles i:nth-child(2) { left: 55%; animation-delay: 0.8s; } .mx-bubbles i:nth-child(3) { left: 75%; animation-delay: 1.6s; }
+@keyframes mxBubble { to { transform: translateY(-140px); opacity: 0; } }
+.mx-flask.on .mx-glass { box-shadow: inset -10px 0 0 rgba(255, 255, 255, 0.35), 0 0 0 5px #ffd970, 0 0 24px 6px rgba(255, 217, 112, 0.8); }
+.mx-flask.from .mx-glass { box-shadow: 0 0 0 5px #57d3b8; }
+.mx-flask.drop .mx-glass { outline: 4px dashed #8c5ad1; outline-offset: 6px; }
+.mx-flask.hot .mx-glass { animation: snShake 0.35s linear infinite; }
+.mx-stream { position: absolute; left: 50%; top: -30px; width: 14px; height: 120px; margin-left: -7px; border: 3px solid #241f45; border-radius: 6px; animation: mxPour 0.7s ease-in forwards; }
+@keyframes mxPour { from { transform: scaleY(0); transform-origin: top; } to { transform: scaleY(1); transform-origin: top; } }
+.mx-fx { position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 3; }
+.mx-flame { position: absolute; left: 50%; bottom: -24px; transform: translateX(-50%); z-index: 2; }
+.mx-chips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; min-height: 26px; }
+.mx-chips span { padding: 2px 8px; border-radius: 999px; background: #fff7e2; border: 2px solid #c8962a; font-size: 13px; font-weight: 700; }
+.mx-chips span.empty { opacity: 0.6; }
+.mx-tools { display: flex; gap: 6px; }
+.mx-tools .sn-btn2 { min-height: 48px; }
+.mx-tools .sn-btn2.on { background: #57d3b8; }
+.mx-note { display: flex; align-items: center; gap: 8px; margin: 0; }
+.mx-card .mx-magicline { margin: 0; font-size: 19px; font-style: italic; }
+.mx-science { width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; background: #fff7e2; border: 3px solid #c8962a; border-radius: 12px; text-align: left; }
+.mx-science p { margin: 0; }
+.mx-science code, .mx-page code { font-family: inherit; font-size: 14px; color: #4a4480; }
+.mx-book-grid { width: 100%; max-height: 440px; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; text-align: left; }
+.mx-page { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; background: #fff7e2; border: 2px solid #c8962a; border-radius: 10px; }
+.mx-page.locked { opacity: 0.7; border-style: dashed; }
+.mx-drag { position: absolute; z-index: 40; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .mx-bubbles i, .mx-flask.hot .mx-glass, .mx-stream { animation: none; } }

@@ -14,6 +14,7 @@ import SupernatureBattle from './SupernatureBattle';
 import SupernatureSpellBook from './SupernatureSpellBook';
 import SupernatureGlobe from './SupernatureGlobe';
 import PopCard from './SupernaturePopCard';
+import SupernatureMixLab from './SupernatureMixLab';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
 // docs/SUPERNATURE_PLAN.md). Home is the Witch's House with the Cat Wizard as host. Every other room
@@ -223,6 +224,8 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
 }) {
   const [ri, setRi] = useState(start);
   const [list, setList] = useState(false);
+  // Recipe brewing, or the free Mixing Lab with real chemistry (Build Queue 156).
+  const [mode, setMode] = useState<'recipe' | 'lab'>('recipe');
   const R = RECIPES[ri];
   const locked = !!R.unlock && !brewed.includes(R.unlock);
   const [step, setStep] = useState(0);
@@ -308,7 +311,14 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
   const isLocked = (x: typeof R) => !!x.unlock && !brewed.includes(x.unlock);
   return (
     <div className="sn-room">
-      {bar({ extra: <span className="sn-chip">My potions: {potions.length}</span> })}
+      {bar({ extra: <>
+        <span className="sn-seg" role="radiogroup" aria-label="Cauldron mode">
+          <button type="button" role="radio" aria-checked={mode === 'recipe'} className={mode === 'recipe' ? 'on' : ''} onClick={() => { snSound('page'); setMode('recipe'); }}>📜 Recipes</button>
+          <button type="button" role="radio" aria-checked={mode === 'lab'} className={mode === 'lab' ? 'on' : ''} onClick={() => { snSound('page'); setMode('lab'); say('The Mixing Lab! Pick a flask, then tap or drag a bottle in. Real science decides what happens.'); }}>⚗️ Mixing Lab</button>
+        </span>
+        <span className="sn-chip">My potions: {potions.length}</span>
+      </> })}
+      {mode === 'lab' ? <SupernatureMixLab say={say} /> : <>
       <section className="sn-recipe">
         <div className="sn-row between">
           <button type="button" className="sn-ib small light" onClick={() => { snSound('page'); reset((ri + RECIPES.length - 1) % RECIPES.length); }} aria-label="Previous recipe"><Icon d="M15 5l-7 7 7 7" /></button>
@@ -369,6 +379,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
         </div>
         <button type="button" className="sn-btn2 small" onClick={goShop}>🛒 Shop for more</button>
       </section>
+      </>}
       {dragItem && <img src={ING(dragItem.id).img} alt="" className="sn-drag-ghost" style={{ left: dragItem.x - 30, top: dragItem.y - 30 }} />}
       {write && <SupernatureWriting word={spell} title="Write the spell" onListen={() => say(spell)} onClose={() => setWrite(false)} onDone={finish} />}
     </div>

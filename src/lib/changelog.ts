@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-mixing-lab",
+    date: "2026-10-14",
+    icon: "⚗️",
+    title: "New: the Mixing Lab in Supernature",
+    body: "Tap Mixing Lab at the Cauldron. Pour real ingredients like baking soda, vinegar and copper into three flasks, heat them, and mix them together. They fizz, foam, glow or go boom only when real science says so! Every reaction has a magic name and the real science behind it. Fill your Grimoire and become an Archmage.",
+  },
+  {
     id: "2026-10-14-pets-smooth",
     date: "2026-10-14",
     icon: "🐾",
