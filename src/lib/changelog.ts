@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-creature-battles",
+    date: "2026-10-14",
+    icon: "⚔️",
+    title: "Creature Battles!",
+    body: "Tap the weapon rack above the Habitat door. Pick one of your creatures, then pick a wild opponent or roll the dice. Throw a Fireball, then watch your opponent answer back. Then answer 3 questions to power up for the next round. Keep calm with a Deep breath, and check your Battle Log for rematches. You can name every creature in its family too.",
+  },
+  {
     id: "2026-10-14-habitat-plants",
     date: "2026-10-14",
     icon: "🌿",

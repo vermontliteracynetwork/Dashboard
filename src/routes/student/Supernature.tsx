@@ -10,6 +10,7 @@ import SupernatureWriting, { Icon } from './SupernatureWriting';
 import SupernatureBook from './SupernatureBook';
 import SupernatureHabitat from './SupernatureHabitat';
 import SupernatureMaker from './SupernatureMaker';
+import SupernatureBattle from './SupernatureBattle';
 import SupernatureGlobe from './SupernatureGlobe';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
@@ -18,12 +19,12 @@ import SupernatureGlobe from './SupernatureGlobe';
 // the door), the Encyclopedia (the bookshelf), the Globe, the Cauldron, the Name Builder, and the
 // Creature Maker and Shop, which are still being built.
 
-type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop';
+type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop' | 'battle';
 type BarOpts = { back?: () => void; backLabel?: string; extra?: React.ReactNode };
 const STAGE_W = 1180, STAGE_H = 760;
 const ROOM_TITLE: Record<Room, string> = {
   home: 'Supernature', habitat: 'Habitat', globe: 'Globe', book: 'Encyclopedia', cauldron: 'Cauldron',
-  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop',
+  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles',
 };
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 
@@ -112,6 +113,7 @@ export default function Supernature() {
             patch({ potions: [...potions, name], pantry: np, brewed: brewed.includes(name) ? brewed : [...brewed, name] });
           }} goNames={() => go('names')} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
         {room === 'names' && <Names bar={bar} say={say} names={save.names ?? []} onSave={(n) => patch({ names: [...(save.names ?? []), n] })} />}
+        {room === 'battle' && <SupernatureBattle bar={bar} say={say} save={save} patch={patch} potions={potions} usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }} />}
         {room === 'shop' && <Shop bar={bar} say={say} coins={student.coins} pantry={pantry} earned={save.earned ?? []} goCauldron={() => go('cauldron')}
           onBuy={(id) => {
             const g = ING(id); if (student.coins < g.price) return false;
@@ -161,6 +163,10 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
         <img src={`${W}bookshelves-4.png`} alt="" style={{ width: 230, display: 'block' }} />{tag('Encyclopedia', true)}
       </button>
 
+      {/* Her weapon rack (Build Queue 137) on the wall above the Habitat door opens Creature Battles. */}
+      <button type="button" className="sn-obj sn-rack" style={{ left: 308, top: 82, width: 120 }} onClick={() => go('battle')} aria-label="Creature Battles">
+        <img src={`${SN}battle/rack.png`} alt="" style={{ width: 120, height: 120, imageRendering: 'pixelated', display: 'block' }} />{tag('Battles')}
+      </button>
       <button type="button" className="sn-obj" style={{ left: 290, bottom: 250, width: 156 }} onClick={() => go('habitat')} aria-label="Go outside to the Habitat">
         <span className="sn-door"><span className="sn-door-win"><img src={`${SN}creatures/griffin.png`} alt="" /></span><span className="sn-door-sign">HABITAT</span><i /></span>
         <span className="sn-door-sill" />

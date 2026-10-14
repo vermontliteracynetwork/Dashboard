@@ -13,6 +13,7 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
 import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
+import { affOf, confidenceOf, healthOf, magicOf } from '../../lib/supernatureBattle';
 import {
   HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, canBeHunted, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
@@ -231,6 +232,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [seedFor, setSeedFor] = useState<number | null>(null);
   const [bookOpen, setBookOpen] = useState(false);
   const [act, setAct] = useState<{ id: string; a: Act } | null>(null);
+  // Each family member can have its own name (Build Queue 137: "3 generations of phoenix ... can name them").
+  const [names, setNames] = useState<Record<string, string[]>>(saved.names ?? {});
+  const [naming, setNaming] = useState<string | null>(null);
   const ttsSettings = useStore((st) => st.students.find((x) => x.id === st.currentStudentId)?.ttsSettings);
   const questionSets = useStore((st) => st.questionSets);
   const [live, setLive] = useState<Live[]>(() => all.filter((c) => saved.faded?.[c.id] === undefined && !(saved.out ?? []).includes(c.id)).map((c, i, arr) => ({ c, ...place(c, i, arr.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
@@ -483,8 +487,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${picked.length}|${book.length}`;
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -860,7 +864,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <span className="sn-sparkles" />}
               {caughtFx.includes(l.c.id) && <span className="sn-catch" />}
-              <span className="sn-crit-name"><i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
+              <span className="sn-crit-name"><i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
           );
@@ -944,6 +948,11 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             {(() => { const f = feelFor(sel_); const t = feelingSentence(sel_.c.name, f); return (
               <p className={`sn-feel ${f.zone}`}><b>{ZONE_NAME[f.zone]}:</b> {t}<button type="button" className="sn-listen" onClick={() => say(t)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
             ); })()}
+            {(() => { const mg = magicOf(sk(sel_.c), affOf(sel_.c)); const hl = healthOf(sel_.hp, levels[sel_.c.id] ?? 1, (seen[sel_.c.id] ?? []).length); const cf = confidenceOf(mg, hl, 0, 0, null); return (
+              <div className="sb-meters sn-pop-meters" aria-label={`Magic ${mg}, health ${hl}, confidence ${cf}`}>
+                {([['✨ Magic', mg, 'magic'], ['💚 Health', hl, 'health'], ['💪 Confidence', cf, 'conf']] as const).map(([l, v, k]) => <div key={k} className={`sb-m ${k}`}><span>{l}</span><i><b style={{ width: `${v}%` }} /></i><em>{v}</em></div>)}
+              </div>
+            ); })()}
             <div className="sn-pop-skills">
               <b>🧬 Skills ({Object.keys(sk(sel_.c)).length} of {MAX_SKILLS})</b>
               <div>{(Object.entries(sk(sel_.c)) as [SkillId, number][]).map(([id, n]) => <span key={id} className="sn-skill" title={SKILL(id).does}>{SKILL(id).icon} {SKILL(id).name} <i>{'●'.repeat(n)}{'○'.repeat(MAX_LEVEL - n)}</i></span>)}</div>
@@ -969,6 +978,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 {sel_.hp < 5 && have('Vita') < 1 && <button type="button" className="sn-btn2" onClick={() => goCauldron('Vita')}>Brew a Vita potion to heal it</button>}
                 <button type="button" className="sn-btn2 go" disabled={sel_.hp === 0} onClick={() => { snSound('open'); setPlaying(sel_.c); setSel(null); }}>🎮 Be this creature</button>
                 <button type="button" className="sn-btn2" onClick={() => openPage(sel_.c.id)}>Read its page</button>
+                <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setNaming(sel_.c.id); }}>✏️ Name the family</button>
                 <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setPlacing({ id: sel_.c.id, mode: 'remove' }); }}>🧺 Take out of the Habitat</button>
               </div>
             ) : (
@@ -1041,6 +1051,21 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           </div>
         </div>
       )}
+      {naming && (() => { const c = live.find((l) => l.c.id === naming)?.c; if (!c) return null; const n = Math.max(1, Math.min(10, count(c.id))); return (
+        <div className="sn-modal" role="dialog" aria-label={`Name the ${c.name} family`} onClick={() => setNaming(null)}>
+          <div className="sn-modal-card paper" onClick={(e) => e.stopPropagation()}>
+            <h2>✏️ Name the {c.name} family</h2>
+            <p className="sn-small">There {n === 1 ? 'is 1' : `are ${n}`} in the family. Give each one its own name. Names start with a capital letter. The first one shows in the Habitat, and the first three can battle.</p>
+            <div className="sn-namelist">{Array.from({ length: n }, (_, i) => (
+              <label key={i}>{i === 0 ? 'Generation 1 (the oldest)' : `Generation ${i + 1}`}
+                <input id={`sn-name-${c.id}-${i}`} value={names[c.id]?.[i] ?? ''} maxLength={18} placeholder={`${c.name} ${i + 1}`}
+                  onChange={(e) => { const v = e.target.value.replace(/^\s+/, ''); setNames((m) => { const row = [...(m[c.id] ?? [])]; row[i] = v ? v[0].toUpperCase() + v.slice(1) : ''; return { ...m, [c.id]: row }; }); }} />
+              </label>
+            ))}</div>
+            <button type="button" className="sn-btn" onClick={() => { snSound('done'); setNaming(null); tell(`Names saved for the ${c.name} family!`); }}>Save names</button>
+          </div>
+        </div>
+      ); })()}
       {outTray && (
         <div className="sn-modal" role="dialog" aria-label="Creatures not in play" onClick={() => setOutTray(false)}>
           <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
