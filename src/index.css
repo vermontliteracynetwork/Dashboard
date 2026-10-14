@@ -8392,3 +8392,25 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .az-log-table tr.urgent td:first-child { box-shadow: inset 4px 0 0 #d23c3c; }
 .az-log-photo { padding: 0; border: 0; background: none; cursor: zoom-in; margin-right: 4px; }
 .az-log-photo img { width: 56px; height: 42px; object-fit: cover; border-radius: 6px; }
+
+/* Question reports (Build Queue 131) */
+.qr-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.qr-controls label { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.qr-controls select, .qr-controls input { min-height: 40px; border-radius: 10px; padding: 0 8px; font: inherit; }
+.qr-block { display: flex; flex-direction: column; gap: 8px; }
+.qr-block h2 { margin: 0; }
+.qr-block h2 small { font-weight: 600; opacity: 0.65; font-size: 0.9rem; margin-left: 6px; }
+.qr-totals { display: flex; flex-wrap: wrap; gap: 8px; }
+.qr-totals span { padding: 6px 12px; border-radius: 999px; background: rgba(0, 0, 0, 0.05); font-variant-numeric: tabular-nums; }
+.qr-try { display: inline-block; margin: 2px 4px 2px 0; padding: 1px 8px; border-radius: 999px; font-size: 0.85rem; }
+.qr-try.ok { background: #e3f6e6; color: #1f5a2a; }
+.qr-try.no { background: #fde6e1; color: #8a2a1a; }
+.qr-try.none { background: #eee; color: #555; }
+.qr-attempt { margin-bottom: 4px; }
+.qr-attempt small { opacity: 0.7; margin-right: 4px; }
+.qr-table td { font-variant-numeric: tabular-nums; }
+@media print {
+  .teacher-nav, nav, .qr-controls, .report-bubble { display: none !important; }
+  .az-log-scroll { overflow: visible; border: 0; }
+  .qr-block { break-inside: avoid-page; }
+}

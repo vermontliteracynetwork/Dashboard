@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useQLog } from '../../lib/questionLog';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { MCQuestion, StudentPet } from '../../types';
@@ -391,8 +392,12 @@ function DogeQuiz({ quiz, tts, onRight, onWrong, onSkip }: { quiz: Quiz; tts: Pa
   const [wrong, setWrong] = useState<Set<number>>(() => new Set());
   const [right, setRight] = useState(false);
   const listen = () => speak(`${q.prompt} ${order.map((i) => q.choices[i]).join(', ')}`, tts);
+  const qlog = useQLog("Buff Doge's Gym");
+  useEffect(() => { qlog.show(q.prompt, q.choices[q.correctIndex] ?? ''); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
   const pick = (i: number) => {
     if (right || wrong.has(i)) return;
+    qlog.tap(q.choices[i], i === q.correctIndex);
     if (i === q.correctIndex) { setRight(true); recordStreakCorrect(); window.setTimeout(onRight, 800); }
     else { setWrong((w) => new Set(w).add(i)); onWrong(); }
   };

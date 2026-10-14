@@ -43,6 +43,7 @@ export default function ScoreHistory() {
       <TeacherNav />
       <div className="container stack">
         <h1>📊 Scores</h1>
+        <p style={{ margin: 0 }}><a href="#/teacher/question-reports">📝 Every question by game and by day: open Question reports</a></p>
         <p style={{ opacity: 0.75, marginTop: -8 }}>
           Every finished quiz attempt. Students can retake a quiz any number of times, and each pass logs its own record here.
         </p>

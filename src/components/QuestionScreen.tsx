@@ -6,6 +6,7 @@ import type { NpcVoiceProfile } from '../lib/npcVoices';
 import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
 import ZoomableImage from './ZoomableImage';
 import { openCheckOnPet } from './CheckOnPet';
+import { currentGameName, logQuestion } from '../lib/questionLog';
 
 // Quick misses (under 3 seconds since the question or the last try), across questions.
 const FAST_MISSES: number[] = [];
@@ -154,6 +155,14 @@ export default function QuestionScreen({
   const toggleMark = (i: number) => setMarked((prev) => { const next = new Set(prev); if (next.has(i)) next.delete(i); else next.add(i); return next; });
   const advanceTimer = useRef<number | null>(null);
   const shownAt = useRef(Date.now());
+  // The question log for the teacher's reports (2026-10-14): every answer tapped, the time taken and
+  // how the question ended. A new prompt or leaving the screen closes the open entry.
+  const qlog = useRef<{ prompt: string; answer: string; start: number; tries: string[]; done: boolean } | null>(null);
+  const closeLog = (outcome: 'right' | 'skipped' | 'left') => {
+    const q = qlog.current; if (!q || q.done) return;
+    q.done = true;
+    logQuestion({ at: new Date(q.start).toISOString(), game: currentGameName(whoLabel), prompt: q.prompt, answer: q.answer, tries: q.tries, ms: Date.now() - q.start, outcome });
+  };
 
   // A fresh random answer order per question — teacher report: the
   // correct choice kept landing in the same authored-order slot (usually
@@ -183,15 +192,22 @@ export default function QuestionScreen({
     setMarked(new Set());
     shownAt.current = Date.now();
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+    closeLog('skipped');
+    qlog.current = { prompt, answer: choices[correctIndex] ?? '', start: Date.now(), tries: [], done: false };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt]);
 
   useEffect(() => () => {
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+    closeLog('left');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChoice = (i: number) => {
     if (answeredCorrectly) return;
+    if (qlog.current && !qlog.current.done) qlog.current.tries.push(choices[i] ?? String(i));
     if (i === correctIndex) {
+      closeLog('right');
       setAnsweredCorrectly(true);
       // Every right answer anywhere counts toward today's Daily Streak.
       recordStreakCorrect();

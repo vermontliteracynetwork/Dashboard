@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { answerText, useQLog } from '../../lib/questionLog';
 import SpeakAnswer from '../../components/SpeakAnswer';
 import { useStore } from '../../store/store';
 import ReadAloud, { speak } from '../../components/ReadAloud';
@@ -277,6 +278,10 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   // finishing the question set. Gauntlet mode only adds an extra local
   // "5 correct in a row" requirement on top, before lives come back.
   const activeQ = masteryQ;
+  // Every question for the teacher's Question reports (2026-10-14).
+  const qlog = useQLog();
+  useEffect(() => { if (activeQ) qlog.show(activeQ.prompt, answerText(activeQ as Parameters<typeof answerText>[0])); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeQ?.id]);
 
   // A fresh random answer order per question, same fix as QuizTask.tsx's
   // mcOrder — teacher report: authored questions kept the correct choice
@@ -639,7 +644,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
   }, [character, level]);
 
   // ---------- Answer handling (reuses the same mastery/retry loop as QuizTask) ----------
-  const submitAnswer = (correct: boolean) => setPendingCorrect(correct);
+  const submitAnswer = (correct: boolean, said?: string) => { qlog.tap(said ?? (correct ? answerText(activeQ as Parameters<typeof answerText>[0]) || 'right' : 'wrong'), correct); setPendingCorrect(correct); };
 
   // Same read-the-choices fix as QuizTask.tsx (Claudia's quiz-mode audit).
   const readChoices = () => {
@@ -1084,7 +1089,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                       key={origIdx}
                       className={`btn btn-lg ${picked === origIdx ? (origIdx === activeQ.correctIndex ? 'btn-success' : 'btn-danger') : ''}`}
                       disabled={pendingCorrect !== null}
-                      onClick={() => { setPicked(origIdx); submitAnswer(origIdx === activeQ.correctIndex); }}
+                      onClick={() => { setPicked(origIdx); submitAnswer(origIdx === activeQ.correctIndex, activeQ.choices[origIdx]); }}
                     >
                       {activeQ.choices[origIdx]}
                     </button>
@@ -1108,7 +1113,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                           key={w}
                           className={`btn btn-lg ${fillValue === w ? (w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase() ? 'btn-success' : 'btn-danger') : ''}`}
                           disabled={pendingCorrect !== null}
-                          onClick={() => { setFillValue(w); submitAnswer(w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase()); }}
+                          onClick={() => { setFillValue(w); submitAnswer(w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase(), w); }}
                         >
                           {w}
                         </button>
@@ -1122,7 +1127,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                       <button
                         className="btn btn-primary"
                         disabled={pendingCorrect !== null || !fillValue.trim()}
-                        onClick={() => submitAnswer(isCloseEnoughAnswer(fillValue, activeQ.answer))}
+                        onClick={() => submitAnswer(isCloseEnoughAnswer(fillValue, activeQ.answer), fillValue)}
                       >
                         Check
                       </button>

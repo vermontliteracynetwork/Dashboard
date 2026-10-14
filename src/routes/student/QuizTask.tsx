@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { answerText, useQLog } from '../../lib/questionLog';
 import { useStore } from '../../store/store';
 import ReadAloud, { speak } from '../../components/ReadAloud';
 import { isCloseEnoughAnswer } from '../../lib/answerMatch';
@@ -103,6 +104,10 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
   const total = questions.length;
   const activeId = state?.remainingIds[0];
   const activeQ = questions.find((q) => q.id === activeId);
+  // Every question for the teacher's Question reports (2026-10-14).
+  const qlog = useQLog(`${task.title}`);
+  useEffect(() => { if (activeQ) qlog.show(activeQ.prompt, answerText(activeQ as Parameters<typeof answerText>[0])); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeQ?.id]);
 
   // A fresh random answer order each time a new question comes up —
   // default on (same as shuffleQuestions below), since without it the
@@ -166,7 +171,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
     );
   }
 
-  const submitAnswer = (correct: boolean, overrideConfirmed = false) => { overrideRef.current = overrideConfirmed; setPendingCorrect(correct); };
+  const submitAnswer = (correct: boolean, overrideConfirmed = false, said?: string) => { qlog.tap(said ?? (correct ? answerText(activeQ as Parameters<typeof answerText>[0]) || 'right' : 'wrong'), correct); overrideRef.current = overrideConfirmed; setPendingCorrect(correct); };
 
   // Claudia's quiz-mode audit: the prompt was read-aloud-able but the
   // answer choices themselves never were — for a non/emerging-reader
@@ -276,7 +281,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
                   disabled={answered}
                   onClick={() => {
                     setPicked(origIdx);
-                    submitAnswer(origIdx === activeQ.correctIndex);
+                    submitAnswer(origIdx === activeQ.correctIndex, false, activeQ.choices[origIdx]);
                   }}
                 >
                   {activeQ.choices[origIdx]}
@@ -310,7 +315,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
                       onClick={() => {
                         setUsedWords([w]);
                         setFillValue(w);
-                        submitAnswer(w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase());
+                        submitAnswer(w.trim().toLowerCase() === activeQ.answer.trim().toLowerCase(), false, w);
                       }}
                     >
                       {w}
@@ -334,7 +339,7 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
                   <button
                     className="btn btn-primary"
                     disabled={answered || !fillValue.trim()}
-                    onClick={() => submitAnswer(isCloseEnoughAnswer(fillValue, activeQ.answer))}
+                    onClick={() => submitAnswer(isCloseEnoughAnswer(fillValue, activeQ.answer), false, fillValue)}
                   >
                     Check
                   </button>
