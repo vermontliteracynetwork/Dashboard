@@ -168,7 +168,9 @@ export default function ReviewInbox() {
                         {nameFor(item.studentId)} sent feedback — {CATEGORY_LABEL[item.category] ?? item.category}
                         {item.customLabel ? ` (${item.customLabel})` : ''}
                         {item.subcategoryLabel ? <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>{item.subcategoryLabel}</div> : null}
-                        {item.text && <div style={{ fontSize: '0.85rem', marginTop: 4, fontStyle: 'italic' }}>"{item.text}"</div>}
+                        {item.text && <div style={{ fontSize: '0.85rem', marginTop: 4, fontStyle: 'italic', whiteSpace: 'pre-line' }}>"{item.text.replace(/\n?🎙️ Voice memo \(\d+ seconds\): \S+/, '')}"</div>}
+                        {/* Azalea's reports can carry a student's voice memo (2026-10-14). */}
+                        {item.text?.match(/🎙️ Voice memo \((\d+) seconds\): (\S+)/) && <div style={{ marginTop: 6 }}>🎙️ Voice memo: <audio controls preload="none" src={item.text.match(/🎙️ Voice memo \(\d+ seconds\): (\S+)/)![1]} style={{ verticalAlign: 'middle', height: 36 }} /></div>}
                       </>
                     ) : (
                       <>

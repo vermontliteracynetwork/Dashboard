@@ -42,3 +42,14 @@ export async function uploadVideo(file: File, onProgress?: (pct: number) => void
   const { data } = supabase.storage.from(VIDEO_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }
+
+// A student's voice memo for the teacher (Azalea's bug and idea reports, 2026-10-14). Saved in the
+// videos bucket with a video type, which plays sound-only files the same way and needs no new bucket.
+export async function uploadVoiceMemo(blob: Blob): Promise<string> {
+  if (!isSupabaseConfigured) throw new Error('Supabase is not connected.');
+  const mp4 = blob.type.includes('mp4') || blob.type.includes('aac');
+  const path = `voice-memos/${Date.now()}-${Math.random().toString(36).slice(2)}.${mp4 ? 'mp4' : 'webm'}`;
+  const { error } = await supabase.storage.from(VIDEO_BUCKET).upload(path, blob, { cacheControl: '3600', upsert: false, contentType: mp4 ? 'video/mp4' : 'video/webm' });
+  if (error) throw error;
+  return supabase.storage.from(VIDEO_BUCKET).getPublicUrl(path).data.publicUrl;
+}

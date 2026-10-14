@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-azalea",
+    date: "2026-10-14",
+    icon: "🐱",
+    title: "Meet Azalea, the bug detective cat",
+    body: "Find something broken or have a great idea? Tap Azalea in the corner of any game. She asks one question at a time. Tap a picture, talk to her with the microphone, or record a voice memo for your teacher.",
+  },
+  {
     id: "2026-10-14-doc-voice",
     date: "2026-10-14",
     icon: "🎣",

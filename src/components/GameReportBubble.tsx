@@ -1,15 +1,88 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from '../lib/nativeGames';
+import { NPC_VOICE_PRESETS } from '../lib/npcVoices';
+import { useVoiceToText } from '../lib/useVoiceToText';
+import { uploadVoiceMemo } from '../lib/upload';
 import { speak } from './ReadAloud';
 
-// A small bubble in the bottom right corner of every game (teacher 2026-10-13: "add a right hand corner
-// item bubble to each game to ensure that they can always report a bug or request an update"). Two big
-// choices, a typing box with an example, and Send; it lands in the teacher's feedback inbox with the
-// game's name, the same place the Tools feedback goes.
+// Report a bug or share an idea, with Azalea the cat (teacher 2026-10-14: "lets have it so students are
+// reporting the bug to this cat, Azalea. A picture of Azalea should appear and it should walk students
+// through. i want it to be an ABA style conversation ... allow them to use their voice to talk with
+// azalea. have her help walk through the specifics", plus "add a voice memo ability. this should be on
+// every game"). One question at a time with picture choices, every question read aloud, praise after
+// every answer, a gentle hint when a student waits, a microphone to answer by talking, and a voice
+// memo that the teacher can play in her inbox. It lands in the same feedback inbox as before.
 // Grammar Gus is left out on purpose: nothing may overlap his machine (her standing Gus rule).
-const EXTRA: Record<string, string> = { '/student/gym': "Buff Doge's Gym", '/student/science-lab': 'Science Lab', '/student/supernature': 'Supernature' };
+const EXTRA: Record<string, string> = {
+  '/student/gym': "Buff Doge's Gym", '/student/science-lab': 'Science Lab', '/student/supernature': 'Supernature',
+  '/student/farmers-market': 'Farmers Market', '/student/grammar': 'Grammar Sandbox',
+};
+const AZ = '/characters/';
+const VOICE = NPC_VOICE_PRESETS['bright-friendly'];
+const PRAISE = ['Thank you!', 'That helps a lot!', 'Great telling!', 'You are a great helper!', 'Got it!'];
+const MEMO_MAX = 60;
+
+interface Choice { value: string; label: string; icon: string; words: string[] }
+interface Step { id: string; ask: string; choices?: Choice[]; free?: boolean; need?: boolean }
+const NOT_SURE: Choice = { value: 'I am not sure', label: 'I am not sure', icon: '🤷', words: ['not sure', "don't know", 'dont know', 'no idea'] };
+
+function flow(kind: 'bug' | 'idea' | null, game: string): Step[] {
+  const first: Step = {
+    id: 'kind', ask: `Is something broken in ${game}, or do you have an idea for it?`,
+    choices: [
+      { value: 'bug', label: 'Something is broken', icon: '🐞', words: ['broken', 'broke', 'bug', 'wrong', 'problem', 'stuck', 'not working', 'glitch', 'error'] },
+      { value: 'idea', label: 'I have an idea', icon: '💡', words: ['idea', 'add', 'new', 'wish', 'want', 'better', 'could'] },
+    ],
+  };
+  if (kind === 'bug') return [first,
+    { id: 'type', ask: 'What kind of problem is it?', choices: [
+      { value: 'The screen looks wrong', label: 'The screen looks wrong', icon: '👀', words: ['look', 'screen', 'see', 'picture', 'missing', 'blank', 'white', 'black'] },
+      { value: 'A button does not work', label: 'A button does not work', icon: '👆', words: ['button', 'tap', 'click', 'press', 'touch'] },
+      { value: 'It froze or got stuck', label: 'It froze or got stuck', icon: '🧊', words: ['froze', 'freeze', 'frozen', 'stuck', 'loading', 'slow'] },
+      { value: 'Sound or voice', label: 'Sound or voice', icon: '🔊', words: ['sound', 'voice', 'hear', 'loud', 'quiet', 'music'] },
+      { value: 'Money or rewards', label: 'Money or rewards', icon: '💰', words: ['money', 'coin', 'reward', 'prize', 'pay', 'dollar', 'cash'] },
+      { value: 'Something else', label: 'Something else', icon: '❓', words: ['else', 'other'] },
+    ] },
+    { id: 'doing', ask: 'What were you doing right before it happened?', free: true, choices: [
+      { value: 'Playing the game', label: 'Playing the game', icon: '🎮', words: ['playing', 'play'] },
+      { value: 'Answering a question', label: 'Answering a question', icon: '📝', words: ['question', 'answer', 'quiz'] },
+      { value: 'Buying something', label: 'Buying something', icon: '🛒', words: ['buy', 'bought', 'shop', 'store'] },
+      { value: 'Starting the game', label: 'Starting the game', icon: '▶️', words: ['start', 'open', 'begin'] },
+      NOT_SURE,
+    ] },
+    { id: 'what', ask: 'Tell me what happened. Tap the microphone and talk to me, record a voice memo, or type it.', free: true, need: true },
+    { id: 'often', ask: 'Did it happen one time, or again and again?', choices: [
+      { value: 'One time', label: 'One time', icon: '1️⃣', words: ['one time', 'once', 'one'] },
+      { value: 'Again and again', label: 'Again and again', icon: '🔁', words: ['again', 'more', 'lot', 'every', 'always', 'many'] },
+      NOT_SURE,
+    ] },
+    { id: 'play', ask: 'Can you still play the game?', choices: [
+      { value: 'Yes, I can still play', label: 'Yes, I can still play', icon: '✅', words: ['yes', 'yeah', 'can'] },
+      { value: 'No, I cannot play', label: 'No, I cannot play', icon: '⛔', words: ['no', 'nope', "can't", 'cannot'] },
+    ] },
+  ];
+  if (kind === 'idea') return [first,
+    { id: 'type', ask: 'Ooh, I love ideas! What kind of idea is it?', choices: [
+      { value: 'Something new to add', label: 'Something new to add', icon: '✨', words: ['new', 'add', 'more'] },
+      { value: 'Change how it looks', label: 'Change how it looks', icon: '🎨', words: ['look', 'color', 'picture', 'pretty'] },
+      { value: 'Make it easier', label: 'Make it easier', icon: '🟢', words: ['easier', 'easy'] },
+      { value: 'Make it harder', label: 'Make it harder', icon: '🔥', words: ['harder', 'hard', 'challenge'] },
+      { value: 'Sounds or music', label: 'Sounds or music', icon: '🎵', words: ['sound', 'music', 'song'] },
+      { value: 'Something else', label: 'Something else', icon: '❓', words: ['else', 'other'] },
+    ] },
+    { id: 'what', ask: 'Tell me your idea. Tap the microphone and talk to me, record a voice memo, or type it.', free: true, need: true },
+    { id: 'why', ask: `Why would it make ${game} better?`, free: true, choices: [
+      { value: 'It would be more fun', label: 'It would be more fun', icon: '😄', words: ['fun'] },
+      { value: 'It would help me learn', label: 'It would help me learn', icon: '🧠', words: ['learn', 'smart'] },
+      { value: 'It would be easier to use', label: 'It would be easier to use', icon: '👍', words: ['easier', 'easy'] },
+      NOT_SURE,
+    ] },
+  ];
+  return [first];
+}
+const LABEL: Record<string, string> = { type: 'Kind', doing: 'Doing', what: 'Said', often: 'How often', play: 'Can still play', why: 'Why' };
 
 export default function GameReportBubble() {
   const { pathname } = useLocation();
@@ -20,56 +93,194 @@ export default function GameReportBubble() {
   const on = !!game && role === 'student' && !!student;
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<'bug' | 'idea' | null>(null);
-  const [text, setText] = useState('');
-  const [sent, setSent] = useState(false);
+  const [at, setAt] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [draft, setDraft] = useState('');
+  const [say, setSay] = useState('');
+  const [hint, setHint] = useState(0);
+  const [phase, setPhase] = useState<'ask' | 'review' | 'sending' | 'sent'>('ask');
+  const [memo, setMemo] = useState<{ blob: Blob; url: string; secs: number } | null>(null);
+  const [rec, setRec] = useState<{ secs: number } | null>(null);
+  const [memoNote, setMemoNote] = useState('');
+  const recRef = useRef<{ r: MediaRecorder; stream: MediaStream; timer: number; chunks: Blob[]; start: number } | null>(null);
+  const steps = flow(kind, game ?? 'this game');
+  const step = steps[Math.min(at, steps.length - 1)];
+  const first = (student?.name ?? '').split(' ')[0];
+
   useEffect(() => {
     if (!on) return;
     document.body.classList.add('has-report-bubble');
     return () => document.body.classList.remove('has-report-bubble');
   }, [on]);
-  useEffect(() => { setOpen(false); setKind(null); setText(''); setSent(false); }, [pathname]);
-  if (!on || !student) return null;
-  const close = () => { setOpen(false); setKind(null); setText(''); setSent(false); };
-  const ask = kind === 'bug' ? 'What went wrong? Tell what you were doing and what happened.' : kind === 'idea' ? `What would make ${game} better?` : `Is something broken in ${game}, or do you have an idea for it?`;
-  const send = () => {
-    if (!kind || !text.trim()) return;
-    submitFeedback(student.id, 'gameplay', kind === 'bug' ? 'Glitch / Bug Found' : 'Feature to Add', game!, text.trim());
-    setSent(true);
+  const stopMemo = () => {
+    const c = recRef.current; if (!c) return;
+    window.clearInterval(c.timer);
+    try { if (c.r.state !== 'inactive') c.r.stop(); } catch { /* already stopped */ }
+    recRef.current = null; setRec(null);
   };
+  const reset = () => { stopMemo(); setKind(null); setAt(0); setAnswers({}); setDraft(''); setSay(''); setHint(0); setPhase('ask'); setMemo(null); setMemoNote(''); };
+  useEffect(() => { setOpen(false); reset(); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+  useEffect(() => () => stopMemo(), []);
+
+  // Azalea says each question as it comes up (praise for the last answer first).
+  const talk = (t: string) => { setSay(t); if (student) speak(t, student.ttsSettings, undefined, VOICE); };
+  useEffect(() => {
+    if (!open) return;
+    if (phase === 'review') { talk(`Great job! Here is what I will tell your teacher. ${summary().join('. ')}. Should I send it?`); return; }
+    if (phase !== 'ask') return;
+    talk(at === 0 && !Object.keys(answers).length ? `Hi ${first}! I am Azalea. I help your teacher fix things and hear new ideas. ${step.ask}` : `${PRAISE[at % PRAISE.length]} ${step.ask}`);
+    setHint(0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, at, kind, phase]);
+  // Prompt fading: after a quiet wait, a visual hint, then a gentle reminder.
+  useEffect(() => {
+    if (!open || phase !== 'ask' || rec) return;
+    const a = window.setTimeout(() => { setHint(1); talk(step.choices && !step.free ? 'You can tap a picture, or tap the microphone and talk to me.' : 'You can tap the microphone and talk, tap Record a voice memo, or type.'); }, 14000);
+    const b = window.setTimeout(() => { setHint(2); talk('Take your time. I am right here.'); }, 34000);
+    return () => { window.clearTimeout(a); window.clearTimeout(b); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, at, kind, phase, answers, draft, rec]);
+
+  const answer = (id: string, value: string) => {
+    const next = { ...answers, [id]: value };
+    setAnswers(next); setDraft('');
+    if (id === 'kind') { setKind(value as 'bug' | 'idea'); setAt(1); return; }
+    if (at + 1 >= steps.length) { setPhase('review'); return; }
+    setAt(at + 1);
+  };
+  const match = (heard: string) => {
+    const h = heard.toLowerCase();
+    return step.choices?.find((c) => c.words.some((w) => h.includes(w)));
+  };
+  const voice = useVoiceToText((heard) => {
+    if (step.free) { setDraft((d) => (d ? `${d} ${heard}` : heard)); return; }
+    const m = match(heard);
+    if (m) { answer(step.id, m.value); return; }
+    if (step.id !== 'kind' && step.choices?.some((c) => c.value === 'Something else')) { answer(step.id, `Something else: ${heard}`); return; }
+    talk(`I heard you say: ${heard}. Which picture matches best?`); setHint(1);
+  }, { continuous: false });
+
+  const startMemo = async () => {
+    setMemoNote('');
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { setMemoNote('This device cannot record. You can talk with the microphone or type instead.'); return; }
+    try {
+      voice.stop();
+      window.speechSynthesis?.cancel();
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const r = new MediaRecorder(stream); const chunks: Blob[] = [];
+      r.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+      const start = Date.now();
+      r.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunks, { type: r.mimeType || 'audio/webm' });
+        if (blob.size) setMemo({ blob, url: URL.createObjectURL(blob), secs: Math.round((Date.now() - start) / 1000) });
+      };
+      r.start();
+      const timer = window.setInterval(() => {
+        const secs = Math.round((Date.now() - start) / 1000);
+        setRec({ secs });
+        if (secs >= MEMO_MAX) stopMemo();
+      }, 500);
+      recRef.current = { r, stream, timer, chunks, start }; setRec({ secs: 0 });
+    } catch { setMemoNote('The microphone is turned off. Ask your teacher to turn it on, or type instead.'); }
+  };
+
+  const summary = () => steps.slice(1).map((s) => {
+    const v = s.id === 'what' && memo && !answers.what ? '(voice memo)' : answers[s.id];
+    return v ? `${LABEL[s.id] ?? s.id}: ${v}` : null;
+  }).filter(Boolean) as string[];
+  const send = async () => {
+    if (!student || !game || !kind) return;
+    setPhase('sending');
+    let memoLine = '';
+    if (memo) {
+      try { memoLine = `\n🎙️ Voice memo (${memo.secs} seconds): ${await uploadVoiceMemo(memo.blob)}`; }
+      catch { memoLine = '\n🎙️ A voice memo was recorded but could not be saved.'; }
+    }
+    const ua = navigator.userAgent; const device = /iPad|Macintosh/.test(ua) && navigator.maxTouchPoints > 1 ? 'iPad' : /iPhone/.test(ua) ? 'iPhone' : /CrOS/.test(ua) ? 'Chromebook' : /Android/.test(ua) ? 'Android' : /Mac/.test(ua) ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Other';
+    submitFeedback(student.id, 'gameplay', kind === 'bug' ? 'Glitch / Bug Found' : 'Feature to Add', game, `${summary().join('\n')}\nDevice: ${device}, ${window.innerWidth}x${window.innerHeight}, ${new Date().toLocaleString()}${memoLine}`);
+    setPhase('sent');
+    talk(kind === 'bug' ? `You did it, ${first}! You are a real bug detective. Your teacher will see your report.` : `What a great idea, ${first}! Your teacher will see it.`);
+  };
+  const close = () => { window.speechSynthesis?.cancel(); setOpen(false); reset(); };
+  if (!on || !student) return null;
+
+  const freeOk = !!draft.trim() || (step.id === 'what' && !!memo);
   return (
     <>
-      <button type="button" className="report-bubble" onClick={() => setOpen(true)} aria-label={`Report a bug or ask for an update to ${game}`}>
-        <span aria-hidden>🐞</span><small>Report</small>
+      <button type="button" className="report-bubble" onClick={() => setOpen(true)} aria-label={`Talk to Azalea: report a bug or share an idea for ${game}`}>
+        <img src={`${AZ}azalea-head.png`} alt="" /><small>Report</small>
       </button>
       {open && (
         <div className="pf-overlay report-back" onClick={close}>
-          <div className="pf-panel report-card" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Tell your teacher">
-            {sent ? (
-              <>
-                <h2>Thank you!</h2>
-                <p>Your teacher will see your {kind === 'bug' ? 'bug report' : 'idea'} for {game}.</p>
-                <button type="button" className="btn btn-primary btn-lg" onClick={close}>Back to the game</button>
-              </>
-            ) : (
-              <>
-                <h2>Tell your teacher</h2>
-                <div className="report-ask"><p>{ask}</p><button type="button" className="btn report-listen" onClick={() => speak(ask, student.ttsSettings)} aria-label="Listen">🔊</button></div>
-                <div className="report-kinds">
-                  <button type="button" className={`report-kind${kind === 'bug' ? ' on' : ''}`} onClick={() => setKind('bug')}>Something is broken</button>
-                  <button type="button" className={`report-kind${kind === 'idea' ? ' on' : ''}`} onClick={() => setKind('idea')}>I have an idea</button>
-                </div>
-                {kind && (
-                  <label className="report-field">
-                    <span>{kind === 'bug' ? 'What happened' : 'My idea'}</span>
-                    <textarea value={text} onChange={(e) => setText(e.target.value)} rows={3} placeholder={kind === 'bug' ? 'Example: I tapped Cast and nothing happened.' : 'Example: Add a golden fish to catch.'} />
-                  </label>
-                )}
-                <div className="pf-detail-actions">
-                  <button type="button" className="btn btn-lg" onClick={close}>Cancel</button>
-                  <button type="button" className="btn btn-primary btn-lg" onClick={send} disabled={!kind || !text.trim()}>Send to my teacher</button>
-                </div>
-              </>
-            )}
+          <div className="pf-panel report-card az" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Talk to Azalea">
+            <img className="az-cat" src={`${AZ}azalea.png`} alt="Azalea the cat" />
+            <div className="az-main">
+              <div className="az-top">
+                <span className="az-paws" aria-label={`Step ${phase === 'ask' ? at + 1 : steps.length} of ${kind ? steps.length : '?'}`}>{(kind ? steps : [steps[0], steps[0], steps[0], steps[0]]).map((_, i) => <i key={i} className={i <= at || phase !== 'ask' ? 'on' : ''}>🐾</i>)}</span>
+                <button type="button" className="btn report-listen" onClick={close} aria-label="Close">✕</button>
+              </div>
+              <div className="az-say" role="status">
+                <b>Azalea</b>
+                <p>{say}</p>
+                <button type="button" className="btn report-listen" onClick={() => talk(say)} aria-label="Listen to Azalea">🔊</button>
+              </div>
+
+              {phase === 'ask' && (
+                <>
+                  {step.choices && (
+                    <div className="az-choices">
+                      {step.choices.map((c, i) => (
+                        <button key={c.value} type="button" className={`az-choice${answers[step.id] === c.value ? ' on' : ''}${hint >= 1 && i === 0 ? ' nudge' : ''}`} onClick={() => answer(step.id, c.value)}>
+                          <span aria-hidden>{c.icon}</span>{c.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {step.free && (
+                    <label className="report-field">
+                      <span>{step.choices ? 'Or tell me in your own words' : 'Your words'}</span>
+                      <textarea id={`az-${step.id}`} value={draft} onChange={(e) => setDraft(e.target.value)} rows={3} placeholder={kind === 'bug' ? 'Example: I tapped Cast and nothing happened.' : 'Example: Add a golden fish to catch.'} />
+                    </label>
+                  )}
+                  <div className="az-tools">
+                    {voice.supported && <button type="button" className={`az-tool${voice.listening ? ' live' : ''}`} onClick={voice.toggle}>{voice.listening ? '⏹️ Stop listening' : '🎤 Talk to Azalea'}</button>}
+                    {step.id === 'what' && (rec
+                      ? <button type="button" className="az-tool live" onClick={stopMemo}>⏹️ Stop recording ({rec.secs}s of {MEMO_MAX}s)</button>
+                      : <button type="button" className="az-tool" onClick={startMemo}>🎙️ {memo ? 'Record again' : 'Record a voice memo'}</button>)}
+                  </div>
+                  {voice.error === 'denied' && <p className="az-note">The microphone is turned off. You can tap a picture or type instead.</p>}
+                  {voice.error === 'nothing' && <p className="az-note">I did not hear anything. Try again, a little louder.</p>}
+                  {memoNote && <p className="az-note">{memoNote}</p>}
+                  {memo && step.id === 'what' && (
+                    <div className="az-memo"><span>🎙️ Your voice memo ({memo.secs}s)</span><audio controls src={memo.url} /><button type="button" className="btn" onClick={() => setMemo(null)}>Delete</button></div>
+                  )}
+                  <div className="pf-detail-actions">
+                    <button type="button" className="btn btn-lg" onClick={() => { if (at === 0) close(); else { setAt(at - 1); if (at === 1) setKind(null); } }}>{at === 0 ? 'Cancel' : 'Back'}</button>
+                    {step.free && <button type="button" className="btn btn-primary btn-lg" disabled={step.need && !freeOk} onClick={() => answer(step.id, draft.trim() || (step.id === 'what' ? '' : 'I am not sure'))}>{freeOk || !step.need ? 'Next' : 'Talk, record or type first'}</button>}
+                  </div>
+                </>
+              )}
+
+              {phase === 'review' && (
+                <>
+                  <p className="az-sub">Here is what I will tell your teacher:</p>
+                  <ul className="az-review">{summary().map((l) => <li key={l}>{l}</li>)}{memo && <li>🎙️ Voice memo ({memo.secs} seconds)</li>}</ul>
+                  <div className="pf-detail-actions">
+                    <button type="button" className="btn btn-lg" onClick={() => { setPhase('ask'); setAt(1); }}>Change something</button>
+                    <button type="button" className="btn btn-primary btn-lg" onClick={send}>✅ Send to my teacher</button>
+                  </div>
+                </>
+              )}
+              {phase === 'sending' && <p className="az-sub">Sending...</p>}
+              {phase === 'sent' && (
+                <>
+                  <div className="az-star" aria-hidden>⭐</div>
+                  <button type="button" className="btn btn-primary btn-lg" onClick={close}>Back to {game}</button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}
