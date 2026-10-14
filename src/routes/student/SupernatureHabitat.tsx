@@ -13,6 +13,7 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
 import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
+import { Fx, HIT_FX, ORB_FX, type FxKey } from './SupernatureFx';
 import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, type Aff, type Fighter } from '../../lib/supernatureBattle';
 import {
   HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, canBeHunted, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
@@ -44,6 +45,13 @@ const OBJ = `${G}tileset/2-objects/`, SW = `${G}swamp/props/`, HB = `${SN}habita
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 
 const SPELL = `${SN}spell-icons/`;
+// Her effects packs (Build Queue 141) play over the land while a disaster is active.
+const DIS_FX: Partial<Record<Disaster, { k: FxKey; spots: [number, number, number][] }>> = {
+  earthquake: { k: 'quake', spots: [[120, 430, 120], [360, 470, 140], [610, 420, 120], [860, 480, 140], [1000, 400, 110]] },
+  blizzard: { k: 'frost', spots: [[90, 140, 110], [420, 90, 130], [760, 160, 110], [980, 80, 120], [260, 330, 100], [620, 360, 110]] },
+  flood: { k: 'splash', spots: [[140, 470, 120], [420, 500, 130], [700, 470, 120], [950, 500, 130]] },
+  drought: { k: 'dust', spots: [[100, 420, 150], [380, 460, 160], [660, 410, 150], [920, 450, 160]] },
+};
 const PX = `${SN}habitat/px/`;
 // Views (Build Queue 123, her words): left and right arrows on the sides of the screen move between
 // the biomes, and the Ocean is its own underwater view.
@@ -220,7 +228,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [hunt, setHunt] = useState<{ hunter: string; prey: string; phase: 'chase' | 'escaped' | 'caught'; how?: string } | null>(null);
   // Wild battles (Build Queue 140): a real predator and its prey battle on their own for up to 30
   // seconds, only while the student is watching that biome. Watch only: nothing to tap.
-  const [wb, setWb] = useState<{ h: Fighter; p: Fighter; start: number; turn: 'h' | 'p'; line: string; proj: { from: 'h' | 'p'; icon: string } | null } | null>(null);
+  const [wb, setWb] = useState<{ h: Fighter; p: Fighter; start: number; turn: 'h' | 'p'; line: string; proj: { from: 'h' | 'p'; icon: string; aff: Aff } | null; boom?: { on: 'h' | 'p'; k: FxKey } | null } | null>(null);
   const nextWild = useRef(0);
   const [escapedAt, setEscapedAt] = useState<Record<string, number>>({});
   const [grewAt, setGrewAt] = useState<Record<string, number>>({});
@@ -610,8 +618,11 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       const nd = { ...def, health: Math.max(0, def.health - r.dmg), confidence: Math.max(5, def.confidence - (r.hit ? 4 : 0)) };
       const na = { ...atk, confidence: Math.min(100, Math.max(5, atk.confidence + (r.hit ? 4 : -4))) };
       const line = `${r.text}${r.hit ? ` ${def.name} loses ${r.dmg} health.` : ''}${atk.energy === 'very high' && !r.hit ? ' Too much energy!' : ''}`;
-      setWb({ ...wb, h: wb.turn === 'h' ? na : nd, p: wb.turn === 'h' ? nd : na, turn: wb.turn === 'h' ? 'p' : 'h', line, proj: { from: wb.turn, icon: AFF[best].icon } });
-      snSound(r.hit ? 'poof' : 'tap'); window.setTimeout(() => setWb((w) => (w ? { ...w, proj: null } : w)), 1200);
+      setWb({ ...wb, h: wb.turn === 'h' ? na : nd, p: wb.turn === 'h' ? nd : na, turn: wb.turn === 'h' ? 'p' : 'h', line, proj: { from: wb.turn, icon: AFF[best].icon, aff: best }, boom: null });
+      snSound(r.hit ? 'poof' : 'tap');
+      const on = wb.turn === 'h' ? 'p' : 'h';
+      window.setTimeout(() => setWb((w) => (w ? { ...w, proj: null, boom: { on, k: r.hit ? HIT_FX[best] : 'miss' } } : w)), 1100);
+      window.setTimeout(() => setWb((w) => (w ? { ...w, boom: null } : w)), 2400);
       if (nd.health <= 0) window.setTimeout(() => finish(wb.turn === 'h', wb.turn === 'h' ? `🏁 ${wb.h.name} caught one of the ${wb.p.species} family. The rest of the family hid safely.` : `🏁 ${wb.h.name} is too tired to keep hunting and gives up. ${wb.p.name} wins!`), 1300);
     }
     if (!hunt && !wb && tick % 6 === 3 && !dis) {
@@ -896,7 +907,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <p>{wb.line}</p>
           </div>
         )}
-        {wb?.proj && <span className={`sn-wbproj from-${wb.proj.from}`} style={{ top: biome === 'ocean' ? 300 : 340 }} aria-hidden="true">{wb.proj.icon}</span>}
+        {wb?.proj && <span className={`sn-wbproj from-${wb.proj.from}`} style={{ top: biome === 'ocean' ? 300 : 340 }} aria-hidden="true"><Fx k={ORB_FX[wb.proj.aff]} size={90} loop /></span>}
+        {wb?.boom && <Fx k={wb.boom.k} size={170} className="sn-wbboom" style={{ left: (wb.boom.on === 'h' ? 420 : 640) - 30, top: (biome === 'ocean' ? 280 : 320) - 40 }} />}
         {here.map((l, i) => {
           const sp = spot(l); const tp = temp[l.c.id];
           const k = tp === 'fast' || tp === 'zoom' ? 0.35 : SPEED[l.energy];
@@ -920,8 +932,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 : reactions[l.c.id] && reactions[l.c.id].word !== 'at home' && !l.hide && <span className={`sn-react${reactions[l.c.id].hit ? ' bad' : ''}`}>{reactions[l.c.id].icon} {reactions[l.c.id].word}</span>}
               <img src={art(l.c.id)} alt="" />
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
-              {sparkle === l.c.id && <span className="sn-sparkles" />}
-              {caughtFx.includes(l.c.id) && <span className="sn-catch" />}
+              {sparkle === l.c.id && <Fx k="potion" size={150} className="sn-critfx" />}
+              {caughtFx.includes(l.c.id) && <Fx k="poof" size={150} className="sn-critfx" />}
               <span className="sn-crit-name"><i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
@@ -979,8 +991,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         {season === 'Spring' && !active && wx !== 'storm' && <div className="sn-petals" aria-hidden="true">{Array.from({ length: 10 }, (_, i) => <i key={i} style={{ left: 60 + i * 112, animationDelay: `${i * 0.9}s` }} />)}</div>}
         {(wx === 'fog' || active === 'wildfire') && <WeatherLayer kind="fog" opacity={0.7} dark={active === 'wildfire'} />}
         {active === 'flood' && <div className="sn-flood" />}
-        {active === 'wildfire' && <div className="sn-fire">{Array.from({ length: 9 }, (_, i) => <i key={i} style={{ left: 200 + i * 66, animationDelay: `${i * 0.13}s` }} />)}</div>}
-        {active === 'tornado' && <div className="sn-tornado"><i /><i /><i /><i /><i /></div>}
+        {active === 'wildfire' && <div className="sn-fire">{Array.from({ length: 9 }, (_, i) => <Fx key={i} k="flame" size={74} loop delay={i * 0.11} style={{ position: 'absolute', left: 150 + i * 92, bottom: i % 2 ? 230 : 130 }} />)}</div>}
+        {active === 'tornado' && <div className="sn-tornado"><Fx k="twister" size={180} loop /><Fx k="twister" size={140} loop delay={0.2} /><Fx k="twister" size={100} loop delay={0.4} /></div>}
+        {active && DIS_FX[active] && <div className="sn-disfx">{DIS_FX[active]!.spots.map(([x, y, sz], i) => <Fx key={i} k={DIS_FX[active]!.k} size={sz} loop delay={i * 0.17} style={{ left: x, top: y }} />)}</div>}
         {night && <div className="sn-night" />}
         {night && (glow || season === 'Spring' || season === 'Summer') && <div className={`sn-fireflies${glow ? ' lumin' : ''}`}>{Array.from({ length: glow ? 36 : season === 'Summer' ? 16 : 8 }, (_, i) => <i key={i} style={{ left: 40 + ((i * 97) % 1060), top: 120 + ((i * 53) % 420), animationDelay: `${(i % 10) * 0.4}s` }} />)}</div>}
         {flash && <div className="sn-flash" />}

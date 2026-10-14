@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-pixel-effects",
+    date: "2026-10-14",
+    icon: "💥",
+    title: "Real pixel magic in battles",
+    body: "Creature battles look amazing now! Every power flies as its own glowing pixel orb and lands with its own burst: fire, bubbles, lightning, leaves, ice and more. Wild battles, disasters and potions in the Habitat got new pixel effects too.",
+  },
+  {
     id: "2026-10-14-spell-book",
     date: "2026-10-14",
     icon: "📖",

@@ -11,6 +11,7 @@ import { drawQuestion, pickableSets } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { Icon } from './SupernatureWriting';
+import { Fx, HIT_FX, ORB_FX } from './SupernatureFx';
 
 // Creature Battles (Build Queue 137): pick one of your Habitat creatures (each family member can have
 // its own name), pick a wild opponent (two cards with skill bars, or roll the dice), maybe drink a
@@ -74,7 +75,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
   const [countdown, setCountdown] = useState(0);
   const [drank, setDrank] = useState<string[]>([]);
   const [logOpen, setLogOpen] = useState(false);
-  const [fx, setFx] = useState<{ side: 'me' | 'foe'; kind: 'hit' | 'miss' } | null>(null);
+  const [fx, setFx] = useState<{ side: 'me' | 'foe'; kind: 'hit' | 'miss'; aff: Aff | 'tackle' } | null>(null);
   const [won, setWon] = useState<boolean | null>(null);
   const timer = useRef<number | null>(null);
   useEffect(() => () => { if (timer.current) window.clearTimeout(timer.current); }, []);
@@ -139,7 +140,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
       const r = attack(f, m, best, 0.3 + 0.1 * f.smarts);
       const nm = { ...m, health: Math.max(0, m.health - r.dmg), confidence: Math.max(5, m.confidence - (r.hit ? 4 : 0)) };
       const nf = { ...f, confidence: Math.min(100, Math.max(5, f.confidence + (r.hit ? 4 : -4))) };
-      setProj(null); setFx({ side: 'me', kind: r.hit ? 'hit' : 'miss' }); window.setTimeout(() => setFx(null), 700);
+      setProj(null); setFx({ side: 'me', kind: r.hit ? 'hit' : 'miss', aff: best }); window.setTimeout(() => setFx(null), 1300);
       snSound(r.hit ? 'poof' : 'tap'); setMe(nm); setFoe(nf);
       add(`${r.text}${r.hit ? ` ${m.name} loses ${r.dmg} health.` : ''}`);
       if (nm.health <= 0) { end(false, nm, nf); return; }
@@ -177,7 +178,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
       const r = attack(me, foe, aff, focus);
       const nf = { ...foe, health: Math.max(0, foe.health - r.dmg), confidence: Math.max(5, foe.confidence - (r.hit ? 4 : 0)) };
       const nm = { ...me, confidence: Math.min(100, Math.max(5, me.confidence + (r.hit ? 5 : -5))) };
-      setFx({ side: 'foe', kind: r.hit ? 'hit' : 'miss' }); window.setTimeout(() => setFx(null), 700);
+      setFx({ side: 'foe', kind: r.hit ? 'hit' : 'miss', aff }); window.setTimeout(() => setFx(null), 1300);
       snSound(r.hit ? 'poof' : 'fizzle'); setFoe(nf); setMe(nm);
       add(`${r.text}${r.hit ? ` ${foe.name} loses ${r.dmg} health.` : ''}`);
       if (Math.random() < 0.3 && nm.energy !== 'just right') add(`${nm.name} ${ENERGY_FX[nm.energy].line}`, false);
@@ -196,7 +197,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
         <small className="sb-confword">Feels {confWord(f.confidence)}</small>
         <span className="sb-energy"><img src={ENERGY_FACE[f.energy]} alt="" className="sn-smooth" />Energy: {f.energy}</span>
       </div>
-      <div className="sb-stand"><img className="sb-mon" src={art(f.id)} alt={f.species} /><img className="sb-plat" src={`${SN}battle/platform.png`} alt="" /></div>
+      <div className="sb-stand"><img className="sb-mon" src={art(f.id)} alt={f.species} /><img className="sb-plat" src={`${SN}battle/platform.png`} alt="" />{fx?.side === side && <Fx k={fx.kind === 'hit' ? HIT_FX[fx.aff] : 'miss'} size={fx.kind === 'hit' ? 210 : 150} className="sb-hitfx" />}</div>
     </div>
   );
   const npcCard = (n: Npc) => {
@@ -307,7 +308,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
                 </div>
               )}
             </div>
-            {proj && <span className={`sb-proj from-${proj.from} ${proj.aff}`} aria-hidden="true">{proj.aff === 'tackle' ? '💥' : proj.aff === 'breath' ? '🌬️' : proj.aff === 'vita' ? '❤️' : proj.aff === 'nature' ? <i className="sb-vine" style={{ backgroundImage: `url(${SN}plants/pack/vinewhip.png)` }} /> : AFF[proj.aff].icon}</span>}
+            {proj && <span className={`sb-proj from-${proj.from} ${proj.aff}`} aria-hidden="true">{proj.aff === 'breath' ? <Fx k="breath" size={150} loop /> : proj.aff === 'vita' ? <Fx k="heal" size={150} loop /> : proj.aff === 'nature' ? <i className="sb-vine" style={{ backgroundImage: `url(${SN}plants/pack/vinewhip.png)` }} /> : <Fx k={ORB_FX[proj.aff]} size={proj.aff === 'mind' || proj.aff === 'shadow' || proj.aff === 'storm' ? 110 : 120} loop />}</span>}
             <div className="sb-log" role="status">
               {lines.slice(-3).map((l, i) => <p key={i}>{l}</p>)}
               <button type="button" className="sn-listen" onClick={() => say(lines.slice(-3).join(' '))} aria-label="Listen"><Icon d={LISTEN} /></button>
