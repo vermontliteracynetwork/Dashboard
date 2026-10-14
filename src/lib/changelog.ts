@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-new-grammar-symbols",
+    date: "2026-10-14",
+    icon: "🔤",
+    title: "New grammar symbols",
+    body: "Literacy Manipulatives has new grammar symbols: a pointing hand for nouns, arrows for verbs, a magnet for articles and more. There is a new crown symbol for proper nouns, like Mom or Xander, and a new page of Proper Noun sentence cards.",
+  },
+  {
     id: "2026-10-14-bigger-gardens",
     date: "2026-10-14",
     icon: "🌱",
