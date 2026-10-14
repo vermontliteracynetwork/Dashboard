@@ -15,7 +15,7 @@ interface Props {
   simplified?: boolean;
 }
 
-const blankMC = (): MCQuestion => ({ id: makeId(), kind: 'mc', prompt: '', choices: ['', ''], correctIndex: 0 });
+export const blankMC = (): MCQuestion => ({ id: makeId(), kind: 'mc', prompt: '', choices: ['', ''], correctIndex: 0 });
 const blankMatching = (): MatchingQuestion => ({ id: makeId(), kind: 'matching', prompt: '', pairs: [{ left: '', right: '' }, { left: '', right: '' }] });
 const blankFill = (): FillBlankQuestion => ({ id: makeId(), kind: 'fill', prompt: '', answer: '', wordBank: [] });
 const blankSpeak = (): SpeakQuestion => ({ id: makeId(), kind: 'speak', prompt: '', targetWord: '', acceptableVariants: [] });

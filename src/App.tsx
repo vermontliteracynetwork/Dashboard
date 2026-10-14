@@ -37,6 +37,7 @@ import LessonPlanBuilder from './routes/teacher/LessonPlanBuilder';
 import ReviewInbox from './routes/teacher/ReviewInbox';
 import GameManager from './routes/teacher/GameManager';
 import QuestionSetDetail from './routes/teacher/QuestionSetDetail';
+import NewQuestionSet from './routes/teacher/NewQuestionSet';
 import BadgeManager from './routes/teacher/BadgeManager';
 import MarketplaceManager from './routes/teacher/MarketplaceManager';
 import TeacherStudentBank from './routes/teacher/TeacherStudentBank';
@@ -254,6 +255,7 @@ export default function App() {
             <Route path="/teacher/inbox" element={<ReviewInbox />} />
             <Route path="/teacher/activities" element={<Navigate to="/teacher/assignments" replace />} />
             <Route path="/teacher/game" element={<GameManager />} />
+            <Route path="/teacher/question-sets/new" element={<NewQuestionSet />} />
             <Route path="/teacher/question-sets/:setId" element={<QuestionSetDetail />} />
             <Route path="/teacher/badges" element={<BadgeManager />} />
             <Route path="/teacher/marketplace" element={<MarketplaceManager />} />

@@ -40,17 +40,23 @@ export default function QuestionSetsManager() {
 
   return (
     <div className="chrome-frame stack" style={{ padding: 14 }}>
-      <button
-        className="space-between"
-        style={{ width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 44 }}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-      >
-        <span style={{ fontWeight: 800, fontSize: '1rem' }}>
-          Question Sets{questionSets.length > 0 ? ` (${questionSets.length})` : ''}
-        </span>
-        <span aria-hidden="true">{open ? '▾' : '▸'}</span>
-      </button>
+      <div className="row" style={{ alignItems: 'center', gap: 10 }}>
+        <button
+          className="space-between"
+          style={{ flex: 1, background: 'none', border: 'none', padding: 0, cursor: 'pointer', minHeight: 44 }}
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+        >
+          <span style={{ fontWeight: 800, fontSize: '1rem' }}>
+            Question Sets{questionSets.length > 0 ? ` (${questionSets.length})` : ''}
+          </span>
+          <span aria-hidden="true">{open ? '▾' : '▸'}</span>
+        </button>
+        {/* Build Queue 173 (teacher 2026-10-14): a new set, written one question at a time on its own page. */}
+        <button type="button" className="btn btn-primary btn-sm" style={{ minHeight: 44 }} onClick={() => navigate('/teacher/question-sets/new')}>
+          ➕ New question set
+        </button>
+      </div>
       {open && (
         <div className="stack" style={{ marginTop: 10 }}>
           <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
@@ -87,7 +93,7 @@ export default function QuestionSetsManager() {
           {sets.length === 0 ? (
             <p style={{ opacity: 0.7 }}>
               {questionSets.length === 0
-                ? 'No saved question/drill sets yet. Add one from any quiz or drill activity\'s editor.'
+                ? 'No saved question/drill sets yet. Tap ➕ New question set, or add one from any quiz or drill activity\'s editor.'
                 : 'No sets match your search/filters.'}
             </p>
           ) : (
