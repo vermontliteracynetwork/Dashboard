@@ -64,6 +64,8 @@ const SP = `${SN}ingredients/`, MAT = `${SN}materials/`;
 const CAB = `${SN}cabinet/`;
 export const INGREDIENTS: Ingredient[] = [
   { id: 'bottle', name: 'glass bottle', img: `${SN}witchy-pack/potions-3.png`, tier: 'free', price: 0 },
+  // Earned in the Mixing Lab (Build Queue 167): every new real reaction gives one. Add it to any brew for a double batch.
+  { id: 'essence', name: 'science essence', img: `${SN}fx/essence.png`, tier: 'wild', price: 0, note: 'Made from a real science discovery in the Mixing Lab. Add it to any brew to make two potions.' },
   { id: 'grass', name: 'grass', img: `${SN}materials/grass.png`, tier: 'free', price: 0 },
   { id: 'dew', name: 'dew', img: `${SN}materials/water.png`, tier: 'free', price: 0 },
   { id: 'fairywing', name: 'fairy wing', img: `${SN}habitat/loot-fairywings.png`, tier: 'free', price: 0, note: 'Found on the ground in the garden. No fairies were bothered.' },

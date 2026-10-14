@@ -119,10 +119,11 @@ export default function Supernature() {
         {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade} extraColors={nat.level >= 1 ? SPARKLY_COLORS : []}
           goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
         {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} pantry={pantry} brewed={brewed} start={recipe}
-          onBrewed={(name, used) => {
+          onBrewed={(name, used, times = 1) => {
             const np = { ...pantry }; for (const id of used) np[id] = Math.max(0, (np[id] ?? 0) - 1);
-            patch({ potions: [...potions, name], pantry: np, brewed: brewed.includes(name) ? brewed : [...brewed, name] });
-          }} goNames={() => go('names')} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
+            patch({ potions: [...potions, ...Array(times).fill(name)], pantry: np, brewed: brewed.includes(name) ? brewed : [...brewed, name] });
+          }}
+          onEssence={() => patch({ pantry: { ...pantry, essence: (pantry.essence ?? 0) + 1 } })} goNames={() => go('names')} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
         {room === 'names' && <Names bar={bar} say={say} names={save.names ?? []} onSave={(n) => patch({ names: [...(save.names ?? []), n] })} />}
         {room === 'spells' && <SupernatureSpellBook bar={bar} say={say} book={save.spellbook ?? []} onSave={(e) => patch({ spellbook: [...(save.spellbook ?? []), e].slice(-40) })} onRemove={(id) => patch({ spellbook: (save.spellbook ?? []).filter((x) => x.id !== id) })} />}
         {room === 'battle' && <SupernatureBattle bar={bar} say={say} save={save} patch={patch} potions={potions} usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }} />}
@@ -249,9 +250,9 @@ const mixRgb = (a: string, b: string) => { const p = (x: string) => (x.match(/\d
 // The Cookbook (Build Queue 101): 10 base recipes and 3 discovered ones. Free basics are always on
 // the shelf; bought ingredients come from the student's pantry and are used up only when the potion
 // is finished, so a fizzle never costs anything.
-function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, goNames, goHabitat, goShop }: {
+function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, goNames, goHabitat, goShop, onEssence }: {
   bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; potions: string[]; earned: string[]; pantry: Record<string, number>; brewed: string[]; start: number;
-  onBrewed: (name: string, used: string[]) => void; goNames: () => void; goHabitat: () => void; goShop: () => void;
+  onBrewed: (name: string, used: string[], times?: number) => void; goNames: () => void; goHabitat: () => void; goShop: () => void; onEssence: () => void;
 }) {
   const [ri, setRi] = useState(start);
   const [list, setList] = useState(false);
@@ -276,12 +277,18 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
   const buyList = needed.filter((id) => ING(id).tier !== 'free' && !(ING(id).earnedAs && earned.includes(ING(id).earnedAs!)));
   const reset = (i = ri) => {
     const rr = RECIPES[i]; const lk = !!rr.unlock && !brewed.includes(rr.unlock);
-    setRi(i); setStep(0); setBowl([]); setStirs(0); setDone(false); setNeed(null); setList(false); setBrew(null); setPop(null); setStirFrac(0); fizzAtStart.current = fizz;
+    setRi(i); setStep(0); setBowl([]); setStirs(0); setDone(false); setNeed(null); setList(false); setBrew(null); setPop(null); setStirFrac(0); setDouble(false); fizzAtStart.current = fizz;
     setMsg(lk ? '' : `Read the recipe. Step 1 first: ${rr.steps[0].text}`);
   };
   const tapIngredient = (id: string) => {
     if (done || locked) return;
     const g = ING(id);
+    // Science essence from the Mixing Lab: add it at any step for a double batch.
+    if (id === 'essence') {
+      if ((pantry.essence ?? 0) < 1) { snSound('fizzle'); setMsg('Discover a new reaction in the Mixing Lab to earn a science essence.'); return; }
+      if (double) { setMsg('One science essence is enough. This brew already makes 2 potions.'); return; }
+      snSound('learned'); swirl(); pourFx(id); setDouble(true); setMsg(`✨ Science essence! This brew will make 2 potions. ${stepMsg(step)}`); return;
+    }
     const inStep = (s.need === 'bowl' || s.need === 'add') && s.items!.includes(id);
     if (inStep && !has(id)) { snSound('fizzle'); setNeed(id); setMsg(`You need 1 ${g.name}. You can buy it in the Shop for ${formatMoney(g.price)}.`); return; }
     if (s.need === 'bowl' && inStep) {
@@ -309,6 +316,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
   const [stirFrac, setStirFrac] = useState(0);
   const [pop, setPop] = useState<{ name: string; key: number } | null>(null);
   const fizzAtStart = useRef(0);
+  const [double, setDouble] = useState(false);
   const pourFx = (id: string) => {
     const img = ING(id).img; const key = Date.now();
     setFly({ img, key });
@@ -348,7 +356,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
   };
   const spell = R.steps.find((x) => x.need === 'spell')?.word ?? R.name.toLowerCase();
   const finish = () => {
-    setWrite(false); setDone(true); setPoof((n) => n + 1); snSound('done'); onBrewed(R.name, buyList); setPop({ name: R.name, key: Date.now() });
+    setWrite(false); setDone(true); setPoof((n) => n + 1); snSound('done'); onBrewed(R.name, double ? [...buyList, 'essence'] : buyList, double ? 2 : 1); setPop({ name: R.name, key: Date.now() });
     const slips = fizz - fizzAtStart.current;
     const unlocks = RECIPES.filter((x) => x.unlock === R.name && !brewed.includes(R.name));
     setMsg(`Poof! You made the ${R.name} potion. ${R.does}${slips === 0 ? ' ⭐ A perfect brew: every step in order!' : ` You fixed ${slips} ${slips === 1 ? 'mistake' : 'mistakes'} and kept going. That is how real potion makers learn!`}${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
@@ -366,7 +374,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
         </span>
         <span className="sn-chip">My potions: {potions.length}</span>
       </> })}
-      {mode === 'lab' ? <SupernatureMixLab say={say} /> : <>
+      {mode === 'lab' ? <SupernatureMixLab say={say} onDiscover={onEssence} /> : <>
       <section className="sn-recipe">
         <div className="sn-row between">
           <button type="button" className="sn-ib small light" onClick={() => { snSound('page'); reset((ri + RECIPES.length - 1) % RECIPES.length); }} aria-label="Previous recipe"><Icon d="M15 5l-7 7 7 7" /></button>
@@ -403,7 +411,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
           {fly && <img key={fly.key} src={fly.img} alt="" className="sn-flyin" />}
           {splash > 0 && <Fx key={`sp${splash}`} k="splash" size={150} className="sn-splashfx" />}
           {fizz > 0 && <Fx key={`fz${fizz}`} k="dust" size={140} className="sn-splashfx" />}
-          {pop && <span key={pop.key} className="sn-potpop"><Fx k="potion" size={220} className="sn-potpop-fx" /><img src={POTION_ICON[pop.name]} alt="" /><b>+1 {pop.name}</b></span>}
+          {pop && <span key={pop.key} className="sn-potpop"><Fx k="potion" size={220} className="sn-potpop-fx" /><img src={POTION_ICON[pop.name]} alt="" /><b>+{double ? 2 : 1} {pop.name}</b></span>}
           <span key={`m${mixing}`} className={`sn-stick${mixing ? ' swirl' : ''}`} style={{ ['--a' as string]: `${stickAngle}deg` }} aria-hidden="true"><i /></span>
           {s.need === 'stir' && !done && <span className="sn-stir-hint">Draw circles on the pot to stir! {Array.from({ length: s.times ?? 3 }, (_, k) => (k < stirs ? '●' : '○')).join(' ')}</span>}
         </div>

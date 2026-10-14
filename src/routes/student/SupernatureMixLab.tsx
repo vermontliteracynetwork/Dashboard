@@ -22,7 +22,7 @@ const FX_OF: Record<LabEffect, FxKey | null> = { fizz: 'splash', boom: 'blast', 
 const RANKS = [{ at: 0, name: 'Apprentice' }, { at: 4, name: 'Potion Brewer' }, { at: 10, name: 'Alchemist' }, { at: 20, name: 'Grand Alchemist' }, { at: 30, name: 'Archmage' }];
 const rankOf = (n: number) => { let r = RANKS[0]; for (const x of RANKS) if (n >= x.at) r = x; return { name: r.name, next: RANKS.find((x) => x.at > n) }; };
 
-export default function SupernatureMixLab({ say }: { say: (t: string) => void }) {
+export default function SupernatureMixLab({ say, onDiscover }: { say: (t: string) => void; onDiscover?: () => void }) {
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const row = useStore((s) => (student ? s.styleLooks.find((r) => r.ownerId === owner(student.id)) : undefined));
@@ -52,6 +52,7 @@ export default function SupernatureMixLab({ say }: { say: (t: string) => void })
     const newly = r.unlocks.filter((u) => !shelf.some((s) => s.id === u));
     if (student && (fresh || newly.length)) mergeStyleRow(owner(student.id), { found: fresh ? [...found, r.id] : found, unlocked: [...new Set([...(saved.unlocked ?? []), ...newly])] });
     setCard({ r, fresh, unlocked: newly });
+    if (fresh && onDiscover) { onDiscover(); snSound('learned'); }
     say(`${r.magic.name}! ${r.magic.line} The real science: ${r.fact}`);
   };
   const react = (b: number, r: Recipe) => {
@@ -180,6 +181,7 @@ export default function SupernatureMixLab({ say }: { say: (t: string) => void })
               <p>{card.r.fact}</p>
               <code>{card.r.equation}</code>
             </div>
+            {card.fresh && onDiscover && <p className="sn-small"><b>✨ You earned 1 science essence!</b> Add it to any recipe in the Cauldron to make 2 potions.</p>}
             {card.unlocked.length > 0 && <p className="sn-small"><b>New on your shelf:</b> {card.unlocked.map((u) => SUB.get(u)?.name).join(', ')}</p>}
             <div className="sn-row center">
               <button type="button" className="sn-btn2" onClick={() => say(`${card.r.magic.name}. ${card.r.magic.line} The real science: ${card.r.name}. ${card.r.fact}`)}>🔊 Listen</button>

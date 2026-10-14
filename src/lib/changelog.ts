@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-science-essence",
+    date: "2026-10-14",
+    icon: "✨",
+    title: "Science essence: double potions",
+    body: "Every new reaction you discover in the Mixing Lab gives you a science essence. Add it to any recipe in the Cauldron and you get 2 potions instead of 1!",
+  },
+  {
     id: "2026-10-14-brewing",
     date: "2026-10-14",
     icon: "🧪",
