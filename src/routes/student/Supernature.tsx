@@ -5,7 +5,7 @@ import { speak } from '../../components/ReadAloud';
 import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, type SnSave, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
-import { byId, setMade, type Made } from '../../lib/supernatureCreatures';
+import { byId, setMade, setLocks, lockOf, LOCKS_OWNER, type Lock, type Made } from '../../lib/supernatureCreatures';
 import { setMadePlants } from '../../lib/supernaturePlants';
 import SupernaturePlantMaker from './SupernaturePlantMaker';
 import { Icon } from './SupernatureWriting';
@@ -67,6 +67,7 @@ export default function Supernature() {
   const back = useBack();
   const scale = useFit();
   const { save, patch: rawPatch } = useSupernature(student?.id ?? null);
+  const locks = (useStore((st) => st.styleLooks.find((r) => r.ownerId === LOCKS_OWNER)?.look) ?? {}) as Record<string, Lock>;
   const hist = useRef<{ past: Partial<SnSave>[]; future: Partial<SnSave>[] }>({ past: [], future: [] });
   const [, setHistN] = useState(0);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -95,7 +96,10 @@ export default function Supernature() {
   if (!student) return null;
   const tts = student.ttsSettings;
   const say = (t: string) => speak(t, tts);
-  const found = save.found ?? [];
+  setLocks(locks);
+  const found = (save.found ?? []).filter((id) => { const c = byId(id); return !c || lockOf(c) !== 'hidden'; });
+  // Explore only creatures are read about, not kept in the Habitat (her rule, plan section 9).
+  const habitatFound = found.filter((id) => { const c = byId(id); return !c || lockOf(c) === 'remix'; });
   const potions = save.potions ?? [];
   const pantry = save.pantry ?? {};
   const recordTransaction = useStore((s) => s.recordTransaction);
@@ -146,7 +150,7 @@ export default function Supernature() {
         {room === 'home' && <Home bar={bar({ extra: <button type="button" className="sn-rank" onClick={() => { snSound('open'); setRankOpen(true); }}>🏅 {nat.rank.name} · {nat.xp} XP</button> })} go={go} say={say} maker={() => openMaker(null)} crown={nat.level >= 4} />}
         {rankOpen && <RankCard nat={nat} say={say} onClose={() => setRankOpen(false)} />}
         {room === 'habitat' && (
-          <SupernatureHabitat bar={bar} say={say} found={found} saved={save.habitat ?? {}} onSave={(h) => patch({ habitat: h })}
+          <SupernatureHabitat bar={bar} say={say} found={habitatFound} saved={save.habitat ?? {}} onSave={(h) => patch({ habitat: h })}
             potions={potions} potionPower={save.alchemy?.power ?? {}}
             usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }}
             goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} goNames={() => go('names')} rankLevel={nat.level}

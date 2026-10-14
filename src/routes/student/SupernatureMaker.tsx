@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ENERGY_FACE, ENERGY_STEPS, REGIONS, SN, WORD_PARTS, snSound, type Energy, type Part } from '../../lib/supernature';
-import { CREATURES, MAX_MADE, art, type Biome, type Creature, type Made } from '../../lib/supernatureCreatures';
+import { CREATURES, MAX_MADE, art, type Biome, type Creature, type Made, lockOf } from '../../lib/supernatureCreatures';
 import {
   COLORS, DEFAULT_SPEC, LIMBS_FOR, PLANS, bodyTraits, fixSpec, likesFor, moveFor, sparkSpec, specUrl,
   type Covering, type Head, type Horns, type Limbs, type Spec, type Tail, type Wings,
@@ -114,7 +114,7 @@ export default function SupernatureMaker({ bar, say, found, made, editId, onSave
     const sug = suggest(d.spec, d);
     return allParts ? WORD_PARTS : WORD_PARTS.filter((p) => sug.includes(p.text));
   }, [d, allParts]);
-  const remixable = CREATURES.filter((c) => found.includes(c.id) && c.explore === 'remix');
+  const remixable = CREATURES.filter((c) => found.includes(c.id) && lockOf(c) === 'remix');
 
   const next = () => { snSound('page'); setStep((s) => Math.min(STEPS.length - 1, s + 1)); };
   const prev = () => { snSound('page'); setStep((s) => Math.max(0, s - 1)); };

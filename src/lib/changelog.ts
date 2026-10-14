@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-explore-only",
+    date: "2026-10-14",
+    icon: "📖",
+    title: "Creatures we learn about with respect",
+    body: "Some creatures in Supernature are sacred to people who tell their stories today. You can find them and read about them in the Encyclopedia, but they stay in their stories, not in your Habitat or the Creature Maker.",
+  },
+  {
     id: "2026-10-14-supernature-bar",
     date: "2026-10-14",
     icon: "🎛️",

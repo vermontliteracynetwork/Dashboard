@@ -4,8 +4,10 @@ import { feature } from 'topojson-client';
 import type { Feature, FeatureCollection, Geometry } from 'geojson';
 import type { GeometryCollection, Topology } from 'topojson-specification';
 import { REGIONS, SN, snSound } from '../../lib/supernature';
-import { CREATURES, STARTERS, art, byId, madeList, type Creature } from '../../lib/supernatureCreatures';
+import { CREATURES as ALL_CREATURES, shown, STARTERS, art, byId, madeList, type Creature } from '../../lib/supernatureCreatures';
 import { Icon } from './SupernatureWriting';
+// Her locks (Build Queue 107): creatures she set to Hidden never show.
+const visibleCreatures = () => ALL_CREATURES.filter(shown);
 
 // The interactive Globe (Build Queue 112; her words: "make globe fully interactive, spining/rotating,
 // zoomable, labels for countries, tappable to see things"). A real world map (Natural Earth through
@@ -76,7 +78,7 @@ export default function SupernatureGlobe({ bar, say, found, onFind, openPage }: 
   const pointers = useRef(new Map<number, { x: number; y: number }>());
   const drag = useRef<{ x: number; y: number; lon: number; lat: number; moved: boolean; dist?: number; zoom?: number } | null>(null);
   const dirty = useRef(true);
-  const all = useMemo(() => [...CREATURES, ...madeList().map((m) => byId(m.id)!)], []);
+  const all = useMemo(() => [...visibleCreatures(), ...madeList().map((m) => byId(m.id)!)], []);
   const pins = useMemo(() => all.map((c, i) => ({ c, at: pinFor(c, i) })), [all]);
 
   useEffect(() => {
@@ -213,7 +215,7 @@ export default function SupernatureGlobe({ bar, say, found, onFind, openPage }: 
   };
 
   const r = REGIONS.find((x) => x.id === region);
-  const here = CREATURES.filter((c) => c.region === region).sort((a, b) => Number(STARTERS.includes(b.id)) - Number(STARTERS.includes(a.id)));
+  const here = visibleCreatures().filter((c) => c.region === region).sort((a, b) => Number(STARTERS.includes(b.id)) - Number(STARTERS.includes(a.id)));
   const nextHidden = here.find((c) => !found.includes(c.id));
   const inCountry = country ? pins.filter(({ c, at }) => c.chapter !== 'mine' && countries.find((f) => f.properties.name === country && geoContains(f, at))).map((p) => p.c) : [];
   const shown = last ? byId(last) : undefined;
@@ -221,7 +223,7 @@ export default function SupernatureGlobe({ bar, say, found, onFind, openPage }: 
 
   return (
     <div className="sn-room">
-      {bar({ extra: <span className="sn-chip">{found.length} of {CREATURES.length} creatures found</span> })}
+      {bar({ extra: <span className="sn-chip">{found.length} of {visibleCreatures().length} creatures found</span> })}
       <div className="sn-globe2">
         <canvas ref={low} width={LOW} height={LOW} className="sn-globe2-low" aria-hidden="true" />
         <canvas ref={high} width={HIGH} height={HIGH} className="sn-globe2-high" aria-label="Globe. Drag to spin, pinch to zoom, tap a place."
@@ -239,7 +241,7 @@ export default function SupernatureGlobe({ bar, say, found, onFind, openPage }: 
       <aside className="sn-globe2-side">
         <div className="sn-region-chips">
           {REGIONS.map((x) => {
-            const allHere = CREATURES.filter((c) => c.region === x.id);
+            const allHere = visibleCreatures().filter((c) => c.region === x.id);
             const n = allHere.filter((c) => found.includes(c.id)).length;
             return (
               <button key={x.id} type="button" className={`sn-region2 ${x.kind}${region === x.id ? ' on' : ''}`} onClick={() => { snSound('tap'); setRegion(x.id); setCountry(null); setLast(null); flyTo(CENTER[x.id], x.kind === 'land' ? 1.6 : undefined); say(x.label); }}>

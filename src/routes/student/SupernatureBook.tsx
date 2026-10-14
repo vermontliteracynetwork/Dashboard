@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { ENERGY_FACE, REGIONS, SN, snSound } from '../../lib/supernature';
-import { CHAPTERS, CREATURES, MAX_MADE, art, byId, madeList, madeToCreature, type ChapterId, type Creature } from '../../lib/supernatureCreatures';
+import { CHAPTERS, CREATURES as ALL_CREATURES, shown, MAX_MADE, art, byId, madeList, madeToCreature, type ChapterId, type Creature } from '../../lib/supernatureCreatures';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 import { CardModal } from './SupernatureCards';
+// Her locks (Build Queue 107): creatures she set to Hidden never show.
+const visibleCreatures = () => ALL_CREATURES.filter(shown);
 
 // The Encyclopedia (her requests, 2026-10-13): a pixel book reached from the bookshelf. It opens on
 // a working table of contents; every chapter also has its own ribbon tab on the right edge, so any
@@ -14,7 +16,7 @@ type View = 'toc' | ChapterId;
 type Bar = (o?: { back?: () => void; backLabel?: string; extra?: React.ReactNode }) => React.ReactNode;
 const READ_KEY = 'supernature.readstory';
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
-const inChapter = (id: ChapterId) => (id === 'mine' ? madeList().map(madeToCreature) : CREATURES.filter((c) => c.chapter === id));
+const inChapter = (id: ChapterId) => (id === 'mine' ? madeList().map(madeToCreature) : visibleCreatures().filter((c) => c.chapter === id));
 const regionLabel = (id: string) => REGIONS.find((r) => r.id === id)?.label ?? id;
 
 export default function SupernatureBook({ bar, say, found, start, goGlobe, goHome, goMaker, onRemove, levels, gold }: {
@@ -90,7 +92,7 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
             </div>
             <div className="sn-page right">
               {CHAPTERS.slice(4).map((ch, i) => tocRow(ch, i + 5))}
-              <p className="sn-toc-total">You found {found.length} of {CREATURES.length} creatures. <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setCards({}); }}>🃏 My cards</button></p>
+              <p className="sn-toc-total">You found {found.length} of {visibleCreatures().length} creatures. <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setCards({}); }}>🃏 My cards</button></p>
             </div>
           </>
         )}
@@ -201,7 +203,7 @@ export default function SupernatureBook({ bar, say, found, start, goGlobe, goHom
 
       <div className="sn-book-nav">
         <button type="button" className="sn-btn2" onClick={() => flip(-1)} disabled={view === 'toc'}><Icon d="M15 5l-7 7 7 7" />Previous</button>
-        <span className="sn-book-where">{view === 'toc' ? `${CREATURES.length} creatures in ${CHAPTERS.length} chapters` : `${chapter?.title} · ${pick + 1} of ${list.length}`}</span>
+        <span className="sn-book-where">{view === 'toc' ? `${visibleCreatures().length} creatures in ${CHAPTERS.length} chapters` : `${chapter?.title} · ${pick + 1} of ${list.length}`}</span>
         <button type="button" className="sn-btn2" onClick={() => flip(1)}>Next<Icon d="M9 5l7 7-7 7" /></button>
       </div>
       {cards && <CardModal ids={[...found, ...madeList().map((m) => m.id)]} start={cards.start} levels={levels} gold={gold} say={say} onClose={() => setCards(null)} />}

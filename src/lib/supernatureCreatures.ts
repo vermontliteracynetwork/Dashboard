@@ -415,6 +415,16 @@ export interface Made {
   biome: Biome; region: string; homeText: string; sentence: string; fact: string; facts?: string[]; wrote?: boolean; created: string;
 }
 export const MAX_MADE = 12;
+// Her locks (Build Queue 107, plan section 9: "She approves every region's list... Each creature has three settings:
+// Hidden, Explore only, or Remix ok"). Saved by the teacher in one shared row; until she changes a creature, it keeps
+// its built-in setting. Hidden: students never see it. Explore only: read and learn about it, but no Habitat, no remix.
+export type Lock = 'hidden' | 'explore' | 'remix';
+export const LOCKS_OWNER = 'supernature:locks';
+let LOCKS: Record<string, Lock> = {};
+export function setLocks(m: Record<string, Lock>) { LOCKS = m; }
+export const defaultLock = (c: Creature): Lock => (c.explore === 'remix' ? 'remix' : 'explore');
+export const lockOf = (c: Creature): Lock => (c.chapter === 'mine' ? 'remix' : LOCKS[c.id] ?? defaultLock(c));
+export const shown = (c: Creature) => lockOf(c) !== 'hidden';
 let MADE: Made[] = [];
 export function setMade(list: Made[]) { MADE = list; }
 export const madeList = () => MADE;
