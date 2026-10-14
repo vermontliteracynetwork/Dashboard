@@ -32,7 +32,11 @@ export default function QuestionSetsManager() {
     if (tagFilter && !(s.tags ?? []).includes(tagFilter)) return false;
     if (q && !s.name.toLowerCase().includes(q) && !(s.tags ?? []).some((t) => t.toLowerCase().includes(q))) return false;
     return true;
-  });
+  })
+    // Focus sets first, in the top row (teacher 2026-10-14: "put focus sets in top row."); otherwise the saved order.
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => Number(!!b.s.isFocus) - Number(!!a.s.isFocus) || a.i - b.i)
+    .map((x) => x.s);
 
   return (
     <div className="chrome-frame stack" style={{ padding: 14 }}>
