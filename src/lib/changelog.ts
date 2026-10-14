@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-families",
+    date: "2026-10-14",
+    icon: "🐣",
+    title: "Whole creature families",
+    body: "In the Habitat you can see more of each creature family now, like three phoenixes! Each one has its own name and hearts, so you can tap one and care for it. Add another one from the creature card. When babies are born, a card tells you so you can name them.",
+  },
+  {
     id: "2026-10-14-thinking-about-leaving",
     date: "2026-10-14",
     icon: "🧳",

@@ -252,6 +252,15 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // Each family member can have its own name (Build Queue 137: "3 generations of phoenix ... can name them").
   const [names, setNames] = useState<Record<string, string[]>>(saved.names ?? {});
   const [naming, setNaming] = useState<string | null>(null);
+  // More than one of the same creature (Build Queue 153, her words 2026-10-14: "allow for more than one of
+  // the same creature to be placed in biomes (ex, more than one pheonix that can be individually named and
+  // cared for. new generations should spawn and show a confrimation notification"). Up to 3 more family
+  // members walk beside the first one, each with its own name (the family names list) and its own hearts.
+  const [kin, setKin] = useState<Record<string, { hp: number; born: number }[]>>(saved.kin ?? {});
+  const [kinSel, setKinSel] = useState<{ id: string; i: number } | null>(null);
+  const [births, setBirths] = useState<{ id: string; n: number; placed: boolean }[]>([]);
+  const [addAsk, setAddAsk] = useState<string | null>(null);
+  const placingKin = useRef<string | null>(null);
   const ttsSettings = useStore((st) => st.students.find((x) => x.id === st.currentStudentId)?.ttsSettings);
   const questionSets = useStore((st) => st.questionSets);
   const [live, setLive] = useState<Live[]>(() => all.filter((c) => saved.faded?.[c.id] === undefined && !(saved.out ?? []).includes(c.id)).map((c, i, arr) => ({ c, ...place(c, i, arr.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
@@ -432,6 +441,47 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     for (const h of live) if (h !== l && isHunter(h.c) && home(h.c) === home(l.c)) { const v = likedElsewhere(h); if (v) m[h.c.id] = v; }
     if (!Object.keys(m).length) { tell('The hunters here have nowhere else they like to live, so they stay. Try another change.', true); return; }
     doneWarn(); showRipple(l.c, `Moving the hunters away from ${nameOf(l)}`, eco, m); setHomes((h) => ({ ...h, ...m })); snSound('pickup');
+  };
+
+  // Family members on screen follow the family size; a bigger family means a new generation was born.
+  const MAX_KIN = 3;
+  const prevGroups = useRef<Record<string, number> | null>(null);
+  useEffect(() => {
+    const prev = prevGroups.current; prevGroups.current = Object.fromEntries(live.map((l) => [l.c.id, count(l.c.id)]));
+    setKin((k) => {
+      let changed = false; const out = { ...k };
+      for (const l of live) {
+        const want = Math.max(0, Math.min(MAX_KIN, count(l.c.id) - 1)); const cur = out[l.c.id] ?? [];
+        if (cur.length !== want) { changed = true; out[l.c.id] = cur.length > want ? cur.slice(0, want) : [...cur, ...Array.from({ length: want - cur.length }, () => ({ hp: 5, born: Date.now() }))]; }
+      }
+      return changed ? out : k;
+    });
+    if (!prev) return;
+    const born = live.filter((l) => prev[l.c.id] !== undefined && prev[l.c.id] > 0 && count(l.c.id) > prev[l.c.id]).map((l) => ({ id: l.c.id, n: count(l.c.id) - prev[l.c.id], placed: placingKin.current === l.c.id }));
+    placingKin.current = null;
+    if (born.length) { setBirths((b) => [...b, ...born]); born.forEach((x) => sparkleOn(x.id)); snSound('learned'); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(eco.groups), live.length]);
+  // Family members feel what the first one feels (same body, same land): hearts follow its changes.
+  const prevHp = useRef<Record<string, number>>({});
+  useEffect(() => {
+    const d: Record<string, number> = {};
+    for (const l of live) { const p = prevHp.current[l.c.id]; if (p !== undefined && p !== l.hp) d[l.c.id] = l.hp - p; prevHp.current[l.c.id] = l.hp; }
+    if (Object.keys(d).length) setKin((k) => Object.fromEntries(Object.entries(k).map(([id, row]) => [id, d[id] ? row.map((m) => ({ ...m, hp: Math.max(0, Math.min(5, m.hp + d[id])) })) : row])));
+  }, [live]);
+  const kinName = (c: Creature, i: number) => names[c.id]?.[i + 1] || `${c.name} ${i + 2}`;
+  const careKin = (id: string, i: number, potion: 'Vita' | 'Herba' | 'pet') => {
+    const c = byId(id); if (!c) return;
+    if (potion !== 'pet') { if (have(potion) < 1) return; usePotion(potion); snSound('done'); }
+    else snSound('chime');
+    setKin((k) => ({ ...k, [id]: (k[id] ?? []).map((m, j) => (j === i ? { ...m, hp: potion === 'Vita' ? 5 : potion === 'Herba' ? Math.min(5, m.hp + 2) : Math.min(5, m.hp + (m.hp < 5 ? 1 : 0)) } : m)) }));
+    tell(potion === 'pet' ? `${kinName(c, i)} loves the gentle pats. It feels safe and calm.` : `The ${potion} potion worked on ${kinName(c, i)}!`, true);
+  };
+  const addAnother = (id: string) => {
+    const c = byId(id); if (!c) return;
+    if (count(id) >= 10) { tell(`The ${c.name} family is as big as it can get (10).`, true); return; }
+    placingKin.current = id; setEco((x) => ({ ...x, groups: { ...x.groups, [id]: Math.min(10, (x.groups[id] ?? START_GROUP) + 1) } }));
+    setAddAsk(null); snSound('pickup');
   };
 
   // The season changes on the shared clock (Build Queue 120). Each season that ends runs the food
@@ -640,8 +690,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1091,7 +1141,20 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           const mv = tp === 'float' || tp === 'zoom' ? 'fly' : biome === 'ocean' ? 'swim' : l.c.move === 'swim' && has(sk(l.c), 'fishOutOfWater') ? 'walk' : l.c.move;
           const feel = feelFor(l);
           const style = behaviorOf(l.c).style;
+          const kinRow = l.hide || count(l.c.id) === 0 ? [] : (kin[l.c.id] ?? []);
+          const OFF = [{ x: -78, y: 30 }, { x: 82, y: 34 }, { x: -24, y: 70 }];
           return (
+            <span key={l.c.id} className="sn-family">
+            {kinRow.map((m, j) => (
+              <button key={`${l.c.id}#${j}`} type="button" className={`sn-crit sn-kin ${mv} st-${style}${m.hp === 0 ? ' still' : ''}${Date.now() - m.born < 20000 ? ' newborn' : ''}`}
+                style={{ left: Math.max(10, Math.min(W - 90, pos.left + OFF[j].x)), top: Math.max(10, Math.min(H - 90, pos.top + OFF[j].y)), zIndex: 3, ['--d' as string]: `${-sp.d * 0.6}px`, ['--t' as string]: `${(sp.t + j * 2) * (k || 1)}s`, animationDelay: `${-(i + j + 1) * 1.3}s` }}
+                onClick={(e) => { e.stopPropagation(); snSound('tap'); setKinSel({ id: l.c.id, i: j }); setSel(null); }} aria-label={`${kinName(l.c, j)}, a ${l.c.name} in the family. ${m.hp} of 5 hearts. Tap to care for it.`}>
+                <img src={art(l.c.id)} alt="" />
+                {m.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
+                <span className="sn-crit-name">{kinName(l.c, j)}</span>
+                <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < m.hp ? 'full' : ''} />)}</span>
+              </button>
+            ))}
             <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''}${wb?.h.id === l.c.id ? ' wb-h' : wb?.p.id === l.c.id ? ' wb-p' : ''} st-${style}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
               style={{ ...pos, zIndex: mv === 'fly' ? 4 : 3, ['--d' as string]: `${sp.d}px`, ['--t' as string]: `${sp.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s` }}
               onClick={(e) => { e.stopPropagation(); if (armed) { if (fits(armed, l)) giveTo(armed, l.c.id); else tell(`${l.c.name} does not need ${armed} right now.`); return; } snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. ${reactions[l.c.id]?.text ?? ''} Tap to check on it.`}>
@@ -1104,6 +1167,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <span className="sn-crit-name"><i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
+            </span>
           );
         })}
 
@@ -1174,6 +1238,42 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         )}
 
 
+        {births[0] && (() => { const b = births[0]; const c = byId(b.id); if (!c) return null; const where = viewLabel(homes[b.id] ?? homeOf(c)).toLowerCase(); const text = b.placed ? `Another ${c.name} joined the family in the ${where}! The family has ${count(b.id)} now.` : `A new generation! ${b.n === 1 ? `A baby ${c.name} was` : `${b.n} baby ${c.name}s were`} born in the ${where}. The family has ${count(b.id)} now.`; return (
+          <PopCard key={`birth-${b.id}-${births.length}`} className="sn-pop sn-leave sn-birth" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title="New family member" onClose={() => setBirths((x) => x.slice(1))}>
+            <div className="sn-pop-head"><img src={art(b.id)} alt="" /><h2>🐣 {text}</h2></div>
+            <p className="sn-leave-help">Give {b.n === 1 ? 'it' : 'them'} a name, then tap {b.n === 1 ? 'it' : 'one'} in the Habitat to care for {b.n === 1 ? 'it' : 'it on its own'}.<button type="button" className="sn-listen" onClick={() => say(text)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
+            <div className="sn-pop-actions">
+              <button type="button" className="sn-btn2 go" onClick={() => { setBirths((x) => x.slice(1)); snSound('tap'); setNaming(b.id); }}>✏️ Name {b.n === 1 ? 'it' : 'them'}</button>
+              <button type="button" className="sn-btn2" onClick={() => setBirths((x) => x.slice(1))}>👍 Got it</button>
+            </div>
+          </PopCard>
+        ); })()}
+        {kinSel && (() => { const c = byId(kinSel.id); const m = kin[kinSel.id]?.[kinSel.i]; if (!c || !m) return null; const nm = kinName(c, kinSel.i); return (
+          <PopCard key={`kin-${kinSel.id}-${kinSel.i}`} className="sn-pop" style={{ left: (W - 360) / 2, top: 50 }} maxH={H - 70} title={nm} onClose={() => setKinSel(null)}>
+            <div className="sn-pop-head"><img src={art(c.id)} alt="" /><h2>{nm}</h2></div>
+            <div className="sn-hearts big" aria-label={`${m.hp} of 5 hearts`}>{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < m.hp ? 'full' : ''} />)}</div>
+            <p className="sn-small">Generation {kinSel.i + 2} of the {c.name} family ({count(c.id)} in all). It shares the family's skills and land, and it feels the weather like they do. You can care for it on its own.</p>
+            <div className="sn-pop-actions">
+              {m.hp < 5 && have('Vita') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => careKin(c.id, kinSel.i, 'Vita')}><img src={POTION_ICON.Vita} alt="" />Give Vita ({have('Vita')}): all 5 hearts</button>}
+              {m.hp < 5 && have('Herba') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => careKin(c.id, kinSel.i, 'Herba')}><img src={POTION_ICON.Herba} alt="" />Give Herba ({have('Herba')}): 2 hearts</button>}
+              {m.hp < 5 && have('Vita') < 1 && have('Herba') < 1 && <button type="button" className="sn-btn2" onClick={() => goCauldron('Vita')}>Brew a Vita potion to heal it</button>}
+              <button type="button" className="sn-btn2" onClick={() => careKin(c.id, kinSel.i, 'pet')}>🤗 Give it gentle pats</button>
+              <button type="button" className="sn-btn2" onClick={() => { setKinSel(null); setNaming(c.id); }}>✏️ Name it</button>
+              <button type="button" className="sn-btn2" onClick={() => { setKinSel(null); setSel(c.id); }}>See the whole family</button>
+            </div>
+          </PopCard>
+        ); })()}
+        {addAsk && (() => { const c = byId(addAsk); if (!c) return null; const lines = webChange(addAsk, 'add'); return (
+          <PopCard key={`add-${addAsk}`} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title={`Add another ${c.name}?`} onClose={() => setAddAsk(null)}>
+            <div className="sn-pop-head"><img src={art(c.id)} alt="" /><h2>➕ Add another {c.name} to the family?</h2></div>
+            <p className="sn-leave-help">The family will have {Math.min(10, count(c.id) + 1)}. One more {c.name} also needs food, so the food web changes:</p>
+            <ul className="sn-ripple">{lines.map((t) => <li key={t}>{t}</li>)}</ul>
+            <div className="sn-pop-actions">
+              <button type="button" className="sn-btn2 go" onClick={() => addAnother(c.id)}>✅ Yes, add one</button>
+              <button type="button" className="sn-btn2" onClick={() => setAddAsk(null)}>No, not now</button>
+            </div>
+          </PopCard>
+        ); })()}
         {rippleCard && (
           <PopCard key={`ripple-${rippleCard.title}`} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title="What else changed" onClose={() => setRipple(null)}>
             <div className="sn-pop-head"><span className="sn-leave-icon" aria-hidden>🌍</span><h2>{rippleCard.title}. What else changed?</h2></div>
@@ -1181,7 +1281,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <div className="sn-pop-actions"><button type="button" className="sn-btn2 go" onClick={() => setRipple(null)}>👍 Got it</button></div>
           </PopCard>
         )}
-        {warn && !sel && !rippleCard && (() => { const l = live.find((x) => x.c.id === warn.id); if (!l) return null; const text = `${nameOf(l)} is thinking about leaving because ${warn.because}.`; return (
+        {warn && !sel && !rippleCard && !births[0] && !addAsk && (() => { const l = live.find((x) => x.c.id === warn.id); if (!l) return null; const text = `${nameOf(l)} is thinking about leaving because ${warn.because}.`; return (
           <PopCard key={warn.key} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title={`${nameOf(l)} might leave`} onClose={doneWarn}>
             <div className="sn-pop-head"><img src={art(l.c.id)} alt="" /><h2>🧳 {text}</h2></div>
             <p className="sn-leave-help"><b>How to help:</b> {warn.help}<button type="button" className="sn-listen" onClick={() => say(`${text} ${warn.help}`)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
@@ -1241,6 +1341,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 <button type="button" className="sn-btn2 go" disabled={sel_.hp === 0} onClick={() => { snSound('open'); setPlaying(sel_.c); setSel(null); }}>🎮 Be this creature</button>
                 <button type="button" className="sn-btn2" onClick={() => openPage(sel_.c.id)}>Read its page</button>
                 <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setNaming(sel_.c.id); }}>✏️ Name the family</button>
+                <button type="button" className="sn-btn2 go" onClick={() => { snSound('tap'); setAddAsk(sel_.c.id); }}>➕ Add another {sel_.c.name}</button>
                 <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setPlacing({ id: sel_.c.id, mode: 'remove' }); }}>🧺 Take out of the Habitat</button>
               </div>
             ) : (
