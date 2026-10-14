@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-element-pictures",
+    date: "2026-10-14",
+    icon: "🖼️",
+    title: "A picture for every element",
+    body: "Every element has a picture now: hydrogen is the sun, helium is balloons, iron is a bridge. See them on the bottles in the Science Lab and the Mixing Lab, and on every tile of the periodic table. Tap a tile to see what the element is used for.",
+  },
+  {
     id: "2026-10-14-science-essence",
     date: "2026-10-14",
     icon: "✨",

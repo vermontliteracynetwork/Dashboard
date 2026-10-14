@@ -8888,3 +8888,13 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-ingb.needed { box-shadow: 0 0 0 4px #ffd970, 0 0 18px 4px rgba(255, 217, 112, 0.8); animation: snPulse 1.2s ease-in-out infinite; }
 .sn-btn2.sn-glow { box-shadow: 0 0 0 4px #ffd970, 0 0 18px 4px rgba(255, 217, 112, 0.8); }
 @media (prefers-reduced-motion: reduce) { .sn-flyin, .sn-potpop, .sn-ingb.needed { animation: none; } }
+
+/* Her element pictures (Build Queue 169) */
+.lab-pt.big .lab-pt-cell { min-height: 72px; }
+.lab-pt.big .lab-pt-cell img { width: 100%; max-height: 34px; object-fit: contain; }
+.lab-bottle-pic { width: 60px; height: 60px; object-fit: contain; border-radius: 8px; }
+.mx-elpic { width: 54px; height: 50px; object-fit: contain; border-radius: 6px; border: 2px solid #f6f1ff; background: #fff; }
+.mx-pt-cell { min-height: 56px; }
+.mx-pt-cell img { width: 100%; max-height: 26px; object-fit: contain; }
+.mx-elcard { width: 120px; height: auto; flex: none; border-radius: 8px; border: 2px solid #f6f1ff; }
+.lab-photo img { max-width: 220px; max-height: 300px; object-fit: contain; }

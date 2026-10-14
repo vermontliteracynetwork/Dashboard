@@ -5,6 +5,7 @@ import { snSound } from '../../lib/supernature';
 import { Fx, type FxKey } from './SupernatureFx';
 import { ELEMENT_USES, FAMILIES, PERIODIC, type PtElement } from '../../games/scienceLab/elements';
 import { Icon } from './SupernatureWriting';
+import { ELEMENT_PIC_CREDIT, elementCard, elementPic } from '../../games/scienceLab/ElementPhoto';
 
 // The Mixing Lab inside the Supernature Cauldron (Build Queue 156, her words 2026-10-14: "take the logic
 // from the magic part of the science lab and transfer the similar view, interactions, and mixing elements
@@ -129,7 +130,7 @@ export default function SupernatureMixLab({ say, onDiscover }: { say: (t: string
         <div className="mx-bottles">
           {shelf.map((s) => (
             <button key={s.id} type="button" className="mx-bottle" onPointerDown={(e) => startDrag(e, s)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') pourIn(s); }} aria-label={`Pour ${s.name} into flask ${sel + 1}`}>
-              <i className={`mx-vial ${s.state}`} style={{ ['--c' as string]: s.color }} />
+              {s.element ? <img className="mx-elpic" src={elementPic(s.element)} alt="" loading="lazy" /> : <i className={`mx-vial ${s.state}`} style={{ ['--c' as string]: s.color }} />}
               <b>{s.name}</b><small>{s.formula}</small>
             </button>
           ))}
@@ -212,14 +213,15 @@ export default function SupernatureMixLab({ say, onDiscover }: { say: (t: string
             <h2>✨ Table of Elements</h2>
             <p className="sn-small">The real periodic table. Glowing tiles are elements on your shelf. Tap a tile to read about it.</p>
             <div className="mx-pt">{PERIODIC.map((e) => (
-              <button key={e.n} type="button" className={`mx-pt-cell${learned.has(e.sym) ? ' on' : ''}`} style={{ gridRow: e.row, gridColumn: e.col, ['--fam' as string]: FAMILIES[e.family].magic }} onClick={() => { snSound('tap'); setEl(e); }} aria-label={`${e.name}, ${e.n}${learned.has(e.sym) ? ', on your shelf' : ''}`}><small>{e.n}</small><b>{e.sym}</b></button>
+              <button key={e.n} type="button" className={`mx-pt-cell${learned.has(e.sym) ? ' on' : ''}`} style={{ gridRow: e.row, gridColumn: e.col, ['--fam' as string]: FAMILIES[e.family].magic }} onClick={() => { snSound('tap'); setEl(e); }} aria-label={`${e.name}, ${e.n}${learned.has(e.sym) ? ', on your shelf' : ''}`}><small>{e.n}</small><img src={elementPic(e.sym)} alt="" loading="lazy" /><b>{e.sym}</b></button>
             ))}</div>
             {el && (
               <div className="mx-el">
-                <b style={{ background: FAMILIES[el.family].magic }}>{el.sym}</b>
+                <img className="mx-elcard" src={elementCard(el.sym)} alt={`${el.name}: what it is used for`} />
                 <div><strong>{el.name}</strong> · {FAMILIES[el.family].name} · atomic number {el.n}
                   {ELEMENT_USES[el.sym] && <p>Used for: {ELEMENT_USES[el.sym]}</p>}
                   {(() => { const sub = shelf.find((x) => x.element === el.sym); return sub ? <p>✅ On your shelf: {sub.fact}</p> : <p>🔒 Not on your shelf yet. Discover more reactions to unlock new bottles.</p>; })()}
+                  <p className="sn-small" style={{ opacity: 0.7 }}>{ELEMENT_PIC_CREDIT}</p>
                 </div>
                 <button type="button" className="sn-listen" onClick={() => say(`${el.name}. ${ELEMENT_USES[el.sym] ? `Used for ${ELEMENT_USES[el.sym]}` : ''}`)} aria-label="Listen"><Icon d={LISTEN} /></button>
               </div>
@@ -228,7 +230,7 @@ export default function SupernatureMixLab({ say, onDiscover }: { say: (t: string
           </div>
         </div>
       )}
-      {drag && <span className="mx-drag" style={{ left: drag.x - 26, top: drag.y - 40 }}><i className={`mx-vial ${drag.s.state}`} style={{ ['--c' as string]: drag.s.color }} /></span>}
+      {drag && <span className="mx-drag" style={{ left: drag.x - 26, top: drag.y - 40 }}>{drag.s.element ? <img className="mx-elpic" src={elementPic(drag.s.element)} alt="" /> : <i className={`mx-vial ${drag.s.state}`} style={{ ['--c' as string]: drag.s.color }} />}</span>}
     </div>
   );
 }

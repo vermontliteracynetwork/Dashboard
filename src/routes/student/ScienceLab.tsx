@@ -3,7 +3,7 @@ import WebpageFrame from '../../components/WebpageFrame';
 import { useStore } from '../../store/store';
 import { BEAKER_MAX, HEAT_RECIPES, RECIPES, STARTER, SUB, blend, heatUp, pour, type LabEffect, type Recipe, type Substance } from '../../games/scienceLab/lab';
 import AtomBuilder, { atomInfo } from '../../games/scienceLab/AtomBuilder';
-import ElementPhoto from '../../games/scienceLab/ElementPhoto';
+import ElementPhoto, { elementPic } from '../../games/scienceLab/ElementPhoto';
 import { ELEMENT_USES, FAMILIES, PERIODIC, type PtElement } from '../../games/scienceLab/elements';
 const ALL_RECIPES = [...RECIPES, ...HEAT_RECIPES];
 
@@ -285,7 +285,7 @@ export default function ScienceLab() {
         return (
           <button key={e.n} type="button" className={`lab-pt-cell${on ? ' on' : ''}`} style={{ gridRow: e.row, gridColumn: e.col, ['--fam' as string]: magic ? fam.magic : fam.color }}
             onClick={(ev) => { ev.stopPropagation(); setElement(e); if (sound) SFX.chime(); }} aria-label={`${e.name}, ${e.n}${on ? ', learned' : ''}`}>
-            {big && <small>{e.n}</small>}<b>{e.sym}</b>{big && <i>{e.name}</i>}
+            {big && <small>{e.n}</small>}{big && <img src={elementPic(e.sym)} alt="" loading="lazy" />}<b>{e.sym}</b>{big && <i>{e.name}</i>}
           </button>
         );
       })}
@@ -321,7 +321,7 @@ export default function ScienceLab() {
           <div className="lab-shelf" ref={shelfRef}>
             {shelf.map((id) => SUB.get(id)!).map((s) => (
               <button key={s.id} type="button" className={`lab-bottle${pouring?.sub?.id === s.id ? ' pouring' : ''}`} onClick={() => pourBottle(s)} aria-label={`Pour ${s.name} into ${magic ? 'cauldron' : 'beaker'} ${sel + 1}`}>
-                <Bottle s={s} magic={magic} />
+                {s.element ? <img className="lab-bottle-pic" src={elementPic(s.element)} alt="" loading="lazy" /> : <Bottle s={s} magic={magic} />}
                 <span className="lab-label"><b>{s.formula}</b><small>{s.name}</small></span>
               </button>
             ))}
@@ -424,7 +424,7 @@ export default function ScienceLab() {
               {sub && on && <p>{sub.fact}</p>}
               {sub && on && <p className="lab-unlock">✅ {shelf.includes(sub.id) ? 'On your shelf. Tap its bottle to pour it.' : 'Learned in the lab.'}</p>}
               {sub && !on && <p className="lab-small">🔒 {unlockHint(element.sym) ?? 'Keep mixing to unlock it.'}</p>}
-              <ElementPhoto key={element.name} name={element.name} />
+              <ElementPhoto key={element.name} name={element.name} sym={element.sym} />
               {ELEMENT_USES[element.sym] && <p><strong>Used for:</strong> {ELEMENT_USES[element.sym]}</p>}
               {element.n <= 20 && <p className="lab-small">⚛️ Build it in the Atom Builder with {element.n} proton{element.n === 1 ? '' : 's'}.</p>}
               {!sub && <p className="lab-small">There is no bottle of it in the lab yet.</p>}

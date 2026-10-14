@@ -1,31 +1,18 @@
-import { useEffect, useState } from 'react';
+// A picture for every element (Build Queue 169, her words 2026-10-14: "i want images for each element
+// added representing the element. this adds and enhances the visual feel claudia and i are requring for
+// this program"). Cut from her upload, "The Periodic Table of the Elements, in Pictures" by Keith
+// Enevoldsen (elements.wlonk.com), Creative Commons Attribution-ShareAlike 4.0, so the credit stays on
+// the card. All 118 are in public/games/scienceLab/elements/: SYM.png is the picture, SYM-card.png the
+// whole cell (symbol, name, picture and what it is used for). Works offline; nothing is fetched.
+export const elementPic = (sym: string) => `/games/scienceLab/elements/${sym}.png`;
+export const elementCard = (sym: string) => `/games/scienceLab/elements/${sym}-card.png`;
+export const ELEMENT_PIC_CREDIT = 'Picture: Keith Enevoldsen, elements.wlonk.com (CC BY-SA 4.0)';
 
-// A real photo of the element on its card (Build Queue 2026-10-09, from her link to the interactive
-// periodic table): the picture from the element's Wikipedia page, fetched when the card opens and
-// remembered on the iPad. Nothing shows when the internet is out of reach.
-const TITLE: Record<string, string> = { Mercury: 'Mercury_(element)' };
-const key = (name: string) => `lab.photo.${name}`;
-export default function ElementPhoto({ name }: { name: string }) {
-  const [src, setSrc] = useState<string | null>(() => { try { return localStorage.getItem(key(name)); } catch { return null; } });
-  useEffect(() => {
-    if (src) return;
-    let alive = true;
-    fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${TITLE[name] ?? encodeURIComponent(name)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { thumbnail?: { source?: string } } | null) => {
-        const s = j?.thumbnail?.source;
-        if (!alive || !s) return;
-        setSrc(s);
-        try { localStorage.setItem(key(name), s); } catch { /* fine */ }
-      })
-      .catch(() => { /* offline: no photo */ });
-    return () => { alive = false; };
-  }, [name, src]);
-  if (!src) return null;
+export default function ElementPhoto({ name, sym, card = true }: { name: string; sym: string; card?: boolean }) {
   return (
     <figure className="lab-photo">
-      <img src={src} alt={`A photo of ${name}`} referrerPolicy="no-referrer" loading="lazy" />
-      <figcaption>Photo: Wikipedia</figcaption>
+      <img src={card ? elementCard(sym) : elementPic(sym)} alt={`${name}: a picture of what it is used for`} loading="lazy" />
+      <figcaption>{ELEMENT_PIC_CREDIT}</figcaption>
     </figure>
   );
 }
