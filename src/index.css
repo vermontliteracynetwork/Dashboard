@@ -8565,3 +8565,21 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 @keyframes sbFlyL { from { transform: translateX(0) scale(0.7); } to { transform: translateX(-480px) scale(1.2); } }
 @media (prefers-reduced-motion: reduce) { .sb-proj, .sb-vine { animation: none; } }
 .sn-pop-meters { color: #f6f1ff; }
+
+/* Wild battles in the Habitat (Build Queue 140): watch only */
+.sn-wb { position: absolute; z-index: 9; left: 50%; top: 52px; width: 540px; margin-left: -270px; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(36, 31, 69, 0.9); color: #f6f1ff; border: 3px solid #241f45; border-radius: 12px; pointer-events: none; }
+.sn-wb > b { color: #ffd970; }
+.sn-wb-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+.sn-wb-side { display: flex; flex-direction: column; gap: 3px; }
+.sn-wb-side small { opacity: 0.8; font-size: 11px; }
+.sn-wb-side span { font-weight: 800; font-size: 14px; }
+.sn-wb .sb-m { grid-template-columns: 22px 1fr 28px; }
+.sn-wb p { margin: 0; font-size: 14px; text-align: center; min-height: 36px; }
+.sn-crit.wb-h, .sn-crit.wb-p { animation: none; transition: left 1.2s ease-out, top 1.2s ease-out; z-index: 7 !important; }
+.sn-crit.wb-p > img:first-child { transform: scaleX(-1); }
+.sn-wbproj { position: absolute; z-index: 8; font-size: 44px; line-height: 1; pointer-events: none; }
+.sn-wbproj.from-h { left: 500px; animation: wbR 1.1s ease-in forwards; }
+.sn-wbproj.from-p { left: 640px; animation: wbL 1.1s ease-in forwards; }
+@keyframes wbR { from { transform: translateX(0) scale(0.6); } to { transform: translateX(150px) scale(1.2); } }
+@keyframes wbL { from { transform: translateX(0) scale(0.6); } to { transform: translateX(-150px) scale(1.2); } }
+@media (prefers-reduced-motion: reduce) { .sn-wbproj { animation: none; } }

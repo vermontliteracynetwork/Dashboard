@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-wild-battles",
+    date: "2026-10-14",
+    icon: "🐾",
+    title: "Wild battles in the Habitat",
+    body: "Sometimes a hunter and its prey battle on their own while you watch the Habitat. Watch their health and confidence for 30 seconds. Can the prey outsmart the hunter?",
+  },
+  {
     id: "2026-10-14-creature-battles",
     date: "2026-10-14",
     icon: "⚔️",

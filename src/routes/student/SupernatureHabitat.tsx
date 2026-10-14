@@ -13,7 +13,7 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
 import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
-import { affOf, confidenceOf, healthOf, magicOf } from '../../lib/supernatureBattle';
+import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, type Aff, type Fighter } from '../../lib/supernatureBattle';
 import {
   HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, canBeHunted, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
@@ -218,6 +218,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [out, setOut] = useState<string[]>(saved.out ?? []);
   const sk = (c: Creature): SkillSet => skills[c.id] ?? startSkills(c);
   const [hunt, setHunt] = useState<{ hunter: string; prey: string; phase: 'chase' | 'escaped' | 'caught'; how?: string } | null>(null);
+  // Wild battles (Build Queue 140): a real predator and its prey battle on their own for up to 30
+  // seconds, only while the student is watching that biome. Watch only: nothing to tap.
+  const [wb, setWb] = useState<{ h: Fighter; p: Fighter; start: number; turn: 'h' | 'p'; line: string; proj: { from: 'h' | 'p'; icon: string } | null } | null>(null);
+  const nextWild = useRef(0);
   const [escapedAt, setEscapedAt] = useState<Record<string, number>>({});
   const [grewAt, setGrewAt] = useState<Record<string, number>>({});
   const [hungryIds, setHungryIds] = useState<string[]>([]);
@@ -558,7 +562,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       }
     }
     // Each creature acts like itself (Build Queue 135): Anubis weighs a feather, Golem stomps, a unicorn heals.
-    if (tick % 4 === 1 && !hunt) {
+    if (tick % 4 === 1 && !hunt && !wb) {
       const can = here.filter((l) => l.hp > 0 && !l.hide && count(l.c.id) > 0);
       if (can.length) {
         const l = can[Math.floor(Math.random() * can.length)];
@@ -579,17 +583,55 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     }
     // Hunting (Build Queue 134): every so often a hunter stalks a creature in its own biome. The prey's
     // skills decide if it escapes; a caught one makes the family one smaller (it poofs away, never hurt).
-    if (!hunt && tick % 6 === 3 && !dis) {
+    // A wild battle in progress: one move every heartbeat (3 seconds), up to 30 seconds.
+    if (wb && (!live.some((l) => l.c.id === wb.h.id && !l.hide) || !live.some((l) => l.c.id === wb.p.id && !l.hide))) { setWb(null); }
+    else if (wb) {
+      const finish = (caught: boolean, why: string) => {
+        setWb((w) => (w ? { ...w, proj: null, line: why } : w));
+        if (caught) {
+          setEco((x) => ({ ...x, groups: { ...x.groups, [wb.p.id]: Math.max(0, (x.groups[wb.p.id] ?? START_GROUP) - 1) } }));
+          setCaughtFx([wb.p.id]); window.setTimeout(() => setCaughtFx([]), 2400); snSound('poof');
+        } else { setEscapedAt((m) => ({ ...m, [wb.p.id]: Date.now() })); snSound('chime'); }
+        tell(why, true); nextWild.current = tick + 12;
+        window.setTimeout(() => setWb(null), 3500);
+      };
+      if (wb.line.startsWith('🏁')) return;
+      const elapsed = Date.now() - wb.start;
+      if (elapsed >= 30000) {
+        const hr = wb.h.health / wb.h.maxHealth, pr = wb.p.health / wb.p.maxHealth;
+        finish(hr > pr * 1.25, hr > pr * 1.25 ? `🏁 Time! ${wb.h.name} caught one of the ${wb.p.species} family. The rest of the family hid safely.` : `🏁 Time! ${wb.p.name} held on until ${wb.h.name} got tired and gave up. The prey wins!`);
+        return;
+      }
+      const atk = wb.turn === 'h' ? wb.h : wb.p; const def = wb.turn === 'h' ? wb.p : wb.h;
+      // Prey can outsmart the hunter and slip away instead of fighting back.
+      if (wb.turn === 'p') { const e = escapeChance(wb.p.id ? live.find((l) => l.c.id === wb.p.id)!.c : live[0].c, sk(live.find((l) => l.c.id === wb.p.id)!.c), live.find((l) => l.c.id === wb.h.id)!.c, sk(live.find((l) => l.c.id === wb.h.id)!.c), count(wb.p.id)); if (Math.random() < e.p * 0.25) { finish(false, `🏁 ${wb.p.name} ${HOW_ESCAPED[e.how]}! The prey wins!`); return; } }
+      const best = [...atk.aff].sort((x, y) => (def.aff.some((d) => AFF[x].beats.includes(d)) ? -1 : 0) - (def.aff.some((d) => AFF[y].beats.includes(d)) ? -1 : 0))[0] as Aff;
+      const r = attack(atk, def, best, 0.35 + 0.08 * atk.smarts);
+      const nd = { ...def, health: Math.max(0, def.health - r.dmg), confidence: Math.max(5, def.confidence - (r.hit ? 4 : 0)) };
+      const na = { ...atk, confidence: Math.min(100, Math.max(5, atk.confidence + (r.hit ? 4 : -4))) };
+      const line = `${r.text}${r.hit ? ` ${def.name} loses ${r.dmg} health.` : ''}${atk.energy === 'very high' && !r.hit ? ' Too much energy!' : ''}`;
+      setWb({ ...wb, h: wb.turn === 'h' ? na : nd, p: wb.turn === 'h' ? nd : na, turn: wb.turn === 'h' ? 'p' : 'h', line, proj: { from: wb.turn, icon: AFF[best].icon } });
+      snSound(r.hit ? 'poof' : 'tap'); window.setTimeout(() => setWb((w) => (w ? { ...w, proj: null } : w)), 1200);
+      if (nd.health <= 0) window.setTimeout(() => finish(wb.turn === 'h', wb.turn === 'h' ? `🏁 ${wb.h.name} caught one of the ${wb.p.species} family. The rest of the family hid safely.` : `🏁 ${wb.h.name} is too tired to keep hunting and gives up. ${wb.p.name} wins!`), 1300);
+    }
+    if (!hunt && !wb && tick % 6 === 3 && !dis) {
       const pairs: [Live, Live][] = [];
       for (const h of live) {
         if (!isHunter(h.c) || h.hp === 0 || h.hide || count(h.c.id) === 0 || reactions[h.c.id]?.pose === 'sleep') continue;
         for (const p of live) if (p !== h && home(p.c) === home(h.c) && p.hp > 0 && !p.hide && count(p.c.id) > 0 && canBeHunted(p.c, sk(p.c))) pairs.push([h, p]);
       }
-      const seen = pairs.filter(([h]) => home(h.c) === biome);
-      const pool = seen.length ? seen : pairs;
+      const inSight = pairs.filter(([h]) => home(h.c) === biome);
+      const pool = inSight.length ? inSight : pairs;
       if (pool.length && Math.random() < 0.7) {
         const [h, p] = pool[Math.floor(Math.random() * pool.length)];
         const inView = home(h.c) === biome;
+        if (inView && !wb && tick >= nextWild.current) {
+          const mk = (l: Live) => { const k = sk(l.c); const hl = healthOf(l.hp, levels[l.c.id] ?? 1, (seen[l.c.id] ?? []).length); return makeFighter(l.c.id, names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name, l.c, k, l.energy, hl, confidenceOf(magicOf(k, affOf(l.c)), hl, 0, 0, null)); };
+          const hf = mk(h); const pf = mk(p); pf.confidence = Math.max(5, pf.confidence - 15);
+          setWb({ h: hf, p: pf, start: Date.now(), turn: 'h', line: `${hf.name} is hunting ${pf.name}! A wild battle begins.`, proj: null });
+          natureSound('whoosh', 0.35); tell(`Wild battle! ${hf.name} is hunting ${pf.name}. Watch what happens: their skills, energy and confidence decide it.`, true);
+          return;
+        }
         setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'chase' });
         if (inView) { natureSound('whoosh', 0.3); tell(`${h.c.name} is hunting! It ${has(sk(h.c), 'sneak') ? 'sneaks up quietly' : 'runs fast'} toward ${p.c.name}.`); }
         window.setTimeout(() => {
@@ -840,6 +882,21 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             {!pl && <span className="sn-plot-plus">+</span>}
           </button>
         ); })}
+        {wb && (
+          <div className="sn-wb" aria-live="polite">
+            <b>⚔️ Wild battle · {Math.max(0, 30 - Math.floor((now - wb.start) / 1000))}s</b>
+            <div className="sn-wb-row">
+              {[wb.h, wb.p].map((f, i) => (
+                <div key={f.id} className="sn-wb-side"><small>{i === 0 ? '🐾 Hunter' : '🐇 Prey'}</small><span>{f.name}</span>
+                  <div className="sb-m health"><span>💚</span><i><b style={{ width: `${(f.health / f.maxHealth) * 100}%` }} /></i><em>{f.health}</em></div>
+                  <div className="sb-m conf"><span>💪</span><i><b style={{ width: `${f.confidence}%` }} /></i><em>{f.confidence}</em></div>
+                </div>
+              ))}
+            </div>
+            <p>{wb.line}</p>
+          </div>
+        )}
+        {wb?.proj && <span className={`sn-wbproj from-${wb.proj.from}`} style={{ top: biome === 'ocean' ? 300 : 340 }} aria-hidden="true">{wb.proj.icon}</span>}
         {here.map((l, i) => {
           const sp = spot(l); const tp = temp[l.c.id];
           const k = tp === 'fast' || tp === 'zoom' ? 0.35 : SPEED[l.energy];
@@ -849,13 +906,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           const hunting = hunt?.hunter === l.c.id && hunt.phase === 'chase';
           const preyL = hunting ? here.find((x) => x.c.id === hunt!.prey) : undefined;
           if (preyL && !l.hide) { const ps = spot(preyL); pos.left = ps.x + (ps.x > sp.x ? -80 : 80); pos.top = ps.y; }
+          if (wb && (wb.h.id === l.c.id || wb.p.id === l.c.id) && !l.hide) { pos.left = wb.h.id === l.c.id ? 420 : 640; pos.top = biome === 'ocean' ? 280 : 320; }
           if (hunt?.prey === l.c.id && hunt.phase === 'escaped' && !l.hide) { pos.left = Math.max(20, Math.min(W - 120, sp.x + (sp.x > 560 ? 220 : -220))); pos.top = Math.max(20, sp.y - (hunt.how === 'flying' ? 160 : 20)); }
           // A water creature that adapted with Fish out of water walks on land (Build Queue 134).
           const mv = tp === 'float' || tp === 'zoom' ? 'fly' : biome === 'ocean' ? 'swim' : l.c.move === 'swim' && has(sk(l.c), 'fishOutOfWater') ? 'walk' : l.c.move;
           const feel = feelFor(l);
           const style = behaviorOf(l.c).style;
           return (
-            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''} st-${style}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
+            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''}${wb?.h.id === l.c.id ? ' wb-h' : wb?.p.id === l.c.id ? ' wb-p' : ''} st-${style}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
               style={{ ...pos, zIndex: mv === 'fly' ? 4 : 3, ['--d' as string]: `${sp.d}px`, ['--t' as string]: `${sp.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s` }}
               onClick={(e) => { e.stopPropagation(); if (armed) { if (fits(armed, l)) giveTo(armed, l.c.id); else tell(`${l.c.name} does not need ${armed} right now.`); return; } snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. ${reactions[l.c.id]?.text ?? ''} Tap to check on it.`}>
               {act?.id === l.c.id && !l.hide ? <span className="sn-react act">{act.a.icon} {act.a.text}</span>
