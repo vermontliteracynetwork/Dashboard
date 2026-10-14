@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-one-of-each-god",
+    date: "2026-10-14",
+    icon: "👑",
+    title: "Gods are one of a kind",
+    body: "In the Habitat there is only one of each god and goddess now. There is one Zeus, one Athena and one Ra, never a whole family of them.",
+  },
+  {
     id: "2026-10-14-cauldron-cleanup",
     date: "2026-10-14",
     icon: "⚗️",

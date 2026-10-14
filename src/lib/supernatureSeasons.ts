@@ -4,7 +4,7 @@
 // group just gets smaller (no harm is ever shown); leftover eaters clean up and feed the mushrooms,
 // which help the plants; magic eaters live on things no food web can count. A group with no food
 // packs up and moves away, and comes back when there is food again.
-import type { Biome, Creature } from './supernatureCreatures';
+import { byId, type Biome, type Creature } from './supernatureCreatures';
 import { breedsIn } from './supernatureAdapt';
 
 // The shared Habitat clock (Build Queue 120, her words: "seasons should run automatically and be
@@ -28,10 +28,15 @@ export interface SeasonResult { next: Eco; changes: Change[]; plantsBefore: numb
 export const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'];
 export const seasonName = (n: number) => SEASONS[((n % 4) + 4) % 4];
 export const START_GROUP = 3;
+// Gods and goddesses are one of a kind (Build Queue 180, her words 2026-10-14: "make sure students can only place one
+// god/godess at a time. there cant be 5 Zeus, for example. only one"): they start as 1 and never grow past 1.
+export const isGod = (id: string) => byId(id)?.chapter === 'gods';
+export const groupCap = (id: string) => (isGod(id) ? 1 : 10);
+export const startGroup = (id: string) => (isGod(id) ? 1 : START_GROUP);
 
 export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; weather: string; disaster: string | null; nest?: string[]; homes?: Record<string, string> }): SeasonResult {
   const g: Record<string, number> = {};
-  for (const c of roster) g[c.id] = eco.groups[c.id] ?? START_GROUP;
+  for (const c of roster) g[c.id] = Math.min(groupCap(c.id), eco.groups[c.id] ?? startGroup(c.id));
   const before = { ...g };
   const name = seasonName(eco.season);
   let plants = eco.plants;
@@ -104,5 +109,6 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
     : hungryHunters ? 'Too many hunters and not enough food for them to catch.'
     : caught.length > 1 ? 'The hunters are catching a lot of the plant eaters.'
     : shrank ? 'Some groups did not find enough food.' : 'Food and eaters are balanced.';
+  for (const id of Object.keys(g)) g[id] = Math.min(groupCap(id), g[id]);
   return { next: { season: eco.season + 1, plants, mush, groups: g }, changes, plantsBefore, balance, sentence, caught };
 }

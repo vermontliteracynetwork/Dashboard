@@ -19,7 +19,7 @@ import {
   HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, canBeHunted, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
 } from '../../lib/supernatureSkills';
-import { SEASONS, SEASON_ICON, START_GROUP, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
+import { SEASONS, SEASON_ICON, groupCap, isGod, startGroup, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
 import PopCard from './SupernaturePopCard';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
@@ -406,7 +406,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // Magic weathers unlock with the Naturalist rank (Build Queue 105). They never wear anyone out.
   const weathers = [...WEATHERS, ...(rankLevel >= 2 ? [{ id: 'rainbow' as Weather, label: 'Rainbow Storm (magic)', icon: '🌈', img: `${SPELL}frostflame-confluence.png`, does: 'Magic rain: nobody gets hurt.' }] : []), ...(rankLevel >= 3 ? [{ id: 'meteors' as Weather, label: 'Meteor Sparkles (magic)', icon: '☄️', img: `${SPELL}shooting-stars.png`, does: 'A magic night sky.' }] : [])];
   const [levels, setLevels] = useState<Record<string, number>>(saved.levels ?? {});
-  const count = (id: string) => eco.groups[id] ?? START_GROUP;
+  const count = (id: string) => Math.min(groupCap(id), eco.groups[id] ?? startGroup(id));
   const eatsOf = (c: Creature) => c.eats ?? 'magic';
   const lockGuess = () => {
     if (!predict?.guess) return;
@@ -543,8 +543,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   const addAnother = (id: string) => {
     const c = byId(id); if (!c) return;
+    if (isGod(id)) { tell(`There is only one ${c.name}. Gods and goddesses are one of a kind.`, true); setAddAsk(null); return; }
     if (count(id) >= 10) { tell(`The ${c.name} family is as big as it can get (10).`, true); return; }
-    placingKin.current = id; setEco((x) => ({ ...x, groups: { ...x.groups, [id]: Math.min(10, (x.groups[id] ?? START_GROUP) + 1) } }));
+    placingKin.current = id; setEco((x) => ({ ...x, groups: { ...x.groups, [id]: Math.min(groupCap(id), (x.groups[id] ?? startGroup(id)) + 1) } }));
     setAddAsk(null); snSound('pickup');
   };
 
@@ -564,7 +565,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       setHungryIds(r.changes.filter((x) => x.why.includes('Not enough')).map((x) => x.id));
       L = L.filter((l) => {
         if (l.hp === 0) { fd[l.c.id] = e; lost.push(l.c.id); return false; }
-        if ((E.groups[l.c.id] ?? START_GROUP) > 0) {
+        if ((E.groups[l.c.id] ?? startGroup(l.c.id)) > 0) {
           const got = [...new Set([...(sn[l.c.id] ?? []), name])];
           if (SEASONS.every((x) => got.includes(x))) { lv[l.c.id] = Math.min(10, (lv[l.c.id] ?? 1) + 1); sn[l.c.id] = []; ups.push(l.c.id); } else sn[l.c.id] = got;
         }
@@ -574,7 +575,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         for (const id of Object.keys(fd)) {
           const c = all.find((x) => x.id === id);
           if (!c || e + 1 < fd[id] + 2) continue;
-          delete fd[id]; back.push(id); lv[id] = 1; sn[id] = []; E.groups[id] = START_GROUP;
+          delete fd[id]; back.push(id); lv[id] = 1; sn[id] = []; E.groups[id] = startGroup(id);
           L = [...L, { c, ...place(c, L.length, L.filter((x) => x.c.move === 'swim').length), hp: 5, status: null, energy: c.energy, hide: false }];
         }
       }
@@ -632,7 +633,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     setOut((o) => o.filter((x) => x !== id)); setHomes((h) => ({ ...h, [id]: where }));
     setLevels((lv) => ({ ...lv, [id]: 0 })); setSeen((m) => ({ ...m, [id]: [] }));
     setSkills((m) => ({ ...m, [id]: startSkills(c) }));
-    setEco((x) => ({ ...x, groups: { ...x.groups, [id]: START_GROUP } }));
+    setEco((x) => ({ ...x, groups: { ...x.groups, [id]: startGroup(id) } }));
     setLive((ls) => [...ls, { c, ...place(c, ls.length, 0), hp: 5, status: null, energy: c.energy, hide: false }]);
     setBiome(where); snSound('open'); tell(`${c.name} came into play in the ${viewLabel(where).toLowerCase()}! It starts at level 0 with its 3 starting skills.`, true);
   };
@@ -905,7 +906,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         // The last one of a family always hides safely (Build Queue 152).
         if (caught && count(wb.p.id) <= 1) { caught = false; why = `🏁 ${wb.p.name} is the last one in its family, so it hid safely in its den. The hunt is over.`; }
         if (caught) {
-          setEco((x) => ({ ...x, groups: { ...x.groups, [wb.p.id]: Math.max(0, (x.groups[wb.p.id] ?? START_GROUP) - 1) } }));
+          setEco((x) => ({ ...x, groups: { ...x.groups, [wb.p.id]: Math.max(0, (x.groups[wb.p.id] ?? startGroup(wb.p.id)) - 1) } }));
           setCaughtFx([wb.p.id]); window.setTimeout(() => setCaughtFx([]), 2400); if (wbSeen) snSound('poof');
         } else { setEscapedAt((m) => ({ ...m, [wb.p.id]: Date.now() })); if (wbSeen) snSound('chime'); }
         if (wbSeen) tell(why, true); nextWild.current = tick + 12;
@@ -963,7 +964,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             if (inView) { snSound('chime'); tell(`${p.c.name} ${HOW_ESCAPED[e.how]}! ${e.how !== 'luck' ? `Its ${e.how === 'flying' || e.how === 'swimming' ? e.how : SKILL(e.how as SkillId).name.toLowerCase()} skill saved it.` : ''}`, true); }
           } else {
             setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'caught' });
-            setEco((x) => ({ ...x, groups: { ...x.groups, [p.c.id]: Math.max(0, (x.groups[p.c.id] ?? START_GROUP) - 1) } }));
+            setEco((x) => ({ ...x, groups: { ...x.groups, [p.c.id]: Math.max(0, (x.groups[p.c.id] ?? startGroup(p.c.id)) - 1) } }));
             setCaughtFx([p.c.id]); window.setTimeout(() => setCaughtFx([]), 2400);
             if (inView) { snSound('poof'); tell(`${h.c.name} caught one of the ${p.c.name} family. The rest of the family hid safely. Training skills like Camouflage or Fast runner helps prey escape.`, true); }
           }
@@ -1055,7 +1056,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (name === 'Redux') {
       const ids = Object.keys(faded); const back = all.filter((c) => ids.includes(c.id));
       setFaded({}); setLevels((lv) => ({ ...lv, ...Object.fromEntries(ids.map((id) => [id, 1])) }));
-      setEco((e) => ({ ...e, groups: { ...e.groups, ...Object.fromEntries(ids.map((id) => [id, START_GROUP])) } }));
+      setEco((e) => ({ ...e, groups: { ...e.groups, ...Object.fromEntries(ids.map((id) => [id, startGroup(id)])) } }));
       setLive((ls) => [...ls, ...back.map((c, i) => ({ c, ...place(c, ls.length + i, ls.filter((x) => x.c.move === 'swim').length + i), hp: 5, status: null, energy: c.energy, hide: false }))]);
       tell(`Redux! ${back.map((c) => c.name).join(', ')} came back to your Habitat.`, true);
     }
@@ -1465,7 +1466,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 <button type="button" className="sn-btn2" onClick={() => openPage(sel_.c.id)}>Read its page</button>
                 <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setNaming(sel_.c.id); }}>✏️ Name the family</button>
                 {asks[sel_.c.id] && <button type="button" className="sn-btn2 go" onClick={() => showAsk(sel_.c.id)}>💬 See its request ({asks[sel_.c.id].step} of 3)</button>}
-                <button type="button" className="sn-btn2 go" onClick={() => { snSound('tap'); setAddAsk(sel_.c.id); }}>➕ Add another {sel_.c.name}</button>
+                {isGod(sel_.c.id) ? <p className="sn-small">👑 There is only one {sel_.c.name}. Gods and goddesses are one of a kind.</p>
+                  : <button type="button" className="sn-btn2 go" onClick={() => { snSound('tap'); setAddAsk(sel_.c.id); }}>➕ Add another {sel_.c.name}</button>}
                 <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setPlacing({ id: sel_.c.id, mode: 'remove' }); }}>🧺 Take out of the Habitat</button>
               </div>
             ) : (
