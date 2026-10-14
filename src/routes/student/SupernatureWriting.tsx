@@ -14,9 +14,27 @@ import { snSound } from '../../lib/supernature';
 const W = 1150, H = 560, BASE = 400;
 const NEED_COVER = 0.55, NEED_ON = 0.72, MAX_SPILL = 0.38;
 type Pt = { x: number; y: number };
+// The student's own handwriting, kept small (Build Queue 185): an SVG path cropped to the ink, with thinned points.
+export type Ink = { d: string; w: number; h: number };
+function toInk(lines: Pt[][]): Ink | undefined {
+  const pts = lines.flat(); if (!pts.length) return undefined;
+  const x0 = Math.min(...pts.map((p) => p.x)) - 10, y0 = Math.min(...pts.map((p) => p.y)) - 10;
+  const x1 = Math.max(...pts.map((p) => p.x)) + 10, y1 = Math.max(...pts.map((p) => p.y)) + 10;
+  const d = lines.filter((l) => l.length > 1).map((l) => {
+    const keep: Pt[] = [l[0]];
+    for (const p of l.slice(1)) { const q = keep[keep.length - 1]; if (Math.hypot(p.x - q.x, p.y - q.y) >= 6) keep.push(p); }
+    if (keep[keep.length - 1] !== l[l.length - 1]) keep.push(l[l.length - 1]);
+    return `M${keep.map((p) => `${Math.round(p.x - x0)} ${Math.round(p.y - y0)}`).join('L')}`;
+  }).join('');
+  return { d, w: Math.round(x1 - x0), h: Math.round(y1 - y0) };
+}
+// Shows saved handwriting at any size.
+export function InkWord({ ink, height = 48, color = '#241f45' }: { ink: Ink; height?: number; color?: string }) {
+  return <svg viewBox={`0 0 ${ink.w} ${ink.h}`} style={{ height, width: (height * ink.w) / Math.max(1, ink.h), maxWidth: '100%' }} aria-hidden="true"><path d={ink.d} fill="none" stroke={color} strokeWidth={12} strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
 
 export default function SupernatureWriting({ word, title, onListen, onDone, onClose }: {
-  word: string; title: string; onListen: () => void; onDone: () => void; onClose: () => void;
+  word: string; title: string; onListen: () => void; onDone: (ink?: Ink) => void; onClose: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const guide = useRef<HTMLCanvasElement | null>(null);
@@ -101,7 +119,7 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
   };
   const finish = () => {
     const s = measure(lines); setScore(s);
-    if (s.cover >= NEED_COVER && s.on >= NEED_ON && s.spill <= MAX_SPILL) { snSound('learned'); onDone(); return; }
+    if (s.cover >= NEED_COVER && s.on >= NEED_ON && s.spill <= MAX_SPILL) { snSound('learned'); onDone(toInk(lines)); return; }
     snSound('fizzle');
     setMsg(s.spill > MAX_SPILL ? 'That looks like a scribble. The wand only works with careful tracing. Tap Clear, then follow the light letters with your finger.'
       : s.cover < NEED_COVER

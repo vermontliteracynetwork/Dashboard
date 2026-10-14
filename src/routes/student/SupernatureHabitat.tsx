@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { POWER_LEVELS, POWER_MULT } from '../../lib/supernatureAlchemy';
 import { ENERGY_FACE, ENERGY_STEPS, POTION_ICON, RECIPES, SN, natureSound, setNatureLoop, snSound, type Energy, type NatureLoop, type SnHabitat } from '../../lib/supernature';
 import { TAG_WORDS, breedNote, breedsIn, react, tagsOf, type Reaction } from '../../lib/supernatureAdapt';
 import { art, byId, madeList, type Biome, type Creature } from '../../lib/supernatureCreatures';
@@ -225,9 +226,9 @@ const DECOR: Record<Biome, { src: string; x: number; y: number; w: number; filte
   ],
 };
 
-export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, usePotion, goCauldron, openPage, goGlobe, goNames, rankLevel, onCheckin, addPantry }: {
+export default function SupernatureHabitat({ bar, say, found, saved, onSave, potions, potionPower = {}, usePotion, goCauldron, openPage, goGlobe, goNames, rankLevel, onCheckin, addPantry }: {
   bar: (o?: { extra?: React.ReactNode }) => React.ReactNode; say: (t: string) => void; found: string[];
-  saved: SnHabitat; onSave: (h: SnHabitat) => void; potions: string[]; usePotion: (name: string) => void;
+  saved: SnHabitat; onSave: (h: SnHabitat) => void; potions: string[]; potionPower?: Record<string, number>; usePotion: (name: string) => void;
   goCauldron: (recipe: string) => void; openPage: (id: string) => void; goGlobe: () => void; goNames: () => void; rankLevel: number; onCheckin: () => void; addPantry: (id: string, n: number) => void;
 }) {
   // Found creatures plus the ones the student made in the Creature Maker.
@@ -1055,15 +1056,18 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (!sel_ || have(name) < 1) return;
     setArmed(null);
     usePotion(name); snSound('done'); sparkleOn(sel_.c.id);
+    // Powered-up potions work longer (Build Queue 186): Boosted 1.25x, Powered up 1.5x, Max power 2x.
+    const plv = potionPower[name] ?? 0; const ms = Math.round(60000 * POWER_MULT[plv]); const secs = Math.round(ms / 1000);
+    const dur = secs === 60 ? 'one minute' : `${secs} seconds (${POWER_LEVELS[plv]})`;
     if (name === 'Vita') { setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, hp: 5, status: null } : l))); tell(`The Vita potion worked! ${sel_.c.name} has all 5 hearts again.`, true); }
     if (name === 'Dorm' || name === 'Viv') { setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, energy: 'just right' } : l))); tell(`The ${name} potion worked! ${sel_.c.name} has just right energy.`, true); }
     if (name === 'Aero' || name === 'Velo' || name === 'Veloaero') {
       const id = sel_.c.id; const kind = name === 'Aero' ? 'float' : name === 'Velo' ? 'fast' : 'zoom';
-      setTemp((m) => ({ ...m, [id]: kind })); window.setTimeout(() => setTemp((m) => { const n = { ...m }; delete n[id]; return n; }), 60000);
-      tell(name === 'Aero' ? `${sel_.c.name} floats up and flies for one minute!` : name === 'Velo' ? `${sel_.c.name} runs super fast for one minute!` : `${sel_.c.name} zooms around the sky at super speed for one minute!`, true);
+      setTemp((m) => ({ ...m, [id]: kind })); window.setTimeout(() => setTemp((m) => { const n = { ...m }; delete n[id]; return n; }), ms);
+      tell(name === 'Aero' ? `${sel_.c.name} floats up and flies for ${dur}!` : name === 'Velo' ? `${sel_.c.name} runs super fast for ${dur}!` : `${sel_.c.name} zooms around the sky at super speed for ${dur}!`, true);
     }
-    if (name === 'Mega') { setGiant(sel_.c.id); window.setTimeout(() => setGiant(null), 60000); tell(`Whoa! ${sel_.c.name} is giant for one minute.`, true); }
-    if (name === 'Herba') { setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, hp: Math.min(5, l.hp + 2), status: null } : l))); tell(`Plant medicine! ${sel_.c.name} got 2 hearts back, and its plant troubles are gone.`, true); }
+    if (name === 'Mega') { setGiant(sel_.c.id); window.setTimeout(() => setGiant(null), ms); tell(`Whoa! ${sel_.c.name} is giant for ${dur}.`, true); }
+    if (name === 'Herba') { const hb = plv >= 2 ? 3 : 2; setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id ? { ...l, hp: Math.min(5, l.hp + hb), status: null } : l))); tell(`Plant medicine! ${sel_.c.name} got ${hb} hearts back, and its plant troubles are gone.`, true); }
     if (name === 'Antidota') setLive((ls) => ls.map((l) => (l.c.id === sel_.c.id && l.status && EFFECT_STATUS[l.status] ? { ...l, status: null } : l)));
     if (SHIELD[name] || name === 'Nidus' || name === 'Calma') {
       setBuffs((b) => ({ ...b, [sel_.c.id]: [...(b[sel_.c.id] ?? []), name] }));

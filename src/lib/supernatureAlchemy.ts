@@ -181,8 +181,12 @@ export function brew(contents: string[], act: Action | null, goal: string | null
 // A student's own recipe card (her rule: a custom potion must get a purpose on its card).
 export interface CustomPotion { id: string; name: string; purpose: Purpose; items: string[]; act: Action | null; sentence?: string; traced?: boolean; at: string }
 export const customLook = (c: { purpose: Purpose }) => { const p = PURPOSE.get(c.purpose)!; return { shape: p.shape, color: SCIENCE[p.base]?.color ?? '#8c5ad1', base: p.base }; };
-// Power-ups (her rule): 10 questions per level, 3 levels.
-export const POWER_LEVELS = ['', 'Charged', 'Mighty', 'Legendary'];
+// Power-up levels (Build Queue 186, her words 2026-10-14: "3 questions to boost (incresasing the effacacy slightly),
+// 5 questions to power up, 10 questions to max power the potion").
+export const POWER_LEVELS = ['', 'Boosted', 'Powered up', 'Max power'];
+export const POWER_QS = [3, 5, 10];
+// How much longer or stronger a potion works in the Habitat at each level.
+export const POWER_MULT = [1, 1.25, 1.5, 2];
 export const sameBrew = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
 
 // The mixing formula for a Cookbook potion, like "He + fairy wing, then Stir".

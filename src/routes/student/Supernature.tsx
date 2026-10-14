@@ -103,7 +103,7 @@ export default function Supernature() {
         {rankOpen && <RankCard nat={nat} say={say} onClose={() => setRankOpen(false)} />}
         {room === 'habitat' && (
           <SupernatureHabitat bar={bar} say={say} found={found} saved={save.habitat ?? {}} onSave={(h) => patch({ habitat: h })}
-            potions={potions}
+            potions={potions} potionPower={save.alchemy?.power ?? {}}
             usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }}
             goCauldron={(name) => { setRecipe(Math.max(0, RECIPES.findIndex((r) => r.name === name))); go('cauldron'); }} openPage={openPage} goGlobe={() => go('globe')} goNames={() => go('names')} rankLevel={nat.level}
             onCheckin={() => patch({ checkins: (save.checkins ?? 0) + 1 })}

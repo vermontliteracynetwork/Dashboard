@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-handwritten-cards",
+    date: "2026-10-14",
+    icon: "✍️",
+    title: "Handwritten recipe cards",
+    body: "After you bottle a potion, trace its whole recipe card to make it stronger and get an extra bottle! Your card is saved in your own handwriting in the Recipe book, so use your best letters. Power ups now go Boosted (3 questions), Powered up (5) and Max power (10), and powered potions last longer in the Habitat.",
+  },
+  {
     id: "2026-10-14-complaint-list",
     date: "2026-10-14",
     icon: "📋",

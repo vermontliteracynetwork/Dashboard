@@ -9112,3 +9112,9 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-loglist small { font-size: 14px; }
 .sn-loglist em { font-style: normal; font-size: 12px; opacity: 0.7; flex: none; }
 @media (prefers-reduced-motion: reduce) { .sn-logbadge, .sn-lognote { animation: none; } }
+
+/* Handwritten recipe cards (Build Queue 185). */
+.cz-hand { position: relative; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 14px; background: repeating-linear-gradient(#fffdf4 0 37px, #c9d7ff 37px 38px); border: 3px solid #8a5a2e; border-radius: 10px; box-shadow: 0 3px 0 #8a5a2e; }
+.cz-hand-tag { align-self: flex-start; font-weight: 800; color: #8a5a2e; font-size: 13px; }
+.cz-hand-title { display: flex; justify-content: center; max-width: 100%; }
+.cz-hand-rest { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; align-items: flex-end; max-width: 100%; }

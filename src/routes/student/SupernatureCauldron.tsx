@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { INGREDIENTS, ING, RECIPES, SN, snSound, natureSound, type SnSave } from '../../lib/supernature';
 import {
-  ACTIONS, ELEM, SHELF, PURPOSES, PURPOSE, SCIENCE, RECIPE_BY, POWER_LEVELS, REACTIONS, brew, bottleImg, bottleMask, magicFor, customLook, sameBrew,
+  ACTIONS, ELEM, SHELF, PURPOSES, PURPOSE, SCIENCE, RECIPE_BY, POWER_LEVELS, POWER_QS, REACTIONS, brew, bottleImg, bottleMask, magicFor, customLook, sameBrew,
   reactionFor, empties, surpriseFor, formulaOf,
   type Action, type CustomPotion, type Purpose, type Shape, type Reaction,
 } from '../../lib/supernatureAlchemy';
@@ -13,7 +13,7 @@ import { drawQuestion, pickableSets } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { formatMoney } from '../../lib/money';
-import SupernatureWriting, { Icon } from './SupernatureWriting';
+import SupernatureWriting, { Icon, InkWord, type Ink } from './SupernatureWriting';
 import SayItMemo from './SayItMemo';
 import { Fx, type FxKey } from './SupernatureFx';
 
@@ -26,7 +26,7 @@ import { Fx, type FxKey } from './SupernatureFx';
 // up three times by answering 10 questions at a time. The Science Lab is its own place now.
 type BarOpts = { back?: () => void; backLabel?: string; extra?: React.ReactNode };
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
-const MAX_POT = 8, POWER_QS = 10, MAX_CARDS = 20;
+const MAX_POT = 8, MAX_CARDS = 20;
 const ACT_FX: Record<Action, { k: FxKey; size: number; style: React.CSSProperties }> = {
   heat: { k: 'flame', size: 120, style: { left: 90, bottom: -20 } },
   chill: { k: 'frost', size: 170, style: { left: 65, top: 40 } },
@@ -76,10 +76,22 @@ export function Bottle({ shape, color, size = 48, bubbly = false }: { shape: Sha
   );
 }
 
-type Result = { key: string; name: string; label: string; strong: boolean; missing: string[]; why: string; used: string[]; n: number; shape: Shape; color: string; spell: string; awarded: boolean };
-type Card = { items: string[]; act: Action | null; name: string; purpose: Purpose | null; auto: Purpose | null; sentence: string; wrote: boolean; traced: boolean; near?: string };
-type Trace = { words: string[]; i: number; title: string; then: () => void };
-type Quiz = { key: string; label: string; n: number; q: MCQuestion };
+type Result = { key: string; name: string; label: string; strong: boolean; traced?: boolean; missing: string[]; why: string; used: string[]; n: number; shape: Shape; color: string; spell: string; awarded: boolean };
+type Card = { items: string[]; act: Action | null; name: string; purpose: Purpose | null; auto: Purpose | null; sentence: string; wrote: boolean; traced: boolean; near?: string; inks?: Ink[]; spellInk?: Ink };
+type Trace = { words: string[]; i: number; title: string; then: (inks: Ink[]) => void; inks?: Ink[] };
+type Hand = { words: string[]; ink: Ink[]; at: string };
+type Quiz = { key: string; label: string; n: number; total: number; q: MCQuestion };
+
+// A recipe card in the student's own traced handwriting (Build Queue 185).
+export function HandCard({ hand, title }: { hand: Hand; title?: string }) {
+  return (
+    <div className="cz-hand" aria-label={`Handwritten card: ${hand.words.join(', ')}`}>
+      {title && <small className="cz-hand-tag">{title}</small>}
+      {hand.ink[0] && <div className="cz-hand-title"><InkWord ink={hand.ink[0]} height={58} color="#4a2a6e" /></div>}
+      <div className="cz-hand-rest">{hand.ink.slice(1).map((k, i) => <InkWord key={i} ink={k} height={34} />)}</div>
+    </div>
+  );
+}
 
 export default function SupernatureCauldron({ bar, say, save, patch, start, goHabitat, goShop }: {
   bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; save: SnSave; patch: (p: Partial<SnSave>) => void; start?: string; goHabitat: () => void; goShop: () => void;
@@ -92,6 +104,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   const brewed = save.brewed ?? [];
   const power = save.alchemy?.power ?? {};
   const cards = save.alchemy?.custom ?? [];
+  const hands = save.alchemy?.hand ?? {};
+  const [handView, setHandView] = useState<string | null>(null);
 
   const found = save.alchemy?.reactions ?? [];
   const [goal, setGoal] = useState<string | null>(start && SCIENCE[start] ? start : 'Aero');
@@ -269,6 +283,22 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     } });
   };
 
+  // Tracing the whole recipe card makes the potion stronger (Build Queue 185, her words 2026-10-14: "writing a potion name
+  // and ingredients should never lesson the strength of the potion. in fact, attempts at writing/tracign a full recipie card
+  // should make the potion stronger"): +1 bottle, a Weak brew becomes Strong, and the card is kept in their handwriting.
+  const recipeWords = (name: string) => { const sc2 = SCIENCE[name]; const r = RECIPE_BY.get(name); if (!sc2 || !r) return [name]; return [name, ...[...sc2.key, ...sc2.extras].map(nameOf), ...magicFor(r).map(nameOf), actLabel(sc2.act)]; };
+  const traceCard = () => {
+    if (!result || !result.awarded || result.traced) return;
+    const words = result.key.startsWith('c:') && customGoal ? cardWords({ name: customGoal.name, purpose: customGoal.purpose, items: customGoal.items, act: customGoal.act } as Card) : recipeWords(result.name);
+    setTrace({ words, i: 0, title: 'Trace the whole recipe card', then: (inks) => {
+      const extra = result.strong ? 1 : 2;
+      patch({ potions: [...(save.potions ?? []), ...Array(extra).fill(result.name)], alchemy: { ...(save.alchemy ?? {}), hand: { ...hands, [result.key]: { words, ink: inks, at: new Date().toISOString() } } } });
+      setResult({ ...result, strong: true, traced: true, n: result.n + extra }); setCheer(Date.now()); snSound('learned'); setHandView(result.key);
+      const t = `Beautiful handwriting! Your ${result.label} potion is ${result.strong ? 'even stronger' : 'Strong now'}: +${extra} ${extra === 1 ? 'bottle' : 'bottles'}. Your card is in your Recipe book.`;
+      setMsg(t); say(t);
+    } });
+  };
+
   // Recipe card for your own potion.
   const nameOk = !!card && /^[A-Z][a-zA-Z' -]{1,23}$/.test(card.name.trim());
   const cardWords = (c: Card) => [c.name.trim(), ...(c.purpose ? [PURPOSE.get(c.purpose)!.label] : []), ...c.items.map(nameOf), ...(c.act ? [actLabel(c.act)] : [])];
@@ -276,23 +306,25 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     if (!card || !nameOk || !card.purpose || !card.wrote) return;
     const cp: CustomPotion = { id: Date.now().toString(36), name: card.name.trim(), purpose: card.purpose, items: card.items, act: card.act, sentence: card.sentence.trim() || undefined, traced: card.traced || undefined, at: new Date().toISOString() };
     const lk = customLook(cp);
-    patch({ alchemy: { ...(save.alchemy ?? {}), custom: [...cards, cp].slice(-MAX_CARDS) }, potions: [...potions, lk.base], pantry: spend(card.items) });
-    setCard(null); clearPot(); setCheer(Date.now()); snSound('done');
-    const t = `Your ${cp.name} recipe card is in your Grimoire, and you made 1 bottle! It works like a ${lk.base} potion.`;
+    const n = card.traced ? 2 : 1;
+    const hand: Hand | null = card.traced && card.inks?.length ? { words: cardWords(card), ink: card.inks, at: cp.at } : card.spellInk ? { words: [cp.name], ink: [card.spellInk], at: cp.at } : null;
+    patch({ alchemy: { ...(save.alchemy ?? {}), custom: [...cards, cp].slice(-MAX_CARDS), ...(hand ? { hand: { ...hands, [`c:${cp.id}`]: hand } } : {}) }, potions: [...potions, ...Array(n).fill(lk.base)], pantry: spend(card.items) });
+    setCard(null); clearPot(); setCheer(Date.now()); snSound('done'); if (hand) setHandView(`c:${cp.id}`);
+    const t = `Your ${cp.name} recipe card is in your Recipe book, and you made ${n} ${n === 1 ? 'bottle' : 'bottles'}! It works like a ${lk.base} potion.`;
     setMsg(t); say(t);
   };
 
-  // Power up: 10 questions per level, 3 levels.
+  // Power up (Build Queue 186): 3 questions to Boost, 5 to Power up, 10 to Max power.
   const nextQ = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
-  const startQuiz = (key: string, label: string) => { if ((power[key] ?? 0) >= 3) return; snSound('open'); setQuiz({ key, label, n: 0, q: nextQ() }); };
+  const startQuiz = (key: string, label: string) => { const lv0 = power[key] ?? 0; if (lv0 >= 3) return; snSound('open'); setQuiz({ key, label, n: 0, total: POWER_QS[lv0], q: nextQ() }); };
   const answered = () => {
     if (!quiz) return;
     const n = quiz.n + 1;
-    if (n < POWER_QS) { setQuiz({ ...quiz, n, q: nextQ(quiz.q.id) }); return; }
+    if (n < quiz.total) { setQuiz({ ...quiz, n, q: nextQ(quiz.q.id) }); return; }
     const lv = Math.min(3, (power[quiz.key] ?? 0) + 1);
     patch({ alchemy: { ...(save.alchemy ?? {}), power: { ...power, [quiz.key]: lv } } });
     setQuiz(null); setCheer(Date.now()); snSound('learned');
-    const t = `Power up! Your ${quiz.label} potion is now ${POWER_LEVELS[lv]} ${STARS(lv)}${lv < 3 ? `. ${3 - lv} more ${3 - lv === 1 ? 'level' : 'levels'} to go.` : '. That is the top level!'}`;
+    const t = `${POWER_LEVELS[lv]}! Your ${quiz.label} potion ${STARS(lv)} works ${lv === 1 ? 'a little' : lv === 2 ? 'a lot' : 'twice as'} ${lv === 3 ? 'long' : 'longer'} in the Habitat.${lv < 3 ? ` Next: ${POWER_QS[lv]} questions to ${POWER_LEVELS[lv + 1]}.` : ' That is the top level!'}`;
     setMsg(t); say(t);
   };
 
@@ -379,7 +411,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
           {result && !result.awarded ? <button type="button" className="sn-btn2 go big cz-glowbtn" onClick={bottleIt}>✍️ Write the spell name</button>
             : result ? <>
               <button type="button" className="sn-btn2 go" onClick={() => { setResult(null); clearPot(); setMsg(nextHint([], null)); }}>🪄 Brew again</button>
-              <button type="button" className="sn-btn2" onClick={() => startQuiz(result.key, result.label)} disabled={(power[result.key] ?? 0) >= 3}>⚡ Power up</button>
+              {!result.traced && <button type="button" className="sn-btn2 go cz-glowbtn" onClick={traceCard}>📜 Trace the card: stronger!</button>}
+              <button type="button" className="sn-btn2" onClick={() => startQuiz(result.key, result.label)} disabled={(power[result.key] ?? 0) >= 3}>⚡ {(power[result.key] ?? 0) >= 3 ? 'Max' : `${POWER_QS[power[result.key] ?? 0]} Qs to ${POWER_LEVELS[(power[result.key] ?? 0) + 1]}`}</button>
               {R?.where.startsWith('Habitat') && <button type="button" className="sn-btn2" onClick={goHabitat}>🌿 Take it outside</button>}
             </> : <>
               <button type="button" className="sn-btn2 go big" onClick={doBrew} disabled={!pot.length || !!fail}>🪄 Brew!</button>
@@ -407,6 +440,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
               <div className="cz-needs mini">{want.map((id) => <span key={id} className={`cz-need${pot.includes(id) ? ' in' : ''}`} title={nameOf(id)}><img src={imgOf(id)} alt={nameOf(id)} /></span>)}{wantAct && <span className={`cz-need${act === wantAct ? ' in' : ''}`}>{ACTIONS.find((a) => a.id === wantAct)!.icon}</span>}</div>
             ) : customGoal ? <>
               <p className="cz-small">For {PURPOSE.get(customGoal.purpose)!.icon} {PURPOSE.get(customGoal.purpose)!.label}</p>
+              {hands[`c:${customGoal.id}`] && <HandCard hand={hands[`c:${customGoal.id}`]} />}
               <div className="cz-needs">{customGoal.items.map((id) => chip(id))}<span className={`cz-need${act === customGoal.act ? ' in' : ''}`}>{customGoal.act ? ACTIONS.find((a) => a.id === customGoal.act)!.icon : '✋'} {actLabel(customGoal.act)}</span></div>
             </> : !goal || !sc || !R ? <>
               <p className="cz-small">Mix anything! A potion needs <b>an element</b>, <b>magic</b> and <b>an action</b>. Some elements react on their own. Guess and check!</p>
@@ -427,7 +461,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
               return (
                 <button key={r.name} type="button" className={`cz-rbtn${goal === r.name ? ' on' : ''}${lk ? ' locked' : ''}`} onClick={() => { snSound('open'); setBig(r.name); }} aria-label={lk ? 'Secret recipe' : `${r.name} recipe`}>
                   {lk ? <span className="cz-rfree">🔒</span> : <Bottle shape={S.shape} color={S.color} size={44} bubbly={brewed.includes(r.name)} />}
-                  <b>{lk ? '???' : r.name}</b>{brewed.includes(r.name) && <i>✓</i>}
+                  <b>{lk ? '???' : r.name}</b>{brewed.includes(r.name) && <i>{hands[r.name] ? '✍️' : '✓'}</i>}
                 </button>
               );
             })}
@@ -442,7 +476,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
                   <Bottle shape={m.shape} color={m.color} size={40} bubbly={lv > 0} />
                   <span className="cz-mname"><b>{m.label}</b><small>{m.card ? `${PURPOSE.get(m.card.purpose)!.icon} my card · ` : ''}{m.have} {m.have === 1 ? 'bottle' : 'bottles'}{lv ? ` · ${STARS(lv)} ${POWER_LEVELS[lv]}` : ''}</small></span>
                   {m.card && <button type="button" className="sn-btn2 small" onClick={() => { pickGoal(m.key); setSide('book'); }} aria-label={`Brew ${m.label} again`}>🪄</button>}
-                  <button type="button" className="sn-btn2 small" disabled={lv >= 3} onClick={() => startQuiz(m.key, m.label)}>{lv >= 3 ? '✨ Max' : '⚡ Power up'}</button>
+                  {hands[m.key] && <button type="button" className="sn-btn2 small" onClick={() => { snSound('open'); setHandView(m.key); }} aria-label={`My handwritten ${m.label} card`}>✍️</button>}
+                  <button type="button" className="sn-btn2 small" disabled={lv >= 3} onClick={() => startQuiz(m.key, m.label)}>{lv >= 3 ? '✨ Max' : `⚡ ${POWER_QS[lv]} Qs`}</button>
                 </div>
               );
             })}
@@ -461,6 +496,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
             </> : <>
               <Bottle shape={bigSc.shape} color={bigSc.color} size={110} bubbly />
               <h2>{big}{power[big] ? ` ${STARS(power[big])}` : ''}</h2>
+              {hands[big] ? <HandCard hand={hands[big]} title="✍️ My handwritten card" /> : brewed.includes(big) && <p className="cz-small">✍️ Brew it and tap Trace the card to keep it here in your own handwriting. Your best handwriting makes it easy to read!</p>}
               <p className="cz-myth">📜 {bigSc.myth}</p>
               <div className="cz-needs center">{bigSc.key.map((id) => <span key={id} className="cz-need key"><img src={imgOf(id)} alt="" />{nameOf(id)}</span>)}{bigSc.extras.map((id) => <span key={id} className="cz-need"><img src={imgOf(id)} alt="" />{nameOf(id)}</span>)}{magicFor(bigR).map((id) => <span key={id} className="cz-need magic"><img src={imgOf(id)} alt="" />{nameOf(id)}</span>)}<span className="cz-need">{ACTIONS.find((a) => a.id === bigSc.act)!.icon} {actLabel(bigSc.act)}</span></div>
               <p className="cz-formula">{big} = {formulaOf(big)}</p>
@@ -480,6 +516,16 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
         </div>
       )}
       {book !== undefined && <div className="cz-bookwrap"><ElementBook say={say} start={book ?? undefined} found={found} onAdd={(id) => { setBook(undefined); add(id); }} onClose={() => setBook(undefined)} /></div>}
+      {handView && hands[handView] && (
+        <div className="sn-modal snp-modal" role="dialog" aria-label="My handwritten recipe card" onClick={() => setHandView(null)}>
+          <PopCard className="sn-modal-card paper cz-bigcard" title="My recipe card" onClose={() => setHandView(null)}>
+            <h2>✍️ My recipe card</h2>
+            <HandCard hand={hands[handView]} />
+            <p className="cz-small">This is your own handwriting. It lives in your Recipe book, so use your best letters to read it later!</p>
+            <div className="sn-row center"><button type="button" className="sn-listen" onClick={() => say(hands[handView].words.join(', '))} aria-label="Listen"><Icon d={LISTEN} /></button><button type="button" className="sn-btn" onClick={() => setHandView(null)}>Keep brewing</button></div>
+          </PopCard>
+        </div>
+      )}
       {rxList && (
         <div className="sn-modal snp-modal" role="dialog" aria-label="Reactions found" onClick={() => setRxList(false)}>
           <PopCard className="sn-modal-card paper wide" title="Reactions" onClose={() => setRxList(false)}>
@@ -510,8 +556,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
             <textarea id="cz-sentence" className="cz-input" rows={2} maxLength={160} value={card.sentence} placeholder="Example: It makes my creature glow in the dark." onChange={(e) => setCard({ ...card, sentence: e.target.value })} />
             <b className="cz-h">4. Write the spell name</b>
             <div className="cz-row">
-              <button type="button" className={`sn-btn2${card.wrote ? '' : ' go'}`} disabled={!nameOk} onClick={() => setTrace({ words: [card.name.trim()], i: 0, title: 'Write the spell name', then: () => setCard((c) => (c ? { ...c, wrote: true } : c)) })}>{card.wrote ? '✓ Spell name written' : '✍️ Write the spell name'}</button>
-              <button type="button" className="sn-btn2" disabled={!nameOk || !card.purpose} onClick={() => setTrace({ words: cardWords(card), i: 0, title: 'Trace the whole card', then: () => setCard((c) => (c ? { ...c, wrote: true, traced: true } : c)) })}>{card.traced ? '✓ Whole card traced' : '📜 Trace the whole card (if you want)'}</button>
+              <button type="button" className={`sn-btn2${card.wrote ? '' : ' go'}`} disabled={!nameOk} onClick={() => setTrace({ words: [card.name.trim()], i: 0, title: 'Write the spell name', then: (inks) => setCard((c) => (c ? { ...c, wrote: true, spellInk: inks[0] } : c)) })}>{card.wrote ? '✓ Spell name written' : '✍️ Write the spell name'}</button>
+              <button type="button" className="sn-btn2" disabled={!nameOk || !card.purpose} onClick={() => setTrace({ words: cardWords(card), i: 0, title: 'Trace the whole card', then: (inks) => setCard((c) => (c ? { ...c, wrote: true, traced: true, inks, spellInk: c.spellInk ?? inks[0] } : c)) })}>{card.traced ? '✓ Whole card traced: +1 bottle!' : '📜 Trace the whole card for +1 bottle'}</button>
             </div>
             <div className="cz-row">
               <button type="button" className="sn-btn" disabled={!nameOk || !card.purpose || !card.wrote} onClick={saveCard}>💾 Save my card</button>
@@ -523,10 +569,10 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
       )}
       {drag && <img src={imgOf(drag.id)} alt="" className="sn-drag-ghost cz-pix" style={{ left: drag.x - 30, top: drag.y - 30 }} />}
       {trace && <SupernatureWriting key={`${trace.title}-${trace.i}`} word={trace.words[trace.i]} title={trace.words.length > 1 ? `${trace.title}: ${trace.i + 1} of ${trace.words.length}` : trace.title} onListen={() => say(trace.words[trace.i])} onClose={() => setTrace(null)}
-        onDone={() => { if (trace.i + 1 < trace.words.length) setTrace({ ...trace, i: trace.i + 1 }); else { const t = trace.then; setTrace(null); t(); } }} />}
+        onDone={(ink) => { const inks = [...(trace.inks ?? []), ...(ink ? [ink] : [])]; if (trace.i + 1 < trace.words.length) setTrace({ ...trace, i: trace.i + 1, inks }); else { const t = trace.then; setTrace(null); t(inks); } }} />}
       {quiz && (
-        <QuestionScreen key={`${quiz.q.id}-${quiz.n}`} whoLabel={`Power up ${quiz.label}: question ${quiz.n + 1} of ${POWER_QS}`} whoIcon="⚡"
-          prompt={quiz.q.prompt} choices={quiz.q.choices} correctIndex={quiz.q.correctIndex} imageUrl={quiz.q.imageUrl} imageAlt={quiz.q.imageAlt} done={quiz.n} total={POWER_QS}
+        <QuestionScreen key={`${quiz.q.id}-${quiz.n}`} whoLabel={`${POWER_LEVELS[(power[quiz.key] ?? 0) + 1]} ${quiz.label}: question ${quiz.n + 1} of ${quiz.total}`} whoIcon="⚡"
+          prompt={quiz.q.prompt} choices={quiz.q.choices} correctIndex={quiz.q.correctIndex} imageUrl={quiz.q.imageUrl} imageAlt={quiz.q.imageAlt} done={quiz.n} total={quiz.total}
           onCorrectAnswer={answered} onExit={() => setQuiz(null)} ttsSettings={ttsSettings} />
       )}
     </div>
