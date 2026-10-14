@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-thinking-about-leaving",
+    date: "2026-10-14",
+    icon: "🧳",
+    title: "Creatures tell you before they leave",
+    body: "In the Habitat, a creature now tells you when it is thinking about leaving, and why. Pick a change to keep it: help it adapt, move it to a land it likes, grow more plants, or move the hunters away. Then see how your change helps or hurts the other creatures. The last one in a family always hides safely from hunters.",
+  },
+  {
     id: "2026-10-14-gym-questions",
     date: "2026-10-14",
     icon: "🐕",

@@ -55,7 +55,8 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
     let got = 0;
     for (let i = 0; i < need; i++) {
       // Magic creatures can be hunted too (Build Queue 134); gods never are.
-      const prey = roster.filter((p) => p.id !== c.id && g[p.id] > 0 && p.chapter !== 'gods' && ['plants', 'both', 'leftovers', 'magic'].includes(eats(p))).sort((a, b) => g[b.id] - g[a.id])[0];
+      // The last one of a family always hides safely (Build Queue 152), so hunting alone never makes a family leave.
+      const prey = roster.filter((p) => p.id !== c.id && g[p.id] > 1 && p.chapter !== 'gods' && ['plants', 'both', 'leftovers', 'magic'].includes(eats(p))).sort((a, b) => g[b.id] - g[a.id])[0];
       if (!prey) break;
       g[prey.id] -= 1; got += 1; if (!caught.includes(prey.id)) caught.push(prey.id);
     }

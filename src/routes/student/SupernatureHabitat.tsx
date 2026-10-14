@@ -317,6 +317,18 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const here = live.filter((l) => home(l.c) === biome);
   const spot = (l: Live) => { const i = here.indexOf(l); return biome === 'ocean' ? oceanPlace(Math.max(0, i)) : place(l.c, Math.max(0, i), here.slice(0, Math.max(0, i)).filter((x) => x.c.move === 'swim').length); };
   const go = (dir: 1 | -1) => { const i = VIEWS.findIndex((v) => v.id === biome); const n = VIEWS[(i + dir + VIEWS.length) % VIEWS.length]; snSound('page'); setSel(null); setBiome(n.id); const k = live.filter((l) => home(l.c) === n.id).length; tell(`${n.icon} ${n.label}: ${k ? `${k} ${k === 1 ? 'creature lives' : 'creatures live'} here.` : 'Nobody lives here yet. Tap a creature and move it here to see how it reacts.'}`); };
+  // Before a creature leaves, it says so and why (Build Queue 152, her words 2026-10-14: "a lot of them are
+  // leaving randomly, and its frustratign students. give a pop up "X is thinking about leaving because _").
+  // Each warning comes once per season per reason, with buttons that actually help.
+  type Warn = { key: string; id: string; reason: string; because: string; help: string; acts: ('vita' | 'herba' | 'move' | 'train')[] };
+  const [warns, setWarns] = useState<Warn[]>([]);
+  const warned = useRef(new Set<string>());
+  const predicted = useRef(-1);
+  const warnOf = (id: string, reason: string, because: string, help: string, acts: Warn['acts']) => {
+    const key = `${id}:${reason}:${clk.abs}`;
+    if (warned.current.has(key) || warns.some((w) => w.id === id)) return;
+    warned.current.add(key); setWarns((w) => [...w, { key, id, reason, because, help, acts }]);
+  };
   const moveTo = (c: Creature, v: View) => { snSound('pickup'); setHomes((h) => ({ ...h, [c.id]: v })); setBiome(v); tell(`${c.name} moved to the ${viewLabel(v).toLowerCase()}. Watch how its body handles it!`, true); };
   useEffect(() => {
     if (!live.length) return;
@@ -337,6 +349,91 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     snSound('chime'); setGuess({ id: predict.id, guess: predict.guess }); setPredict(null);
     tell(`Your guess is saved. When ${season.toLowerCase()} ends, the Field Notebook shows what happened.`);
   };
+  useEffect(() => {
+    if (!tick) return;
+    const likesOf = (c: Creature) => c.likes.map((b) => BIOMES.find((x) => x.id === b)?.label.toLowerCase() ?? b).join(' or ');
+    for (const l of live) {
+      if (l.hide || count(l.c.id) === 0) continue;
+      if (l.hp <= 1) warnOf(l.c.id, 'tired', `${l.hp === 0 ? 'it has no hearts left' : 'it has only 1 heart left'}. If it has no hearts when ${season.toLowerCase()} ends, it will fade away until spring`, 'Give it a Vita or Herba potion, or move it to a land it likes so it can rest and get its hearts back.', ['vita', 'herba', 'move']);
+      if (count(l.c.id) === 1 && live.some((h) => h !== l && !h.hide && isHunter(h.c) && home(h.c) === home(l.c) && canBeHunted(l.c, sk(l.c)))) warnOf(l.c.id, 'last', 'it is the last one in its family, and hunters live in its land', 'It will hide safely, but its family cannot grow with hunters around. Move it to a land without hunters, or train Camouflage or Fast runner.', ['move', 'train']);
+      if (l.status === 'homesick' && l.hp <= 3) warnOf(l.c.id, 'homesick', `it misses the land it loves (the ${likesOf(l.c)})`, `Move it to the ${likesOf(l.c)}.`, ['move']);
+    }
+    // A minute and a half before the season ends, look ahead: who would move away to find food?
+    if (clk.left < 90000 && predicted.current !== clk.abs && live.length) {
+      predicted.current = clk.abs;
+      const r = runSeason({ ...eco, season: clk.abs }, live.map((l) => l.c), { biome: land, homes: Object.fromEntries(live.map((l) => [l.c.id, home(l.c)])), weather: wx, disaster: active, nest: [] });
+      for (const ch of r.changes) {
+        if (!(ch.before > 0 && ch.after === 0)) continue;
+        const c = live.find((l) => l.c.id === ch.id)?.c; if (!c) continue;
+        const e = c.eats ?? 'magic';
+        warnOf(ch.id, 'food', e === 'plants' || e === 'both' ? 'there are not enough plants to eat in its land' : e === 'leftovers' ? 'there are not enough leftovers to clean up' : 'there is not enough food to catch in its land',
+          e === 'plants' || e === 'both' ? `Move it to a land with more plants, or plant food in the garden before ${season.toLowerCase()} ends.` : 'Move it to a land with more food before the season ends.', ['move']);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tick]);
+  const warn = warns[0];
+  useEffect(() => {
+    if (!warn) return;
+    const l = live.find((x) => x.c.id === warn.id); if (!l) { setWarns((w) => w.slice(1)); return; }
+    snSound('season'); say(`${nameOf(l)} is thinking about leaving because ${warn.because}. ${warn.help}`);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warn?.key]);
+  const nameOf = (l: Live) => (names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name);
+  const doneWarn = () => setWarns((w) => w.slice(1));
+  // Changes and adaptations to keep it (Build Queue 154, her words 2026-10-14: "before creatures leave, in
+  // the pop up, alow student to choose to change to make adaptations to keep them there. other creatures may
+  // be effected becasue of these changes and then other messaes shoudl appear"). Every change is checked
+  // against the food web first, and a "What else changed" card says who it helps and who it hurts; anyone
+  // it puts at risk gets their own "thinking about leaving" card next.
+  const [rippleCard, setRipple] = useState<{ title: string; lines: string[] } | null>(null);
+  const adaptFor = (l: Live, reason: string): SkillId | null => {
+    const k = sk(l.c);
+    const cand: SkillId[] = reason === 'last' ? ['camouflage', 'speed', 'smarts'] : reason === 'food' ? ['keenNose'] : reason === 'homesick' ? (l.c.move === 'swim' ? ['fishOutOfWater'] : [])
+      : season === 'Winter' || wx === 'snow' || active === 'blizzard' ? ['warmCoat', 'hibernate'] : season === 'Summer' || active === 'drought' ? ['shadeSeeker', 'droughtSaver', 'desertBody']
+      : active === 'wildfire' ? ['smokeProof', 'fireBody'] : active === 'flood' ? ['floodSafe'] : wx === 'storm' || active === 'tornado' ? ['stormRider', 'toughHide'] : active === 'earthquake' ? ['quakeProof'] : ['magicShield'];
+    const can = learnable(l.c, k);
+    return cand.find((id) => !has(k, id) && can.some((x) => x.s.id === id && x.ok)) ?? null;
+  };
+  const likedElsewhere = (l: Live): View | null => {
+    const opts = [...l.c.likes.map((b) => b as View), ...(canSwim(l.c) ? ['ocean' as View] : [])];
+    return opts.find((v) => v !== home(l.c)) ?? null;
+  };
+  const showRipple = (who: Creature, change: string, nextEco: Eco, nextHomes: Record<string, View>) => {
+    const cur = Object.fromEntries(live.map((l) => [l.c.id, home(l.c)])) as Record<string, View>;
+    const pred = (e: Eco, hm: Record<string, View>) => runSeason({ ...e, season: clk.abs }, live.map((l) => l.c), { biome: land, homes: hm, weather: wx, disaster: active, nest: [] }).changes;
+    const a = pred(eco, cur), b = pred(nextEco, { ...cur, ...nextHomes });
+    const lines: string[] = [];
+    for (const ch of b) {
+      if (ch.id === who.id) continue;
+      const o = a.find((x) => x.id === ch.id); const c = byId(ch.id); if (!o || !c) continue;
+      if (ch.after < o.after) {
+        lines.push(`⬇️ ${c.name}: ${ch.after === 0 ? 'now it might move away' : 'its family will be smaller next season'}. ${ch.why}`);
+        if (ch.after === 0) warnOf(ch.id, `ripple:${who.id}`, `${change.charAt(0).toLowerCase()}${change.slice(1)} left it without enough food`, 'Make a change for it too, or move it to a land with more food.', ['move']);
+      } else if (ch.after > o.after) lines.push(`⬆️ ${c.name}: ${ch.why}`);
+    }
+    for (const [id, to] of Object.entries(nextHomes)) {
+      const c = byId(id); const from = cur[id]; if (!c || !from) continue;
+      const near = (v: View) => live.filter((l) => l.c.id !== id && cur[l.c.id] === v && !nextHomes[l.c.id]).map((l) => l.c);
+      if (isHunter(c)) {
+        const p = near(to).filter((x) => canBeHunted(x, sk(x))); if (p.length) lines.push(`🐾 ${p.map((x) => x.name).join(', ')} in the ${viewLabel(to).toLowerCase()} could be hunted by ${c.name} now.`);
+        const safe = near(from).filter((x) => canBeHunted(x, sk(x))); if (safe.length) lines.push(`🛡️ ${safe.map((x) => x.name).join(', ')} in the ${viewLabel(from).toLowerCase()} are safer now.`);
+      } else {
+        const h = near(to).filter((x) => isHunter(x) && canBeHunted(c, sk(c))); if (h.length) lines.push(`⚠️ ${h.map((x) => x.name).join(', ')} in the ${viewLabel(to).toLowerCase()} could hunt ${c.name}.`);
+      }
+    }
+    setRipple({ title: change, lines: lines.length ? lines : ['No other creature is affected. 👍'] });
+    say(`${change}. ${lines.length ? lines.join(' ').replace(/[⬇️⬆️🐾🛡️⚠️]/gu, '') : 'No other creature is affected.'}`);
+  };
+  const keepByMoving = (l: Live, v: View) => { doneWarn(); showRipple(l.c, `Moving ${nameOf(l)} to the ${viewLabel(v).toLowerCase()}`, eco, { [l.c.id]: v }); setHomes((h) => ({ ...h, [l.c.id]: v })); setBiome(v); snSound('pickup'); };
+  const keepByPlants = (l: Live) => { doneWarn(); const ne = { ...eco, plants: Math.min(12, eco.plants + 4) }; showRipple(l.c, `Growing more plants for ${nameOf(l)}`, ne, {}); setEco(ne); snSound('pickup'); };
+  const keepByHunters = (l: Live) => {
+    const m: Record<string, View> = {};
+    for (const h of live) if (h !== l && isHunter(h.c) && home(h.c) === home(l.c)) { const v = likedElsewhere(h); if (v) m[h.c.id] = v; }
+    if (!Object.keys(m).length) { tell('The hunters here have nowhere else they like to live, so they stay. Try another change.', true); return; }
+    doneWarn(); showRipple(l.c, `Moving the hunters away from ${nameOf(l)}`, eco, m); setHomes((h) => ({ ...h, ...m })); snSound('pickup');
+  };
+
   // The season changes on the shared clock (Build Queue 120). Each season that ends runs the food
   // web, checks who survived (0 hearts at the end of a season means it did not survive: it fades
   // away gently, and its family comes back the next spring or with a Redux potion), and gives a
@@ -655,8 +752,11 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     // A wild battle in progress: one move every heartbeat (3 seconds), up to 30 seconds.
     if (wb && (!live.some((l) => l.c.id === wb.h.id && !l.hide) || !live.some((l) => l.c.id === wb.p.id && !l.hide))) { setWb(null); }
     else if (wb) {
-      const finish = (caught: boolean, why: string) => {
+      const finish = (caught0: boolean, why0: string) => {
+        let caught = caught0; let why = why0;
         setWb((w) => (w ? { ...w, proj: null, line: why } : w));
+        // The last one of a family always hides safely (Build Queue 152).
+        if (caught && count(wb.p.id) <= 1) { caught = false; why = `🏁 ${wb.p.name} is the last one in its family, so it hid safely in its den. The hunt is over.`; }
         if (caught) {
           setEco((x) => ({ ...x, groups: { ...x.groups, [wb.p.id]: Math.max(0, (x.groups[wb.p.id] ?? START_GROUP) - 1) } }));
           setCaughtFx([wb.p.id]); window.setTimeout(() => setCaughtFx([]), 2400); snSound('poof');
@@ -708,7 +808,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         if (inView) { natureSound('whoosh', 0.3); tell(`${h.c.name} is hunting! It ${has(sk(h.c), 'sneak') ? 'sneaks up quietly' : 'runs fast'} toward ${p.c.name}.`); }
         window.setTimeout(() => {
           const e = escapeChance(p.c, sk(p.c), h.c, sk(h.c), count(p.c.id));
-          if (Math.random() < e.p) {
+          if (count(p.c.id) <= 1) {
+            setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'escaped', how: 'luck' }); setEscapedAt((m) => ({ ...m, [p.c.id]: Date.now() }));
+            if (inView) { snSound('chime'); tell(`${p.c.name} is the last one in its family, so it hid safely in its den.`, true); }
+          } else if (Math.random() < e.p) {
             setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'escaped', how: e.how }); setEscapedAt((m) => ({ ...m, [p.c.id]: Date.now() }));
             if (inView) { snSound('chime'); tell(`${p.c.name} ${HOW_ESCAPED[e.how]}! ${e.how !== 'luck' ? `Its ${e.how === 'flying' || e.how === 'swimming' ? e.how : SKILL(e.how as SkillId).name.toLowerCase()} skill saved it.` : ''}`, true); }
           } else {
@@ -1071,6 +1174,31 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         )}
 
 
+        {rippleCard && (
+          <PopCard key={`ripple-${rippleCard.title}`} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title="What else changed" onClose={() => setRipple(null)}>
+            <div className="sn-pop-head"><span className="sn-leave-icon" aria-hidden>🌍</span><h2>{rippleCard.title}. What else changed?</h2></div>
+            <ul className="sn-ripple">{rippleCard.lines.map((t) => <li key={t}>{t}</li>)}</ul>
+            <div className="sn-pop-actions"><button type="button" className="sn-btn2 go" onClick={() => setRipple(null)}>👍 Got it</button></div>
+          </PopCard>
+        )}
+        {warn && !sel && !rippleCard && (() => { const l = live.find((x) => x.c.id === warn.id); if (!l) return null; const text = `${nameOf(l)} is thinking about leaving because ${warn.because}.`; return (
+          <PopCard key={warn.key} className="sn-pop sn-leave" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title={`${nameOf(l)} might leave`} onClose={doneWarn}>
+            <div className="sn-pop-head"><img src={art(l.c.id)} alt="" /><h2>🧳 {text}</h2></div>
+            <p className="sn-leave-help"><b>How to help:</b> {warn.help}<button type="button" className="sn-listen" onClick={() => say(`${text} ${warn.help}`)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
+            <p className="sn-leave-sub">Make a change to keep it here:</p>
+            <div className="sn-pop-actions">
+              {(() => { const sid = adaptFor(l, warn.reason); return sid ? <button type="button" className="sn-btn2 go" onClick={() => { doneWarn(); startTrain(l.c.id, sid); }}>🧬 Adapt: learn {SKILL(sid).name}<small> {SKILL(sid).does} (answer questions)</small></button> : null; })()}
+              {(() => { const v = likedElsewhere(l); return v ? <button type="button" className="sn-btn2 go" onClick={() => keepByMoving(l, v)}>🗺️ Move it to the {viewLabel(v).toLowerCase()}<small> a land it likes</small></button> : null; })()}
+              {(warn.reason === 'food' || warn.reason.startsWith('ripple')) && (l.c.eats === 'plants' || l.c.eats === 'both') && <button type="button" className="sn-btn2 go" onClick={() => keepByPlants(l)}>🌱 Grow more plants<small> more food for plant eaters</small></button>}
+              {warn.reason === 'last' && <button type="button" className="sn-btn2 go" onClick={() => keepByHunters(l)}>🦊 Move the hunters away<small> to lands they like</small></button>}
+              {warn.acts.includes('vita') && have('Vita') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Vita', l.c.id); doneWarn(); }}><img src={POTION_ICON.Vita} alt="" />Give Vita ({have('Vita')})</button>}
+              {warn.acts.includes('herba') && have('Herba') > 0 && <button type="button" className="sn-btn2 go potion" onClick={() => { giveTo('Herba', l.c.id); doneWarn(); }}><img src={POTION_ICON.Herba} alt="" />Give Herba ({have('Herba')})</button>}
+              {warn.acts.includes('vita') && have('Vita') < 1 && have('Herba') < 1 && <button type="button" className="sn-btn2" onClick={() => { doneWarn(); goCauldron('Vita'); }}>Brew a Vita potion</button>}
+              {!likedElsewhere(l) && warn.acts.includes('move') && <button type="button" className="sn-btn2" onClick={() => { doneWarn(); setSel(l.c.id); }}>🗺️ Pick a new land</button>}
+              <button type="button" className="sn-btn2" onClick={doneWarn}>👍 Got it</button>
+            </div>
+          </PopCard>
+        ); })()}
         {sel_ && (
           <PopCard key={sel_.c.id} className="sn-pop" style={{ left: Math.min(W - 350, spot(sel_).x < 600 ? spot(sel_).x + 110 : spot(sel_).x - 350), top: Math.max(10, Math.min(H - 380, spot(sel_).y - 40)) }} maxH={H - Math.max(10, Math.min(H - 380, spot(sel_).y - 40)) - 10} title={sel_.c.name} onClose={() => setSel(null)}>
             <div className="sn-pop-head">
