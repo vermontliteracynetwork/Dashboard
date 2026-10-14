@@ -49,46 +49,34 @@ export default function NewQuestionSet() {
       <div className="container stack">
         <Link className="btn btn-sm" to="/teacher/assignments">← Back to Academics</Link>
 
-        <div className="space-between">
-          <div>
+        {/* One compact header card (Build Queue 181, teacher 2026-10-14: "streamline the header for this so the title,
+            tags, description are nestled closer together"): subject and focus star, then the name as the title, the
+            description right under it, and the tags on one line. */}
+        <div className="content-well stack" style={{ gap: 8 }}>
+          <div className="row-wrap" style={{ gap: 6, alignItems: 'center', justifyContent: 'space-between' }}>
             <div className="row-wrap" style={{ gap: 6 }} role="radiogroup" aria-label="Subject">
               {(['math', 'literacy'] as const).map((s) => (
-                <button key={s} type="button" role="radio" aria-checked={subject === s} className={`btn chip-filter-sm ${subject === s ? 'btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setSubject(s)}>
+                <button key={s} type="button" role="radio" aria-checked={subject === s} className={`btn btn-sm ${subject === s ? 'btn-primary' : ''}`} style={{ minHeight: 40 }} onClick={() => setSubject(s)}>
                   {s === 'math' ? '🔢 Math' : '📚 Literacy'}
                 </button>
               ))}
             </div>
-            <h1 style={{ margin: '6px 0 0' }}>{name.trim() || 'New question set'}</h1>
-          </div>
-        </div>
-
-        <div className="content-well stack">
-          <label htmlFor="nqs-name"><strong>Set name</strong></label>
-          <input id="nqs-name" className="input" value={name} placeholder="Example: Add and Subtract to 20" onChange={(e) => setName(e.target.value)} autoFocus />
-        </div>
-
-        <div className="content-well stack">
-          <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-            <strong>Description &amp; focus</strong>
-            <button type="button" className={`btn btn-sm ${isFocus ? 'btn-primary' : ''}`} onClick={() => setIsFocus(!isFocus)} title="A starred set is shown around the game as this subject's current class theme">
-              {isFocus ? '⭐ Focus set, tap to unstar' : '☆ Star as a focus set'}
+            <button type="button" className={`btn btn-sm ${isFocus ? 'btn-primary' : ''}`} style={{ minHeight: 40 }} onClick={() => setIsFocus(!isFocus)} title="A starred set is shown around the game as this subject's current class theme">
+              {isFocus ? '⭐ Focus set' : '☆ Star as a focus set'}
             </button>
           </div>
-          <textarea id="nqs-description" className="input" rows={2} placeholder="A brief subtext shown under the title (e.g. what this set covers)" value={description} onChange={(e) => setDescription(e.target.value)} />
-        </div>
-
-        <div className="content-well stack">
-          <strong>Tags</strong>
-          <div className="row-wrap" style={{ gap: 4 }}>
+          <input id="nqs-name" className="input" aria-label="Set name" value={name} placeholder="New question set name" onChange={(e) => setName(e.target.value)} autoFocus
+            style={{ fontSize: '1.6rem', fontWeight: 800, padding: '8px 12px' }} />
+          <textarea id="nqs-description" className="input" aria-label="Description" rows={2} placeholder="A short description of what this set covers (shown under the title)" value={description} onChange={(e) => setDescription(e.target.value)} style={{ marginTop: -2 }} />
+          <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
+            <strong style={{ fontSize: '0.85rem' }}>Tags</strong>
             {tags.map((t) => (
               <span key={t} className="tag-pill tag-pill-sm">
                 {t}{' '}
                 <button type="button" aria-label={`Remove tag ${t}`} onClick={() => setTags(tags.filter((x) => x !== t))} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}>✕</button>
               </span>
             ))}
-          </div>
-          <div className="row" style={{ gap: 6 }}>
-            <input id="nqs-tag" className="input" style={{ fontSize: '0.82rem', padding: '5px 8px' }} placeholder="Add a tag…" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
+            <input id="nqs-tag" className="input" style={{ fontSize: '0.82rem', padding: '5px 8px', width: 160, flex: 'none' }} placeholder="Add a tag…" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
             <button type="button" className="btn chip-filter-sm" disabled={!tagInput.trim()} onClick={addTag}>+ Add</button>
           </div>
         </div>
