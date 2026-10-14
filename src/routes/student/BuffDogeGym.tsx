@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useQLog } from '../../lib/questionLog';
 import { useNavigate } from 'react-router-dom';
@@ -260,7 +261,7 @@ export default function BuffDogeGym() {
   })();
 
   const age = pet ? ageForTraining(pet.trainingProgress) : 'baby';
-  const showCard = mode === 'picker' && pet;
+  const showCard = mode === 'picker' && pet && !quiz;
   const stagePet = mode === 'picker' ? pet : shownPet;
   const stagePetDef = stagePet ? petDefById(stagePet.petDefId) : undefined;
   const g = gym;
@@ -318,7 +319,7 @@ export default function BuffDogeGym() {
             <div className="bdg-chips" style={{ marginTop: 6 }}>{chip('Speak', !speakOpen(sessions))}</div>
           </div>
         )}
-        {mode === 'picker' && pet && (
+        {mode === 'picker' && pet && !quiz && (
           <>
             <button type="button" className="bdg-btn bdg-train" disabled={trainDisabled} onClick={() => (g.petId === pet.id ? desk(pet.id) : signIn())}>{trainLabel}</button>
             {pets.length > 1 && <button type="button" className="bdg-btn bdg-arrow prev" aria-label="Previous pet" onClick={() => { const i = (sel + pets.length - 1) % pets.length; setSel(i); picker(i); }}>◀</button>}
@@ -337,13 +338,18 @@ export default function BuffDogeGym() {
         {/* Leaving the gym is the big Town Square button (her words: "make sure the buff doge screens has a very
             clear exit back to towns quare"); this corner arrow only stops a quiz or goes back to the pets. */}
         {(quiz || mode === 'desk' || mode === 'result') && (
-          <button type="button" className="bdg-btn bdg-arrow bdg-back" aria-label={quiz ? 'Stop answering' : 'Back to my pets'} onClick={() => {
+          <button type="button" className={`bdg-btn bdg-arrow bdg-back${quiz ? ' bdg-x' : ''}`} aria-label={quiz ? 'Stop answering' : 'Back to my pets'} onClick={() => {
             if (quiz) { setQuitAsk(true); return; }
             picker();
           }}>{quiz ? '✕' : '◀'}</button>
         )}
 
-        <div className="bdg-hud"><span className="bdg-cash" aria-label="Money">{formatMoney(student.coins)}</span><img src={`${ART}bone.png`} alt="Treats" /><span>{treats}</span></div>
+        {/* On the question screen the corner shows only how many she got right on the first try (her words,
+            2026-10-14: "a total questions answered correctly metor should be on the top right. only mark
+            correctly answered questions. incorrect questions should never count toward the meter"). */}
+        {quiz
+          ? <div className="bdg-hud bdg-meter" aria-label={`${quiz.n} of ${quiz.target} answered correctly`}><span aria-hidden>✅</span><span>{quiz.n} / {quiz.target}</span><small>correct</small></div>
+          : <div className="bdg-hud"><span className="bdg-cash" aria-label="Money">{formatMoney(student.coins)}</span><img src={`${ART}bone.png`} alt="Treats" /><span>{treats}</span></div>}
 
         {announce && <div className="bdg-announce" role="status" aria-live="polite">{announce}</div>}
 
@@ -385,41 +391,68 @@ export default function BuffDogeGym() {
 
 // Buff Doge asks the training questions himself (her 2026-10-12 art: Buff Doge big on the left,
 // the question in his speech bubble, the answers in 4 boxes, or 2 when there are only 2). Her
-// style sheet: "Use this font for Buff Doge's text bubble and options". Wrong answers just try again.
+// style sheet: "Use this font for Buff Doge's text bubble and options".
+// Her rules (Build Queue 149, 2026-10-14): "ensure clear next button exsists when question is answered.
+// make sure if a question is answered incorrectly on first attempt, that all other question answers
+// become view only and are locked from student click. the only thing that should happen should be a next
+// question button appears ... ensure that images for questions are zoom in ability to see properly".
+// One tap answers: right or wrong, every answer locks and a big Next button appears. A wrong answer
+// never counts toward the correct meter. Tap the picture to see it big and zoom in.
 function DogeQuiz({ quiz, tts, onRight, onWrong, onSkip }: { quiz: Quiz; tts: Parameters<typeof speak>[1]; onRight: () => void; onWrong: () => void; onSkip: () => void }) {
   const q = quiz.q;
   const order = useMemo(() => { const o = q.choices.map((_, i) => i); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } return o; }, [q]);
-  const [wrong, setWrong] = useState<Set<number>>(() => new Set());
-  const [right, setRight] = useState(false);
+  const [picked, setPicked] = useState<number | null>(null);
+  const [zoom, setZoom] = useState<number | null>(null);
+  const right = picked === q.correctIndex;
   const listen = () => speak(`${q.prompt} ${order.map((i) => q.choices[i]).join(', ')}`, tts);
   const qlog = useQLog("Buff Doge's Gym");
   useEffect(() => { qlog.show(q.prompt, q.choices[q.correctIndex] ?? ''); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
   const pick = (i: number) => {
-    if (right || wrong.has(i)) return;
+    if (picked !== null) return;
     qlog.tap(q.choices[i], i === q.correctIndex);
-    if (i === q.correctIndex) { setRight(true); recordStreakCorrect(); window.setTimeout(onRight, 800); }
-    else { setWrong((w) => new Set(w).add(i)); onWrong(); }
+    setPicked(i);
+    if (i === q.correctIndex) recordStreakCorrect(); else onWrong();
   };
   return (
     <>
       <div className="bdg-bubble big bdg-qbubble" role="group" aria-label="Buff Doge's question">
-        {q.imageUrl && <img src={q.imageUrl} alt={q.imageAlt ?? ''} className="bdg-qimg" />}
+        {q.imageUrl && (
+          <button type="button" className="bdg-qimg-btn" onClick={() => setZoom(1)} aria-label="Make the picture bigger">
+            <img src={q.imageUrl} alt={q.imageAlt ?? ''} className="bdg-qimg" /><span aria-hidden>🔍</span>
+          </button>
+        )}
         <p>{q.prompt}</p>
         <div className="bdg-qside">
           <button type="button" className="bdg-listen" onClick={listen} aria-label="Listen to the question">🔊</button>
-          <span className="bdg-qcount">{quiz.kind === 'fee' ? 'Fee' : 'Training'} {quiz.n + 1} / {quiz.target}</span>
         </div>
       </div>
-      <div className={`bdg-options bdg-qopts${q.choices.length <= 2 ? ' two' : ''}`}>
+      <div className={`bdg-options bdg-qopts${q.choices.length <= 2 ? ' two' : ''}${picked !== null ? ' locked' : ''}`}>
         {order.map((i) => (
-          <button key={i} type="button" className={`bdg-btn${wrong.has(i) ? ' wrong' : ''}${right && i === q.correctIndex ? ' right' : ''}`} disabled={wrong.has(i)} onClick={() => pick(i)}>{q.choices[i]}</button>
+          <button key={i} type="button" className={`bdg-btn${picked === i ? (right ? ' right' : ' wrong') : ''}`} disabled={picked !== null} aria-disabled={picked !== null} onClick={() => pick(i)}>{q.choices[i]}</button>
         ))}
       </div>
       <div className="bdg-qtools">
-        {wrong.size > 0 && !right && <button type="button" className="bdg-btn" onClick={onSkip}>A different question</button>}
-        <button type="button" className="bdg-btn" onClick={() => openCheckOnPet('break')}>Take a break</button>
+        {picked !== null && (
+          <span className={`bdg-qresult ${right ? 'ok' : 'no'}`} role="status">{right ? '✅ Correct!' : 'Not this time.'}</span>
+        )}
+        {picked !== null && <button type="button" className="bdg-btn bdg-next" onClick={() => (right ? onRight() : onSkip())}>Next question ▶</button>}
+        {picked === null && <button type="button" className="bdg-btn" onClick={() => openCheckOnPet('break')}>Take a break</button>}
       </div>
+      {zoom !== null && q.imageUrl && createPortal(
+        <div className="bdg-zoom" role="dialog" aria-label="The question picture, big" onClick={() => setZoom(null)}>
+          <div className="bdg-zoom-bar" onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="btn btn-lg" onClick={() => setZoom((z) => Math.max(1, (z ?? 1) - 0.5))} disabled={zoom <= 1} aria-label="Zoom out">➖</button>
+            <span>{Math.round(zoom * 100)}%</span>
+            <button type="button" className="btn btn-lg" onClick={() => setZoom((z) => Math.min(4, (z ?? 1) + 0.5))} disabled={zoom >= 4} aria-label="Zoom in">➕</button>
+            <button type="button" className="btn btn-lg btn-primary" onClick={() => setZoom(null)} aria-label="Close the picture">✕</button>
+          </div>
+          <div className="bdg-zoom-scroll" onClick={(e) => e.stopPropagation()}>
+            <img src={q.imageUrl} alt={q.imageAlt ?? ''} style={{ width: `${zoom * 100}%` }} onDoubleClick={() => setZoom((z) => ((z ?? 1) >= 2 ? 1 : 2))} />
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }

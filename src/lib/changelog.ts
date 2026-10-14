@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-gym-questions",
+    date: "2026-10-14",
+    icon: "🐕",
+    title: "Buff Doge's questions are clearer",
+    body: "At Buff Doge's Gym, tap one answer, then tap the big Next question button. The meter in the top corner counts every question you get right on the first try. Tap a question picture to make it big and zoom in.",
+  },
+  {
     id: "2026-10-14-battles-clear",
     date: "2026-10-14",
     icon: "👉",
