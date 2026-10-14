@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-plant-maker",
+    date: "2026-10-14",
+    icon: "🌿",
+    title: "New: the Plant Maker",
+    body: "Tap the little sprouting pot at Supernature Home. Build your own plant from roots, a stem, leaves and flowers. Real plant science shows where it can live: spines for the desert, needles for snow, floating pads for the swamp! Name it and it grows in your Habitat.",
+  },
+  {
     id: "2026-10-14-mixing-lab",
     date: "2026-10-14",
     icon: "⚗️",

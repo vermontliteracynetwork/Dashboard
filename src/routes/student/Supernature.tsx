@@ -6,6 +6,8 @@ import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { byId, setMade, type Made } from '../../lib/supernatureCreatures';
+import { setMadePlants } from '../../lib/supernaturePlants';
+import SupernaturePlantMaker from './SupernaturePlantMaker';
 import SupernatureWriting, { Icon } from './SupernatureWriting';
 import SupernatureBook from './SupernatureBook';
 import SupernatureHabitat from './SupernatureHabitat';
@@ -22,12 +24,12 @@ import SupernatureMixLab from './SupernatureMixLab';
 // the door), the Encyclopedia (the bookshelf), the Globe, the Cauldron, the Name Builder, and the
 // Creature Maker and Shop, which are still being built.
 
-type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop' | 'battle' | 'spells';
+type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop' | 'battle' | 'spells' | 'plants';
 type BarOpts = { back?: () => void; backLabel?: string; extra?: React.ReactNode };
 const STAGE_W = 1180, STAGE_H = 760;
 const ROOM_TITLE: Record<Room, string> = {
   home: 'Supernature', habitat: 'Habitat', globe: 'Globe', book: 'Encyclopedia', cauldron: 'Cauldron',
-  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles', spells: 'Spell Book',
+  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles', spells: 'Spell Book', plants: 'Plant Maker',
 };
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 
@@ -61,6 +63,8 @@ export default function Supernature() {
   const recordTransaction = useStore((s) => s.recordTransaction);
   const made = save.made ?? [];
   setMade(made);
+  const madePlants = save.madePlants ?? [];
+  setMadePlants(madePlants);
   const nat = naturalist(save);
   const levels = save.habitat?.levels ?? {};
   const go = (r: Room) => { snSound(r === 'home' ? 'back' : 'open'); setRoom(r); };
@@ -108,6 +112,9 @@ export default function Supernature() {
         {room === 'globe' && <SupernatureGlobe bar={bar} say={say} found={found} onFind={find} openPage={openPage} />}
         {room === 'book' && <SupernatureBook key={bookStart ?? 'toc'} bar={bar} say={say} found={found} start={bookStart} goGlobe={() => go('globe')} goHome={() => go('home')}
           goMaker={openMaker} onRemove={(id) => patch({ made: made.filter((x) => x.id !== id) })} levels={levels} gold={nat.level >= 4} />}
+        {room === 'plants' && <SupernaturePlantMaker bar={bar} say={say} made={madePlants} goHabitat={() => go('habitat')}
+          onSave={(m) => patch({ madePlants: madePlants.some((x) => x.id === m.id) ? madePlants.map((x) => (x.id === m.id ? m : x)) : [...madePlants, m] })}
+          onRemove={(id) => patch({ madePlants: madePlants.filter((x) => x.id !== id) })} />}
         {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade} extraColors={nat.level >= 1 ? SPARKLY_COLORS : []}
           goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
         {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} pantry={pantry} brewed={brewed} start={recipe}
@@ -204,6 +211,10 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
           to the right of the rug, with the Creature Maker tag under him. */}
       <button type="button" className="sn-obj" style={{ left: 655, top: 560, width: 130 }} onClick={() => go('cauldron')} aria-label="Cauldron">
         <img src={`${SN}theme/cauldron-bubbling.gif`} alt="" className="sn-smooth" style={{ width: 130, display: 'block' }} />{tag('Cauldron')}
+      </button>
+      {/* The Plant Maker (Build Queue 157): a sprouting pot on the floor, left of the rug. */}
+      <button type="button" className="sn-obj" style={{ left: 380, top: 590, width: 110 }} onClick={() => go('plants')} aria-label="Plant Maker">
+        <img src={`${SN}plants/pack/stage-sprout.png`} alt="" style={{ width: 110, display: 'block', imageRendering: 'pixelated' }} />{tag('Plant Maker')}
       </button>
       <button type="button" className="sn-obj" style={{ left: 945, top: 556, width: 160 }} onClick={maker} aria-label="Creature Maker">
         <img src={`${SN}creatures/frankie.png`} alt="" className="sn-host-pixel" style={{ width: 160, height: 160, display: 'block', imageRendering: 'pixelated' }} />{tag('Creature Maker')}

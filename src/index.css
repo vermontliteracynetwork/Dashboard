@@ -8812,3 +8812,34 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .mx-page.locked { opacity: 0.7; border-style: dashed; }
 .mx-drag { position: absolute; z-index: 40; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .mx-bubbles i, .mx-flask.hot .mx-glass, .mx-stream { animation: none; } }
+
+/* Plant Maker (Build Queue 157) */
+.pm-left { position: absolute; left: 14px; top: 84px; width: 380px; height: 662px; box-sizing: border-box; display: flex; flex-direction: column; gap: 10px; padding: 14px; overflow-y: auto; background: #f1e3bf; color: #241f45; border: 4px solid #241f45; border-radius: 14px; box-shadow: 0 5px 0 #241f45; }
+.pm-pot { display: flex; justify-content: center; padding: 8px; background: radial-gradient(circle at 50% 40%, #fff7e2, #e8d3a0); border: 3px solid #c8962a; border-radius: 12px; }
+.pm-pot img { width: 256px; height: 256px; image-rendering: pixelated; }
+.pm-where { display: flex; flex-direction: column; gap: 6px; }
+.pm-where p { margin: 0; font-size: 14px; line-height: 1.4; }
+.pm-lands { display: flex; flex-wrap: wrap; gap: 4px; }
+.pm-lands span { padding: 3px 8px; border-radius: 999px; background: #e6dfd0; color: #8f8aa8; font-size: 13px; font-weight: 700; }
+.pm-lands span.on { background: #57d3b8; color: #241f45; }
+.pm-mine-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.pm-mini { position: relative; display: inline-flex; align-items: center; min-height: 44px; border: 2px solid #c8962a; border-radius: 10px; background: #fff7e2; font: inherit; font-weight: 700; padding: 0 8px; }
+.pm-mini.on { background: #ffd970; }
+.pm-mini > button:first-child { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; background: none; border: 0; font: inherit; color: inherit; cursor: pointer; }
+.pm-mini img { width: 32px; height: 32px; image-rendering: pixelated; }
+.pm-x { width: 28px; height: 28px; margin-left: 4px; border: 2px solid #241f45; border-radius: 50%; background: #fff; font-weight: 800; cursor: pointer; }
+.pm-right { position: absolute; left: 406px; top: 84px; width: 760px; height: 662px; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; padding: 14px 16px; overflow-y: scroll; background: #4a4480; color: #f6f1ff; border: 4px solid #241f45; border-radius: 14px; box-shadow: 0 5px 0 #241f45; }
+.pm-row { display: flex; flex-direction: column; gap: 6px; }
+.pm-row > b { font-size: 17px; }
+.pm-row > b small { font-weight: 600; opacity: 0.8; }
+.pm-opts { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; }
+.pm-opt { min-height: 60px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 10px; text-align: left; background: #f6efe0; color: #241f45; border: 3px solid #241f45; border-radius: 10px; font: inherit; font-weight: 800; cursor: pointer; }
+.pm-opt small { font-size: 12px; font-weight: 600; opacity: 0.8; }
+.pm-opt.on { background: #ffd970; box-shadow: 0 0 0 3px #ffd970; }
+.pm-colors { display: flex; flex-wrap: wrap; gap: 6px; }
+.pm-color { width: 40px; height: 40px; border: 3px solid #241f45; border-radius: 8px; cursor: pointer; }
+.pm-color.on { box-shadow: 0 0 0 3px #ffd970; }
+.pm-parts { display: flex; flex-wrap: wrap; gap: 4px; }
+.pm-name { display: flex; gap: 6px; }
+.pm-name input, .pm-row textarea { flex: 1; min-height: 44px; padding: 6px 10px; font: inherit; font-size: 18px; border: 3px solid #241f45; border-radius: 10px; }
+.pm-save { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding-bottom: 8px; }

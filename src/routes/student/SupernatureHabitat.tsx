@@ -11,7 +11,7 @@ import { useStore } from '../../store/store';
 import { drawQuestion, pickableSets } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
-import { CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
+import { madePlantIds, CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
 import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
 import { Fx, HIT_FX, ORB_FX, type FxKey } from './SupernatureFx';
 import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, type Aff, type Fighter } from '../../lib/supernatureBattle';
@@ -1387,8 +1387,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           <PopCard className="sn-modal-card paper wide" title="Plant a seed" onClose={() => setSeedFor(null)}>
             <h2>🌱 What will you plant in the {viewLabel(biome).toLowerCase()}?</h2>
             <p className="sn-small">You can plant anything you have found. Plants only grow where they could really live.</p>
-            {book.filter((id) => PLANT(id)).length === 0 ? <p>Find wild plants first: tap the plants growing around the Habitat.</p> : (
-              <div className="sn-train-grid">{book.filter((id) => PLANT(id)).map((id) => { const p = PLANT(id)!; const g = canGrow(p, place_, season); return (
+            {[...new Set([...book, ...madePlantIds()])].filter((id) => PLANT(id)).length === 0 ? <p>Find wild plants first: tap the plants growing around the Habitat.</p> : (
+              <div className="sn-train-grid">{[...new Set([...book, ...madePlantIds()])].filter((id) => PLANT(id)).map((id) => { const p = PLANT(id)!; const g = canGrow(p, place_, season); return (
                 <button key={id} type="button" className="sn-train-opt" disabled={!g.ok} onClick={() => plantIt(seedFor, id)} title={g.why ?? p.lore}>
                   <img src={plantImg(id)} alt="" style={{ width: 48, height: 48, imageRendering: 'pixelated' }} /><b>{p.name}</b><small>{g.ok ? KIND_LABEL[p.kind] : g.why}</small>
                 </button>

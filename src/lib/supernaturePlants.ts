@@ -7,13 +7,14 @@
 // and an alchemy use, and is healing, food, magic or harmful. Picked or harvested plants go into the
 // pantry as Cauldron ingredients.
 import { SN } from './supernature';
+import { KIND_CHOICES, STEMS, LEAVES, plantUrl, whereItLives, type MadePlant, type PlantSpec } from './supernaturePlantMaker';
 
 export type PlantKind = 'healing' | 'food' | 'magic' | 'harmful';
 export type PlantPlace = 'grassland' | 'forest' | 'desert' | 'snow' | 'swamp' | 'ocean';
 export interface Plant { id: string; name: string; kind: PlantKind; where: PlantPlace[]; winter?: boolean; lore: string; alchemy: string; eaten: string; status?: string }
 const P = `${SN}plants/`;
 // Her Plants pack (2026-10-14): garden growing stages and the snapjaw flower come from it.
-export const plantImg = (id: string) => (id === 'snapjaw' ? `${P}pack/snapjaw.png` : id === 'seed' ? `${P}pack/stage-seed.png` : id === 'sprout' ? `${P}pack/stage-sprout.png` : `${P}${id}.png`);
+export const plantImg = (id: string) => (SPECS.has(id) ? plantUrl(SPECS.get(id)!) : id === 'snapjaw' ? `${P}pack/snapjaw.png` : id === 'seed' ? `${P}pack/stage-seed.png` : id === 'sprout' ? `${P}pack/stage-sprout.png` : `${P}${id}.png`);
 export const SNAPJAW_STRIP = `${P}pack/snapjaw0.png`;
 export const PLANTS: Plant[] = [
   { id: 'chamomile', name: 'Chamomile', kind: 'healing', where: ['grassland'], lore: 'Chamomile tea has been used for thousands of years to help people feel calm and sleepy.', alchemy: 'Calms: used in Calma.', eaten: 'feels calm and rested' },
@@ -40,7 +41,21 @@ export const PLANTS: Plant[] = [
   { id: 'snapjaw', name: 'Snapjaw flower', kind: 'harmful', where: ['forest', 'swamp', 'grassland'], lore: 'Like a giant Venus flytrap: it snaps at anything that comes too close. Admire it from far away!', alchemy: 'Too snappy for potions.', eaten: 'got snapped at and jumped back', status: 'startled' },
   { id: 'anemone', name: 'Sea anemone', kind: 'harmful', where: ['ocean'], lore: 'Sea anemones sting small fish, but clownfish live safely inside them.', alchemy: 'Too stingy for potions.', eaten: 'gets stung by the tentacles', status: 'stung' },
 ];
-export const PLANT = (id: string) => PLANTS.find((p) => p.id === id);
+// Plants the student made in the Plant Maker (Build Queue 157) live alongside the real ones.
+let MADE_PLANTS: Plant[] = [];
+const SPECS = new Map<string, PlantSpec>();
+export function setMadePlants(list: MadePlant[]) {
+  SPECS.clear();
+  MADE_PLANTS = list.map((m) => {
+    SPECS.set(m.id, m.spec);
+    const w = whereItLives(m.spec).where;
+    const stem = STEMS.find((x) => x.id === m.spec.stem)!, leaf = LEAVES.find((x) => x.id === m.spec.leaf)!;
+    return { id: m.id, name: m.name, kind: m.kind, where: w, winter: w.includes('snow'), lore: m.sentence?.trim() || `A plant you made. Its ${stem.label.toLowerCase()} ${stem.does}, and its ${leaf.label.toLowerCase()} ${leaf.does}.`,
+      alchemy: KIND_CHOICES.find((k) => k.id === m.kind)!.alchemy, eaten: m.kind === 'harmful' ? 'gets itchy from it' : m.kind === 'healing' ? 'feels better' : m.kind === 'magic' ? 'sparkles for a moment' : 'munches a tasty snack', status: m.kind === 'harmful' ? 'itchy' : undefined };
+  });
+}
+export const madePlantIds = () => MADE_PLANTS.map((p) => p.id);
+export const PLANT = (id: string) => PLANTS.find((p) => p.id === id) ?? MADE_PLANTS.find((p) => p.id === id);
 export const KIND_LABEL: Record<PlantKind, string> = { healing: '💚 Healing', food: '🍽️ Food', magic: '✨ Magic', harmful: '⚠️ Harmful' };
 export const EFFECT_STATUS: Record<string, string> = { sneezy: '🤧 Sneezing from sneezeweed', tummy: '🤢 A tummy ache from foxglove', sticky: '🍯 Stuck in sticky sundew drops', itchy: '😣 Itchy from stinging nettle', stung: '🫧 Stung by a sea anemone', startled: '😳 Startled by a snapjaw flower' };
 
@@ -73,7 +88,7 @@ export const SPROUT_MS = 60_000, GROWN_MS = 180_000;
 export function wildSpots(place: PlantPlace, abs: number): { key: string; plant?: string; critter?: string; x: number; y: number }[] {
   let seed = (abs * 9301 + place.length * 49297 + place.charCodeAt(0) * 233) % 233280;
   const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-  const plants = PLANTS.filter((p) => p.where.includes(place));
+  const plants = [...PLANTS, ...MADE_PLANTS].filter((p) => p.where.includes(place));
   const critters = CRITTERS.filter((c) => c.where.includes(place));
   const out: { key: string; plant?: string; critter?: string; x: number; y: number }[] = [];
   const n = 3 + Math.floor(rnd() * 2);
