@@ -8861,3 +8861,12 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-ask-steps i.done { background: #e0457a; color: #fff; }
 .sn-ask-badge { margin-right: 4px; padding: 0 4px; border-radius: 6px; background: #ffd970; color: #241f45 !important; animation: snBob 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .sn-ask-badge { animation: none; } }
+.mx-table { max-height: 680px; }
+.mx-pt { width: 100%; display: grid; grid-template-columns: repeat(18, 1fr); grid-template-rows: repeat(7, auto) 6px repeat(2, auto); gap: 3px; }
+.mx-pt-cell { min-height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; background: color-mix(in srgb, var(--fam) 25%, #2e2250); color: #cfc9ea; border: 1px solid #1a1530; border-radius: 4px; font: inherit; cursor: pointer; }
+.mx-pt-cell small { font-size: 9px; opacity: 0.8; }
+.mx-pt-cell b { font-size: 14px; }
+.mx-pt-cell.on { background: var(--fam); color: #241f45; box-shadow: 0 0 10px var(--fam); }
+.mx-el { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; background: #2e2250; border-radius: 10px; text-align: left; }
+.mx-el > b { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 8px; color: #241f45; font-size: 28px; flex: none; }
+.mx-el p { margin: 4px 0 0; font-size: 14px; }

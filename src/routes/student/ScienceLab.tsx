@@ -24,7 +24,6 @@ type Mode = 'science' | 'magic';
 type Fx = { effect: LabEffect; color: string; key: number };
 const BEAKERS = 3;
 const owner = (sid: string) => `lab:${sid}`;
-const readMode = (): Mode => { try { return localStorage.getItem('lab.mode') === 'magic' ? 'magic' : 'science'; } catch { return 'science'; } };
 const reducedMotion = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch { return false; } };
 
 // ---- sounds (made in the browser, no files) ----
@@ -150,9 +149,11 @@ export default function ScienceLab() {
   const shelf = student ? unlocked : [...new Set([...STARTER, ...localSave.unlocked])];
   const foundIds = student ? found : localSave.found;
 
-  const [mode, setModeState] = useState<Mode>(readMode);
-  const setMode = (m: Mode) => { setModeState(m); try { localStorage.setItem('lab.mode', m); } catch { /* fine */ } if (sound) (m === 'magic' ? SFX.sparkle : SFX.chime)(); };
-  const magic = mode === 'magic';
+  // Science only (Build Queue 108 + 165, her words 2026-10-14: "move the whole potion maker/fantasy elements
+  // of the science lab over to the supernature"). The magic mode (Potion Lab, Spellbook, Table of Elements ✨)
+  // now lives in Supernature's Cauldron as the Mixing Lab, on this same chemistry and shared discoveries.
+  const mode: Mode = 'science';
+  const magic = false as boolean;
   const [sound, setSound] = useState(() => { try { return localStorage.getItem('lab.sound') !== '0'; } catch { return true; } });
   const calm = useMemo(reducedMotion, []);
   const [beakers, setBeakers] = useState<string[][]>(() => Array.from({ length: BEAKERS }, () => []));
@@ -297,10 +298,7 @@ export default function ScienceLab() {
       <WebpageFrame url="science-lab" />
       <div className="lab-top">
         <h1>{magic ? '🔮 Potion Lab' : '🔬 Science Lab'}</h1>
-        <div className="lab-mode" role="radiogroup" aria-label="Lab mode">
-          <button type="button" role="radio" aria-checked={!magic} className={!magic ? 'on' : ''} onClick={() => setMode('science')}>Science</button>
-          <button type="button" role="radio" aria-checked={magic} className={magic ? 'on' : ''} onClick={() => setMode('magic')}>Magic</button>
-        </div>
+        <a className="lab-btn" href="#/student/supernature" title="Potions and magic moved to Supernature">🔮 Potions are in Supernature</a>
         <div className="lab-mode lab-view" role="radiogroup" aria-label="Lab area">
           <button type="button" role="radio" aria-checked={view === 'bench'} className={view === 'bench' ? 'on' : ''} onClick={() => setView('bench')}>Bench</button>
           <button type="button" role="radio" aria-checked={view === 'atom'} className={view === 'atom' ? 'on' : ''} onClick={() => setView('atom')}>Atom Builder</button>

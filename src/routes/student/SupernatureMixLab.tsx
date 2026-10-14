@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { BEAKER_MAX, HEAT_RECIPES, RECIPES as LAB_RECIPES, STARTER, SUB, blend, heatUp, pour, type LabEffect, type Recipe, type Substance } from '../../games/scienceLab/lab';
 import { snSound } from '../../lib/supernature';
 import { Fx, type FxKey } from './SupernatureFx';
+import { ELEMENT_USES, FAMILIES, PERIODIC, type PtElement } from '../../games/scienceLab/elements';
 import { Icon } from './SupernatureWriting';
 
 // The Mixing Lab inside the Supernature Cauldron (Build Queue 156, her words 2026-10-14: "take the logic
@@ -37,6 +38,9 @@ export default function SupernatureMixLab({ say }: { say: (t: string) => void })
   const [card, setCard] = useState<{ r: Recipe; fresh: boolean; unlocked: string[] } | null>(null);
   const [note, setNote] = useState('Pick a flask, then tap a bottle (or drag it) to pour it in. Real science decides what happens!');
   const [book, setBook] = useState(false);
+  const [table, setTable] = useState(false);
+  const [el, setEl] = useState<PtElement | null>(null);
+  const learned = useMemo(() => new Set(shelf.map((x) => x.element).filter(Boolean) as string[]), [shelf]);
   const [drag, setDrag] = useState<{ s: Substance; x: number; y: number } | null>(null);
   const timers = useRef<number[]>([]);
   useEffect(() => () => timers.current.forEach((t) => window.clearTimeout(t)), []);
@@ -133,6 +137,7 @@ export default function SupernatureMixLab({ say }: { say: (t: string) => void })
 
       <section className="mx-bench">
         <div className="mx-rank">🧙 {rank.name} · {found.length} of {ALL.length} discovered{rank.next ? ` · ${rank.next.at - found.length} more to ${rank.next.name}` : ''}
+          <button type="button" className="sn-btn2 small" onClick={() => { snSound('page'); setTable(true); }}>✨ Table of Elements</button>
           <button type="button" className="sn-btn2 small" onClick={() => { snSound('page'); setBook(true); }}>📜 Grimoire</button>
         </div>
         <div className="mx-flasks">
@@ -196,6 +201,28 @@ export default function SupernatureMixLab({ say }: { say: (t: string) => void })
               ))}
             </div>
             <button type="button" className="sn-btn" onClick={() => setBook(false)}>Close</button>
+          </div>
+        </div>
+      )}
+      {table && (
+        <div className="sn-modal" role="dialog" aria-label="Table of Elements" onClick={() => { setTable(false); setEl(null); }}>
+          <div className="sn-modal-card wide mx-table" onClick={(e) => e.stopPropagation()}>
+            <h2>✨ Table of Elements</h2>
+            <p className="sn-small">The real periodic table. Glowing tiles are elements on your shelf. Tap a tile to read about it.</p>
+            <div className="mx-pt">{PERIODIC.map((e) => (
+              <button key={e.n} type="button" className={`mx-pt-cell${learned.has(e.sym) ? ' on' : ''}`} style={{ gridRow: e.row, gridColumn: e.col, ['--fam' as string]: FAMILIES[e.family].magic }} onClick={() => { snSound('tap'); setEl(e); }} aria-label={`${e.name}, ${e.n}${learned.has(e.sym) ? ', on your shelf' : ''}`}><small>{e.n}</small><b>{e.sym}</b></button>
+            ))}</div>
+            {el && (
+              <div className="mx-el">
+                <b style={{ background: FAMILIES[el.family].magic }}>{el.sym}</b>
+                <div><strong>{el.name}</strong> · {FAMILIES[el.family].name} · atomic number {el.n}
+                  {ELEMENT_USES[el.sym] && <p>Used for: {ELEMENT_USES[el.sym]}</p>}
+                  {(() => { const sub = shelf.find((x) => x.element === el.sym); return sub ? <p>✅ On your shelf: {sub.fact}</p> : <p>🔒 Not on your shelf yet. Discover more reactions to unlock new bottles.</p>; })()}
+                </div>
+                <button type="button" className="sn-listen" onClick={() => say(`${el.name}. ${ELEMENT_USES[el.sym] ? `Used for ${ELEMENT_USES[el.sym]}` : ''}`)} aria-label="Listen"><Icon d={LISTEN} /></button>
+              </div>
+            )}
+            <button type="button" className="sn-btn" onClick={() => { setTable(false); setEl(null); }}>Close</button>
           </div>
         </div>
       )}

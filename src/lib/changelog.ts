@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-potions-moved",
+    date: "2026-10-14",
+    icon: "🔮",
+    title: "Magic potions moved to Supernature",
+    body: "The Science Lab is all real science now. The magic Potion Lab moved to Supernature: go to the Cauldron and tap Mixing Lab. Your discoveries came with you, and there is a magic Table of Elements there too!",
+  },
+  {
     id: "2026-10-14-three-requests",
     date: "2026-10-14",
     icon: "💬",
