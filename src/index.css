@@ -9097,3 +9097,18 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .el-turn.prev { left: -10px; } .el-turn.next { right: -10px; }
 .el-pg { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 999px; background: #241f45; color: #ffd970; font-size: 12px; font-weight: 800; }
 @media (prefers-reduced-motion: reduce) { .cz-rx { animation: none; opacity: 1; } }
+
+/* Habitat complaint list (Build Queue 183). */
+.sn-logbtn { position: relative; }
+.sn-logbadge { position: absolute; top: -8px; right: -8px; min-width: 24px; height: 24px; padding: 0 5px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: #e0457a; color: #fff; border: 2px solid #241f45; font-size: 13px; animation: snPulse 1s ease-in-out infinite alternate; }
+.sn-lognote { position: absolute; right: 70px; bottom: 0; width: 280px; padding: 8px 12px; border-radius: 12px; background: #fff8e6; color: #241f45; border: 3px solid #241f45; box-shadow: 0 4px 0 #241f45; font-size: 14px; font-weight: 700; line-height: 1.3; text-align: left; animation: snLogNote 5s ease-out forwards; }
+@keyframes snLogNote { 0% { opacity: 0; transform: translateX(20px); } 8% { opacity: 1; transform: none; } 85% { opacity: 1; } 100% { opacity: 0; } }
+.sn-loglist { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.sn-loglist li { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 10px; background: #fff8e6; color: #241f45; border: 2px solid #8a5a2e; }
+.sn-loglist li.fixed { border-color: #2f8a5a; background: #e3f7ea; }
+.sn-loglist li.left { border-color: #b03a48; }
+.sn-loglist img { width: 40px; height: 40px; object-fit: contain; flex: none; }
+.sn-loglist span { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sn-loglist small { font-size: 14px; }
+.sn-loglist em { font-style: normal; font-size: 12px; opacity: 0.7; flex: none; }
+@media (prefers-reduced-motion: reduce) { .sn-logbadge, .sn-lognote { animation: none; } }

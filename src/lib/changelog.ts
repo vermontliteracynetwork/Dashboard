@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-complaint-list",
+    date: "2026-10-14",
+    icon: "📋",
+    title: "The complaint list",
+    body: "In the Habitat, tap 📋 to see every complaint and request your creatures have made, and which ones you fixed. A little note pops up when a new one comes in. Creatures also complain less now, and predators hunt less often.",
+  },
+  {
     id: "2026-10-14-predator-word",
     date: "2026-10-14",
     icon: "🦁",

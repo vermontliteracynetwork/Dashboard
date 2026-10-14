@@ -363,17 +363,38 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [asks, setAsks] = useState<Record<string, Ask>>(() => Object.fromEntries(Object.entries(saved.asks ?? {}).map(([id, a]) => [id, { ...(a as unknown as Ask), until: ASK_TICKS }])));
   const [gone, setGone] = useState<string[]>(saved.gone ?? []);
   const [left, setLeft] = useState<{ id: string; name: string; because: string; skill?: SkillId | null; denied: boolean } | null>(null);
+  // The complaint list (Build Queue 183, her words 2026-10-14: "add a running "complaint list" of the creatures in a side
+  // button when in habitat view of supernature. it should have a log of all prior and show a small notification for every
+  // time it pops up with a new creatures complaint or request"). Every complaint, request, fix and goodbye is logged.
+  type LogItem = NonNullable<SnHabitat['log']>[number];
+  const [log, setLog] = useState<LogItem[]>(saved.log ?? []);
+  const [logOpen, setLogOpen] = useState(false);
+  const [logSeen, setLogSeen] = useState(() => (saved.log ?? []).length);
+  const [lnote, setLnote] = useState<{ text: string; key: number } | null>(null);
+  const addLog = (id: string, kind: LogItem['kind'], text: string) => {
+    const c = byId(id); const name = names[id]?.[0] ? `${names[id][0]} the ${c?.name ?? id}` : c?.name ?? id;
+    setLog((g) => [...g, { id, name, text, kind, at: Date.now() }].slice(-80));
+    if (kind === 'complaint' || kind === 'request' || kind === 'left') { setLnote({ text: `${kind === 'left' ? '🧳' : '💬'} ${name}: ${text}`, key: Date.now() }); snSound('chime'); }
+  };
+  useEffect(() => { if (!lnote) return; const t = window.setTimeout(() => setLnote(null), 5000); return () => window.clearTimeout(t); }, [lnote]);
+  // Fewer complaints (Build Queue 184, her words 2026-10-14: "make creatures complain less"): a new one at most every
+  // 30 heartbeats (about 90 seconds), and never more than 2 creatures asking at once.
+  const lastWarn = useRef(-999);
   const warnOf = (id: string, reason: string, because: string, help: string, acts: Warn['acts']) => {
     if (asks[id] || gone.includes(id)) return;
     const key = `${id}:${reason}:${clk.abs}`;
     if (warned.current.has(key) || warns.some((w) => w.id === id)) return;
+    if (tick - lastWarn.current < 30 || Object.keys(asks).length >= 2) return;
+    lastWarn.current = tick;
     warned.current.add(key);
+    addLog(id, 'complaint', because.charAt(0).toUpperCase() + because.slice(1) + '.');
     setAsks((m) => ({ ...m, [id]: { step: 1, reason, because, help, acts, until: tick + ASK_TICKS } }));
     setWarns((w) => [...w, { key, id, reason, because, help, acts }]);
   };
   const resolveAsk = (id: string, msg?: string) => {
     if (!asks[id]) return;
     setAsks((m) => { const n = { ...m }; delete n[id]; return n; }); setWarns((w) => w.filter((x) => x.id !== id));
+    addLog(id, 'fixed', 'Fixed! It is happy to stay.');
     if (msg) { tell(msg, true); snSound('learned'); }
   };
   const escalate = (id: string, denied: boolean) => {
@@ -383,6 +404,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       setGone((g) => [...new Set([...g, id])]); setLive((ls) => ls.filter((x) => x.c.id !== id)); setEco((x) => ({ ...x, groups: { ...x.groups, [id]: 0 } }));
       if (sel === id) setSel(null);
       setLeft({ id, name: nameOf(l), because: a.because, skill: a.skill, denied }); snSound('close');
+      addLog(id, 'left', `Left the Habitat for good because ${a.because}.`);
       return;
     }
     let next: 2 | 3 = a.step === 1 ? 2 : 3;
@@ -390,6 +412,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     if (next === 2 && !skill) next = 3;
     const to = next === 3 ? likedElsewhere(l) : null;
     setAsks((m) => ({ ...m, [id]: { ...a, step: next, until: tick + ASK_TICKS, skill, to } }));
+    addLog(id, 'request', next === 2 && skill ? `Request 2 of 3: please train a new skill (${SKILL(skill).name}).` : `Request 3 of 3: please move it${to ? ` to the ${viewLabel(to).toLowerCase()}` : ''}.`);
     setWarns((w) => [...w.filter((x) => x.id !== id), { key: `${id}:step${next}:${Date.now()}`, id, reason: a.reason, because: a.because, help: a.help, acts: a.acts }]);
   };
   const showAsk = (id: string) => { const a = asks[id]; if (!a) return; setSel(null); setWarns((w) => [{ key: `${id}:again:${Date.now()}`, id, reason: a.reason, because: a.because, help: a.help, acts: a.acts }, ...w.filter((x) => x.id !== id)]); };
@@ -427,9 +450,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     }
     for (const l of live) {
       if (l.hide || count(l.c.id) === 0) continue;
-      if (l.hp <= 1) warnOf(l.c.id, 'tired', `${l.hp === 0 ? 'it has no hearts left' : 'it has only 1 heart left'}. If it has no hearts when ${season.toLowerCase()} ends, it will fade away until spring`, 'Give it a Vita or Herba potion, or move it to a land it likes so it can rest and get its hearts back.', ['vita', 'herba', 'move']);
+      if (l.hp === 0) warnOf(l.c.id, 'tired', `${l.hp === 0 ? 'it has no hearts left' : 'it has only 1 heart left'}. If it has no hearts when ${season.toLowerCase()} ends, it will fade away until spring`, 'Give it a Vita or Herba potion, or move it to a land it likes so it can rest and get its hearts back.', ['vita', 'herba', 'move']);
       if (count(l.c.id) === 1 && live.some((h) => h !== l && !h.hide && isHunter(h.c) && home(h.c) === home(l.c) && canBeHunted(l.c, sk(l.c)))) warnOf(l.c.id, 'last', 'it is the last one in its family, and predators live in its land', 'It will hide safely, but its family cannot grow with predators around. Move it to a land without predators, or train Camouflage or Fast runner.', ['move', 'train']);
-      if (l.status === 'homesick' && l.hp <= 3) warnOf(l.c.id, 'homesick', `it misses the land it loves (the ${likesOf(l.c)})`, `Move it to the ${likesOf(l.c)}.`, ['move']);
+      if (l.status === 'homesick' && l.hp <= 2) warnOf(l.c.id, 'homesick', `it misses the land it loves (the ${likesOf(l.c)})`, `Move it to the ${likesOf(l.c)}.`, ['move']);
     }
     // A minute and a half before the season ends, look ahead: who would move away to find food?
     if (clk.left < 90000 && predicted.current !== clk.abs && live.length) {
@@ -785,7 +808,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, asks: asks as unknown as SnHabitat['asks'], gone, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
+  latest.current = { log, biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, asks: asks as unknown as SnHabitat['asks'], gone, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
   const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${Object.entries(asks).map(([k, a]) => `${k}${a.step}`).join()}|${gone.join()}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
@@ -909,7 +932,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           setEco((x) => ({ ...x, groups: { ...x.groups, [wb.p.id]: Math.max(0, (x.groups[wb.p.id] ?? startGroup(wb.p.id)) - 1) } }));
           setCaughtFx([wb.p.id]); window.setTimeout(() => setCaughtFx([]), 2400); if (wbSeen) snSound('poof');
         } else { setEscapedAt((m) => ({ ...m, [wb.p.id]: Date.now() })); if (wbSeen) snSound('chime'); }
-        if (wbSeen) tell(why, true); nextWild.current = tick + 12;
+        if (wbSeen) tell(why, true); nextWild.current = tick + 30;
         window.setTimeout(() => setWb(null), 3500);
       };
       if (wb.line.startsWith('🏁')) return;
@@ -934,7 +957,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       window.setTimeout(() => setWb((w) => (w ? { ...w, boom: null } : w)), 2400);
       if (nd.health <= 0) window.setTimeout(() => finish(wb.turn === 'h', wb.turn === 'h' ? `🏁 ${wb.h.name} caught one of the ${wb.p.species} family. The rest of the family hid safely.` : `🏁 ${wb.h.name} is too tired to keep hunting and gives up. ${wb.p.name} wins!`), 1300);
     }
-    if (!hunt && !wb && tick % 6 === 3 && !dis) {
+    // Predators hunt less (Build Queue 184): a chance about every 45 seconds instead of every 18.
+    if (!hunt && !wb && tick % 15 === 7 && !dis) {
       const pairs: [Live, Live][] = [];
       for (const h of live) {
         if (!isHunter(h.c) || h.hp === 0 || h.hide || count(h.c.id) === 0 || reactions[h.c.id]?.pose === 'sleep') continue;
@@ -942,7 +966,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       }
       const inSight = pairs.filter(([h]) => home(h.c) === biome);
       const pool = inSight.length ? inSight : pairs;
-      if (pool.length && Math.random() < 0.7) {
+      if (pool.length && Math.random() < 0.5) {
         const [h, p] = pool[Math.floor(Math.random() * pool.length)];
         const inView = home(h.c) === biome;
         if (inView && !wb && tick >= nextWild.current) {
@@ -1292,6 +1316,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <button type="button" className="sn-railbtn" aria-label="Food web" title="Food web" onClick={() => { snSound('page'); setWeb(true); setWhatIf(null); }}><span>🕸️</span></button>
               <button type="button" className="sn-railbtn" aria-label="Plant and Critter Book" title="Plant and Critter Book" onClick={() => { snSound('open'); setBookOpen(true); }}><span>🌿</span></button>
               <button type="button" className="sn-railbtn" aria-label="Generations" title="Generations" onClick={() => { snSound('open'); setGensOpen(true); }}><span>🧬</span></button>
+              <button type="button" className="sn-railbtn sn-logbtn" aria-label={`Complaint list${log.length > logSeen ? `, ${log.length - logSeen} new` : ''}`} title="Complaint list" onClick={() => { snSound('open'); setLogOpen(true); setLogSeen(log.length); setLnote(null); }}><span>📋</span>{log.length > logSeen && <b className="sn-logbadge">{log.length - logSeen}</b>}</button>
+              {lnote && <button type="button" key={lnote.key} className="sn-lognote" onClick={() => { snSound('open'); setLogOpen(true); setLogSeen(log.length); setLnote(null); }}>{lnote.text}</button>}
             </div>
           </>
         )}
@@ -1612,6 +1638,26 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           </PopCard>
         </div>
       ); })()}
+      {logOpen && (
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Complaint list" onClick={() => setLogOpen(false)}>
+          <PopCard className="sn-modal-card paper wide" title="Complaint list" onClose={() => setLogOpen(false)}>
+            <div className="sn-row between" style={{ width: '100%' }}><h2>📋 Complaint list</h2>
+              <button type="button" className="sn-listen" onClick={() => say(log.slice(-5).reverse().map((x) => `${x.name}: ${x.text}`).join(' ') || 'No complaints yet.')} aria-label="Listen to the newest"><Icon d={LISTEN} /></button></div>
+            {Object.keys(asks).length > 0 && <div className="sn-row center">{Object.keys(asks).map((id) => <button key={id} type="button" className="sn-btn2 go small" onClick={() => { setLogOpen(false); showAsk(id); }}>💬 Help {byId(id)?.name} ({asks[id].step} of 3)</button>)}</div>}
+            {log.length === 0 ? <p>No complaints yet. Your creatures are happy!</p> : (
+              <ul className="sn-loglist">
+                {log.slice().reverse().map((x, i) => (
+                  <li key={`${x.at}-${i}`} className={x.kind}>
+                    <img src={art(x.id)} alt="" />
+                    <span><b>{x.kind === 'complaint' ? '💬' : x.kind === 'request' ? '🙏' : x.kind === 'left' ? '🧳' : '✅'} {x.name}</b><small>{x.text}</small></span>
+                    <em>{new Date(x.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</em>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </PopCard>
+        </div>
+      )}
       {reactOpen && (
         <div className="sn-modal snp-modal" role="dialog" aria-label="How they react" onClick={() => setReactOpen(false)}>
           <PopCard className="sn-modal-card paper wide" title="How they react" onClose={() => setReactOpen(false)}>

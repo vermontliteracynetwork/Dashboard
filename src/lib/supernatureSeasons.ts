@@ -56,7 +56,8 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
   // then hunters catch plant eaters and scavengers (never themselves, never magic eaters)
   for (const c of roster) {
     const e = eats(c); if (g[c.id] <= 0 || (e !== 'meat' && !(e === 'both' && (fed[c.id] ?? 0) < 1))) continue;
-    const need = Math.ceil(g[c.id] / 2) - (e === 'both' ? Math.round((fed[c.id] ?? 0) * Math.ceil(g[c.id] / 3)) : 0);
+    // Predators catch less (Build Queue 184, her words 2026-10-14: "have predators hunt less"): one catch feeds three.
+    const need = Math.ceil(g[c.id] / 3) - (e === 'both' ? Math.round((fed[c.id] ?? 0) * Math.ceil(g[c.id] / 4)) : 0);
     let got = 0;
     for (let i = 0; i < need; i++) {
       // Magic creatures can be hunted too (Build Queue 134); gods never are.
