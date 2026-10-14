@@ -1135,6 +1135,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           const still = k === 0 || l.hp === 0;
           const swimmer = biome === 'ocean' || l.c.move === 'swim';
           const pos = l.hide ? (swimmer ? { left: sp.x, top: sp.y + 40 } : { left: CAVE.x + 50, top: CAVE.y + 60 }) : tp === 'float' || tp === 'zoom' ? { left: sp.x, top: Math.max(20, sp.y - 150) } : { left: sp.x, top: sp.y };
+          // Family members stay home while one of them hunts or battles (Build Queue 163, her words
+          // 2026-10-14: "creatuers should battle individually, and not with their family").
+          const rest = { ...pos };
           const hunting = hunt?.hunter === l.c.id && hunt.phase === 'chase';
           const preyL = hunting ? here.find((x) => x.c.id === hunt!.prey) : undefined;
           if (preyL && !l.hide) { const ps = spot(preyL); pos.left = ps.x + (ps.x > sp.x ? -80 : 80); pos.top = ps.y; }
@@ -1150,7 +1153,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <span key={l.c.id} className="sn-family">
             {kinRow.map((m, j) => (
               <button key={`${l.c.id}#${j}`} type="button" className={`sn-crit sn-kin ${mv} st-${style}${m.hp === 0 ? ' still' : ''}${Date.now() - m.born < 20000 ? ' newborn' : ''}`}
-                style={{ left: Math.max(10, Math.min(W - 90, pos.left + OFF[j].x)), top: Math.max(10, Math.min(H - 90, pos.top + OFF[j].y)), zIndex: 3, ['--d' as string]: `${-sp.d * 0.6}px`, ['--t' as string]: `${(sp.t + j * 2) * (k || 1)}s`, animationDelay: `${-(i + j + 1) * 1.3}s` }}
+                style={{ left: Math.max(10, Math.min(W - 90, rest.left + OFF[j].x)), top: Math.max(10, Math.min(H - 90, rest.top + OFF[j].y)), zIndex: 3, ['--d' as string]: `${-sp.d * 0.6}px`, ['--t' as string]: `${(sp.t + j * 2) * (k || 1)}s`, animationDelay: `${-(i + j + 1) * 1.3}s` }}
                 onClick={(e) => { e.stopPropagation(); snSound('tap'); setKinSel({ id: l.c.id, i: j }); setSel(null); }} aria-label={`${kinName(l.c, j)}, a ${l.c.name} in the family. ${m.hp} of 5 hearts. Tap to care for it.`}>
                 <img src={art(l.c.id)} alt="" />
                 {m.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
