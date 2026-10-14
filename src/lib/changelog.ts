@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-bookshelf-directory",
+    date: "2026-10-14",
+    icon: "📚",
+    title: "The bookshelf holds all your books",
+    body: "In Supernature, tap the bookshelf and pick the book you want: the Encyclopedia, the Potion Book or the Spell Book. The Plant Maker pot moved, so the Cat Wizard is not in the way anymore.",
+  },
+  {
     id: "2026-10-14-creatures-wander",
     date: "2026-10-14",
     icon: "🐾",

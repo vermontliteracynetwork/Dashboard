@@ -155,6 +155,16 @@ function Host({ text, say, wide, img = `${SN}theme/kitty-curiousIdleBreaker.gif`
 function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Room) => void; say: (t: string) => void; maker: () => void; crown: boolean }) {
   const tag = (label: string, gold?: boolean) => <span className={`sn-tag${gold ? ' gold' : ''}`}>{label}</span>;
   const W = `${SN}witchy-pack/`;
+  // The bookshelf is a directory of every book (Build Queue 176, her words 2026-10-14: "make the book shelf now a
+  // directory of all the books (potion book, encyclepdia). student should click the shelf then be driected to
+  // click the book thy want before it opens"). Tap the shelf, then tap the book you want.
+  const [shelf, setShelf] = useState(false);
+  const BOOKS: { room: Room; title: string; img: string; does: string }[] = [
+    { room: 'book', title: 'Encyclopedia', img: `${SN}theme/sparkle-book.gif`, does: 'Every creature: facts, stories and where they live.' },
+    { room: 'cauldron', title: 'Potion Book', img: `${W}books-1.png`, does: 'The Grimoire of recipe cards, by the Cauldron.' },
+    { room: 'spells', title: 'Spell Book', img: `${W}books-2.png`, does: 'Build spells and names from word parts.' },
+  ];
+  const shelfText = `Pick a book. ${BOOKS.map((b) => `${b.title}: ${b.does}`).join(' ')}`;
   return (
     <div className="sn-room sn-house">
       {bar}
@@ -164,9 +174,9 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       <img className="sn-sparkle" src={`${SN}theme/sparkle-4.png`} alt="" style={{ left: 300, top: 110, width: 40 }} />
       <img className="sn-sparkle d2" src={`${SN}theme/sparkle-0.png`} alt="" style={{ left: 700, top: 160, width: 52 }} />
 
-      <button type="button" className="sn-obj" style={{ left: 30, bottom: 250, width: 230 }} onClick={() => go('book')} aria-label="Encyclopedia: the bookshelf">
+      <button type="button" className="sn-obj" style={{ left: 30, bottom: 250, width: 230 }} onClick={() => { snSound('open'); setShelf(true); say('Pick the book you want.'); }} aria-label="Bookshelf: pick a book">
         <img src={`${SN}theme/sparkle-book.gif`} alt="" className="sn-smooth sn-shelf-book" />
-        <img src={`${W}bookshelves-4.png`} alt="" style={{ width: 230, display: 'block' }} />{tag('Encyclopedia', true)}
+        <img src={`${W}bookshelves-4.png`} alt="" style={{ width: 230, display: 'block' }} />{tag('Bookshelf', true)}
       </button>
 
       {/* Her weapon rack (Build Queue 137) on the wall above the Habitat door opens Creature Battles. */}
@@ -178,10 +188,7 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
         <span className="sn-door-sill" />
       </button>
 
-      {/* The Spell Book (Build Queue 114) rests on the fireplace mantel. */}
-      <button type="button" className="sn-obj" style={{ left: 556, top: 150, width: 88 }} onClick={() => go('spells')} aria-label="Spell Book">
-        <img src={`${SN}witchy-pack/books-2.png`} alt="" style={{ width: 88, display: 'block', imageRendering: 'pixelated' }} />{tag('Spell Book', true)}
-      </button>
+      {/* The Spell Book moved from the mantel into the bookshelf directory (Build Queue 176). */}
       <div className="sn-obj" style={{ left: 480, bottom: 250, width: 240 }} aria-hidden="true">
         <span style={{ position: 'relative', width: 240, height: 300, display: 'block' }}>
           <img src={`${W}fireplaces-0.png`} alt="" style={{ width: 240, height: 300 }} />
@@ -207,15 +214,31 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       <button type="button" className="sn-obj" style={{ left: 655, top: 560, width: 130 }} onClick={() => go('cauldron')} aria-label="Cauldron">
         <img src={`${SN}theme/cauldron-bubbling.gif`} alt="" className="sn-smooth" style={{ width: 130, display: 'block' }} />{tag('Cauldron')}
       </button>
-      {/* The Plant Maker (Build Queue 157): a sprouting pot on the floor, left of the rug. */}
-      <button type="button" className="sn-obj" style={{ left: 380, top: 590, width: 110 }} onClick={() => go('plants')} aria-label="Plant Maker">
+      {/* The Plant Maker (Build Queue 157): a sprouting pot on the floor, moved up and right so the Cat Wizard
+          never covers it (Build Queue 176). */}
+      <button type="button" className="sn-obj" style={{ left: 500, top: 515, width: 110 }} onClick={() => go('plants')} aria-label="Plant Maker">
         <img src={`${SN}plants/pack/stage-sprout.png`} alt="" style={{ width: 110, display: 'block', imageRendering: 'pixelated' }} />{tag('Plant Maker')}
       </button>
       <button type="button" className="sn-obj" style={{ left: 945, top: 556, width: 160 }} onClick={maker} aria-label="Creature Maker">
         <img src={`${SN}creatures/frankie.png`} alt="" className="sn-host-pixel" style={{ width: 160, height: 160, display: 'block', imageRendering: 'pixelated' }} />{tag('Creature Maker')}
       </button>
 
-      <Host say={say} crown={crown} text="Welcome home! Tap anything with a name tag. The bookshelf is your Encyclopedia, and the door goes outside to your Habitat." />
+      <Host say={say} crown={crown} text="Welcome home! Tap anything with a name tag. The bookshelf holds all your books, and the door goes outside to your Habitat." />
+      {shelf && (
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Bookshelf" onClick={() => setShelf(false)}>
+          <PopCard className="sn-modal-card paper wide" title="Bookshelf" onClose={() => setShelf(false)}>
+            <div className="sn-row between" style={{ width: '100%' }}><h2>📚 Pick a book</h2>
+              <button type="button" className="sn-listen" onClick={() => say(shelfText)} aria-label="Listen"><Icon d={LISTEN} /></button></div>
+            <div className="sn-bookdir">
+              {BOOKS.map((b) => (
+                <button key={b.title} type="button" className="sn-bookpick" onClick={() => { snSound('page'); setShelf(false); go(b.room); }}>
+                  <img src={b.img} alt="" /><b>{b.title}</b><small>{b.does}</small>
+                </button>
+              ))}
+            </div>
+          </PopCard>
+        </div>
+      )}
     </div>
   );
 }
