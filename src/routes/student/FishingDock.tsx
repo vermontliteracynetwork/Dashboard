@@ -5,7 +5,6 @@ import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { speak } from '../../components/ReadAloud';
 import { sfxOn, SfxToggle } from '../../lib/miniSfx';
-import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import { MyBest } from '../../components/MyBest';
 import { recordBestGame } from '../../lib/personalBoard';
 import { addPetFood } from '../../lib/petFood';
@@ -23,7 +22,8 @@ import { addPetFood } from '../../lib/petFood';
 // ones like a school of fish leaping out of the water.
 
 const ART = '/games/fishing/';
-const DOC_VOICE = NPC_VOICE_PRESETS['doc-drawl'];
+// Doc Fishing reads with the regular read-aloud voice (teacher 2026-10-14: "Fix doc fishing voice
+// immediatly to a regular TTS. this is top prioity"), not a character voice.
 
 // Her sound packs (Fishing Minigame SFX demo and Free Fishing Sounds), trimmed to small mono files.
 type Snd = 'cast' | 'plunk' | 'bite' | 'hook' | 'reel' | 'catch' | 'legend' | 'escaped' | 'boot' | 'bucket' | 'tackle' | 'lure' | 'rod' | 'thrash' | 'gull';
@@ -139,7 +139,7 @@ export default function FishingDock() {
   const [readAloud, setReadAloud] = useState(() => { try { return localStorage.getItem('story-tts') !== '0'; } catch { return true; } });
   const readRef = useRef(readAloud);
   readRef.current = readAloud;
-  const { ask, element, pay, student, asking, rightSoFar } = useAsk('Doc Fishing', '🎣', 'fishingDock', { autoRead: readAloud, voice: DOC_VOICE, startCard: false });
+  const { ask, element, pay, student, asking, rightSoFar } = useAsk('Doc Fishing', '🎣', 'fishingDock', { autoRead: readAloud, startCard: false });
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const [phase, setPhase] = useState<Phase>('ready');
@@ -170,7 +170,7 @@ export default function FishingDock() {
   const bobRef = useRef<HTMLImageElement>(null);
   const lineRef = useRef<SVGLineElement>(null);
   const later = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn, ms)); };
-  const doc = (text: string, read = true) => { setSay(text); if (read && readRef.current) speak(text, undefined, undefined, DOC_VOICE); };
+  const doc = (text: string, read = true) => { setSay(text); if (read && readRef.current) speak(text); };
 
   useEffect(() => () => { cancelAnimationFrame(raf.current); timers.current.forEach(clearTimeout); window.speechSynthesis?.cancel(); }, []);
   // A seagull now and then, far away.
@@ -376,7 +376,7 @@ export default function FishingDock() {
         {say && !asking && (
           <div className="fdk-say" aria-live="polite">
             <p>{say}</p>
-            <button type="button" className="btn fdk-listen" onClick={() => speak(say, undefined, undefined, DOC_VOICE)} aria-label="Listen to Doc Fishing">🔊</button>
+            <button type="button" className="btn fdk-listen" onClick={() => speak(say)} aria-label="Listen to Doc Fishing">🔊</button>
           </div>
         )}
         <div className="fdk-doc">

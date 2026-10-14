@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-doc-voice",
+    date: "2026-10-14",
+    icon: "🎣",
+    title: "Doc Fishing reads with the regular voice",
+    body: "At the Fishing Dock, Doc Fishing's words and questions are read aloud in the same voice as the rest of the app.",
+  },
+  {
     id: "2026-10-13-habitat-ocean",
     date: "2026-10-13",
     icon: "🌊",
