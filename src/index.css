@@ -8583,3 +8583,35 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 @keyframes wbR { from { transform: translateX(0) scale(0.6); } to { transform: translateX(150px) scale(1.2); } }
 @keyframes wbL { from { transform: translateX(0) scale(0.6); } to { transform: translateX(-150px) scale(1.2); } }
 @media (prefers-reduced-motion: reduce) { .sn-wbproj { animation: none; } }
+
+/* Name Builder filters and the Spell Book (Build Queue 114) */
+.sn-namefilter { position: absolute; left: 14px; right: 14px; top: 322px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sn-namefilter input { min-height: 40px; padding: 0 10px; border-radius: 10px; border: 3px solid #241f45; font: inherit; min-width: 240px; }
+.sn-namefilter ~ .sn-trays { top: 372px; }
+.sn-origins { display: inline-flex; align-items: center; gap: 4px; color: #f6f1ff; font-size: 12px; font-weight: 700; margin-left: auto; }
+.sn-origins i { width: 12px; height: 12px; border: 2px solid #241f45; margin-left: 6px; }
+.og-anglo-saxon { box-shadow: inset 0 -5px 0 #4fae4f; } .og-latin { box-shadow: inset 0 -5px 0 #e0505a; } .og-greek { box-shadow: inset 0 -5px 0 #2f6fb0; }
+.sn-origins i.og-anglo-saxon { background: #4fae4f; box-shadow: none; } .sn-origins i.og-latin { background: #e0505a; box-shadow: none; } .sn-origins i.og-greek { background: #2f6fb0; box-shadow: none; }
+.sbk { position: absolute; left: 14px; right: 14px; top: 84px; bottom: 14px; display: flex; flex-direction: column; gap: 10px; padding: 14px; overflow: auto; background: #f6efe0; color: #241f45; border: 4px solid #241f45; border-radius: 14px; }
+.sbk-tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sbk-challenge { display: flex; flex-direction: column; gap: 4px; padding: 10px 14px; background: #fff3c4; border: 3px solid #c8962a; border-radius: 12px; }
+.sbk-challenge b { font-family: 'Press Start 2P', monospace; font-size: 16px; color: #8c5ad1; }
+.sbk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.sbk-card { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 10px 10px 10px 12px; background: #fff; border: 3px solid #241f45; border-radius: 12px; text-align: left; font: inherit; color: inherit; }
+.sbk-card .sn-listen { position: absolute; right: 6px; top: 6px; margin: 0; }
+.sbk-card.mine { cursor: pointer; }
+.sbk-card img { width: 100%; aspect-ratio: 8 / 5; object-fit: cover; border-radius: 8px; border: 2px solid #c8962a; }
+.sbk-parts { display: flex; flex-wrap: wrap; gap: 6px; }
+.sbk-parts.pick { max-height: 230px; overflow-y: auto; padding: 4px; background: #4a4480; border-radius: 10px; }
+.sbk-make { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.sbk-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.sbk-col input[type='search'], .sbk-col textarea, .sbk-haiku input { min-height: 42px; padding: 6px 10px; font: inherit; font-size: 16px; border: 3px solid #241f45; border-radius: 10px; }
+.sbk-haiku { display: flex; flex-direction: column; gap: 3px; font-weight: 700; font-size: 14px; }
+.sbk-canvas { width: 100%; max-width: 480px; aspect-ratio: 8 / 5; background: #fffaf0; border: 3px solid #241f45; border-radius: 10px; touch-action: none; }
+.sbk-paint { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.sbk-paint .sn-swatch { width: 32px; height: 32px; }
+.sbk-empty { font-size: 18px; }
+.sbk-page { max-width: 640px; }
+.sbk-page img { width: 100%; border-radius: 10px; border: 3px solid #c8962a; }
+.sbk-poem { display: flex; flex-direction: column; align-items: center; font-style: italic; font-size: 18px; }
+@media (max-width: 900px) { .sbk-make { grid-template-columns: 1fr; } }

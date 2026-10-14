@@ -11,6 +11,7 @@ import SupernatureBook from './SupernatureBook';
 import SupernatureHabitat from './SupernatureHabitat';
 import SupernatureMaker from './SupernatureMaker';
 import SupernatureBattle from './SupernatureBattle';
+import SupernatureSpellBook from './SupernatureSpellBook';
 import SupernatureGlobe from './SupernatureGlobe';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
@@ -19,12 +20,12 @@ import SupernatureGlobe from './SupernatureGlobe';
 // the door), the Encyclopedia (the bookshelf), the Globe, the Cauldron, the Name Builder, and the
 // Creature Maker and Shop, which are still being built.
 
-type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop' | 'battle';
+type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop' | 'battle' | 'spells';
 type BarOpts = { back?: () => void; backLabel?: string; extra?: React.ReactNode };
 const STAGE_W = 1180, STAGE_H = 760;
 const ROOM_TITLE: Record<Room, string> = {
   home: 'Supernature', habitat: 'Habitat', globe: 'Globe', book: 'Encyclopedia', cauldron: 'Cauldron',
-  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles',
+  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles', spells: 'Spell Book',
 };
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 
@@ -113,6 +114,7 @@ export default function Supernature() {
             patch({ potions: [...potions, name], pantry: np, brewed: brewed.includes(name) ? brewed : [...brewed, name] });
           }} goNames={() => go('names')} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
         {room === 'names' && <Names bar={bar} say={say} names={save.names ?? []} onSave={(n) => patch({ names: [...(save.names ?? []), n] })} />}
+        {room === 'spells' && <SupernatureSpellBook bar={bar} say={say} book={save.spellbook ?? []} onSave={(e) => patch({ spellbook: [...(save.spellbook ?? []), e].slice(-40) })} onRemove={(id) => patch({ spellbook: (save.spellbook ?? []).filter((x) => x.id !== id) })} />}
         {room === 'battle' && <SupernatureBattle bar={bar} say={say} save={save} patch={patch} potions={potions} usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }} />}
         {room === 'shop' && <Shop bar={bar} say={say} coins={student.coins} pantry={pantry} earned={save.earned ?? []} goCauldron={() => go('cauldron')}
           onBuy={(id) => {
@@ -172,6 +174,10 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
         <span className="sn-door-sill" />
       </button>
 
+      {/* The Spell Book (Build Queue 114) rests on the fireplace mantel. */}
+      <button type="button" className="sn-obj" style={{ left: 556, top: 150, width: 88 }} onClick={() => go('spells')} aria-label="Spell Book">
+        <img src={`${SN}witchy-pack/books-2.png`} alt="" style={{ width: 88, display: 'block', imageRendering: 'pixelated' }} />{tag('Spell Book', true)}
+      </button>
       <div className="sn-obj" style={{ left: 480, bottom: 250, width: 240 }} aria-hidden="true">
         <span style={{ position: 'relative', width: 240, height: 300, display: 'block' }}>
           <img src={`${W}fireplaces-0.png`} alt="" style={{ width: 240, height: 300 }} />
@@ -427,25 +433,29 @@ function Shop({ bar, say, coins, pantry, earned, onBuy, goCauldron }: {
 function Names({ bar, say, names, onSave }: { bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; names: string[]; onSave: (n: string) => void }) {
   const [line, setLine] = useState<Part[]>([]);
   const [hist, setHist] = useState<Part[][]>([]);
+  const [src, setSrc] = useState<'all' | 'tiles' | 'roots' | 'creature' | 'core'>('all');
+  const [find, setFind] = useState('');
   const word = useMemo(() => {
     const raw = line.map((p) => p.text).join('');
     return raw ? raw[0].toUpperCase() + raw.slice(1) : '';
   }, [line]);
   const meaning = line.map((p) => `${p.text} means ${p.meaning}`).join(', ');
-  const add = (p: Part) => { if (line.length >= 3) return; snSound('pickup'); setHist((h) => [...h, line]); setLine([...line, p]); };
+  // Her Spell Book and Greekymon rules use 2 to 5 word parts.
+  const add = (p: Part) => { if (line.length >= 5) return; snSound('pickup'); setHist((h) => [...h, line]); setLine([...line, p]); };
   const undo = () => { const h = hist[hist.length - 1]; if (!h) return; setHist(hist.slice(0, -1)); setLine(h); };
+  const shown = WORD_PARTS.filter((p) => (src === 'all' || p.src === src) && (!find.trim() || p.text.includes(find.trim().toLowerCase()) || p.meaning.toLowerCase().includes(find.trim().toLowerCase())));
   const group = (k: Part['kind'], label: string) => (
     <div className="sn-tray">
-      <span className="sn-label">{label}</span>
-      <div className="sn-tiles">{WORD_PARTS.filter((p) => p.kind === k).map((p) => <button key={p.text} type="button" className={`sn-tile ${p.kind}`} onClick={() => add(p)}>{p.text}<small>{p.meaning}</small></button>)}</div>
+      <span className="sn-label">{label} ({shown.filter((p) => p.kind === k).length})</span>
+      <div className="sn-tiles">{shown.filter((p) => p.kind === k).map((p) => <button key={`${p.text}-${p.kind}`} type="button" className={`sn-tile ${p.kind} og-${(p.origin ?? '').split(' ')[0].toLowerCase()}`} title={`${p.origin ?? ''} · ${p.example}`} onClick={() => add(p)}>{p.text}<small>{p.meaning}</small></button>)}</div>
     </div>
   );
   return (
     <div className="sn-room">
-      {bar({ extra: <span className="sn-chip">Name a potion or a creature</span> })}
+      {bar({ extra: <span className="sn-chip">Name a potion, a spell or a creature</span> })}
       <section className="sn-build">
         <div className="sn-buildline" aria-label="Build line">
-          {line.length === 0 && <span className="sn-small">Tap word parts below to build a name (up to 3).</span>}
+          {line.length === 0 && <span className="sn-small">Tap word parts below to build a name (2 to 5 parts).</span>}
           {line.map((p, i) => <button key={i} type="button" className={`sn-tile ${p.kind}`} onClick={() => { setHist((h) => [...h, line]); setLine(line.filter((_, j) => j !== i)); }} aria-label={`Remove ${p.text}`}>{p.text}<small>{p.meaning}</small></button>)}
           {word && <><span className="sn-eq">=</span><span className="sn-word">{word}</span></>}
         </div>
@@ -457,7 +467,12 @@ function Names({ bar, say, names, onSave }: { bar: (o?: BarOpts) => React.ReactN
           <button type="button" className="sn-btn" disabled={!word || names.includes(word)} onClick={() => { snSound('learned'); onSave(word); say(`Saved ${word}.`); }}>Save the name</button>
         </div>
       </section>
-      <div className="sn-trays">{group('start', 'Starts (come first)')}{group('main', 'Main ideas')}{group('end', 'Endings (come last)')}</div>
+      <div className="sn-namefilter">
+        {([['all', `All (${WORD_PARTS.length})`], ['tiles', 'Morpheme tiles'], ['roots', '111 Greek and Latin'], ['creature', 'Creature parts'], ['core', 'Potion parts']] as const).map(([k, l]) => <button key={k} type="button" className={`sn-chip-btn${src === k ? ' on' : ''}`} onClick={() => setSrc(k)}>{l}</button>)}
+        <input id="sn-part-find" type="search" value={find} onChange={(e) => setFind(e.target.value)} placeholder="Find a part or meaning (like fire)" aria-label="Find a word part" />
+        <span className="sn-origins"><i className="og-anglo-saxon" />Anglo-Saxon <i className="og-latin" />Latin <i className="og-greek" />Greek</span>
+      </div>
+      <div className="sn-trays">{group('start', 'Starts (prefixes)')}{group('main', 'Main ideas (roots and bases)')}{group('end', 'Endings (suffixes)')}</div>
       {names.length > 0 && <p className="sn-saved-names">My names: {names.join(', ')}</p>}
     </div>
   );

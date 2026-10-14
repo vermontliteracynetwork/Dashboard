@@ -27,7 +27,8 @@ export const REGIONS: { id: string; label: string; kind: 'land' | 'ocean'; front
 ];
 
 // Word parts for the Name Builder and the Word Part Book (plan sections 13 and 18).
-export const WORD_PARTS: (Part & { example: string })[] = [
+import { MORE_PARTS, type MorphPart } from './supernatureMorphemes';
+const CORE_PARTS: (Part & { example: string })[] = [
   { text: 'uni', meaning: 'one', kind: 'start', example: 'unicycle' }, { text: 'bi', meaning: 'two', kind: 'start', example: 'bicycle' },
   { text: 'tri', meaning: 'three', kind: 'start', example: 'triangle' }, { text: 'mega', meaning: 'huge', kind: 'start', example: 'megaphone' },
   { text: 'micro', meaning: 'tiny', kind: 'start', example: 'microscope' }, { text: 'velo', meaning: 'fast', kind: 'start', example: 'velocity' },
@@ -42,6 +43,10 @@ export const WORD_PARTS: (Part & { example: string })[] = [
   { text: 'cera', meaning: 'horn', kind: 'main', example: 'triceratops' }, { text: 'derm', meaning: 'skin', kind: 'main', example: 'epidermis' },
   { text: 'pter', meaning: 'wing', kind: 'main', example: 'pterodactyl' }, { text: 'saur', meaning: 'lizard', kind: 'end', example: 'dinosaur' },
 ];
+// Every word part: the core ones, then her morpheme tiles, her 111 Greek and Latin roots and the
+// creature-name parts (Build Queue 114). The first one of each spelling wins.
+export const WORD_PARTS: MorphPart[] = [...CORE_PARTS.map((p): MorphPart => ({ ...p, src: 'core', origin: 'Greek or Latin' })), ...MORE_PARTS]
+  .filter((p, i, all) => all.findIndex((x) => x.text === p.text && x.kind === p.kind) === i);
 
 // Ingredients (Build Queue 100, plan section 10, her spec): base ones like a glass bottle or grass
 // are free; the rest are bought in the Shop with real money, $1 to $10, and rare ones $15 to $50.
@@ -194,7 +199,7 @@ export const VITA = RECIPES[1];
 
 // Each student's progress, saved in their own row (no new tables).
 export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]>; homes?: Record<string, string>; skills?: Record<string, Record<string, number>>; train?: Record<string, Record<string, number>>; out?: string[]; plots?: Record<string, ({ plant: string; at: number } | null)[]>; picked?: string[]; book?: string[]; names?: Record<string, string[]> }
-export interface SnSave { battle?: { npcs: import('./supernatureBattle').Npc[]; log: { npc: string; fighter: string; fighterName: string; won: boolean; at: string }[]; aff?: Record<string, string[]>; acc?: Record<string, { right: number; total: number }> }; found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; petDay?: string; checkins?: number }
+export interface SnSave { battle?: { npcs: import('./supernatureBattle').Npc[]; log: { npc: string; fighter: string; fighterName: string; won: boolean; at: string }[]; aff?: Record<string, string[]>; acc?: Record<string, { right: number; total: number }> }; found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; spellbook?: { id: string; type: 'spell' | 'creature' | 'invention' | 'phobia'; name: string; parts: Part[]; explain: string; haiku?: string[]; art?: string; at: string }[]; petDay?: string; checkins?: number }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === owner));

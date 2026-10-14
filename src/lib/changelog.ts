@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-spell-book",
+    date: "2026-10-14",
+    icon: "📖",
+    title: "Your own Spell Book",
+    body: "Tap the book on the fireplace in Supernature. See how every potion name is built from word parts, then make your own spell, creature, invention or phobia from Greek and Latin word parts, explain it and draw it. Try the dice for a name challenge! The Name Builder has about 200 word parts now.",
+  },
+  {
     id: "2026-10-14-wild-battles",
     date: "2026-10-14",
     icon: "🐾",
