@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-azalea-quick",
+    date: "2026-10-14",
+    icon: "🐱",
+    title: "Azalea is quick now",
+    body: "Telling Azalea about a bug or an idea takes two steps: tap Broken or Idea, then say it and tap Send. She is on every screen now, not just games. Tap her face in the corner any time.",
+  },
+  {
     id: "2026-10-14-plants-and-disasters",
     date: "2026-10-14",
     icon: "🌋",

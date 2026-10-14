@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { speak } from './ReadAloud';
 import InternalBrowser from './InternalBrowser';
-import FeedbackTool from './FeedbackTool';
+import { openAzalea } from './GameReportBubble';
 import {
   CONSONANTS, VOWELS, CONSONANT_CATEGORY_LABELS, VOWEL_CATEGORY_LABELS,
   type SoundWallPhoneme, type ConsonantCategory, type VowelCategory,
@@ -1172,7 +1172,6 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
   const [menuOpen, setMenuOpen] = useState(false);
   const [open, setOpen] = useState<ToolKey | null>(null);
   const [customOpen, setCustomOpen] = useState<CustomTool | null>(null);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const recordToolUsage = useStore((s) => s.recordToolUsage);
 
   const subjectTools = (subject === 'both' ? [...SUBJECT_TOOLS.math, ...SUBJECT_TOOLS.literacy] : SUBJECT_TOOLS[subject]).filter(
@@ -1282,16 +1281,15 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
               <button
                 className="btn btn-sm btn-teal"
                 style={{ minHeight: 44, alignSelf: 'flex-start' }}
-                onClick={() => { setFeedbackOpen(true); setMenuOpen(false); }}
+                onClick={() => { openAzalea(); setMenuOpen(false); }}
               >
-                💬 Give Feedback
+                🐱 Tell Azalea: a bug or an idea
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {feedbackOpen && <FeedbackTool student={student} onClose={() => setFeedbackOpen(false)} />}
 
       {open && (
         <div className="overlay-backdrop" onClick={() => setOpen(null)}>
