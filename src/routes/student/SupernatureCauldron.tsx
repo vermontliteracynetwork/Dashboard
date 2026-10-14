@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { INGREDIENTS, ING, RECIPES, SN, snSound, natureSound, type SnSave } from '../../lib/supernature';
 import {
-  ACTIONS, ELEMENTS, ELEM, PURPOSES, PURPOSE, SCIENCE, RECIPE_BY, POWER_LEVELS, brew, bottleImg, bottleMask, magicFor, customLook, sameBrew,
-  type Action, type CustomPotion, type Purpose, type Shape,
+  ACTIONS, ELEM, SHELF, PURPOSES, PURPOSE, SCIENCE, RECIPE_BY, POWER_LEVELS, REACTIONS, brew, bottleImg, bottleMask, magicFor, customLook, sameBrew,
+  reactionFor, empties, surpriseFor, formulaOf,
+  type Action, type CustomPotion, type Purpose, type Shape, type Reaction,
 } from '../../lib/supernatureAlchemy';
+import { PeriodicTable, ElementInfo, ElementBook } from './SupernatureElements';
+import PopCard from './SupernaturePopCard';
 import { useStore } from '../../store/store';
 import QuestionScreen from '../../components/QuestionScreen';
 import { drawQuestion, pickableSets } from '../../lib/questionPick';
@@ -31,6 +34,11 @@ const ACT_FX: Record<Action, { k: FxKey; size: number; style: React.CSSPropertie
   stir: { k: 'twister', size: 150, style: { left: 75, top: 20 } },
 };
 const STARS = (n: number) => (n ? '✨'.repeat(n) : '');
+const RX_FX: Record<string, { k: FxKey; size: number }> = {
+  boom: { k: 'blast', size: 230 }, bigboom: { k: 'blast', size: 320 }, fizz: { k: 'splash', size: 170 }, foam: { k: 'splash', size: 200 },
+  flash: { k: 'hit_light', size: 200 }, pop: { k: 'poof', size: 170 }, smoke: { k: 'dust', size: 190 }, color: { k: 'potion', size: 180 },
+  glow: { k: 'hit_fire', size: 180 }, dissolve: { k: 'splash', size: 150 }, layers: { k: 'splash', size: 150 }, cloudy: { k: 'dust', size: 170 },
+};
 
 const isEl = (id: string) => ELEM.has(id);
 const imgOf = (id: string) => ELEM.get(id)?.img ?? ING(id).img;
@@ -85,10 +93,20 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   const power = save.alchemy?.power ?? {};
   const cards = save.alchemy?.custom ?? [];
 
+  const found = save.alchemy?.reactions ?? [];
   const [goal, setGoal] = useState<string | null>(start && SCIENCE[start] ? start : 'Aero');
+  // Build Queue 177/178/179: the recipe card folds, recipes are a grid of bottles that enlarge, the periodic table and
+  // Element Book open on top, and real reactions go off in the pot.
+  const [cardOpen, setCardOpen] = useState(true);
+  const [big, setBig] = useState<string | null>(null);
+  const [table, setTable] = useState(false);
+  const [tSel, setTSel] = useState<string | null>(null);
+  const [book, setBook] = useState<string | null | undefined>(undefined);
+  const [rxList, setRxList] = useState(false);
+  const [rx, setRx] = useState<{ r: Reaction; key: number; line: string; isNew: boolean } | null>(null);
+  const fired = useRef<string[]>([]);
   const [shelf, setShelf] = useState<'el' | 'magic'>('el');
   const [side, setSide] = useState<'book' | 'mine'>('book');
-  const [list, setList] = useState(false);
   const [pot, setPot] = useState<string[]>([]);
   const [act, setAct] = useState<Action | null>(null);
   const [msg, setMsg] = useState('');
@@ -135,8 +153,25 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   useEffect(() => { say('The Cauldron! Pick a recipe card, drag elements into the pot, then heat, stir, chill or zap it. Real science decides what you get.'); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const clearPot = () => { setPot([]); setAct(null); setTint(null); setStirFrac(0); };
-  const pickGoal = (g: string | null) => { snSound('page'); setGoal(g); setList(false); setResult(null); setNeed(null); clearPot(); };
+  const clearPot = () => { setPot([]); setAct(null); setTint(null); setStirFrac(0); fired.current = []; };
+  const pickGoal = (g: string | null) => { snSound('page'); setGoal(g); setBig(null); setCardOpen(true); setResult(null); setNeed(null); clearPot(); };
+  // A real reaction goes off (Build Queue 179). New ones are kept; a boom, a foam or a volcano empties the pot.
+  const react = (r: Reaction | null, after: string[]) => {
+    if (!r) return false;
+    fired.current = [...fired.current, r.id];
+    const isNew = !found.includes(r.id);
+    if (isNew) patch({ alchemy: { ...(save.alchemy ?? {}), reactions: [...found, r.id] } });
+    const line = surpriseFor(r);
+    setRx({ r, key: Date.now(), line, isNew }); setTint(r.color);
+    if (r.effect === 'boom' || r.effect === 'bigboom') natureSound('thunder', 0.5); else if (r.effect === 'fizz' || r.effect === 'foam') snSound('fizzle'); else snSound('chime');
+    const t = `${r.magic.name}! ${line}${isNew ? ` New reaction found: ${found.length + 1} of ${REACTIONS.length}.` : ''}`;
+    setMsg(t); say(`${r.magic.name}! ${line}`);
+    if (empties(r)) {
+      if (r.effect === 'foam' || r.id === 'volcano') setFail({ how: 'overflow', key: Date.now(), color: r.color });
+      window.clearTimeout(failTimer.current); failTimer.current = window.setTimeout(() => { setPot([]); setAct(null); setTint(null); setFail(null); fired.current = []; setMsg(`The pot is empty again. ${nextHint([], null)}`); }, 2000);
+    } else if (after.length) { /* the brew keeps going */ }
+    return true;
+  };
 
   const add = (id: string) => {
     if (trace || card || quiz) return;
@@ -150,7 +185,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     window.setTimeout(() => { setSplash(Date.now()); setFly((f) => (f && f.key === key ? null : f)); }, 520);
     void inkOf(img).then((c) => setTint((b) => (b ? mixRgb(b, c) : c)));
     const e = ELEM.get(id);
-    setMsg(`${e ? `${e.magic}! ${e.real}` : `${ING(id).name}, a spark of magic.`} ${nextHint(np, act)}`);
+    if (react(reactionFor(np, false, fired.current), np)) return;
+    setMsg(`${e ? `${e.magic} (${e.name}) is in.` : `${ING(id).name} is in.`} ${nextHint(np, act)}`);
   };
   const remove = (id: string) => { snSound('tap'); const np = pot.filter((x) => x !== id); setPot(np); if (!np.length) setTint(null); setMsg(`${nameOf(id)} is out of the pot. ${nextHint(np, act)}`); };
 
@@ -160,7 +196,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     if (result) return;
     setAct(a); setActFx({ a, key: Date.now() }); setMixing((n) => n + 1);
     if (a === 'heat') natureSound('fire', 0.45); else if (a === 'chill') natureSound('ice', 0.45); else if (a === 'zap') natureSound('lightning', 0.4); else snSound('stir');
-    setMsg(`${ACTIONS.find((x) => x.id === a)!.does} ${nextHint(pot, a)}`);
+    if (a === 'heat' && react(reactionFor(pot, true, fired.current), pot)) return;
+    setMsg(`${ACTIONS.find((x) => x.id === a)!.label}! ${nextHint(pot, a)}`);
   };
   // Stir by drawing a circle on the pot (Build Queue 113): one full circle is one stir.
   const potAngle = (e: React.PointerEvent) => { const r = potRef.current!.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height * 0.42), e.clientX - (r.left + r.width / 2)); };
@@ -263,10 +300,9 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   const magicShelf = INGREDIENTS.filter((g) => g.id !== 'essence' && (g.tier === 'free' || magic.includes(g.id) || (customGoal?.items.includes(g.id) ?? false) || (pantry[g.id] ?? 0) > 0 || (g.earnedAs && earned.includes(g.earnedAs))));
   const glow = (id: string) => !result && want.includes(id) && !pot.includes(id);
   const discovered = RECIPES.filter((r) => brewed.includes(r.name)).length;
-  const gi = goal && !customGoal ? RECIPES.findIndex((r) => r.name === goal) : -1;
-  const step = (d: number) => { const i = gi < 0 ? 0 : (gi + d + RECIPES.length) % RECIPES.length; pickGoal(RECIPES[i].name); };
   const R = goal && !customGoal ? RECIPE_BY.get(goal) : undefined;
-
+  const bigSc = big ? SCIENCE[big] : null; const bigR = big ? RECIPE_BY.get(big) : undefined;
+  const bigText = big && bigSc && bigR ? (isLocked(big) ? `A secret recipe. Brew ${bigR.unlock} first, or discover it in a free experiment. Clue: ${bigSc.clue}` : `${big}. ${bigSc.myth} ${bigSc.clue} ${big} is ${formulaOf(big)}. ${bigR.does}`) : '';
   const chip = (id: string, extra = '') => (
     <span key={id} className={`cz-need${pot.includes(id) ? ' in' : ''}${extra}`}><img src={imgOf(id)} alt="" />{isEl(id) && <b>{ELEM.get(id)!.sym}</b>}{nameOf(id)}{pot.includes(id) && ' ✓'}</span>
   );
@@ -286,8 +322,10 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   return (
     <div className="sn-room cz">
       {bar({ extra: <>
-        <span className="sn-chip">🧪 My potions: {potions.length}</span>
-        <span className="sn-chip">📖 Found {discovered} of {RECIPES.length}</span>
+        <span className="sn-chip">🧪 {potions.length}</span>
+        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setTable(true); }}>▦ Periodic table</button>
+        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setBook(null); }}>📖 Element Book</button>
+        <button type="button" className="sn-chip-btn" onClick={() => { snSound('open'); setRxList(true); }}>⚗️ Reactions {found.length}/{REACTIONS.length}</button>
       </> })}
 
       <section className="cz-shelf" aria-label="Shelf">
@@ -295,10 +333,9 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
           <button type="button" role="radio" aria-checked={shelf === 'el'} className={shelf === 'el' ? 'on' : ''} onClick={() => { snSound('page'); setShelf('el'); }}>⚗️ Elements</button>
           <button type="button" role="radio" aria-checked={shelf === 'magic'} className={shelf === 'magic' ? 'on' : ''} onClick={() => { snSound('page'); setShelf('magic'); }}>🌿 Magic{magic.some((m) => !pot.includes(m)) ? ' •' : ''}</button>
         </span>
-        <p className="cz-tip">Drag into the pot, or tap.</p>
         <div className="cz-grid">
-          {shelf === 'el' ? ELEMENTS.map((e) => (
-            <button key={e.id} type="button" className={`cz-item${glow(e.id) ? ' glow' : ''}${pot.includes(e.id) ? ' used' : ''}`} onPointerDown={(ev) => startDrag(ev, e.id)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); add(e.id); } }} aria-label={`${e.name}, ${e.magic}`}>
+          {shelf === 'el' ? SHELF.map((id) => ELEM.get(id)!).map((e) => (
+            <button key={e.id} type="button" className={`cz-item${glow(e.id) ? ' glow' : ''}${pot.includes(e.id) ? ' used' : ''}`} onPointerDown={(ev) => startDrag(ev, e.id)} onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); add(e.id); } }} aria-label={`${e.name}, ${e.magic}. Drag into the pot or tap.`}>
               <img src={e.img} alt="" draggable={false} /><b>{e.sym}</b><small>{e.magic}</small>
             </button>
           )) : magicShelf.map((g) => {
@@ -310,7 +347,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
             );
           })}
         </div>
-        {shelf === 'magic' && <button type="button" className="sn-btn2 small" onClick={goShop}>🛒 Shop for more magic</button>}
+        {shelf === 'el' ? <button type="button" className="sn-btn2 small" onClick={() => { snSound('open'); setTable(true); }}>▦ All 118 elements</button>
+          : <button type="button" className="sn-btn2 small" onClick={goShop}>🛒 Shop for more magic</button>}
       </section>
 
       <section className="cz-pot" aria-label="The cauldron">
@@ -327,6 +365,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
           {fly && <img key={fly.key} src={fly.img} alt="" className="sn-flyin cz-pix" />}
           {splash > 0 && <Fx key={`sp${splash}`} k="splash" size={150} className="sn-splashfx" />}
           {actFx && <Fx key={actFx.key} k={ACT_FX[actFx.a].k} size={ACT_FX[actFx.a].size} className="cz-actfx" style={ACT_FX[actFx.a].style} />}
+          {rx && <span key={rx.key} className={`cz-rx fx-${rx.r.effect}`} role="status"><Fx k={RX_FX[rx.r.effect]?.k ?? 'poof'} size={RX_FX[rx.r.effect]?.size ?? 170} className="cz-rx-fx" /><b>{rx.isNew ? '✨ New! ' : ''}{rx.r.magic.name}</b><small>{rx.r.equation}</small></span>}
           {fail?.how === 'smoke' && <span key={fail.key} className="cz-smoke" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <i key={i} style={{ ['--x' as string]: `${(i - 3) * 26}px`, ['--d' as string]: `${i * 0.09}s` }} />)}<Fx k="poof" size={200} className="cz-smoke-fx" /></span>}
           {fail?.how === 'overflow' && <span key={fail.key} className="cz-foam" aria-hidden="true" style={{ ['--c' as string]: fail.color }}><b />{Array.from({ length: 9 }, (_, i) => <i key={i} style={{ left: `${6 + i * 11}%`, ['--d' as string]: `${(i % 4) * 0.12}s` }} />)}<Fx k="splash" size={220} className="cz-foam-fx" /></span>}
           {result && <span key={result.label} className="sn-potpop cz-pop"><Fx k="potion" size={220} className="sn-potpop-fx" /><Bottle shape={result.shape} color={result.color} size={96} bubbly /><b>{result.strong ? '⭐⭐ Strong' : '⭐ Weak'} {result.label}</b></span>}
@@ -351,53 +390,48 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
         {need && !has(need) && <button type="button" className="sn-btn2 small" onClick={goShop}>🛒 Go to the Shop</button>}
       </section>
 
-      <section className="cz-book" aria-label="Grimoire">
-        <span className="sn-seg" role="radiogroup" aria-label="Grimoire">
-          <button type="button" role="radio" aria-checked={side === 'book'} className={side === 'book' ? 'on' : ''} onClick={() => { snSound('page'); setSide('book'); }}>📜 Grimoire</button>
+      <section className="cz-book" aria-label="Recipes">
+        <span className="sn-seg" role="radiogroup" aria-label="Recipes or my potions">
+          <button type="button" role="radio" aria-checked={side === 'book'} className={side === 'book' ? 'on' : ''} onClick={() => { snSound('page'); setSide('book'); }}>📜 Recipe</button>
           <button type="button" role="radio" aria-checked={side === 'mine'} className={side === 'mine' ? 'on' : ''} onClick={() => { snSound('page'); setSide('mine'); }}>⚡ My potions</button>
         </span>
         {side === 'book' ? <>
-          <div className="cz-nav">
-            <button type="button" className="sn-ib small light" onClick={() => step(-1)} aria-label="Previous recipe card"><Icon d="M15 5l-7 7 7 7" /></button>
-            <button type="button" className="sn-chip-btn" onClick={() => setList(!list)}>{gi >= 0 ? `Card ${gi + 1} of ${RECIPES.length}` : customGoal ? 'My card' : 'Free experiment'} ▾</button>
-            <button type="button" className="sn-ib small light" onClick={() => step(1)} aria-label="Next recipe card"><Icon d="M9 5l7 7-7 7" /></button>
+          <article className={`cz-card${cardOpen ? '' : ' folded'}`}>
+            <header>
+              {customGoal ? <Bottle shape={customLook(customGoal).shape} color={customLook(customGoal).color} size={40} /> : sc && !locked ? <Bottle shape={sc.shape} color={sc.color} size={40} /> : <span className="cz-lock">{locked ? '🔒' : '🧪'}</span>}
+              <h2>{customGoal ? customGoal.name : !goal ? 'Free experiment' : locked ? 'Secret recipe' : goal}{goal && power[goal] ? <small> {STARS(power[goal])}</small> : null}</h2>
+              <button type="button" className="sn-listen" onClick={() => say(cardText())} aria-label="Read the card aloud"><Icon d={LISTEN} /></button>
+              <button type="button" className="snp-btn cz-fold" onClick={() => { snSound('tap'); setCardOpen(!cardOpen); }} aria-expanded={cardOpen} aria-label={cardOpen ? 'Fold the recipe card' : 'Open the recipe card'}>{cardOpen ? '▾' : '▸'}</button>
+            </header>
+            {!cardOpen ? (
+              <div className="cz-needs mini">{want.map((id) => <span key={id} className={`cz-need${pot.includes(id) ? ' in' : ''}`} title={nameOf(id)}><img src={imgOf(id)} alt={nameOf(id)} /></span>)}{wantAct && <span className={`cz-need${act === wantAct ? ' in' : ''}`}>{ACTIONS.find((a) => a.id === wantAct)!.icon}</span>}</div>
+            ) : customGoal ? <>
+              <p className="cz-small">For {PURPOSE.get(customGoal.purpose)!.icon} {PURPOSE.get(customGoal.purpose)!.label}</p>
+              <div className="cz-needs">{customGoal.items.map((id) => chip(id))}<span className={`cz-need${act === customGoal.act ? ' in' : ''}`}>{customGoal.act ? ACTIONS.find((a) => a.id === customGoal.act)!.icon : '✋'} {actLabel(customGoal.act)}</span></div>
+            </> : !goal || !sc || !R ? <>
+              <p className="cz-small">Mix anything! A potion needs <b>an element</b>, <b>magic</b> and <b>an action</b>. Some elements react on their own. Guess and check!</p>
+            </> : locked ? <>
+              <p className="cz-clue">🔮 {sc.clue}</p>
+              <p className="cz-small">Brew {R.unlock} first, or discover it.</p>
+            </> : <>
+              <p className="cz-clue">🔮 {sc.clue}</p>
+              <div className="cz-needs">{sc.key.map((id) => chip(id, ' key'))}{sc.extras.map((id) => chip(id))}{magic.map((id) => chip(id, ' magic'))}<span className={`cz-need${act === sc.act ? ' in' : ''}`}>{ACTIONS.find((a) => a.id === sc.act)!.icon} {actLabel(sc.act)}{act === sc.act && ' ✓'}</span></div>
+              <button type="button" className="sn-btn2 small" onClick={() => { snSound('open'); setBig(goal); }}>🔍 Bigger card</button>
+            </>}
+          </article>
+          <div className="cz-rhead"><b>All recipes</b><small>Found {discovered} of {RECIPES.length}</small></div>
+          <div className="cz-rgrid">
+            <button type="button" className={`cz-rbtn${goal === null ? ' on' : ''}`} onClick={() => pickGoal(null)}><span className="cz-rfree">🧪</span><b>Free mix</b></button>
+            {RECIPES.map((r) => {
+              const lk = isLocked(r.name); const S = SCIENCE[r.name];
+              return (
+                <button key={r.name} type="button" className={`cz-rbtn${goal === r.name ? ' on' : ''}${lk ? ' locked' : ''}`} onClick={() => { snSound('open'); setBig(r.name); }} aria-label={lk ? 'Secret recipe' : `${r.name} recipe`}>
+                  {lk ? <span className="cz-rfree">🔒</span> : <Bottle shape={S.shape} color={S.color} size={44} bubbly={brewed.includes(r.name)} />}
+                  <b>{lk ? '???' : r.name}</b>{brewed.includes(r.name) && <i>✓</i>}
+                </button>
+              );
+            })}
           </div>
-          <button type="button" className={`sn-btn2 small cz-free${goal === null ? ' on' : ''}`} onClick={() => pickGoal(null)}>🧪 Free experiment</button>
-          {list ? (
-            <div className="cz-list">
-              {RECIPES.map((r) => <button key={r.name} type="button" className={`cz-li${goal === r.name ? ' on' : ''}`} onClick={() => pickGoal(r.name)}>
-                {isLocked(r.name) ? <>🔒 <span>???</span></> : <><Bottle shape={SCIENCE[r.name].shape} color={SCIENCE[r.name].color} size={30} /><span>{r.name}</span>{brewed.includes(r.name) && <small>✓</small>}</>}
-              </button>)}
-            </div>
-          ) : (
-            <article className="cz-card">
-              {customGoal ? <>
-                <header><Bottle shape={customLook(customGoal).shape} color={customLook(customGoal).color} size={44} /><h2>{customGoal.name}</h2><button type="button" className="sn-listen" onClick={() => say(cardText())} aria-label="Read the card aloud"><Icon d={LISTEN} /></button></header>
-                <p className="cz-myth">My own recipe card. For {PURPOSE.get(customGoal.purpose)!.icon} {PURPOSE.get(customGoal.purpose)!.label}.</p>
-                <b className="cz-h">In the pot</b><div className="cz-needs">{customGoal.items.map((id) => chip(id))}</div>
-                <b className="cz-h">Then</b><div className="cz-needs"><span className={`cz-need${act === customGoal.act ? ' in' : ''}`}>{customGoal.act ? ACTIONS.find((a) => a.id === customGoal.act)!.icon : '✋'} {actLabel(customGoal.act)}</span></div>
-                {customGoal.sentence && <p className="cz-small">“{customGoal.sentence}”</p>}
-              </> : !goal || !sc || !R ? <>
-                <header><Bottle shape="gourd" color="#57d3b8" size={44} /><h2>Free experiment</h2><button type="button" className="sn-listen" onClick={() => say(cardText())} aria-label="Read aloud"><Icon d={LISTEN} /></button></header>
-                <p className="cz-myth">Like the first alchemists, test anything and see what works.</p>
-                <p className="cz-small">Every potion needs <b>a real element</b>, <b>a spark of magic</b> from the Magic shelf, and <b>an action</b>. Match a recipe and you discover it. Something new? You get to make its recipe card!</p>
-                <p className="cz-small">Careful: some real elements react. Too many things in the pot bubble over.</p>
-              </> : locked ? <>
-                <header><span className="cz-lock">🔒</span><h2>A secret recipe</h2><button type="button" className="sn-listen" onClick={() => say(cardText())} aria-label="Read aloud"><Icon d={LISTEN} /></button></header>
-                <p className="cz-small">Brew the {R.unlock} potion first to open this card. Or discover it yourself in a free experiment.</p>
-                <p className="cz-clue">🔮 Clue: {sc.clue}</p>
-              </> : <>
-                <header><Bottle shape={sc.shape} color={sc.color} size={44} /><h2>{goal}{power[goal] ? <small> {STARS(power[goal])}</small> : null}</h2><button type="button" className="sn-listen" onClick={() => say(cardText())} aria-label="Read the card aloud"><Icon d={LISTEN} /></button></header>
-                <p className="cz-myth">📜 {sc.myth}</p>
-                <p className="cz-clue">🔮 {sc.clue}</p>
-                <b className="cz-h">Key element (must have)</b><div className="cz-needs">{sc.key.map((id) => chip(id, ' key'))}</div>
-                {sc.extras.length > 0 && <><b className="cz-h">Makes it strong</b><div className="cz-needs">{sc.extras.map((id) => chip(id))}</div></>}
-                <b className="cz-h">Spark of magic</b><div className="cz-needs">{magic.map((id) => chip(id, ' magic'))}</div>
-                <b className="cz-h">Then</b><div className="cz-needs"><span className={`cz-need${act === sc.act ? ' in' : ''}`}>{ACTIONS.find((a) => a.id === sc.act)!.icon} {actLabel(sc.act)}{act === sc.act && ' ✓'}</span></div>
-                <p className="cz-small"><b>It does:</b> {R.does} <b>Use it:</b> {R.where}. You have {count(goal)}.</p>
-              </>}
-            </article>
-          )}
         </> : (
           <div className="cz-mine">
             {!mine.length && <p className="cz-small">Brew a potion and it shows up here. Then answer 10 questions to power it up!</p>}
@@ -416,6 +450,49 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
         )}
       </section>
 
+      {big && bigSc && bigR && (
+        <div className="sn-modal snp-modal" role="dialog" aria-label={`${big} recipe card`} onClick={() => setBig(null)}>
+          <PopCard className="sn-modal-card paper cz-bigcard" title={`${isLocked(big) ? 'Secret' : big} recipe`} onClose={() => setBig(null)}>
+            {isLocked(big) ? <>
+              <span className="cz-lock big">🔒</span><h2>A secret recipe</h2>
+              <p className="cz-clue">🔮 {bigSc.clue}</p>
+              <p>Brew {bigR.unlock} first, or guess and check in a free mix.</p>
+              <div className="sn-row center"><button type="button" className="sn-listen" onClick={() => say(bigText)} aria-label="Listen"><Icon d={LISTEN} /></button><button type="button" className="sn-btn2 go" onClick={() => pickGoal(null)}>🧪 Try a free mix</button></div>
+            </> : <>
+              <Bottle shape={bigSc.shape} color={bigSc.color} size={110} bubbly />
+              <h2>{big}{power[big] ? ` ${STARS(power[big])}` : ''}</h2>
+              <p className="cz-myth">📜 {bigSc.myth}</p>
+              <div className="cz-needs center">{bigSc.key.map((id) => <span key={id} className="cz-need key"><img src={imgOf(id)} alt="" />{nameOf(id)}</span>)}{bigSc.extras.map((id) => <span key={id} className="cz-need"><img src={imgOf(id)} alt="" />{nameOf(id)}</span>)}{magicFor(bigR).map((id) => <span key={id} className="cz-need magic"><img src={imgOf(id)} alt="" />{nameOf(id)}</span>)}<span className="cz-need">{ACTIONS.find((a) => a.id === bigSc.act)!.icon} {actLabel(bigSc.act)}</span></div>
+              <p className="cz-formula">{big} = {formulaOf(big)}</p>
+              <p><b>It does:</b> {bigR.does}</p>
+              <div className="sn-row center"><button type="button" className="sn-listen" onClick={() => say(bigText)} aria-label="Listen"><Icon d={LISTEN} /></button><button type="button" className="sn-btn2 go big" onClick={() => pickGoal(big)}>🪄 Brew this</button></div>
+            </>}
+          </PopCard>
+        </div>
+      )}
+      {table && (
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Periodic table" onClick={() => setTable(false)}>
+          <PopCard className="sn-modal-card paper cz-tablecard" title="Periodic table" onClose={() => setTable(false)}>
+            <PeriodicTable sel={tSel} onPick={setTSel}>
+              {tSel ? <ElementInfo id={tSel} say={say} onAdd={(id) => { setTable(false); add(id); }} onBook={(id) => { setTable(false); setBook(id); }} /> : <p className="el-toc-hint">Tap an element to see its magic name and formula.</p>}
+            </PeriodicTable>
+          </PopCard>
+        </div>
+      )}
+      {book !== undefined && <div className="cz-bookwrap"><ElementBook say={say} start={book ?? undefined} found={found} onAdd={(id) => { setBook(undefined); add(id); }} onClose={() => setBook(undefined)} /></div>}
+      {rxList && (
+        <div className="sn-modal snp-modal" role="dialog" aria-label="Reactions found" onClick={() => setRxList(false)}>
+          <PopCard className="sn-modal-card paper wide" title="Reactions" onClose={() => setRxList(false)}>
+            <h2>⚗️ Reactions found: {found.length} of {REACTIONS.length}</h2>
+            <p className="cz-small">Real chemistry happens in the pot. Guess and check to find them all!</p>
+            <ul className="cz-rxlist">
+              {REACTIONS.map((r) => found.includes(r.id)
+                ? <li key={r.id}><b>{r.magic.name}</b><small>{r.equation}</small></li>
+                : <li key={r.id} className="unknown"><b>❓ ???</b><small>{ELEM.get(r.needs[0])?.magic ?? r.needs[0]} + {r.needs.length > 2 ? '??? + ???' : '???'}{r.needs.includes('heat') ? ', then Heat' : ''}</small></li>)}
+            </ul>
+          </PopCard>
+        </div>
+      )}
       {card && (
         <div className="sn-modal cz-modal" role="dialog" aria-label="Make the recipe card">
           <div className="cz-cardedit">

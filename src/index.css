@@ -9022,3 +9022,78 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sn-bookpick b { font-family: 'Press Start 2P', monospace; font-size: 13px; line-height: 1.4; }
 .sn-bookpick small { font-size: 15px; line-height: 1.35; }
 .sn-bookpick:active { transform: translateY(3px); box-shadow: 0 2px 0 #241f45; }
+
+/* Cauldron cleanup (Build Queue 177, 178, 179): folding recipe card, recipe bottle grid, reactions, periodic table, Element Book. */
+.cz-card { flex: none; max-height: 330px; }
+.cz-card.folded { gap: 6px; }
+.cz-card .cz-fold { color: #4a2a6e; }
+.cz-needs.mini .cz-need { padding: 0 4px; min-height: 36px; }
+.cz-needs.mini .cz-need img { width: 28px; height: 28px; }
+.cz-needs.center { justify-content: center; }
+.cz-rhead { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+.cz-rhead b { font-size: 15px; } .cz-rhead small { font-size: 13px; color: #6b4a2e; }
+.cz-rgrid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; align-content: start; padding: 2px; }
+.cz-rbtn { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 84px; padding: 6px 2px; border-radius: 10px; background: #fff8e6; color: #241f45; border: 2px solid #8a5a2e; font-weight: 800; font-size: 13px; }
+.cz-rbtn.on { background: #ffd970; border-color: #241f45; box-shadow: 0 0 0 2px #241f45; }
+.cz-rbtn.locked { opacity: 0.75; border-style: dashed; }
+.cz-rbtn i { position: absolute; top: 3px; right: 6px; font-style: normal; color: #2f8a5a; }
+.cz-rbtn:active { transform: translateY(2px); }
+.cz-rfree { font-size: 32px; line-height: 44px; }
+.cz-bigcard { width: 620px; color: #241f45; }
+.cz-bigcard h2 { font-family: 'Press Start 2P', monospace; font-size: 20px; color: #4a2a6e; margin: 0; }
+.cz-lock.big { font-size: 64px; }
+.cz-formula { margin: 0; padding: 8px 12px; border-radius: 10px; background: #e9dcff; font-weight: 800; font-size: 17px; }
+.cz-rx { position: absolute; left: 50%; top: -6px; z-index: 8; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 2px; width: 280px; padding: 6px 10px; border-radius: 12px; background: rgba(255, 248, 230, 0.96); color: #241f45; border: 3px solid #241f45; text-align: center; pointer-events: none; animation: czRx 4s ease-out forwards; }
+.cz-rx b { font-size: 16px; } .cz-rx small { font-size: 12px; }
+.cz-rx-fx { position: absolute; left: 50%; top: 60px; transform: translateX(-50%); z-index: -1; }
+@keyframes czRx { 0% { opacity: 0; transform: translate(-50%, 12px) scale(0.8); } 10% { opacity: 1; transform: translate(-50%, 0) scale(1); } 80% { opacity: 1; } 100% { opacity: 0; } }
+.cz-rx.fx-boom, .cz-rx.fx-bigboom { animation-name: czRx, czShake; animation-duration: 4s, 0.5s; }
+@keyframes czShake { 0%, 100% { margin-left: 0; } 25% { margin-left: -6px; } 75% { margin-left: 6px; } }
+.cz-rxlist { list-style: none; margin: 0; padding: 0; width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; text-align: left; }
+.cz-rxlist li { display: flex; flex-direction: column; padding: 6px 10px; border-radius: 10px; background: #fff8e6; color: #241f45; border: 2px solid #8a5a2e; }
+.cz-rxlist li.unknown { border-style: dashed; opacity: 0.85; }
+.cz-rxlist small { font-size: 13px; }
+.cz-tablecard { width: 1100px; max-width: 1140px; color: #241f45; }
+.cz-tablecard .snp-in { padding: 6px 10px 12px !important; }
+.cz-bookwrap { position: absolute; inset: 84px 14px 14px; z-index: 35; }
+/* Periodic table + element card + Element Book (shared with the Supernature bookshelf). */
+.el-table { position: relative; display: grid; grid-template-columns: repeat(18, 54px); grid-template-rows: repeat(7, 54px) 10px repeat(2, 54px); gap: 3px; justify-content: center; }
+.el-cell { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0; border: 2px solid #241f45; border-radius: 6px; color: #241f45; font-weight: 800; font-size: 11px; line-height: 1; }
+.el-cell img { width: 30px; height: 30px; image-rendering: pixelated; pointer-events: none; }
+.el-cell.on { outline: 4px solid #4a2a6e; z-index: 2; transform: scale(1.12); }
+.el-cell.hot::after { content: '☢'; position: absolute; top: 0; right: 2px; font-size: 9px; }
+.el-gap { grid-column: 3 / 13; grid-row: 1 / 4; display: flex; align-items: center; justify-content: center; padding: 4px 10px; }
+.el-toc-hint { margin: 0; font-size: 16px; font-weight: 700; color: #4a2a6e; text-align: center; }
+.el-info { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border-radius: 12px; background: #fff8e6; border: 3px solid #241f45; color: #241f45; }
+.el-info > img { width: 72px; height: 72px; image-rendering: pixelated; flex: none; }
+.el-info-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.el-info-name { font-size: 18px; } .el-info-name span { font-family: 'Press Start 2P', monospace; font-size: 12px; color: #4a2a6e; }
+.el-info-text em { font-style: normal; font-weight: 800; color: #8a5a2e; }
+.el-info-text small { font-size: 13px; line-height: 1.3; }
+.el-info-btns { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+.el-book { position: relative; width: 100%; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 10px 14px; background: #6b4a2e; border: 4px solid #241f45; border-radius: 16px; box-shadow: 0 6px 0 #241f45; color: #241f45; }
+.el-book-top { display: flex; align-items: center; gap: 10px; }
+.el-book-title { flex: 1; text-align: center; font-family: 'Press Start 2P', monospace; font-size: 16px; color: #ffd970; }
+.el-book-toc { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 10px; background: #f6efe0; border-radius: 10px; }
+.el-kitchen { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.el-kbtn { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border-radius: 999px; background: #fff; border: 2px solid #241f45; font-weight: 700; color: #241f45; }
+.el-kbtn img { width: 28px; height: 28px; image-rendering: pixelated; }
+.el-spread { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.el-page { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 18px 26px; background: #f6efe0; border-radius: 10px; }
+.el-page.left { align-items: center; justify-content: center; text-align: center; box-shadow: inset -12px 0 16px -12px rgba(36, 31, 69, 0.4); }
+.el-page.right { box-shadow: inset 12px 0 16px -12px rgba(36, 31, 69, 0.4); }
+.el-big { width: 180px; height: 180px; image-rendering: pixelated; }
+.el-page h2 { margin: 0; font-size: 30px; } .el-page h2 span { font-family: 'Press Start 2P', monospace; font-size: 18px; color: #4a2a6e; }
+.el-magic { margin: 0; font-size: 22px; font-weight: 800; color: #8a5a2e; }
+.el-chips { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.el-chips span { padding: 4px 10px; border-radius: 999px; background: #fff; border: 2px solid #241f45; font-weight: 700; font-size: 14px; }
+.el-sec { display: flex; flex-direction: column; gap: 4px; }
+.el-sec b { font-size: 17px; color: #4a2a6e; }
+.el-sec p { margin: 0; font-size: 16px; line-height: 1.4; }
+.el-guess { color: #8a5a2e; font-weight: 700; }
+.el-row { display: flex; gap: 8px; align-items: center; margin-top: auto; }
+.el-turn { position: absolute; top: 50%; width: 56px; height: 56px; transform: translateY(-50%); display: flex; align-items: center; justify-content: center; border-radius: 50%; background: #ffd970; border: 3px solid #241f45; color: #241f45; box-shadow: 0 4px 0 #241f45; }
+.el-turn svg { width: 28px; height: 28px; }
+.el-turn.prev { left: -10px; } .el-turn.next { right: -10px; }
+.el-pg { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); padding: 2px 10px; border-radius: 999px; background: #241f45; color: #ffd970; font-size: 12px; font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .cz-rx { animation: none; opacity: 1; } }

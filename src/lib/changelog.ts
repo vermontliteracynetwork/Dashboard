@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-cauldron-cleanup",
+    date: "2026-10-14",
+    icon: "⚗️",
+    title: "Cauldron: real reactions and an Element Book",
+    body: "Mix and see what happens! Real reactions now go off in the pot: hydrogen and oxygen pop into water, sodium and water go BOOM. Find all 20 in Reactions. Recipes are a grid of bottles you tap to see big. Open the periodic table to tap any element, and read the new Element Book.",
+  },
+  {
     id: "2026-10-14-bookshelf-directory",
     date: "2026-10-14",
     icon: "📚",

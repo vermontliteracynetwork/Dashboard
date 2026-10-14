@@ -17,6 +17,7 @@ import SupernatureSpellBook from './SupernatureSpellBook';
 import SupernatureGlobe from './SupernatureGlobe';
 import PopCard from './SupernaturePopCard';
 import SupernatureCauldron from './SupernatureCauldron';
+import { ElementBook } from './SupernatureElements';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
 // docs/SUPERNATURE_PLAN.md). Home is the Witch's House with the Cat Wizard as host. Every other room
@@ -24,12 +25,12 @@ import SupernatureCauldron from './SupernatureCauldron';
 // the door), the Encyclopedia (the bookshelf), the Globe, the Cauldron, the Name Builder, and the
 // Creature Maker and Shop, which are still being built.
 
-type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop' | 'battle' | 'spells' | 'plants';
+type Room = 'home' | 'habitat' | 'globe' | 'book' | 'cauldron' | 'names' | 'maker' | 'shop' | 'battle' | 'spells' | 'plants' | 'elements';
 type BarOpts = { back?: () => void; backLabel?: string; extra?: React.ReactNode };
 const STAGE_W = 1180, STAGE_H = 760;
 const ROOM_TITLE: Record<Room, string> = {
   home: 'Supernature', habitat: 'Habitat', globe: 'Globe', book: 'Encyclopedia', cauldron: 'Cauldron',
-  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles', spells: 'Spell Book', plants: 'Plant Maker',
+  names: 'Name Builder', maker: 'Creature Maker', shop: 'Shop', battle: 'Creature Battles', spells: 'Spell Book', plants: 'Plant Maker', elements: 'Element Book',
 };
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 
@@ -118,6 +119,7 @@ export default function Supernature() {
           goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
         {room === 'cauldron' && <SupernatureCauldron key={recipe} bar={bar} say={say} save={save} patch={patch} start={RECIPES[recipe]?.name} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
         {room === 'names' && <Names bar={bar} say={say} names={save.names ?? []} onSave={(n) => patch({ names: [...(save.names ?? []), n] })} />}
+        {room === 'elements' && <div className="sn-room cz">{bar()}<div className="cz-bookwrap"><ElementBook say={say} found={save.alchemy?.reactions ?? []} /></div></div>}
         {room === 'spells' && <SupernatureSpellBook bar={bar} say={say} book={save.spellbook ?? []} onSave={(e) => patch({ spellbook: [...(save.spellbook ?? []), e].slice(-40) })} onRemove={(id) => patch({ spellbook: (save.spellbook ?? []).filter((x) => x.id !== id) })} />}
         {room === 'battle' && <SupernatureBattle bar={bar} say={say} save={save} patch={patch} potions={potions} usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }} />}
         {room === 'shop' && <Shop bar={bar} say={say} coins={student.coins} pantry={pantry} earned={save.earned ?? []} goCauldron={() => go('cauldron')}
@@ -161,7 +163,8 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
   const [shelf, setShelf] = useState(false);
   const BOOKS: { room: Room; title: string; img: string; does: string }[] = [
     { room: 'book', title: 'Encyclopedia', img: `${SN}theme/sparkle-book.gif`, does: 'Every creature: facts, stories and where they live.' },
-    { room: 'cauldron', title: 'Potion Book', img: `${W}books-1.png`, does: 'The Grimoire of recipe cards, by the Cauldron.' },
+    { room: 'cauldron', title: 'Potion Book', img: `${W}books-1.png`, does: 'Recipe cards for every potion, by the Cauldron.' },
+    { room: 'elements', title: 'Element Book', img: `${SN}alchemy/el/He.png`, does: 'Every element: its magic name, potions and real life.' },
     { room: 'spells', title: 'Spell Book', img: `${W}books-2.png`, does: 'Build spells and names from word parts.' },
   ];
   const shelfText = `Pick a book. ${BOOKS.map((b) => `${b.title}: ${b.does}`).join(' ')}`;
