@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-pets-smooth",
+    date: "2026-10-14",
+    icon: "🐾",
+    title: "Pets walk around things now",
+    body: "Pets in your home and yard walk around your furniture instead of getting stuck in it, and they never sink into the floor. Pets walking with you in Town Square go around buildings too. Their tricks and steps are smoother.",
+  },
+  {
     id: "2026-10-14-families",
     date: "2026-10-14",
     icon: "🐣",

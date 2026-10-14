@@ -965,8 +965,17 @@ function PetCompanion({ playerPos, modelPath, floating, targetHeight, facingRef,
     const t = 1 - Math.pow(0.0005, dt);
     const prevX = pos.current.x;
     const prevZ = pos.current.z;
-    pos.current.x = clampGroundX(pos.current.x + (targetX - pos.current.x) * t);
-    pos.current.z = clampGroundZ(pos.current.z + (targetZ - pos.current.z) * t);
+    // Pets glide around buildings and placed objects instead of walking into them (teacher 2026-10-14:
+    // "all pets and animals should glide smothly along the exterior/sides of an asset and should never get
+    // stuck"). A pet that falls far behind (stuck on the other side of something) hops back beside the student.
+    const wantX = clampGroundX(pos.current.x + (targetX - pos.current.x) * t);
+    const wantZ = clampGroundZ(pos.current.z + (targetZ - pos.current.z) * t);
+    if (floating) { pos.current.x = wantX; pos.current.z = wantZ; }
+    else {
+      const [sx, sz] = blockObstaclesSlide(prevX, prevZ, wantX, wantZ);
+      pos.current.x = sx; pos.current.z = sz;
+      if (Math.hypot(playerPos.x - sx, playerPos.z - sz) > 6) { pos.current.x = playerPos.x; pos.current.z = playerPos.z; }
+    }
     const moveDist = Math.hypot(pos.current.x - prevX, pos.current.z - prevZ);
     isMovingRef.current = moveDist > 0.0006;
     // Direct teacher instruction: a following pet faces the same direction

@@ -213,7 +213,8 @@ export function stopFeetFollow(rig: PoseRig) { for (const f of rig.follow) f.off
 // A walking step for pets whose model has no walk animation: legs swing in a trot.
 export function gaitAngles(phase: number, amount = 1): PoseAngles {
   const s = Math.sin(phase), c = Math.cos(phase);
-  const a = 28 * amount, k = 30 * amount;
+  // Gentler steps (teacher 2026-10-14: "make sure pets learning new skills dont change animations drastically").
+  const a = 18 * amount, k = 20 * amount;
   return {
     FUL_L: -a * s, FUL_R: a * s, BUL_L: a * s, BUL_R: -a * s,
     FLL_L: k * Math.max(0, c), FLL_R: k * Math.max(0, -c), BLL_L: k * 0.6 * Math.max(0, -c), BLL_R: k * 0.6 * Math.max(0, c),

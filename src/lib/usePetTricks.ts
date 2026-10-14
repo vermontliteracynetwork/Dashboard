@@ -36,7 +36,7 @@ export function usePetTricks(setup: ReturnType<typeof usePoseSetup>, model: THRE
     // A trot for legged pets with no walk animation of their own, easing in and out.
     const wantGait = !!rig && !setup.hasWalk && !!moving?.current && !active;
     s.gait += ((wantGait ? 1 : 0) - s.gait) * Math.min(1, dt * 6);
-    if (wantGait) s.phase += dt * 9;
+    if (wantGait) s.phase += dt * 7;
     const f = active ? trickFrame(s.name, Math.min(1, s.t / D), s.t) : trickFrame('', 0, 0);
     const angles = active ? f.angles : s.gait > 0.01 ? gaitAngles(s.phase, s.gait) : {};
     const posing = !!rig && (active || s.gait > 0.01);
@@ -48,7 +48,16 @@ export function usePetTricks(setup: ReturnType<typeof usePoseSetup>, model: THRE
     }
     const g = group.current;
     if (!g || !POSE_TRICKS.has(s.name)) return;
-    if (!active) { if (s.t < 99) { g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); s.t = 99; } return; }
+    // After a trick the body eases back to standing instead of snapping (a snap read as a jerk to one side).
+    if (!active) {
+      if (s.t < 99) {
+        const e = Math.min(1, dt * 8), wrap = (r: number) => Math.atan2(Math.sin(r), Math.cos(r));
+        g.position.multiplyScalar(1 - e);
+        g.rotation.set(wrap(g.rotation.x) * (1 - e), wrap(g.rotation.y) * (1 - e), wrap(g.rotation.z) * (1 - e));
+        if (g.position.lengthSq() < 1e-6 && Math.abs(g.rotation.x) + Math.abs(g.rotation.y) + Math.abs(g.rotation.z) < 1e-3) { g.position.set(0, 0, 0); g.rotation.set(0, 0, 0); s.t = 99; }
+      }
+      return;
+    }
     let lift = 0;
     // lowestFootY is in the parent group's units, which include the model's own scale.
     if (rig && f.ground) lift = setup.restFoot * modelScale - lowestFootY(rig, model);

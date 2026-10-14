@@ -688,7 +688,7 @@ const HOME_PET_SCALE_MAX = 3;
 // heavy code, see this file's own bundle-splitting concerns above), so a
 // student's pet color and a teacher's asset tint always look consistent.
 const PET_TINT_SWATCHES = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#6366f1', '#a855f7', '#ec4899', '#78350f', '#64748b', '#ffffff'];
-function HomePetPresence({ pet, def, position, cue, onTap, roam }: { pet: StudentPet; def: PetDef; position: [number, number, number]; cue?: PetMoveCue; onTap?: () => void; roam?: { hx: number; hz: number } }) {
+function HomePetPresence({ pet, def, position, cue, onTap, roam, obstacles = [] }: { pet: StudentPet; def: PetDef; position: [number, number, number]; cue?: PetMoveCue; onTap?: () => void; roam?: { hx: number; hz: number }; obstacles?: RoomObstacle[] }) {
   const { scene, animations } = useGLTF(def.modelPath);
   const cloned = useMemo(() => {
     const c = cloneSkinned(scene);
@@ -719,6 +719,13 @@ function HomePetPresence({ pet, def, position, cue, onTap, roam }: { pet: Studen
     const target = def.targetHeight * growthScaleFactor(stage);
     return THREE.MathUtils.clamp(target / size.y, HOME_PET_SCALE_MIN, HOME_PET_SCALE_MAX);
   }, [scene, def, stage]);
+  // Feet on the floor (teacher 2026-10-14: "pets cannot be hidden partally within assets (like currentl
+  // there are pets in student homes stuck in the floor)"): a model whose body hangs below its own origin
+  // is lifted so its lowest point sits on the floor.
+  const footLift = useMemo(() => {
+    const min = new THREE.Box3().setFromObject(scene).min.y;
+    return isFinite(min) && min < 0 ? -min * scale : 0;
+  }, [scene, scale]);
   const group = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
   const clipKeys = useMemo(() => {
@@ -733,24 +740,58 @@ function HomePetPresence({ pet, def, position, cue, onTap, roam }: { pet: Studen
   // Pets v2 (her spec): "Pets can free roam student home when not acting as active companion".
   // Each pet strolls to a random spot in the room or yard, rests a few seconds, and goes again.
   const root = useRef<THREE.Group>(null);
-  const wander = useRef({ x: position[0], z: position[2], tx: position[0], tz: position[2], wait: 1 + Math.random() * 4, walking: false, yaw: 0 });
+  // Teacher 2026-10-14: "all pets and animals should glide smothly along the exterior/sides of an asset and
+  // should never get stuck, or continue attempting on that path forward as it is blocked by something".
+  // Targets are only ever picked in open floor; on the way, a step that would enter furniture slides
+  // around its edge instead; and a pet that stops making progress gives up on that spot and picks a new one.
+  const PET_R = Math.max(0.25, def.targetHeight * 0.35);
+  const solid = useMemo(() => obstacles.map((o) => ({ ...o, radius: o.radius + PET_R })), [obstacles, PET_R]);
+  const inside = (x: number, z: number) => solid.some((o) => Math.hypot(x - o.x, z - o.z) < o.radius);
+  const wander = useRef({ x: position[0], z: position[2], tx: position[0], tz: position[2], wait: 1 + Math.random() * 4, walking: false, yaw: 0, best: Infinity, stuck: 0 });
   useFrame((_, dtRaw) => {
     const g = root.current; if (!g) return;
     const dt = Math.min(dtRaw, 0.05), w = wander.current;
     walkingRef.current = !!roam && w.walking;
     if (roam) {
+      // Never start a frame inside furniture: step back out to its edge.
+      if (inside(w.x, w.z)) { const [ox, oz] = blockRoomObstacles(w.x, w.z, w.x, w.z, solid); w.x = ox; w.z = oz; }
       if (!w.walking) {
         w.wait -= dt;
-        if (w.wait <= 0) { w.tx = (Math.random() * 2 - 1) * roam.hx; w.tz = (Math.random() * 2 - 1) * roam.hz; w.walking = true; }
+        if (w.wait <= 0) {
+          for (let tries = 0; tries < 12; tries++) {
+            const tx = (Math.random() * 2 - 1) * roam.hx, tz = (Math.random() * 2 - 1) * roam.hz;
+            if (!inside(tx, tz)) { w.tx = tx; w.tz = tz; w.walking = true; w.best = Infinity; w.stuck = 0; break; }
+          }
+          if (!w.walking) w.wait = 2;
+        }
       } else {
         const dx = w.tx - w.x, dz = w.tz - w.z, d = Math.hypot(dx, dz), step = 0.6 * dt;
         if (d <= step) { w.x = w.tx; w.z = w.tz; w.walking = false; w.wait = 3 + Math.random() * 6; }
-        else { w.x += (dx / d) * step; w.z += (dz / d) * step; w.yaw = Math.atan2(dx, dz); }
+        else {
+          let nx = w.x + (dx / d) * step, nz = w.z + (dz / d) * step;
+          const hit = solid.find((o) => Math.hypot(nx - o.x, nz - o.z) < o.radius);
+          if (hit) {
+            // Glide along the edge: move along the circle's tangent, on the side that heads toward the target.
+            const rx = w.x - hit.x, rz = w.z - hit.z, rl = Math.hypot(rx, rz) || 1;
+            let tx = -rz / rl, tz = rx / rl;
+            if (tx * dx + tz * dz < 0) { tx = -tx; tz = -tz; }
+            nx = w.x + tx * step; nz = w.z + tz * step;
+            if (inside(nx, nz)) [nx, nz] = blockRoomObstacles(w.x, w.z, nx, nz, solid);
+          }
+          const mx = nx - w.x, mz = nz - w.z;
+          if (Math.hypot(mx, mz) > 0.0005) w.yaw = Math.atan2(mx, mz);
+          w.x = THREE.MathUtils.clamp(nx, -roam.hx, roam.hx); w.z = THREE.MathUtils.clamp(nz, -roam.hz, roam.hz);
+          // No progress for a while: that way is blocked, so rest and then choose somewhere else.
+          if (d < w.best - 0.05) { w.best = d; w.stuck = 0; } else w.stuck += dt;
+          if (w.stuck > 1.5) { w.walking = false; w.wait = 0.8 + Math.random(); }
+        }
       }
       const walkA = clipKeys.walk ? actions[clipKeys.walk] : undefined, idleA = clipKeys.idle ? actions[clipKeys.idle] : undefined;
       if (walkA && w.walking && !walkA.isRunning()) { idleA?.fadeOut(0.2); walkA.reset().fadeIn(0.2).play(); }
       if (walkA && !w.walking && walkA.isRunning()) { walkA.fadeOut(0.2); idleA?.reset().fadeIn(0.2).play(); }
-      g.rotation.y += (((w.yaw - g.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 6);
+      // Turn the short way round, smoothly (the old wrap math could spin a pet the long way and jerk it).
+      const turn = Math.atan2(Math.sin(w.yaw - g.rotation.y), Math.cos(w.yaw - g.rotation.y));
+      g.rotation.y = THREE.MathUtils.euclideanModulo(g.rotation.y + turn * Math.min(1, dt * 5) + Math.PI, Math.PI * 2) - Math.PI;
     }
     g.position.set(w.x, position[1] + (roam && w.walking && !clipKeys.walk && !poseSetup.rig ? Math.abs(Math.sin(performance.now() / 120)) * 0.04 : 0), w.z);
   });
@@ -770,7 +811,7 @@ function HomePetPresence({ pet, def, position, cue, onTap, roam }: { pet: Studen
         onClick={onTap ? (e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onTap(); } : undefined}
       >
         <group ref={group}>
-          <primitive object={cloned} scale={scale} />
+          <primitive object={cloned} scale={scale} position={[0, footLift, 0]} />
         </group>
       </group>
     </group>
@@ -1559,6 +1600,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, 0, -(halfD + EXTERIOR_CLEARANCE) + 2.2]}
                     roam={{ hx: Math.max(1, halfW - 1.2), hz: Math.max(1, halfD - 1.2) }}
+                    obstacles={roomObstacles}
                     cue={petCues[pet.id]}
                     onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
@@ -1598,6 +1640,7 @@ export default function HomeRoom() {
                     def={def}
                     position={[spread, def.category === 'aquatic' || def.category === 'bird' ? 0.6 : 0, Math.max(0, halfD - 1.4)]}
                     roam={{ hx: Math.max(0.8, roomW / 2 - 1), hz: Math.max(0.8, halfD - 1) }}
+                    obstacles={roomObstacles}
                     cue={petCues[pet.id]}
                     onTap={mode === 'view' && !visiting ? () => setTrainingPetId(pet.id) : undefined}
                   />
