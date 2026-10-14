@@ -1291,6 +1291,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               onClick={(e) => { e.stopPropagation(); if (armed) { if (fits(armed, l)) giveTo(armed, l.c.id); else tell(`${l.c.name} does not need ${armed} right now.`); return; } snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. ${reactions[l.c.id]?.text ?? ''} Tap to check on it.`}>
               {act?.id === l.c.id && !l.hide ? <span className="sn-react act">{act.a.icon} {act.a.text}</span>
                 : reactions[l.c.id] && reactions[l.c.id].word !== 'at home' && !l.hide && <span className={`sn-react${reactions[l.c.id].hit ? ' bad' : ''}`}>{reactions[l.c.id].icon} {reactions[l.c.id].word}</span>}
+              {armed && fits(armed, l) && <span className="sn-target-ring" aria-hidden="true" />}
               <img src={art(l.c.id)} alt="" />
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <Fx k="potion" size={150} className="sn-critfx" />}
@@ -1327,7 +1328,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         )}
         {armed && (
           <div className="sn-armed" role="status" onClick={(e) => e.stopPropagation()}>
-            <img src={POTION_ICON[armed]} alt="" /><span>Tap a glowing creature to give it <b>{armed}</b>, or drag the bottle onto it.</span>
+            <img src={POTION_ICON[armed]} alt="" /><span>{here.some((l) => !l.hide && fits(armed, l)) ? <>Tap a glowing creature to give it <b>{armed}</b>, or drag the bottle onto it.</> : <>No creature in this land needs <b>{armed}</b> right now. Try another land, or save it for later.</>}</span>
             <button type="button" className="sn-btn2 small" onClick={() => setArmed(null)}>Cancel</button>
           </div>
         )}

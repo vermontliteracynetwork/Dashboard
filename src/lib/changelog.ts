@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-potion-glow",
+    date: "2026-10-14",
+    icon: "✨",
+    title: "See who needs your potion",
+    body: "Pick a potion in the Habitat and every creature that needs it glows with a gold ring. If nobody in that land needs it, the game tells you.",
+  },
+  {
     id: "2026-10-14-handwritten-cards",
     date: "2026-10-14",
     icon: "✍️",
