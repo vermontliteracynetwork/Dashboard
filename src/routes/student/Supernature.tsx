@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
-import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, POTION_ICON, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
+import { Fx } from './SupernatureFx';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { byId, setMade, type Made } from '../../lib/supernatureCreatures';
@@ -226,6 +227,25 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
 }
 
 /* ---------------- Cauldron ---------------- */
+// The brew changes color with every ingredient (Build Queue 167): each ingredient's color is read once
+// from its own pixel picture, and the brew blends toward it.
+const COLOR_CACHE = new Map<string, string>();
+function inkOf(src: string): Promise<string> {
+  const hit = COLOR_CACHE.get(src); if (hit) return Promise.resolve(hit);
+  return new Promise((res) => {
+    const im = new Image(); im.onload = () => {
+      try {
+        const c = document.createElement('canvas'); c.width = 24; c.height = 24; const g = c.getContext('2d')!; g.drawImage(im, 0, 0, 24, 24);
+        const d = g.getImageData(0, 0, 24, 24).data; let r = 0, gg = 0, b = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 200) continue; const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); if (mx - mn < 40 || mx < 60) continue; r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
+        const out = n ? `rgb(${Math.round(r / n)}, ${Math.round(gg / n)}, ${Math.round(b / n)})` : '#8c5ad1';
+        COLOR_CACHE.set(src, out); res(out);
+      } catch { res('#8c5ad1'); }
+    };
+    im.onerror = () => res('#8c5ad1'); im.src = src;
+  });
+}
+const mixRgb = (a: string, b: string) => { const p = (x: string) => (x.match(/\d+/g) ?? ['140', '90', '209']).map(Number); const [x, y] = [p(a), p(b)]; return `rgb(${x.map((v, i) => Math.round(v * 0.45 + y[i] * 0.55)).join(', ')})`; };
 // The Cookbook (Build Queue 101): 10 base recipes and 3 discovered ones. Free basics are always on
 // the shelf; bought ingredients come from the student's pantry and are used up only when the potion
 // is finished, so a fizzle never costs anything.
@@ -256,7 +276,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
   const buyList = needed.filter((id) => ING(id).tier !== 'free' && !(ING(id).earnedAs && earned.includes(ING(id).earnedAs!)));
   const reset = (i = ri) => {
     const rr = RECIPES[i]; const lk = !!rr.unlock && !brewed.includes(rr.unlock);
-    setRi(i); setStep(0); setBowl([]); setStirs(0); setDone(false); setNeed(null); setList(false);
+    setRi(i); setStep(0); setBowl([]); setStirs(0); setDone(false); setNeed(null); setList(false); setBrew(null); setPop(null); setStirFrac(0); fizzAtStart.current = fizz;
     setMsg(lk ? '' : `Read the recipe. Step 1 first: ${rr.steps[0].text}`);
   };
   const tapIngredient = (id: string) => {
@@ -267,18 +287,34 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
     if (s.need === 'bowl' && inStep) {
       if (bowl.includes(id)) return;
       snSound('pickup'); const nb = [...bowl, id]; setBowl(nb);
-      swirl();
+      swirl(); pourFx(id);
       if (s.items!.every((x) => nb.includes(x))) { setStep(step + 1); setMsg(`Mixed! The part in parentheses is done. ${stepMsg(step + 1)}`); snSound('chime'); }
       else setMsg(`${g.name} is in the cauldron. What else goes in the parentheses?`);
       return;
     }
-    if (s.need === 'add' && inStep) { snSound('cork'); swirl(); setBowl([...bowl, id]); setPoof((n) => n + 1); setStep(step + 1); setMsg(`In it goes! ${stepMsg(step + 1)}`); return; }
+    if (s.need === 'add' && inStep) { snSound('cork'); swirl(); pourFx(id); setBowl([...bowl, id]); setPoof((n) => n + 1); setStep(step + 1); setMsg(`In it goes! ${stepMsg(step + 1)}`); return; }
     if (s.need === 'bowl') return wrong(`Fizzle! The part in parentheses always goes first, like in math. ${stepMsg(0)}`);
     wrong(`Fizzle! That is not in this step. ${stepMsg(step)}`);
   };
   // Her Cauldron (Build Queue 113): one pot, a wooden stick that swirls whenever something goes
   // in, ingredients dragged (or tapped) into the pot, and stirring by drawing circles on the pot.
   const [mixing, setMixing] = useState(0);
+  // Potion mixing, improved (Build Queue 167, her words 2026-10-14: "continue improving the supernature and
+  // all functions claudia, lets make sure the potion mixing is improved"): each ingredient flies into the pot
+  // with a splash and turns the brew its color, the ingredients for this step glow on the shelf, stirring
+  // shows a ring that fills as you circle, and a finished potion pops out of the pot with its bottle.
+  const [brew, setBrew] = useState<string | null>(null);
+  const [fly, setFly] = useState<{ img: string; key: number } | null>(null);
+  const [splash, setSplash] = useState(0);
+  const [stirFrac, setStirFrac] = useState(0);
+  const [pop, setPop] = useState<{ name: string; key: number } | null>(null);
+  const fizzAtStart = useRef(0);
+  const pourFx = (id: string) => {
+    const img = ING(id).img; const key = Date.now();
+    setFly({ img, key });
+    window.setTimeout(() => { setSplash(Date.now()); setFly((f) => (f && f.key === key ? null : f)); }, 520);
+    void inkOf(img).then((c) => setBrew((b) => (b ? mixRgb(b, c) : c)));
+  };
   const [stickAngle, setStickAngle] = useState(0);
   const [dragItem, setDragItem] = useState<{ id: string; x: number; y: number } | null>(null);
   const potRef = useRef<HTMLDivElement | null>(null);
@@ -301,8 +337,8 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
   const stirMove = (e: React.PointerEvent) => {
     const st = stirRef.current; if (!st) return;
     const a = potAngle(e); let d = a - st.last; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI;
-    st.last = a; st.total += d; setStickAngle((v) => v + (d * 180) / Math.PI);
-    if (Math.abs(st.total) >= Math.PI * 2) { st.total = 0; stir(); }
+    st.last = a; st.total += d; setStickAngle((v) => v + (d * 180) / Math.PI); setStirFrac(Math.min(1, Math.abs(st.total) / (Math.PI * 2)));
+    if (Math.abs(st.total) >= Math.PI * 2) { st.total = 0; setStirFrac(0); stir(); }
   };
   const stir = () => {
     if (locked) return;
@@ -312,9 +348,10 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
   };
   const spell = R.steps.find((x) => x.need === 'spell')?.word ?? R.name.toLowerCase();
   const finish = () => {
-    setWrite(false); setDone(true); setPoof((n) => n + 1); snSound('done'); onBrewed(R.name, buyList);
+    setWrite(false); setDone(true); setPoof((n) => n + 1); snSound('done'); onBrewed(R.name, buyList); setPop({ name: R.name, key: Date.now() });
+    const slips = fizz - fizzAtStart.current;
     const unlocks = RECIPES.filter((x) => x.unlock === R.name && !brewed.includes(R.name));
-    setMsg(`Poof! You made the ${R.name} potion. ${R.does}${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
+    setMsg(`Poof! You made the ${R.name} potion. ${R.does}${slips === 0 ? ' ⭐ A perfect brew: every step in order!' : ` You fixed ${slips} ${slips === 1 ? 'mistake' : 'mistakes'} and kept going. That is how real potion makers learn!`}${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
     say(`Poof! You made the ${R.name} potion.${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
   };
   const count = (n: string) => potions.filter((p) => p === n).length;
@@ -359,12 +396,20 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
         {poof > 0 && <span key={`p${poof}`} className="sn-poof" />}
         <div className={`sn-potwrap${dragItem ? ' drop' : ''}${s.need === 'stir' && !done ? ' stirring' : ''}`} ref={potRef} onPointerDown={stirDown} onPointerMove={stirMove} onPointerUp={() => { stirRef.current = null; }} onPointerCancel={() => { stirRef.current = null; }}>
           <img src={`${SN}theme/cauldron-bubbling.gif`} alt="Bubbling cauldron" className="sn-cauldron sn-smooth" />
+          {brew && <span className="sn-brewtint" style={{ background: brew }} aria-hidden="true" />}
+          {s.need === 'stir' && !done && (
+            <svg className="sn-stirring" viewBox="0 0 300 300" aria-hidden="true"><circle cx="150" cy="150" r="138" className="track" /><circle cx="150" cy="150" r="138" className="fill" style={{ strokeDasharray: `${stirFrac * 867} 867` }} /></svg>
+          )}
+          {fly && <img key={fly.key} src={fly.img} alt="" className="sn-flyin" />}
+          {splash > 0 && <Fx key={`sp${splash}`} k="splash" size={150} className="sn-splashfx" />}
+          {fizz > 0 && <Fx key={`fz${fizz}`} k="dust" size={140} className="sn-splashfx" />}
+          {pop && <span key={pop.key} className="sn-potpop"><Fx k="potion" size={220} className="sn-potpop-fx" /><img src={POTION_ICON[pop.name]} alt="" /><b>+1 {pop.name}</b></span>}
           <span key={`m${mixing}`} className={`sn-stick${mixing ? ' swirl' : ''}`} style={{ ['--a' as string]: `${stickAngle}deg` }} aria-hidden="true"><i /></span>
-          {s.need === 'stir' && !done && <span className="sn-stir-hint">Draw circles on the pot to stir! ({stirs} of {s.times})</span>}
+          {s.need === 'stir' && !done && <span className="sn-stir-hint">Draw circles on the pot to stir! {Array.from({ length: s.times ?? 3 }, (_, k) => (k < stirs ? '●' : '○')).join(' ')}</span>}
         </div>
         <div className="sn-row center">
-          <button type="button" className="sn-btn2" disabled={locked} onClick={stir}>Stir once</button>
-          <button type="button" className="sn-btn2" disabled={locked} onClick={() => (s.need === 'spell' && !done ? setWrite(true) : wrong(`Not yet. ${stepMsg(step)}`))}>Write the spell</button>
+          <button type="button" className={`sn-btn2${s.need === 'stir' && !done ? ' sn-glow' : ''}`} disabled={locked} onClick={stir}>Stir once</button>
+          <button type="button" className={`sn-btn2${s.need === 'spell' && !done ? ' sn-glow' : ''}`} disabled={locked} onClick={() => (s.need === 'spell' && !done ? setWrite(true) : wrong(`Not yet. ${stepMsg(step)}`))}>Write the spell</button>
         </div>
         {msg && <p className="sn-msg" role="status">{msg}</p>}
         {need && !has(need) && <button type="button" className="sn-btn" onClick={goShop}>Go to the Shop</button>}
@@ -382,7 +427,7 @@ function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, 
           {shelf.map((x) => {
             const n = x.tier === 'free' ? null : x.earnedAs && earned.includes(x.earnedAs) ? 'earned' : (pantry[x.id] ?? 0);
             return (
-              <button key={x.id} type="button" className={`sn-ingb${n === 0 ? ' empty' : ''}`} onPointerDown={(e) => startDrag(e, x.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') tapIngredient(x.id); }}>
+              <button key={x.id} type="button" className={`sn-ingb${n === 0 ? ' empty' : ''}${!done && !locked && (s.need === 'bowl' || s.need === 'add') && s.items?.includes(x.id) && !bowl.includes(x.id) ? ' needed' : ''}`} onPointerDown={(e) => startDrag(e, x.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') tapIngredient(x.id); }}>
                 <img src={x.img} alt="" />{x.name}<small>{n === null ? 'free' : n === 'earned' ? 'earned' : n === 0 ? `buy ${formatMoney(x.price)}` : `you have ${n}`}</small>
               </button>
             );

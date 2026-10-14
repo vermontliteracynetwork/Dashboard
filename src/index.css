@@ -8870,3 +8870,21 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .mx-el { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px; background: #2e2250; border-radius: 10px; text-align: left; }
 .mx-el > b { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 8px; color: #241f45; font-size: 28px; flex: none; }
 .mx-el p { margin: 4px 0 0; font-size: 14px; }
+
+/* Potion mixing, improved (Build Queue 167) */
+.sn-brewtint { position: absolute; left: 78px; top: 62px; width: 146px; height: 68px; border-radius: 50%; mix-blend-mode: color; opacity: 0.95; pointer-events: none; transition: background 0.8s; }
+.sn-stirring { position: absolute; left: 0; top: 10px; width: 300px; height: 300px; pointer-events: none; transform: rotate(-90deg); }
+.sn-stirring circle { fill: none; stroke-width: 10; }
+.sn-stirring .track { stroke: rgba(255, 217, 112, 0.25); stroke-dasharray: 6 12; }
+.sn-stirring .fill { stroke: #ffd970; stroke-linecap: round; transition: stroke-dasharray 0.1s; }
+.sn-flyin { position: absolute; left: 120px; top: 60px; width: 60px; height: 60px; object-fit: contain; image-rendering: pixelated; pointer-events: none; z-index: 4; animation: snFlyIn 0.55s cubic-bezier(0.3, 0, 0.7, 1) forwards; }
+@keyframes snFlyIn { from { transform: translate(230px, -170px) scale(1.1) rotate(0deg); } 55% { transform: translate(100px, -150px) scale(1) rotate(160deg); } to { transform: translate(0, 0) scale(0.4) rotate(320deg); opacity: 0.4; } }
+.sn-splashfx { position: absolute; left: 50%; top: 40px; transform: translateX(-50%); z-index: 3; }
+.sn-potpop { position: absolute; left: 50%; top: -10px; z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 2px; transform: translateX(-50%); pointer-events: none; animation: snPotPop 1.1s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.sn-potpop img { width: 72px; height: 72px; image-rendering: pixelated; filter: drop-shadow(0 4px 0 rgba(36, 31, 69, 0.5)); }
+.sn-potpop b { padding: 2px 10px; border-radius: 999px; background: #ffd970; color: #241f45; font-size: 16px; }
+.sn-potpop-fx { position: absolute; left: 50%; top: 36px; transform: translate(-50%, -50%); z-index: -1; }
+@keyframes snPotPop { from { transform: translate(-50%, 140px) scale(0.3); opacity: 0; } }
+.sn-ingb.needed { box-shadow: 0 0 0 4px #ffd970, 0 0 18px 4px rgba(255, 217, 112, 0.8); animation: snPulse 1.2s ease-in-out infinite; }
+.sn-btn2.sn-glow { box-shadow: 0 0 0 4px #ffd970, 0 0 18px 4px rgba(255, 217, 112, 0.8); }
+@media (prefers-reduced-motion: reduce) { .sn-flyin, .sn-potpop, .sn-ingb.needed { animation: none; } }

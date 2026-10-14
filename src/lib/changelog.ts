@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-brewing",
+    date: "2026-10-14",
+    icon: "🧪",
+    title: "Better potion brewing",
+    body: "At the Cauldron, ingredients fly into the pot with a splash and change the brew's color. The ingredients you need glow on the shelf, a ring fills up as you stir, and your finished potion pops out of the pot!",
+  },
+  {
     id: "2026-10-14-potions-moved",
     date: "2026-10-14",
     icon: "🔮",
