@@ -6,9 +6,13 @@ import { snSound } from '../../lib/supernature';
 // touch at a time, so a resting hand does not draw. A finger or an Apple Pencil both work.
 // Her rule (Build Queue 113): tracing needs a level of accuracy. Done checks two things: how much
 // of the guide letters the student covered, and how much of their ink stayed on the letters.
+// No scribbling (Build Queue 159, her words 2026-10-14: "make sure accuracy in the drawing/writing feature
+// so students cant just scribble the whole thing"): the ink has to stay close to the letters (a tighter
+// band), and a third check measures how much of the empty space around the letters got colored in.
+// Tracing leaves most of it empty; scrubbing back and forth over the whole word fills it, and that never passes.
 
 const W = 1150, H = 560, BASE = 400;
-const NEED_COVER = 0.55, NEED_ON = 0.6;
+const NEED_COVER = 0.55, NEED_ON = 0.72, MAX_SPILL = 0.38;
 type Pt = { x: number; y: number };
 
 export default function SupernatureWriting({ word, title, onListen, onDone, onClose }: {
@@ -18,7 +22,7 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
   const guide = useRef<HTMLCanvasElement | null>(null);
   const [lines, setLines] = useState<Pt[][]>([]);
   const [show, setShow] = useState(false);
-  const [score, setScore] = useState<{ cover: number; on: number } | null>(null);
+  const [score, setScore] = useState<{ cover: number; on: number; spill: number } | null>(null);
   const [msg, setMsg] = useState('Start at the green dot. Write over the light letters. Tap Show me to see it once.');
   const active = useRef<{ id: number; pts: Pt[] } | null>(null);
   // The guide word fills the pad: long names get a smaller size, and the guide lines follow it.
@@ -52,21 +56,29 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
   const measure = (all: Pt[][]) => {
     const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c.getContext('2d')!; };
     const letters = mk(); letters.font = font; letters.fillStyle = '#000'; letters.fillText(word, 90, BASE);
-    const near = mk(); near.font = font; near.lineJoin = 'round'; near.lineWidth = 34; near.strokeStyle = '#000'; near.fillStyle = '#000'; near.strokeText(word, 90, BASE); near.fillText(word, 90, BASE);
-    const wide = mk(); const thin = mk();
-    for (const [g, w] of [[wide, 36], [thin, 4]] as const) {
+    const near = mk(); near.font = font; near.lineJoin = 'round'; near.lineWidth = 22; near.strokeStyle = '#000'; near.fillStyle = '#000'; near.strokeText(word, 90, BASE); near.fillText(word, 90, BASE);
+    const wide = mk(); const thin = mk(); const mid = mk();
+    for (const [g, w] of [[wide, 36], [thin, 4], [mid, 16]] as const) {
       g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = w; g.strokeStyle = '#000';
       for (const l of all) { if (l.length < 2) continue; g.beginPath(); g.moveTo(l[0].x, l[0].y); for (const p of l.slice(1)) g.lineTo(p.x, p.y); g.stroke(); }
     }
     const a = (g: CanvasRenderingContext2D) => g.getImageData(0, 0, W, H).data;
-    const L = a(letters), N = a(near), Wd = a(wide), T = a(thin);
+    const L = a(letters), N = a(near), Wd = a(wide), T = a(thin), M = a(mid);
     let lt = 0, lc = 0, it = 0, ic = 0;
+    let x0 = W, x1 = 0, y0 = H, y1 = 0;
     for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
       const k = (y * W + x) * 4 + 3;
-      if (L[k] > 100) { lt++; if (Wd[k] > 100) lc++; }
+      if (L[k] > 100) { lt++; if (Wd[k] > 100) lc++; if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
       if (T[k] > 100) { it++; if (N[k] > 100) ic++; }
     }
-    return { cover: lt ? lc / lt : 0, on: it ? ic / it : 0 };
+    // Spill: the share of the empty space in the word's box (away from the letters) that got inked.
+    let bt = 0, bc = 0;
+    for (let y = y0 - (y0 % 2); y <= y1; y += 2) for (let x = x0 - (x0 % 2); x <= x1; x += 2) {
+      const k = (y * W + x) * 4 + 3;
+      if (N[k] > 100) continue;
+      bt++; if (M[k] > 100) bc++;
+    }
+    return { cover: lt ? lc / lt : 0, on: it ? ic / it : 0, spill: bt ? bc / bt : 0 };
   };
 
   const at = (e: React.PointerEvent): Pt => {
@@ -89,13 +101,14 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
   };
   const finish = () => {
     const s = measure(lines); setScore(s);
-    if (s.cover >= NEED_COVER && s.on >= NEED_ON) { snSound('learned'); onDone(); return; }
+    if (s.cover >= NEED_COVER && s.on >= NEED_ON && s.spill <= MAX_SPILL) { snSound('learned'); onDone(); return; }
     snSound('fizzle');
-    setMsg(s.cover < NEED_COVER
+    setMsg(s.spill > MAX_SPILL ? 'That looks like a scribble. The wand only works with careful tracing. Tap Clear, then follow the light letters with your finger.'
+      : s.cover < NEED_COVER
       ? `Almost! Trace over more of the light letters. You covered ${Math.round(s.cover * 100)}%, and the wand needs ${Math.round(NEED_COVER * 100)}%.`
       : `Almost! Keep your lines on the letters. ${Math.round(s.on * 100)}% of your ink was on them, and the wand needs ${Math.round(NEED_ON * 100)}%. Try Undo line.`);
   };
-  const pct = score ? Math.round(Math.min(score.cover / NEED_COVER, score.on / NEED_ON, 1) * 100) : 0;
+  const pct = score ? Math.round(Math.min(score.cover / NEED_COVER, score.on / NEED_ON, score.spill > MAX_SPILL ? 0.4 : 1, 1) * 100) : 0;
 
   return (
     <div className="sn-write" role="dialog" aria-modal="true" aria-label={`Write ${word}`}>
@@ -116,7 +129,7 @@ export default function SupernatureWriting({ word, title, onListen, onDone, onCl
         <span className="sn-write-dot" style={{ top: BASE - fs * 0.44 - 13 }} />
         <canvas ref={canvas} width={W} height={H} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} aria-label="Writing pad" />
       </div>
-      <div className="sn-write-meter" aria-label={`Tracing ${pct} percent of the way`}><i style={{ width: `${pct}%` }} /><span>{pct >= 100 ? 'Great tracing! Tap Done.' : `Tracing: ${pct}%`}</span></div>
+      <div className="sn-write-meter" aria-label={`Tracing ${pct} percent of the way`}><i style={{ width: `${pct}%` }} /><span>{score && score.spill > MAX_SPILL ? 'Too scribbly! Tap Clear and trace carefully.' : pct >= 100 ? 'Great tracing! Tap Done.' : `Tracing: ${pct}%`}</span></div>
       <p className="sn-write-hint" role="status">{msg}</p>
     </div>
   );
