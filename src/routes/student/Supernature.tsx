@@ -1,15 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
-import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, POTION_ICON, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
-import { Fx } from './SupernatureFx';
+import { SN, WORD_PARTS, INGREDIENTS, ING, KINDS, RECIPES, RANKS, SPARKLY_COLORS, naturalist, type Part, useSupernature, snSound, soundsOn, setSoundsOn } from '../../lib/supernature';
 import { formatMoney } from '../../lib/money';
 import { playCashRegister } from '../../lib/chime';
 import { byId, setMade, type Made } from '../../lib/supernatureCreatures';
 import { setMadePlants } from '../../lib/supernaturePlants';
 import SupernaturePlantMaker from './SupernaturePlantMaker';
-import SupernatureWriting, { Icon } from './SupernatureWriting';
+import { Icon } from './SupernatureWriting';
 import SupernatureBook from './SupernatureBook';
 import SupernatureHabitat from './SupernatureHabitat';
 import SupernatureMaker from './SupernatureMaker';
@@ -17,7 +16,7 @@ import SupernatureBattle from './SupernatureBattle';
 import SupernatureSpellBook from './SupernatureSpellBook';
 import SupernatureGlobe from './SupernatureGlobe';
 import PopCard from './SupernaturePopCard';
-import SupernatureMixLab from './SupernatureMixLab';
+import SupernatureCauldron from './SupernatureCauldron';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
 // docs/SUPERNATURE_PLAN.md). Home is the Witch's House with the Cat Wizard as host. Every other room
@@ -60,7 +59,6 @@ export default function Supernature() {
   const found = save.found ?? [];
   const potions = save.potions ?? [];
   const pantry = save.pantry ?? {};
-  const brewed = save.brewed ?? [];
   const recordTransaction = useStore((s) => s.recordTransaction);
   const made = save.made ?? [];
   setMade(made);
@@ -118,12 +116,7 @@ export default function Supernature() {
           onRemove={(id) => patch({ madePlants: madePlants.filter((x) => x.id !== id) })} />}
         {room === 'maker' && <SupernatureMaker key={editId ?? 'new'} bar={bar} say={say} found={found} made={made} editId={editId} onSave={saveMade} extraColors={nat.level >= 1 ? SPARKLY_COLORS : []}
           goBook={openPage} goHabitat={() => go('habitat')} goNames={() => go('names')} />}
-        {room === 'cauldron' && <Cauldron key={recipe} bar={bar} say={say} potions={potions} earned={save.earned ?? []} pantry={pantry} brewed={brewed} start={recipe}
-          onBrewed={(name, used, times = 1) => {
-            const np = { ...pantry }; for (const id of used) np[id] = Math.max(0, (np[id] ?? 0) - 1);
-            patch({ potions: [...potions, ...Array(times).fill(name)], pantry: np, brewed: brewed.includes(name) ? brewed : [...brewed, name] });
-          }}
-          onEssence={() => patch({ pantry: { ...pantry, essence: (pantry.essence ?? 0) + 1 } })} goNames={() => go('names')} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
+        {room === 'cauldron' && <SupernatureCauldron key={recipe} bar={bar} say={say} save={save} patch={patch} start={RECIPES[recipe]?.name} goHabitat={() => go('habitat')} goShop={() => go('shop')} />}
         {room === 'names' && <Names bar={bar} say={say} names={save.names ?? []} onSave={(n) => patch({ names: [...(save.names ?? []), n] })} />}
         {room === 'spells' && <SupernatureSpellBook bar={bar} say={say} book={save.spellbook ?? []} onSave={(e) => patch({ spellbook: [...(save.spellbook ?? []), e].slice(-40) })} onRemove={(id) => patch({ spellbook: (save.spellbook ?? []).filter((x) => x.id !== id) })} />}
         {room === 'battle' && <SupernatureBattle bar={bar} say={say} save={save} patch={patch} potions={potions} usePotion={(name) => { const i = potions.indexOf(name); if (i >= 0) patch({ potions: potions.filter((_, j) => j !== i) }); }} />}
@@ -223,229 +216,6 @@ function Home({ bar, go, say, maker, crown }: { bar: React.ReactNode; go: (r: Ro
       </button>
 
       <Host say={say} crown={crown} text="Welcome home! Tap anything with a name tag. The bookshelf is your Encyclopedia, and the door goes outside to your Habitat." />
-    </div>
-  );
-}
-
-/* ---------------- Cauldron ---------------- */
-// The brew changes color with every ingredient (Build Queue 167): each ingredient's color is read once
-// from its own pixel picture, and the brew blends toward it.
-const COLOR_CACHE = new Map<string, string>();
-function inkOf(src: string): Promise<string> {
-  const hit = COLOR_CACHE.get(src); if (hit) return Promise.resolve(hit);
-  return new Promise((res) => {
-    const im = new Image(); im.onload = () => {
-      try {
-        const c = document.createElement('canvas'); c.width = 24; c.height = 24; const g = c.getContext('2d')!; g.drawImage(im, 0, 0, 24, 24);
-        const d = g.getImageData(0, 0, 24, 24).data; let r = 0, gg = 0, b = 0, n = 0;
-        for (let i = 0; i < d.length; i += 4) { if (d[i + 3] < 200) continue; const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]); if (mx - mn < 40 || mx < 60) continue; r += d[i]; gg += d[i + 1]; b += d[i + 2]; n++; }
-        const out = n ? `rgb(${Math.round(r / n)}, ${Math.round(gg / n)}, ${Math.round(b / n)})` : '#8c5ad1';
-        COLOR_CACHE.set(src, out); res(out);
-      } catch { res('#8c5ad1'); }
-    };
-    im.onerror = () => res('#8c5ad1'); im.src = src;
-  });
-}
-const mixRgb = (a: string, b: string) => { const p = (x: string) => (x.match(/\d+/g) ?? ['140', '90', '209']).map(Number); const [x, y] = [p(a), p(b)]; return `rgb(${x.map((v, i) => Math.round(v * 0.45 + y[i] * 0.55)).join(', ')})`; };
-// The Cookbook (Build Queue 101): 10 base recipes and 3 discovered ones. Free basics are always on
-// the shelf; bought ingredients come from the student's pantry and are used up only when the potion
-// is finished, so a fizzle never costs anything.
-function Cauldron({ bar, say, potions, earned, pantry, brewed, start, onBrewed, goNames, goHabitat, goShop, onEssence }: {
-  bar: (o?: BarOpts) => React.ReactNode; say: (t: string) => void; potions: string[]; earned: string[]; pantry: Record<string, number>; brewed: string[]; start: number;
-  onBrewed: (name: string, used: string[], times?: number) => void; goNames: () => void; goHabitat: () => void; goShop: () => void; onEssence: () => void;
-}) {
-  const [ri, setRi] = useState(start);
-  const [list, setList] = useState(false);
-  // Recipe brewing, or the free Mixing Lab with real chemistry (Build Queue 156).
-  const [mode, setMode] = useState<'recipe' | 'lab'>('recipe');
-  const R = RECIPES[ri];
-  const locked = !!R.unlock && !brewed.includes(R.unlock);
-  const [step, setStep] = useState(0);
-  const [bowl, setBowl] = useState<string[]>([]);
-  const [stirs, setStirs] = useState(0);
-  const [msg, setMsg] = useState(locked ? '' : `Read the recipe. Step 1 first: ${R.steps[0].text}`);
-  const [need, setNeed] = useState<string | null>(null);
-  const [fizz, setFizz] = useState(0);
-  const [poof, setPoof] = useState(0);
-  const [write, setWrite] = useState(false);
-  const [done, setDone] = useState(false);
-  const s = R.steps[step];
-  const stepMsg = (n: number) => `Step ${n + 1}: ${R.steps[n].text}`;
-  const wrong = (why: string) => { snSound('fizzle'); setFizz((n) => n + 1); setMsg(why); };
-  const has = (id: string) => { const g = ING(id); return g.tier === 'free' || (pantry[id] ?? 0) > 0 || (!!g.earnedAs && earned.includes(g.earnedAs)); };
-  const needed = [...new Set(R.steps.flatMap((x) => x.items ?? []))];
-  const buyList = needed.filter((id) => ING(id).tier !== 'free' && !(ING(id).earnedAs && earned.includes(ING(id).earnedAs!)));
-  const reset = (i = ri) => {
-    const rr = RECIPES[i]; const lk = !!rr.unlock && !brewed.includes(rr.unlock);
-    setRi(i); setStep(0); setBowl([]); setStirs(0); setDone(false); setNeed(null); setList(false); setBrew(null); setPop(null); setStirFrac(0); setDouble(false); fizzAtStart.current = fizz;
-    setMsg(lk ? '' : `Read the recipe. Step 1 first: ${rr.steps[0].text}`);
-  };
-  const tapIngredient = (id: string) => {
-    if (done || locked) return;
-    const g = ING(id);
-    // Science essence from the Mixing Lab: add it at any step for a double batch.
-    if (id === 'essence') {
-      if ((pantry.essence ?? 0) < 1) { snSound('fizzle'); setMsg('Discover a new reaction in the Mixing Lab to earn a science essence.'); return; }
-      if (double) { setMsg('One science essence is enough. This brew already makes 2 potions.'); return; }
-      snSound('learned'); swirl(); pourFx(id); setDouble(true); setMsg(`✨ Science essence! This brew will make 2 potions. ${stepMsg(step)}`); return;
-    }
-    const inStep = (s.need === 'bowl' || s.need === 'add') && s.items!.includes(id);
-    if (inStep && !has(id)) { snSound('fizzle'); setNeed(id); setMsg(`You need 1 ${g.name}. You can buy it in the Shop for ${formatMoney(g.price)}.`); return; }
-    if (s.need === 'bowl' && inStep) {
-      if (bowl.includes(id)) return;
-      snSound('pickup'); const nb = [...bowl, id]; setBowl(nb);
-      swirl(); pourFx(id);
-      if (s.items!.every((x) => nb.includes(x))) { setStep(step + 1); setMsg(`Mixed! The part in parentheses is done. ${stepMsg(step + 1)}`); snSound('chime'); }
-      else setMsg(`${g.name} is in the cauldron. What else goes in the parentheses?`);
-      return;
-    }
-    if (s.need === 'add' && inStep) { snSound('cork'); swirl(); pourFx(id); setBowl([...bowl, id]); setPoof((n) => n + 1); setStep(step + 1); setMsg(`In it goes! ${stepMsg(step + 1)}`); return; }
-    if (s.need === 'bowl') return wrong(`Fizzle! The part in parentheses always goes first, like in math. ${stepMsg(0)}`);
-    wrong(`Fizzle! That is not in this step. ${stepMsg(step)}`);
-  };
-  // Her Cauldron (Build Queue 113): one pot, a wooden stick that swirls whenever something goes
-  // in, ingredients dragged (or tapped) into the pot, and stirring by drawing circles on the pot.
-  const [mixing, setMixing] = useState(0);
-  // Potion mixing, improved (Build Queue 167, her words 2026-10-14: "continue improving the supernature and
-  // all functions claudia, lets make sure the potion mixing is improved"): each ingredient flies into the pot
-  // with a splash and turns the brew its color, the ingredients for this step glow on the shelf, stirring
-  // shows a ring that fills as you circle, and a finished potion pops out of the pot with its bottle.
-  const [brew, setBrew] = useState<string | null>(null);
-  const [fly, setFly] = useState<{ img: string; key: number } | null>(null);
-  const [splash, setSplash] = useState(0);
-  const [stirFrac, setStirFrac] = useState(0);
-  const [pop, setPop] = useState<{ name: string; key: number } | null>(null);
-  const fizzAtStart = useRef(0);
-  const [double, setDouble] = useState(false);
-  const pourFx = (id: string) => {
-    const img = ING(id).img; const key = Date.now();
-    setFly({ img, key });
-    window.setTimeout(() => { setSplash(Date.now()); setFly((f) => (f && f.key === key ? null : f)); }, 520);
-    void inkOf(img).then((c) => setBrew((b) => (b ? mixRgb(b, c) : c)));
-  };
-  const [stickAngle, setStickAngle] = useState(0);
-  const [dragItem, setDragItem] = useState<{ id: string; x: number; y: number } | null>(null);
-  const potRef = useRef<HTMLDivElement | null>(null);
-  const stirRef = useRef<{ last: number; total: number } | null>(null);
-  const swirl = () => setMixing((n) => n + 1);
-  const stageXY = (cx: number, cy: number) => { const st = document.querySelector('.sn-stage')!.getBoundingClientRect(); const k = st.width / 1180; return { x: (cx - st.left) / k, y: (cy - st.top) / k }; };
-  const overPot = (cx: number, cy: number) => { const r = potRef.current?.getBoundingClientRect(); return !!r && cx > r.left && cx < r.right && cy > r.top && cy < r.bottom; };
-  const startDrag = (e: React.PointerEvent, id: string) => {
-    const start = { x: e.clientX, y: e.clientY }; let moved = false;
-    const mv = (ev: PointerEvent) => { if (!moved && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 8) moved = true; if (moved) setDragItem({ id, ...stageXY(ev.clientX, ev.clientY) }); };
-    const upH = (ev: PointerEvent) => {
-      window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', upH); window.removeEventListener('pointercancel', upH);
-      setDragItem(null);
-      if (!moved || overPot(ev.clientX, ev.clientY)) tapIngredient(id);
-    };
-    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', upH); window.addEventListener('pointercancel', upH);
-  };
-  const potAngle = (e: React.PointerEvent) => { const r = potRef.current!.getBoundingClientRect(); return Math.atan2(e.clientY - (r.top + r.height * 0.42), e.clientX - (r.left + r.width / 2)); };
-  const stirDown = (e: React.PointerEvent) => { if (s.need !== 'stir' || locked || done) return; (e.target as Element).setPointerCapture?.(e.pointerId); stirRef.current = { last: potAngle(e), total: 0 }; };
-  const stirMove = (e: React.PointerEvent) => {
-    const st = stirRef.current; if (!st) return;
-    const a = potAngle(e); let d = a - st.last; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI;
-    st.last = a; st.total += d; setStickAngle((v) => v + (d * 180) / Math.PI); setStirFrac(Math.min(1, Math.abs(st.total) / (Math.PI * 2)));
-    if (Math.abs(st.total) >= Math.PI * 2) { st.total = 0; setStirFrac(0); stir(); }
-  };
-  const stir = () => {
-    if (locked) return;
-    if (s.need !== 'stir') return wrong(`Not yet. ${stepMsg(step)}`);
-    snSound('stir'); swirl(); const n = stirs + 1; setStirs(n);
-    if (n >= (s.times ?? 3)) { setStirs(0); setStep(step + 1); setMsg(`Bubbling nicely! ${stepMsg(step + 1)}`); }
-  };
-  const spell = R.steps.find((x) => x.need === 'spell')?.word ?? R.name.toLowerCase();
-  const finish = () => {
-    setWrite(false); setDone(true); setPoof((n) => n + 1); snSound('done'); onBrewed(R.name, double ? [...buyList, 'essence'] : buyList, double ? 2 : 1); setPop({ name: R.name, key: Date.now() });
-    const slips = fizz - fizzAtStart.current;
-    const unlocks = RECIPES.filter((x) => x.unlock === R.name && !brewed.includes(R.name));
-    setMsg(`Poof! You made the ${R.name} potion. ${R.does}${slips === 0 ? ' ⭐ A perfect brew: every step in order!' : ` You fixed ${slips} ${slips === 1 ? 'mistake' : 'mistakes'} and kept going. That is how real potion makers learn!`}${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
-    say(`Poof! You made the ${R.name} potion.${unlocks.length ? ` You discovered a new recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`);
-  };
-  const count = (n: string) => potions.filter((p) => p === n).length;
-  const shelf = INGREDIENTS.filter((g) => g.tier === 'free' || needed.includes(g.id) || (pantry[g.id] ?? 0) > 0 || (g.earnedAs && earned.includes(g.earnedAs)));
-  const isLocked = (x: typeof R) => !!x.unlock && !brewed.includes(x.unlock);
-  return (
-    <div className="sn-room">
-      {bar({ extra: <>
-        <span className="sn-seg" role="radiogroup" aria-label="Cauldron mode">
-          <button type="button" role="radio" aria-checked={mode === 'recipe'} className={mode === 'recipe' ? 'on' : ''} onClick={() => { snSound('page'); setMode('recipe'); }}>📜 Recipes</button>
-          <button type="button" role="radio" aria-checked={mode === 'lab'} className={mode === 'lab' ? 'on' : ''} onClick={() => { snSound('page'); setMode('lab'); say('The Mixing Lab! Pick a flask, then tap or drag a bottle in. Real science decides what happens.'); }}>⚗️ Mixing Lab</button>
-        </span>
-        <span className="sn-chip">My potions: {potions.length}</span>
-      </> })}
-      {mode === 'lab' ? <SupernatureMixLab say={say} onDiscover={onEssence} /> : <>
-      <section className="sn-recipe">
-        <div className="sn-row between">
-          <button type="button" className="sn-ib small light" onClick={() => { snSound('page'); reset((ri + RECIPES.length - 1) % RECIPES.length); }} aria-label="Previous recipe"><Icon d="M15 5l-7 7 7 7" /></button>
-          <button type="button" className="sn-chip-btn" onClick={() => setList(!list)}>Recipe {ri + 1} of {RECIPES.length} ▾</button>
-          <button type="button" className="sn-ib small light" onClick={() => { snSound('page'); reset((ri + 1) % RECIPES.length); }} aria-label="Next recipe"><Icon d="M9 5l7 7-7 7" /></button>
-        </div>
-        {list ? (
-          <div className="sn-recipe-list">
-            {RECIPES.map((x, i) => <button key={x.name} type="button" className={`sn-chip-btn${i === ri ? ' on' : ''}`} onClick={() => { snSound('page'); reset(i); }}>{isLocked(x) ? '🔒 ???' : `${x.name}${count(x.name) ? ` (${count(x.name)})` : ''}`}</button>)}
-          </div>
-        ) : locked ? (
-          <div className="sn-locked"><h2>🔒 A secret recipe</h2><p>Discover it by brewing the {R.unlock} potion first.</p></div>
-        ) : (
-          <>
-            <div className="sn-row between"><h2>{R.name}{R.unlock ? ' ✨' : ''}</h2>
-              <button type="button" className="sn-listen" onClick={() => say(`${R.name}. ${R.meaning}. ${R.does} ${R.steps.map((x, i) => `Step ${i + 1}. ${x.text}`).join(' ')}`)} aria-label="Read the recipe aloud"><Icon d={LISTEN} /></button></div>
-            <p className="sn-small">{R.meaning}. {R.does} <b>Use it:</b> {R.where}. You have {count(R.name)}.</p>
-            <ol>{R.steps.map((x, i) => <li key={i} className={i < step || done ? 'done' : i === step ? 'now' : ''}><b>{i + 1}</b><span>{x.text}{x.need === 'stir' && i === step ? ` (${stirs} of ${x.times})` : ''}</span></li>)}</ol>
-            {buyList.filter((id) => ING(id).tier !== 'wild').length > 0 && <p className="sn-small">From the Shop: {buyList.filter((id) => ING(id).tier !== 'wild').map((id) => `${ING(id).name} ${has(id) ? '✓' : `(${formatMoney(ING(id).price)})`}`).join(', ')}</p>}
-            {buyList.some((id) => ING(id).tier === 'wild') && <p className="sn-small">🌿 From the Habitat (find or grow them): {buyList.filter((id) => ING(id).tier === 'wild').map((id) => `${ING(id).name} ${has(id) ? '✓' : `(you have ${pantry[id] ?? 0})`}`).join(', ')}</p>}
-          </>
-        )}
-      </section>
-      <section className="sn-pot">
-        <div className="sn-bowl">In the pot: {bowl.length ? bowl.map((b) => ING(b).name).join(' + ') : 'nothing yet'}</div>
-        {fizz > 0 && <img key={`z${fizz}`} src={`${SN}theme/sparkle-6.png`} alt="" className="sn-fizz" />}
-        {poof > 0 && <span key={`p${poof}`} className="sn-poof" />}
-        <div className={`sn-potwrap${dragItem ? ' drop' : ''}${s.need === 'stir' && !done ? ' stirring' : ''}`} ref={potRef} onPointerDown={stirDown} onPointerMove={stirMove} onPointerUp={() => { stirRef.current = null; }} onPointerCancel={() => { stirRef.current = null; }}>
-          <img src={`${SN}theme/cauldron-bubbling.gif`} alt="Bubbling cauldron" className="sn-cauldron sn-smooth" />
-          {brew && <span className="sn-brewtint" style={{ background: brew }} aria-hidden="true" />}
-          {s.need === 'stir' && !done && (
-            <svg className="sn-stirring" viewBox="0 0 300 300" aria-hidden="true"><circle cx="150" cy="150" r="138" className="track" /><circle cx="150" cy="150" r="138" className="fill" style={{ strokeDasharray: `${stirFrac * 867} 867` }} /></svg>
-          )}
-          {fly && <img key={fly.key} src={fly.img} alt="" className="sn-flyin" />}
-          {splash > 0 && <Fx key={`sp${splash}`} k="splash" size={150} className="sn-splashfx" />}
-          {fizz > 0 && <Fx key={`fz${fizz}`} k="dust" size={140} className="sn-splashfx" />}
-          {pop && <span key={pop.key} className="sn-potpop"><Fx k="potion" size={220} className="sn-potpop-fx" /><img src={POTION_ICON[pop.name]} alt="" /><b>+{double ? 2 : 1} {pop.name}</b></span>}
-          <span key={`m${mixing}`} className={`sn-stick${mixing ? ' swirl' : ''}`} style={{ ['--a' as string]: `${stickAngle}deg` }} aria-hidden="true"><i /></span>
-          {s.need === 'stir' && !done && <span className="sn-stir-hint">Draw circles on the pot to stir! {Array.from({ length: s.times ?? 3 }, (_, k) => (k < stirs ? '●' : '○')).join(' ')}</span>}
-        </div>
-        <div className="sn-row center">
-          <button type="button" className={`sn-btn2${s.need === 'stir' && !done ? ' sn-glow' : ''}`} disabled={locked} onClick={stir}>Stir once</button>
-          <button type="button" className={`sn-btn2${s.need === 'spell' && !done ? ' sn-glow' : ''}`} disabled={locked} onClick={() => (s.need === 'spell' && !done ? setWrite(true) : wrong(`Not yet. ${stepMsg(step)}`))}>Write the spell</button>
-        </div>
-        {msg && <p className="sn-msg" role="status">{msg}</p>}
-        {need && !has(need) && <button type="button" className="sn-btn" onClick={goShop}>Go to the Shop</button>}
-        {done && (
-          <div className="sn-row center">
-            {R.where.startsWith('Habitat') && <button type="button" className="sn-btn" onClick={goHabitat}>Take it outside</button>}
-            <button type="button" className="sn-btn2" onClick={goNames}>Name your potion</button>
-            <button type="button" className="sn-btn2" onClick={() => reset()}>Brew again</button>
-          </div>
-        )}
-      </section>
-      <section className="sn-shelf">
-        <span className="sn-label">Ingredient shelf</span>
-        <div className="sn-shelf-grid">
-          {shelf.map((x) => {
-            const n = x.tier === 'free' ? null : x.earnedAs && earned.includes(x.earnedAs) ? 'earned' : (pantry[x.id] ?? 0);
-            return (
-              <button key={x.id} type="button" className={`sn-ingb${n === 0 ? ' empty' : ''}${!done && !locked && (s.need === 'bowl' || s.need === 'add') && s.items?.includes(x.id) && !bowl.includes(x.id) ? ' needed' : ''}`} onPointerDown={(e) => startDrag(e, x.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') tapIngredient(x.id); }}>
-                <img src={x.img} alt="" />{x.name}<small>{n === null ? 'free' : n === 'earned' ? 'earned' : n === 0 ? `buy ${formatMoney(x.price)}` : `you have ${n}`}</small>
-              </button>
-            );
-          })}
-        </div>
-        <button type="button" className="sn-btn2 small" onClick={goShop}>🛒 Shop for more</button>
-      </section>
-      </>}
-      {dragItem && <img src={ING(dragItem.id).img} alt="" className="sn-drag-ghost" style={{ left: dragItem.x - 30, top: dragItem.y - 30 }} />}
-      {write && <SupernatureWriting word={spell} title="Write the spell" onListen={() => say(spell)} onClose={() => setWrite(false)} onDone={finish} />}
     </div>
   );
 }

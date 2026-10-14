@@ -16,18 +16,18 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-new-cauldron",
+    date: "2026-10-14",
+    icon: "🧙",
+    title: "The new magic Cauldron",
+    body: "The Cauldron is all new! Drag real elements into the pot, then heat, stir, chill or zap it. Recipe cards show what each potion needs, like helium to fly. Miss the key element and it goes poof in smoke. Put in too much and it bubbles over. Try a free experiment to make your own potion and its recipe card, write the spell name to bottle it, and answer 10 questions to power it up, 3 times!",
+  },
+  {
     id: "2026-10-14-element-pictures",
     date: "2026-10-14",
     icon: "🖼️",
     title: "A picture for every element",
-    body: "Every element has a picture now: hydrogen is the sun, helium is balloons, iron is a bridge. See them on the bottles in the Science Lab and the Mixing Lab, and on every tile of the periodic table. Tap a tile to see what the element is used for.",
-  },
-  {
-    id: "2026-10-14-science-essence",
-    date: "2026-10-14",
-    icon: "✨",
-    title: "Science essence: double potions",
-    body: "Every new reaction you discover in the Mixing Lab gives you a science essence. Add it to any recipe in the Cauldron and you get 2 potions instead of 1!",
+    body: "Every element has a picture now: hydrogen is the sun, helium is balloons, iron is a bridge. See them on the bottles in the Science Lab, and on every tile of the periodic table. Tap a tile to see what the element is used for.",
   },
   {
     id: "2026-10-14-brewing",
