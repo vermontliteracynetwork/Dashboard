@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-listen-everywhere",
+    date: "2026-10-14",
+    icon: "🔊",
+    title: "Listen on every screen",
+    body: "Every screen has a 🔊 Listen button now, right next to Azalea. Tap it to hear the words on the screen read aloud. Tap Stop to make it stop.",
+  },
+  {
     id: "2026-10-14-new-grammar-symbols",
     date: "2026-10-14",
     icon: "🔤",
