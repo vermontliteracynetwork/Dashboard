@@ -182,7 +182,7 @@ export const AERO = RECIPES[0];
 export const VITA = RECIPES[1];
 
 // Each student's progress, saved in their own row (no new tables).
-export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]>; homes?: Record<string, string> }
+export interface SnHabitat { biome?: string; health?: Record<string, number>; season?: number; plants?: number; mush?: number; groups?: Record<string, number>; levels?: Record<string, number>; abs?: number; seen?: Record<string, string[]>; faded?: Record<string, number>; buffs?: Record<string, string[]>; homes?: Record<string, string>; skills?: Record<string, Record<string, number>>; train?: Record<string, Record<string, number>>; out?: string[] }
 export interface SnSave { found?: string[]; potions?: string[]; names?: string[]; earned?: string[]; habitat?: SnHabitat; made?: import('./supernatureCreatures').Made[]; pantry?: Record<string, number>; brewed?: string[]; petDay?: string; checkins?: number }
 export function useSupernature(studentId: string | null) {
   const owner = studentId ? `supernature:${studentId}` : '';

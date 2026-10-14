@@ -6,6 +6,15 @@ import { art, byId, madeList, type Biome, type Creature } from '../../lib/supern
 import { Icon } from './SupernatureWriting';
 import SupernatureGenerations from './SupernatureGenerations';
 import SupernatureBe from './SupernatureBe';
+import QuestionScreen from '../../components/QuestionScreen';
+import { useStore } from '../../store/store';
+import { drawQuestion, pickableSets } from '../../lib/questionPick';
+import { generateAutoQuestion } from '../../lib/autoQuestions';
+import type { MCQuestion } from '../../types';
+import {
+  HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, canBeHunted, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
+  skillTags, startSkills, type SkillId, type SkillSet,
+} from '../../lib/supernatureSkills';
 import { SEASONS, SEASON_ICON, START_GROUP, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
@@ -196,7 +205,21 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const clk = seasonClock(now);
   const season = clk.name;
   const lastAbs = useRef<number>(saved.abs ?? clk.abs);
-  const [live, setLive] = useState<Live[]>(() => all.filter((c) => saved.faded?.[c.id] === undefined).map((c, i, arr) => ({ c, ...place(c, i, arr.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
+  // Creature skills, training, hunting, feelings and taking creatures in and out (Build Queue 134).
+  const [skills, setSkills] = useState<Record<string, SkillSet>>((saved.skills as Record<string, SkillSet>) ?? {});
+  const [prog, setProg] = useState<Record<string, Partial<Record<SkillId, number>>>>((saved.train as Record<string, Partial<Record<SkillId, number>>>) ?? {});
+  const [out, setOut] = useState<string[]>(saved.out ?? []);
+  const sk = (c: Creature): SkillSet => skills[c.id] ?? startSkills(c);
+  const [hunt, setHunt] = useState<{ hunter: string; prey: string; phase: 'chase' | 'escaped' | 'caught'; how?: string } | null>(null);
+  const [escapedAt, setEscapedAt] = useState<Record<string, number>>({});
+  const [grewAt, setGrewAt] = useState<Record<string, number>>({});
+  const [hungryIds, setHungryIds] = useState<string[]>([]);
+  const [train, setTrain] = useState<{ id: string; skill: SkillId | null; q: MCQuestion | null } | null>(null);
+  const [placing, setPlacing] = useState<{ id: string; mode: 'add' | 'remove' } | null>(null);
+  const [outTray, setOutTray] = useState(false);
+  const ttsSettings = useStore((st) => st.students.find((x) => x.id === st.currentStudentId)?.ttsSettings);
+  const questionSets = useStore((st) => st.questionSets);
+  const [live, setLive] = useState<Live[]>(() => all.filter((c) => saved.faded?.[c.id] === undefined && !(saved.out ?? []).includes(c.id)).map((c, i, arr) => ({ c, ...place(c, i, arr.slice(0, i).filter((x) => x.move === 'swim').length), hp: saved.health?.[c.id] ?? 5, status: (saved.health?.[c.id] ?? 5) === 0 ? 'asleep' : null, energy: c.energy, hide: false })));
   const [biome, setBiome] = useState<View>((saved.biome as View) || 'grassland');
   const land: Biome = biome === 'ocean' ? 'grassland' : biome;
   // Each creature is assigned a biome and can be moved (Build Queue 125).
@@ -244,7 +267,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // Every creature's reaction to what is happening right now (Build Queue 118), including the season
   // and any season potion protecting it (120, 121).
   const reactFor = (c: Creature): Reaction => {
-    const r = react(c, { weather: wx, disaster: active, night, biome: home(c), season });
+    const k = sk(c);
+    const r = react(c, { weather: wx, disaster: active, night, biome: home(c), season }, { tags: skillTags(k), skills: Object.keys(k) });
     const b = buffs[c.id] ?? [];
     if (b.includes('Somnus') && (season === 'Winter' || season === 'Fall') && !active) return { icon: '💤', word: 'hibernates', text: `${c.name} is hibernating, snug and safe, until winter ends.`, hit: 0, pose: 'sleep', because: 'A Somnus potion' };
     if (r.hit && shielded(c.id, r.status)) { const p = b.find((x) => SHIELD[x]?.includes(r.status!))!; return { icon: '🧪', word: 'protected', text: `${c.name} is protected by its ${p} potion.`, hit: 0, pose: 'glow', because: `A ${p} potion` }; }
@@ -252,7 +276,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   const reactions = useMemo(() => Object.fromEntries(live.map((l) => [l.c.id, reactFor(l.c)])) as Record<string, Reaction>,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [live.length, wx, active, night, homes, season, buffs]);
+    [live.length, wx, active, night, homes, season, buffs, skills]);
   const situation = active ? DISASTERS[active].label.toLowerCase() : wx !== 'clear' ? wx : night ? 'night' : season.toLowerCase();
   const here = live.filter((l) => home(l.c) === biome);
   const spot = (l: Live) => { const i = here.indexOf(l); return biome === 'ocean' ? oceanPlace(Math.max(0, i)) : place(l.c, Math.max(0, i), here.slice(0, Math.max(0, i)).filter((x) => x.c.move === 'swim').length); };
@@ -290,6 +314,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       const name = seasonName(e);
       const r = runSeason({ ...E, season: e }, L.map((l) => l.c), { biome: land, homes: Object.fromEntries(L.map((l) => [l.c.id, home(l.c)])), weather: away ? 'clear' : wx, disaster: away ? null : active, nest: e === from ? nest : [] });
       E = r.next; last = r;
+      setHungryIds(r.changes.filter((x) => x.why.includes('Not enough')).map((x) => x.id));
       L = L.filter((l) => {
         if (l.hp === 0) { fd[l.c.id] = e; lost.push(l.c.id); return false; }
         if ((E.groups[l.c.id] ?? START_GROUP) > 0) {
@@ -319,6 +344,62 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       setGuess(null); setCaughtFx(last.caught); window.setTimeout(() => setCaughtFx([]), 2600);
       say(`${away ? `While you were away, ${to - from === 1 ? 'a season' : `${to - from} seasons`} passed. ` : `${seasonName(to - 1)} is over. `}${SEASON_ICON[next]} ${next} is here! ${last.sentence}${lost.length ? ` ${lost.map((id) => byId(id)?.name).join(', ')} did not survive and faded away. Their families will come back in spring.` : ''}${ups.length ? ` Level up: ${ups.map((id) => byId(id)?.name).join(', ')} lived through all four seasons!` : ''}`);
     }
+  };
+  // Training skills with questions (her words: "skills are earned over time through question sets.
+  // adaptations and evolutions for creatures are gained by correct question answered").
+  const nextQ = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const startTrain = (id: string, skill: SkillId) => { snSound('open'); setTrain({ id, skill, q: nextQ() }); };
+  const trainRight = () => {
+    if (!train?.skill) return;
+    const c = live.find((l) => l.c.id === train.id)?.c; if (!c) return;
+    const k = sk(c); const s = train.skill; const learning = !has(k, s);
+    const need = learning ? LEARN_COST : LEVEL_COST;
+    const got = (prog[c.id]?.[s] ?? 0) + 1;
+    if (got >= need) {
+      setSkills((m) => ({ ...m, [c.id]: { ...k, [s]: learning ? 1 : Math.min(MAX_LEVEL, (k[s] ?? 0) + 1) } }));
+      setProg((m) => ({ ...m, [c.id]: { ...(m[c.id] ?? {}), [s]: 0 } }));
+      setGrewAt((m) => ({ ...m, [c.id]: Date.now() })); sparkleOn(c.id); snSound('learned');
+      tell(learning ? `${c.name} adapted! It learned ${SKILL(s).name}: ${SKILL(s).does}` : `${c.name}'s ${SKILL(s).name} skill grew to level ${Math.min(MAX_LEVEL, (k[s] ?? 0) + 1)}!`, true);
+      setTrain({ id: c.id, skill: null, q: null });
+      return;
+    }
+    setProg((m) => ({ ...m, [c.id]: { ...(m[c.id] ?? {}), [s]: got } }));
+    setTrain({ ...train, q: nextQ(train.q?.id) });
+  };
+  // Would this skill help with what is happening right now?
+  const helpsNow = (c: Creature, s: SkillId) => { const k = { ...sk(c), [s]: 1 }; const now = reactions[c.id]; if (!now?.hit) return false; return react(c, { weather: wx, disaster: active, night, biome: home(c), season }, { tags: skillTags(k), skills: Object.keys(k) }).hit === 0; };
+  // Taking creatures out of the Habitat and putting them back (her rule: a confirmation that says they
+  // leave play, their levels start over from zero, and the biome's food web changes).
+  const outList = all.filter((c) => !live.some((l) => l.c.id === c.id) && faded[c.id] === undefined);
+  const removeCreature = (id: string) => {
+    const c = live.find((l) => l.c.id === id)?.c; if (!c) return;
+    setLive((ls) => ls.filter((l) => l.c.id !== id)); setOut((o) => [...o.filter((x) => x !== id), id]);
+    setLevels((lv) => ({ ...lv, [id]: 0 })); setSeen((m) => ({ ...m, [id]: [] }));
+    setSkills((m) => { const n = { ...m }; delete n[id]; return n; }); setProg((m) => { const n = { ...m }; delete n[id]; return n; });
+    setBuffs((m) => { const n = { ...m }; delete n[id]; return n; });
+    setSel(null); snSound('close'); tell(`${c.name} left the Habitat. The food web in the ${viewLabel(home(c)).toLowerCase()} changed.`, true);
+  };
+  const addCreature = (id: string) => {
+    const c = all.find((x) => x.id === id); if (!c) return;
+    const where: View = biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome;
+    setOut((o) => o.filter((x) => x !== id)); setHomes((h) => ({ ...h, [id]: where }));
+    setLevels((lv) => ({ ...lv, [id]: 0 })); setSeen((m) => ({ ...m, [id]: [] }));
+    setSkills((m) => ({ ...m, [id]: startSkills(c) }));
+    setEco((x) => ({ ...x, groups: { ...x.groups, [id]: START_GROUP } }));
+    setLive((ls) => [...ls, { c, ...place(c, ls.length, 0), hp: 5, status: null, energy: c.energy, hide: false }]);
+    setBiome(where); snSound('open'); tell(`${c.name} came into play in the ${viewLabel(where).toLowerCase()}! It starts at level 0 with its 3 starting skills.`, true);
+  };
+  const webChange = (id: string, mode: 'add' | 'remove'): string[] => {
+    const c = all.find((x) => x.id === id); if (!c) return [];
+    const where = mode === 'add' ? (biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome) : home(c);
+    const near = live.filter((l) => l.c.id !== id && home(l.c) === where).map((l) => l.c);
+    const lines: string[] = [];
+    if (isHunter(c)) { const prey = near.filter((p) => canBeHunted(p, sk(p))); if (prey.length) lines.push(mode === 'add' ? `${prey.map((p) => p.name).join(', ')} could be hunted by ${c.name}.` : `${prey.map((p) => p.name).join(', ')} will be safer: one less hunter.`); }
+    if (c.eats === 'plants' || c.eats === 'both') lines.push(mode === 'add' ? 'Plants will be eaten faster.' : 'More plants will be left for the plant eaters.');
+    const hunters = near.filter((h) => isHunter(h) && canBeHunted(c, startSkills(c)));
+    if (hunters.length) lines.push(mode === 'add' ? `${hunters.map((h) => h.name).join(', ')} will have more food to catch.` : `${hunters.map((h) => h.name).join(', ')} will have less food to catch.`);
+    if (!lines.length) lines.push(mode === 'add' ? 'It will share the biome with the creatures there.' : 'The other creatures there will have a little more room.');
+    return lines;
   };
   // What if a group moved away? Who would get hungry, and who would grow (plan section 5: fragility).
   const ripple = (id: string): Record<string, 'hungry' | 'grow'> => {
@@ -355,8 +436,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}`;
+  latest.current = { biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -408,6 +489,36 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       else if (hp === 5) status = null;
       return hp === l.hp && status === l.status ? l : { ...l, hp, status };
     }));
+    // Hunting (Build Queue 134): every so often a hunter stalks a creature in its own biome. The prey's
+    // skills decide if it escapes; a caught one makes the family one smaller (it poofs away, never hurt).
+    if (!hunt && tick % 6 === 3 && !dis) {
+      const pairs: [Live, Live][] = [];
+      for (const h of live) {
+        if (!isHunter(h.c) || h.hp === 0 || h.hide || count(h.c.id) === 0 || reactions[h.c.id]?.pose === 'sleep') continue;
+        for (const p of live) if (p !== h && home(p.c) === home(h.c) && p.hp > 0 && !p.hide && count(p.c.id) > 0 && canBeHunted(p.c, sk(p.c))) pairs.push([h, p]);
+      }
+      const seen = pairs.filter(([h]) => home(h.c) === biome);
+      const pool = seen.length ? seen : pairs;
+      if (pool.length && Math.random() < 0.7) {
+        const [h, p] = pool[Math.floor(Math.random() * pool.length)];
+        const inView = home(h.c) === biome;
+        setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'chase' });
+        if (inView) { natureSound('whoosh', 0.3); tell(`${h.c.name} is hunting! It ${has(sk(h.c), 'sneak') ? 'sneaks up quietly' : 'runs fast'} toward ${p.c.name}.`); }
+        window.setTimeout(() => {
+          const e = escapeChance(p.c, sk(p.c), h.c, sk(h.c), count(p.c.id));
+          if (Math.random() < e.p) {
+            setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'escaped', how: e.how }); setEscapedAt((m) => ({ ...m, [p.c.id]: Date.now() }));
+            if (inView) { snSound('chime'); tell(`${p.c.name} ${HOW_ESCAPED[e.how]}! ${e.how !== 'luck' ? `Its ${e.how === 'flying' || e.how === 'swimming' ? e.how : SKILL(e.how as SkillId).name.toLowerCase()} skill saved it.` : ''}`, true); }
+          } else {
+            setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'caught' });
+            setEco((x) => ({ ...x, groups: { ...x.groups, [p.c.id]: Math.max(0, (x.groups[p.c.id] ?? START_GROUP) - 1) } }));
+            setCaughtFx([p.c.id]); window.setTimeout(() => setCaughtFx([]), 2400);
+            if (inView) { snSound('poof'); tell(`${h.c.name} caught one of the ${p.c.name} family. The rest of the family hid safely. Training skills like Camouflage or Fast runner helps prey escape.`, true); }
+          }
+          window.setTimeout(() => setHunt(null), 2600);
+        }, 3200);
+      }
+    }
     // a little life in the background
     if (tick % 5 === 0) { if (biome === 'ocean') natureSound('splash', 0.2); else if (night) natureSound(biome === 'swamp' && (season === 'Spring' || season === 'Summer') ? 'frog' : 'owl', 0.35); else if (wx === 'clear' && season !== 'Winter') natureSound('bird', 0.35); else if (season === 'Winter') natureSound('gust', 0.25); }
     // surprises (only while the Habitat is open)
@@ -625,9 +736,15 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           const still = k === 0 || l.hp === 0;
           const swimmer = biome === 'ocean' || l.c.move === 'swim';
           const pos = l.hide ? (swimmer ? { left: sp.x, top: sp.y + 40 } : { left: CAVE.x + 50, top: CAVE.y + 60 }) : tp === 'float' || tp === 'zoom' ? { left: sp.x, top: Math.max(20, sp.y - 150) } : { left: sp.x, top: sp.y };
-          const mv = tp === 'float' || tp === 'zoom' ? 'fly' : biome === 'ocean' ? 'swim' : l.c.move;
+          const hunting = hunt?.hunter === l.c.id && hunt.phase === 'chase';
+          const preyL = hunting ? here.find((x) => x.c.id === hunt!.prey) : undefined;
+          if (preyL && !l.hide) { const ps = spot(preyL); pos.left = ps.x + (ps.x > sp.x ? -80 : 80); pos.top = ps.y; }
+          if (hunt?.prey === l.c.id && hunt.phase === 'escaped' && !l.hide) { pos.left = Math.max(20, Math.min(W - 120, sp.x + (sp.x > 560 ? 220 : -220))); pos.top = Math.max(20, sp.y - (hunt.how === 'flying' ? 160 : 20)); }
+          // A water creature that adapted with Fish out of water walks on land (Build Queue 134).
+          const mv = tp === 'float' || tp === 'zoom' ? 'fly' : biome === 'ocean' ? 'swim' : l.c.move === 'swim' && has(sk(l.c), 'fishOutOfWater') ? 'walk' : l.c.move;
+          const feel = feelingOf({ name: l.c.name, hp: l.hp, status: l.status, hurting: (reactions[l.c.id]?.hit ?? 0) > 0, disaster: !!active, hunted: hunt?.prey === l.c.id && hunt.phase === 'chase', escaped: Date.now() - (escapedAt[l.c.id] ?? 0) < 20000, hungry: hungryIds.includes(l.c.id), homesick: l.status === 'homesick', lonely: /pack/.test(l.c.traits.join(' ')) && count(l.c.id) === 1, hibernating: reactions[l.c.id]?.pose === 'sleep' && season === 'Winter', grew: Date.now() - (grewAt[l.c.id] ?? 0) < 30000 });
           return (
-            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
+            <button key={l.c.id} type="button" data-crit={l.c.id} className={`sn-crit ${mv}${tp ? ` temp-${tp}` : ''}${hunting ? ` hunting ${has(sk(l.c), 'sneak') ? 'sneak' : 'run'}` : ''}${hunt?.prey === l.c.id ? ` prey-${hunt.phase}` : ''}${still || ['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '') ? ' still' : ''}${sel === l.c.id ? ' on' : ''}${l.hide ? ' hide' : ''}${count(l.c.id) === 0 ? ' away' : ''}${giant === l.c.id ? ' giant' : ''}${armed && fits(armed, l) ? ' target' : ''} pose-${reactions[l.c.id]?.pose ?? 'none'}`}
               style={{ ...pos, zIndex: mv === 'fly' ? 4 : 3, ['--d' as string]: `${sp.d}px`, ['--t' as string]: `${sp.t * (k || 1)}s`, animationDelay: `${-i * 1.7}s` }}
               onClick={(e) => { e.stopPropagation(); if (armed) { if (fits(armed, l)) giveTo(armed, l.c.id); else tell(`${l.c.name} does not need ${armed} right now.`); return; } snSound('tap'); setSel(l.c.id); setCheckIn(false); setPick(null); }} aria-label={`${l.c.name}. ${l.hp} of 5 hearts. ${reactions[l.c.id]?.text ?? ''} Tap to check on it.`}>
               {reactions[l.c.id] && reactions[l.c.id].word !== 'at home' && !l.hide && <span className={`sn-react${reactions[l.c.id].hit ? ' bad' : ''}`}>{reactions[l.c.id].icon} {reactions[l.c.id].word}</span>}
@@ -635,7 +752,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <span className="sn-sparkles" />}
               {caughtFx.includes(l.c.id) && <span className="sn-catch" />}
-              <span className="sn-crit-name">{count(l.c.id) === 0 ? '🧳 moved away' : <>{l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
+              <span className="sn-crit-name"><i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
           );
@@ -715,6 +832,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             </div>
             <div className="sn-hearts big" aria-label={`${sel_.hp} of 5 hearts`}>{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < sel_.hp ? 'full' : ''} />)}</div>
             {reactions[sel_.c.id] && <p className={`sn-pop-react${reactions[sel_.c.id].hit ? ' bad' : ''}`}>{reactions[sel_.c.id].icon} {reactions[sel_.c.id].text}{reactions[sel_.c.id].because ? <><br /><b>Why:</b> {reactions[sel_.c.id].because}.</> : null}</p>}
+            {(() => { const f = feelingOf({ name: sel_.c.name, hp: sel_.hp, status: sel_.status, hurting: (reactions[sel_.c.id]?.hit ?? 0) > 0, disaster: !!active, hunted: hunt?.prey === sel_.c.id && hunt.phase === 'chase', escaped: Date.now() - (escapedAt[sel_.c.id] ?? 0) < 20000, hungry: hungryIds.includes(sel_.c.id), homesick: sel_.status === 'homesick', lonely: /pack/.test(sel_.c.traits.join(' ')) && count(sel_.c.id) === 1, hibernating: reactions[sel_.c.id]?.pose === 'sleep' && season === 'Winter', grew: Date.now() - (grewAt[sel_.c.id] ?? 0) < 30000 }); const t = feelingSentence(sel_.c.name, f); return (
+              <p className={`sn-feel ${f.zone}`}><b>{ZONE_NAME[f.zone]}:</b> {t}<button type="button" className="sn-listen" onClick={() => say(t)} aria-label="Listen"><Icon d={LISTEN} /></button></p>
+            ); })()}
+            <div className="sn-pop-skills">
+              <b>🧬 Skills ({Object.keys(sk(sel_.c)).length} of {MAX_SKILLS})</b>
+              <div>{(Object.entries(sk(sel_.c)) as [SkillId, number][]).map(([id, n]) => <span key={id} className="sn-skill" title={SKILL(id).does}>{SKILL(id).icon} {SKILL(id).name} <i>{'●'.repeat(n)}{'○'.repeat(MAX_LEVEL - n)}</i></span>)}</div>
+              <button type="button" className="sn-btn2 go" onClick={() => { snSound('open'); setTrain({ id: sel_.c.id, skill: null, q: null }); }}>📚 Train skills with questions</button>
+            </div>
             <p className="sn-pop-seasons"><b>Level {levels[sel_.c.id] ?? 1}.</b> Live through all four seasons to level up: {SEASONS.map((x) => <span key={x} className={(seen[sel_.c.id] ?? []).includes(x) ? 'got' : ''}>{SEASON_ICON[x]}</span>)}</p>
             <p className="sn-small">{breedNote(sel_.c)}{(buffs[sel_.c.id] ?? []).length ? ` Potions on it: ${buffs[sel_.c.id].join(', ')}.` : ''}</p>
             <p className="sn-pop-status">{sel_.status ? STATUS[sel_.status] : 'Happy and healthy.'}
@@ -735,6 +860,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                 {sel_.hp < 5 && have('Vita') < 1 && <button type="button" className="sn-btn2" onClick={() => goCauldron('Vita')}>Brew a Vita potion to heal it</button>}
                 <button type="button" className="sn-btn2 go" disabled={sel_.hp === 0} onClick={() => { snSound('open'); setPlaying(sel_.c); setSel(null); }}>🎮 Be this creature</button>
                 <button type="button" className="sn-btn2" onClick={() => openPage(sel_.c.id)}>Read its page</button>
+                <button type="button" className="sn-btn2" onClick={() => { snSound('tap'); setPlacing({ id: sel_.c.id, mode: 'remove' }); }}>🧺 Take out of the Habitat</button>
               </div>
             ) : (
               <>
@@ -760,6 +886,63 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
       {playing && <SupernatureBe c={playing} roster={roster} biome={land} say={say} onClose={() => setPlaying(null)} />}
       {gensOpen && <SupernatureGenerations roster={roster} biome={land} disaster={active} say={say} onClose={() => setGensOpen(false)} goNames={goNames} />}
+      {outTray && (
+        <div className="sn-modal" role="dialog" aria-label="Creatures not in play" onClick={() => setOutTray(false)}>
+          <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
+            <h2>🧺 Creatures not in the Habitat</h2>
+            <p className="sn-small">Not every creature has to be in play. Pick one to put it in the {viewLabel(biome).toLowerCase()}.</p>
+            {outList.length === 0 ? <p>Every creature you found is in the Habitat. Tap a creature and choose Take out of the Habitat to give it a rest.</p> : (
+              <div className="sn-pick-row">{outList.map((c) => <button key={c.id} type="button" className="sn-opt dark" onClick={() => { setOutTray(false); setPlacing({ id: c.id, mode: 'add' }); }}><img src={art(c.id)} alt="" /><span>{c.name}</span></button>)}</div>
+            )}
+            <button type="button" className="sn-btn" onClick={() => setOutTray(false)}>Close</button>
+          </div>
+        </div>
+      )}
+      {placing && (() => { const c = all.find((x) => x.id === placing.id); if (!c) return null; const adding = placing.mode === 'add'; const where = adding ? (biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome) : home(c); const lines = webChange(c.id, placing.mode); const text = adding
+        ? `Put ${c.name} in the ${viewLabel(where).toLowerCase()}? ${c.name} will come into play. It starts over at level 0 with its 3 starting skills. The food web will change: ${lines.join(' ')}`
+        : `Take ${c.name} out of the Habitat? ${c.name} will no longer be in play. Its levels and the skills it learned will start over from zero when you put it back. The food web in the ${viewLabel(where).toLowerCase()} will change: ${lines.join(' ')}`; return (
+        <div className="sn-modal" role="alertdialog" aria-label={adding ? 'Put a creature in' : 'Take a creature out'}>
+          <div className="sn-modal-card paper sn-confirm">
+            <img src={art(c.id)} alt="" className="sn-confirm-art" />
+            <h2>{adding ? `Put ${c.name} in the ${viewLabel(where).toLowerCase()}?` : `Take ${c.name} out of the Habitat?`}</h2>
+            <ul className="sn-confirm-list">
+              <li>{adding ? `${c.name} will come into play in the ${viewLabel(where).toLowerCase()}.` : `${c.name} will no longer be in play.`}</li>
+              <li>{adding ? 'It starts over at level 0, with only its 3 starting skills.' : 'Its levels and the skills it learned will start over from zero when you put it back.'}</li>
+              <li><b>The food web in the {viewLabel(where).toLowerCase()} will change:</b><ul>{lines.map((l) => <li key={l}>{l}</li>)}</ul></li>
+            </ul>
+            <div className="sn-row center">
+              <button type="button" className="sn-btn2" onClick={() => say(text)}>🔊 Listen</button>
+              <button type="button" className="sn-btn2" onClick={() => setPlacing(null)}>{adding ? 'Not now' : `Keep ${c.name}`}</button>
+              <button type="button" className="sn-btn" onClick={() => { setPlacing(null); if (adding) addCreature(c.id); else removeCreature(c.id); }}>{adding ? 'Yes, put it in' : 'Yes, take it out'}</button>
+            </div>
+          </div>
+        </div>
+      ); })()}
+      {train && (() => { const l = live.find((x) => x.c.id === train.id); if (!l) return null; const k = sk(l.c); const full = Object.keys(k).length >= MAX_SKILLS; return train.skill && train.q ? (
+        <QuestionScreen key={`${train.q.id}-${prog[l.c.id]?.[train.skill] ?? 0}`} whoLabel={`Training ${l.c.name}: ${SKILL(train.skill).name} (${prog[l.c.id]?.[train.skill] ?? 0} of ${has(k, train.skill) ? LEVEL_COST : LEARN_COST})`} whoIcon={SKILL(train.skill).icon}
+          prompt={train.q.prompt} choices={train.q.choices} correctIndex={train.q.correctIndex} imageUrl={train.q.imageUrl} imageAlt={train.q.imageAlt}
+          done={prog[l.c.id]?.[train.skill] ?? 0} total={has(k, train.skill) ? LEVEL_COST : LEARN_COST}
+          onCorrectAnswer={trainRight} onSkip={() => setTrain({ ...train, q: nextQ(train.q?.id) })} onExit={() => setTrain({ ...train, skill: null, q: null })} ttsSettings={ttsSettings} />
+      ) : (
+        <div className="sn-modal" role="dialog" aria-label={`Train ${l.c.name}`} onClick={() => setTrain(null)}>
+          <div className="sn-modal-card paper wide sn-train" onClick={(e) => e.stopPropagation()}>
+            <div className="sn-row between" style={{ width: '100%' }}><h2><img src={art(l.c.id)} alt="" /> Train {l.c.name}</h2><button type="button" className="sn-ib small light" onClick={() => setTrain(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button></div>
+            <p className="sn-small">Every right answer trains a skill. {LEVEL_COST} right answers raise a skill one level (up to {MAX_LEVEL}). {LEARN_COST} right answers teach a new skill, which is how a creature adapts. It can have {MAX_SKILLS} skills.</p>
+            <h3>Make a skill stronger</h3>
+            <div className="sn-train-grid">{(Object.entries(k) as [SkillId, number][]).map(([id, n]) => (
+              <button key={id} type="button" className="sn-train-opt" disabled={n >= MAX_LEVEL} onClick={() => startTrain(l.c.id, id)}>
+                <span>{SKILL(id).icon}</span><b>{SKILL(id).name}</b><i>{'●'.repeat(n)}{'○'.repeat(MAX_LEVEL - n)}</i><small>{n >= MAX_LEVEL ? 'Top level!' : `${prog[l.c.id]?.[id] ?? 0} of ${LEVEL_COST} to level ${n + 1}`}</small>
+              </button>
+            ))}</div>
+            <h3>Learn a new skill (adapt) {full && <small>· all {MAX_SKILLS} skills are full</small>}</h3>
+            <div className="sn-train-grid">{learnable(l.c, k).sort((a, b) => Number(helpsNow(l.c, b.s.id)) - Number(helpsNow(l.c, a.s.id))).map(({ s: x, ok, why }) => (
+              <button key={x.id} type="button" className={`sn-train-opt new${helpsNow(l.c, x.id) ? ' helps' : ''}`} disabled={!ok || full} onClick={() => startTrain(l.c.id, x.id)} title={why ?? x.does}>
+                <span>{x.icon}</span><b>{x.name}</b><small>{!ok ? why : helpsNow(l.c, x.id) ? `⭐ Helps right now. ${x.does}` : x.does}</small>{ok && <small>{prog[l.c.id]?.[x.id] ?? 0} of {LEARN_COST}</small>}
+              </button>
+            ))}</div>
+          </div>
+        </div>
+      ); })()}
       {reactOpen && (
         <div className="sn-modal" role="dialog" aria-label="How they react" onClick={() => setReactOpen(false)}>
           <div className="sn-modal-card paper wide" onClick={(e) => e.stopPropagation()}>
@@ -854,7 +1037,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
                   </div>
                   <div className="sn-web-grid low">
                     {col('Leftover eaters and mushrooms (they feed the soil, so plants grow)', [...by(['leftovers']), node('mush', '🍄 Mushrooms', null, eco.mush)])}
-                    {col('Magic eaters (no food web needed)', by(['magic']))}
+                    {col('Magic eaters (they need no food, but hunters can catch them)', by(['magic']))}
                   </div>
                   {whatIf && <p className="sn-small"><b>What if?</b> {whatIf === 'sun' ? 'Without the sun, no plants could grow, and every eater would get hungry.' : 'Orange ones would get hungry; green ones would grow. Everything in a food web is connected.'}</p>}
                 </>
@@ -883,6 +1066,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             </button>
           ))}
         </div>
+        <button type="button" className={`sn-wtile${outTray ? ' on' : ''}`} onClick={() => { snSound('tap'); setOutTray(!outTray); setMenu(null); }}><span>🧺</span><b>Creatures</b><small>{outList.length} not in play</small></button>
         <button type="button" className="sn-wtile cover" onClick={takeCover} disabled={live.length === 0}><span>🛖</span><b>{covered ? 'Come out' : 'Take cover'}</b><small>shelter</small></button>
 
         {menu && (

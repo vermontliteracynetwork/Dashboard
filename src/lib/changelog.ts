@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-14-creature-skills",
+    date: "2026-10-14",
+    icon: "🧬",
+    title: "Creatures learn skills and feel things",
+    body: "Every Habitat creature has its own skills, like Swimming or Camouflage. Answer questions to train a skill or learn a new one, up to 10. Watch hunters sneak and prey escape with their skills. Each creature shows its zone and tells you how it feels and what it needs. You can also take creatures out of the Habitat and put them back.",
+  },
+  {
     id: "2026-10-14-azalea-help",
     date: "2026-10-14",
     icon: "📷",

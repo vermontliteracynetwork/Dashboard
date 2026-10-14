@@ -54,7 +54,8 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
     const need = Math.ceil(g[c.id] / 2) - (e === 'both' ? Math.round((fed[c.id] ?? 0) * Math.ceil(g[c.id] / 3)) : 0);
     let got = 0;
     for (let i = 0; i < need; i++) {
-      const prey = roster.filter((p) => p.id !== c.id && g[p.id] > 0 && ['plants', 'both', 'leftovers'].includes(eats(p))).sort((a, b) => g[b.id] - g[a.id])[0];
+      // Magic creatures can be hunted too (Build Queue 134); gods never are.
+      const prey = roster.filter((p) => p.id !== c.id && g[p.id] > 0 && p.chapter !== 'gods' && ['plants', 'both', 'leftovers', 'magic'].includes(eats(p))).sort((a, b) => g[b.id] - g[a.id])[0];
       if (!prey) break;
       g[prey.id] -= 1; got += 1; if (!caught.includes(prey.id)) caught.push(prey.id);
     }

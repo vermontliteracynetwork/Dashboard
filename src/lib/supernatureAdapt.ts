@@ -59,11 +59,23 @@ export function breedNote(c: Creature): string {
   return 'It can have babies in any season.';
 }
 
-export function react(c: Creature, x: Ctx): Reaction {
+// extra: this creature's own skills (Build Queue 134): skill tags join its body tags, and some skills
+// make it safe from one hard time (Earth magic tunnels underground, Earthquake immunity, Storm rider...).
+export function react(c: Creature, x: Ctx, extra?: { tags?: Tag[]; skills?: string[] }): Reaction {
   const t = tagsOf(c); const n = c.name;
+  extra?.tags?.forEach((g) => t.add(g));
+  const sk = new Set(extra?.skills ?? []);
   const ok = (icon: string, word: string, text: string, pose: Pose, tag?: Tag): Reaction => ({ icon, word, text: `${n} ${text}`, hit: 0, pose, because: tag ? TAG_WORDS[tag] : undefined });
   const hurt = (icon: string, word: string, text: string, status: string, pose: Pose, hit = 1, why?: string): Reaction => ({ icon, word, text: `${n} ${text}`, hit, status, pose, because: why });
   const bad = x.disaster || ['storm', 'snow'].includes(x.weather);
+  if (sk.has('earthMagic') && (x.disaster || ['storm', 'snow'].includes(x.weather) || (x.season === 'Winter' && !t.has('warm')))) return ok('⛰️', 'tunnels', 'tunnels into the ground with earth magic, where nothing can reach it.', 'dive');
+  if (sk.has('quakeProof') && x.disaster === 'earthquake') return ok('🫨', 'steady', 'keeps its balance: it has earthquake immunity.', 'brace');
+  if (sk.has('stormRider') && (x.disaster === 'tornado' || x.weather === 'storm')) return ok('⛈️', 'rides it', 'rides the wind like a storm rider.', 'glow');
+  if (sk.has('floodSafe') && x.disaster === 'flood') return ok('⛰️', 'high ground', 'climbs to high ground, safe from the flood.', 'none');
+  if (sk.has('smokeProof') && x.disaster === 'wildfire') return ok('💨', 'breathes easy', 'breathes easy in the smoke.', 'none');
+  if (sk.has('droughtSaver') && x.disaster === 'drought') return ok('🌵', 'saves water', 'saves water in its body and is not thirsty.', 'bask');
+  if (sk.has('hibernate') && x.season === 'Winter' && !x.disaster) return ok('💤', 'hibernates', 'curls up and hibernates through the winter.', 'sleep');
+  if (sk.has('shadeSeeker') && x.season === 'Summer' && !x.disaster && x.weather === 'clear') return ok('🌳', 'finds shade', 'finds a shady spot, so the summer heat is fine.', 'none');
   if (bad && t.has('magic')) return ok('✨', 'safe', 'is not bothered: its magic keeps it safe.', 'glow', 'magic');
   // The Ocean (Build Queue 123, 125): deep water changes slowly, so most hard times pass over it.
   // Floaters drift near the top, so big wind still tosses them.
