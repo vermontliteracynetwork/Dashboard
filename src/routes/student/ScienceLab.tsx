@@ -417,7 +417,18 @@ export default function ScienceLab() {
     return PERIODIC.filter((e) => e.family === tab).map((e) => SUB.get(e.sym)).filter((s): s is Substance => !!s);
   }, [tab]);
   const shelfRef = useRef<HTMLDivElement>(null);
-  const scrollShelf = (d: number) => shelfRef.current?.scrollBy({ left: d * shelfRef.current.clientWidth * 0.8, behavior: calm ? 'auto' : 'smooth' });
+  // The arrows go round and round (Build Queue 211, her words 2026-10-15: "the scroll/arrows on kitchen and lab need to
+  // be continuous (spinning back to the start of the list)"): ▶ at the end of a shelf jumps back to the first jar,
+  // ◀ at the start jumps to the last.
+  const scrollShelf = (d: number) => {
+    const el = shelfRef.current;
+    if (!el) return;
+    const behavior: ScrollBehavior = calm ? 'auto' : 'smooth';
+    const end = el.scrollWidth - el.clientWidth;
+    if (d > 0 && el.scrollLeft >= end - 2) el.scrollTo({ left: 0, behavior });
+    else if (d < 0 && el.scrollLeft <= 2) el.scrollTo({ left: end, behavior });
+    else el.scrollBy({ left: d * el.clientWidth * 0.8, behavior });
+  };
   const tabs: { id: Tab; label: string }[] = [{ id: 'kitchen', label: '🧪 Kitchen and lab' }, ...(Object.keys(FAMILIES) as ElementFamily[]).map((f) => ({ id: f as Tab, label: FAMILIES[f].name }))];
 
   const [view, setView] = useState<'bench' | 'atom'>('bench');

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-lab-shelf-loop",
+    date: "2026-10-15",
+    icon: "🔁",
+    title: "Science Lab shelves go round",
+    body: "In the Science Lab, keep tapping the shelf arrows. At the end of the shelf they go back to the start, so you can always find the jar you want.",
+  },
+  {
     id: "2026-10-15-ipad-fit",
     date: "2026-10-15",
     icon: "📱",
