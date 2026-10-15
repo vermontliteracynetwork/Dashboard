@@ -7,7 +7,7 @@ import {
 } from '../../lib/supernatureBattle';
 import QuestionScreen from '../../components/QuestionScreen';
 import { useStore } from '../../store/store';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
+import { drawQuestion } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { Icon } from './SupernatureWriting';
@@ -162,7 +162,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
     let left = secs; const tickDown = () => { left -= 1; setCountdown(left); if (left <= 0) { setStage('questions'); setQs({ q: nextQ(), n: 0, right: 0, wrong: false }); } else wait(1000, tickDown); };
     wait(1000, tickDown); void f;
   };
-  const nextQ = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const nextQ = (avoid?: string) => drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   // One try per question (Build Queue 209): a wrong answer locks and moves on, and never counts as right.
   const answered = (gotIt = true) => {
     if (!qs || !me) return;

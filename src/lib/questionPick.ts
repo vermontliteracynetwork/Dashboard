@@ -1,23 +1,24 @@
 import type { MCQuestion, QuestionSet } from '../types';
 
-// How games draw a question from the teacher's question sets (teacher 2026-10-08: "star/focus
-// question sets must occur at 5x the frequency than other question sets, distributed at an even
-// rate amung alls focus items. if focus are selected, ensure students can only select from those
-// sets in native games"). A set is picked first (a starred set is 5 times as likely as any other,
-// and every starred set is equally likely), then one question inside it.
+// How games draw a question from the teacher's question sets. Teacher 2026-10-08: "star/focus question sets
+// must occur at 5x the frequency than other question sets, distributed at an even rate amung alls focus items".
+// Replaced 2026-10-15 (Build Queue 210, her words: "make sure students are priotixzed with focus question sets
+// by 95% of quetions presented to them"): while any starred (focus) set has questions, 95 of every 100 questions
+// come from the focus sets (each focus set equally likely) and 5 from the rest (each equally likely), however
+// many sets there are. With no focus sets, every set is equally likely.
 
-export const FOCUS_WEIGHT = 5;
+export const FOCUS_SHARE = 0.95;
 const mcOf = (qs: QuestionSet) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc');
 
-export function drawQuestion(questionSets: QuestionSet[], avoidId?: string): MCQuestion | null {
-  const sets = questionSets.filter((qs) => qs.kind === 'quiz').map((qs) => ({ w: qs.isFocus ? FOCUS_WEIGHT : 1, qs: mcOf(qs) })).filter((s) => s.qs.length > 0);
+export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand: () => number = Math.random): MCQuestion | null {
+  const sets = questionSets.filter((qs) => qs.kind === 'quiz').map((qs) => ({ focus: !!qs.isFocus, qs: mcOf(qs) })).filter((s) => s.qs.length > 0);
   if (!sets.length) return null;
-  const total = sets.reduce((n, s) => n + s.w, 0);
+  const focus = sets.filter((s) => s.focus), rest = sets.filter((s) => !s.focus);
   for (let tries = 0; tries < 6; tries++) {
-    let r = Math.random() * total;
-    const set = sets.find((s) => (r -= s.w) < 0) ?? sets[sets.length - 1];
+    const pool = !focus.length ? rest : !rest.length ? focus : rand() < FOCUS_SHARE ? focus : rest;
+    const set = pool[Math.floor(rand() * pool.length)];
     const choices = set.qs.length > 1 && avoidId ? set.qs.filter((q) => q.id !== avoidId) : set.qs;
-    const q = choices[Math.floor(Math.random() * choices.length)];
+    const q = choices[Math.floor(rand() * choices.length)];
     if (q.id !== avoidId || tries === 5) return q;
   }
   return null;

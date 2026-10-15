@@ -9,7 +9,7 @@ import SupernatureGenerations from './SupernatureGenerations';
 import SupernatureBe from './SupernatureBe';
 import QuestionScreen from '../../components/QuestionScreen';
 import { useStore } from '../../store/store';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
+import { drawQuestion } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { madePlantIds, CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, PLOT_N, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
@@ -670,7 +670,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   // Training skills with questions (her words: "skills are earned over time through question sets.
   // adaptations and evolutions for creatures are gained by correct question answered").
-  const nextQ = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const nextQ = (avoid?: string) => drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   const startTrain = (id: string, skill: SkillId) => { snSound('open'); setTrain({ id, skill, q: nextQ() }); };
   const trainRight = () => {
     if (!train?.skill) return;

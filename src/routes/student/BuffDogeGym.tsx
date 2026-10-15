@@ -11,7 +11,7 @@ import {
   trainable, recommend, creditSession, useTrickSessions, useGym, setGym, clearGym, useFee, clearFee, useTreats, addTreats, gymRowOf,
 } from '../../lib/petGym';
 import { formatMoney } from '../../lib/money';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
+import { drawQuestion } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { playCashRegister } from '../../lib/chime';
 import { playCheer } from '../../lib/petSounds';
@@ -210,7 +210,7 @@ export default function BuffDogeGym() {
   };
 
   // ---- the dice training game ----
-  const nextQuestion = (avoid?: string): MCQuestion => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const nextQuestion = (avoid?: string): MCQuestion => drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   const startQuiz = (c: Omit<Quiz, 'n' | 'block' | 'blockWrong' | 'q'>) => setQuiz({ ...c, n: 0, block: 0, blockWrong: false, q: nextQuestion() });
   const onRight = () => {
     if (!quiz || !studentId) return;

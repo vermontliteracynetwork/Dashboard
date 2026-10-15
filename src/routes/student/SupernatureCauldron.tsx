@@ -9,7 +9,7 @@ import { PeriodicTable, ElementInfo, ElementBook } from './SupernatureElements';
 import PopCard from './SupernaturePopCard';
 import { useStore } from '../../store/store';
 import QuestionScreen from '../../components/QuestionScreen';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
+import { drawQuestion } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import type { MCQuestion } from '../../types';
 import { formatMoney } from '../../lib/money';
@@ -315,7 +315,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   };
 
   // Power up (Build Queue 186): 3 questions to Boost, 5 to Power up, 10 to Max power.
-  const nextQ = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+  const nextQ = (avoid?: string) => drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   const startQuiz = (key: string, label: string) => { const lv0 = power[key] ?? 0; if (lv0 >= 3) return; snSound('open'); setQuiz({ key, label, n: 0, total: POWER_QS[lv0], q: nextQ() }); };
   const answered = () => {
     if (!quiz) return;

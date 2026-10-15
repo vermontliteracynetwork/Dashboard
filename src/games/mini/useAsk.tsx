@@ -2,7 +2,7 @@ import type { NpcVoiceProfile } from '../../lib/npcVoices';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import type { MCQuestion, NativeGameId } from '../../types';
-import { drawQuestion, pickableSets } from '../../lib/questionPick';
+import { drawQuestion } from '../../lib/questionPick';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { findActiveGameplayTask, gameplayQuestionPool, pickGameplayQuestion } from '../../lib/gameplayAssignment';
@@ -42,7 +42,7 @@ export function useGameQuestions(gameId: NativeGameId) {
   }, [calm]);
   const next = useCallback((avoid?: string): MCQuestion => {
     if (assignment) { const g = pickGameplayQuestion(assignment.task, avoid); if (g) return g; }
-    return drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
+    return drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   }, [assignment, questionSets]);
   const right = useCallback((q: MCQuestion) => {
     if (!student || !assignment || !gameplayQuestionPool(assignment.task).some((x) => x.id === q.id)) return;

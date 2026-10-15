@@ -172,6 +172,21 @@ export default function FishingDock() {
   const later = (fn: () => void, ms: number) => { timers.current.push(window.setTimeout(fn, ms)); };
   const doc = (text: string, read = true) => { setSay(text); if (read && readRef.current) speak(text); };
 
+  // Build Queue 207 (her words 2026-10-15: "make sure view for doc fishing doesnt hide any text bubbles with the
+  // buttons"): the top bar (buttons, game clock, Diamond Rod timer) is measured, and Doc's speech bubble is kept
+  // below it, so a button or timer can never sit on the bubble at any iPad size.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const top = topRef.current, root = rootRef.current;
+    if (!top || !root || typeof ResizeObserver === 'undefined') return;
+    const sync = () => root.style.setProperty('--fdk-top', `${Math.ceil(top.getBoundingClientRect().bottom - root.getBoundingClientRect().top)}px`);
+    const ro = new ResizeObserver(sync);
+    ro.observe(top);
+    ro.observe(root);
+    sync();
+    return () => ro.disconnect();
+  }, []);
   useEffect(() => () => { cancelAnimationFrame(raf.current); timers.current.forEach(clearTimeout); window.speechSynthesis?.cancel(); }, []);
   // A seagull now and then, far away.
   useEffect(() => { const id = window.setInterval(() => { if (Math.random() < 0.5) play('gull'); }, 26000); return () => clearInterval(id); }, []);
@@ -365,7 +380,7 @@ export default function FishingDock() {
 
   return (
     <>
-    <div className={`fd fdk${rainbow ? ' rainbow' : ''}`}>
+    <div ref={rootRef} className={`fd fdk${rainbow ? ' rainbow' : ''}`}>
       <div className="fd-sky"><i className="fdk-sun" /><i className="fdk-cloud c1" /><i className="fdk-cloud c2" /></div>
       <div className="fdk-hills"><i className="far" /><i className="near" /></div>
       <div className="fd-water"><i /><i /><i />
@@ -408,9 +423,6 @@ export default function FishingDock() {
           {Array.from({ length: 18 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 96 + 2}%`, animationDelay: `${(i % 6) * 0.3}s`, width: 14 + (i % 4) * 10, height: 14 + (i % 4) * 10 }} />)}
         </div>
       )}
-      {stage === 'play' && (
-        <div className={`fdk-clock${timeLeft <= 15 ? ' low' : ''}`} role="timer" aria-label={`Game time left: ${clock}`}>⏰ {clock}</div>
-      )}
       {stage === 'start' && (
         <div className="pf-overlay fdk-start">
           <div className="pf-panel fdk-start-card">
@@ -444,11 +456,7 @@ export default function FishingDock() {
           </div>
         </div>
       )}
-      {diamondLeft > 0 && (
-        <div className="fdk-timer" role="timer" aria-label={`Diamond Rod, ${diamondLeft} seconds left, no questions`}>
-          <img src={`${ART}rods/diamond.png`} alt="" className="fdk-px" /><span>{mm}</span><small>NO QUESTIONS</small>
-        </div>
-      )}
+      <div ref={topRef} className="fdk-top">
       <header className="fd-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
         <h1 className="fdk-title">Doc Fishing</h1>
@@ -458,6 +466,17 @@ export default function FishingDock() {
         <button type="button" className="btn fdk-hbtn" onClick={() => { play('tackle'); setPanel('tackle'); doc(`Here's your tackle box. Pick a rod and a bobber.`); }}><img src={`${ART}ui/chest.png`} alt="" className="fdk-px" /> Tackle box</button>
         <button type="button" className="btn fdk-hbtn" onClick={() => { play('tackle'); setPanel('book'); }}><img src={`${ART}ui/bucket.png`} alt="" className="fdk-px" /> Fish Book ({kinds} / {CATCHABLE.length})</button>
       </header>
+      {(stage === 'play' || diamondLeft > 0) && (
+        <div className="fdk-hud">
+          {stage === 'play' && <div className={`fdk-clock${timeLeft <= 15 ? ' low' : ''}`} role="timer" aria-label={`Game time left: ${clock}`}>⏰ {clock}</div>}
+          {diamondLeft > 0 && (
+            <div className="fdk-timer" role="timer" aria-label={`Diamond Rod, ${diamondLeft} seconds left, no questions`}>
+              <img src={`${ART}rods/diamond.png`} alt="" className="fdk-px" /><span>{mm}</span><small>NO QUESTIONS</small>
+            </div>
+          )}
+        </div>
+      )}
+      </div>
       {xpPop && <div key={xpPop.at} className="fdk-xp-pop" aria-live="polite">+{xpPop.n} XP <small>{xpPop.why}</small></div>}
       {rodUp && (
         <div key={rodUp.at} className="fdk-rodup" role="status">

@@ -9247,3 +9247,15 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .sn-bar .sn-title { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sn-bar .sn-chip { flex-shrink: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .sn-bar .sn-ib, .sn-bar .sn-saved { flex-shrink: 0; }
+
+/* Doc Fishing (Build Queue 207): one measured top bar (buttons, then the game clock and Diamond Rod timer in a row
+   on the right), and Doc's speech bubble always starts below it and scrolls inside itself if space runs short. */
+.fdk-top { position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.fdk-top > * { pointer-events: auto; }
+.fdk-top .fd-head { position: static; }
+.fdk-hud { align-self: flex-end; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; padding: 0 16px; }
+.fdk-top .fdk-clock, .fdk-top .fdk-timer { position: static; transform: none; top: auto; left: auto; }
+.fdk-host { top: calc(var(--fdk-top, 130px) + 10px); justify-content: flex-end; }
+.fdk-say { min-height: 0; flex: 0 1 auto; overflow-y: auto; max-width: calc(100vw - 32px); }
+.fdk-doc { flex: none; width: clamp(80px, min(14vw, 17vh), 160px); }
+@media (orientation: portrait) { .fdk-timer { top: auto; } }
