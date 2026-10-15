@@ -3,7 +3,8 @@
 // arms, legs and joint positions), so every clothing item fits every
 // species and every species moves with the same animations.
 
-export type SpeciesId = 'dog' | 'cat' | 'frog' | 'capybara' | 'chicken' | 'squirrel' | 'fox';
+// 'person' is MOCK-UP ONLY for now (Build Queue 195): it is not in SPECIES, so no picker offers it.
+export type SpeciesId = 'dog' | 'cat' | 'frog' | 'capybara' | 'chicken' | 'squirrel' | 'fox' | 'person';
 
 export type PatternId =
   | 'solid'
@@ -26,7 +27,8 @@ export interface Paint {
 
 // 'costume' replaces the animal and everything else it wears (a full-body
 // character, e.g. the Space Alien).
-export type WardrobeSlot = 'hat' | 'face' | 'gear' | 'top' | 'bottom' | 'shoes' | 'back' | 'costume';
+// 'hair' (hairstyles and wigs) is MOCK-UP ONLY for now (Build Queue 195): not in SLOT_ORDER, so no tab shows it.
+export type WardrobeSlot = 'hat' | 'face' | 'gear' | 'top' | 'bottom' | 'shoes' | 'back' | 'costume' | 'hair';
 
 export interface EquippedItem {
   itemId: string;

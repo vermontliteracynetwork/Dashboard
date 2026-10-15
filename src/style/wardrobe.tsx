@@ -8,7 +8,8 @@ import { SPACE_ALIEN, type CostumeDef } from './costumes';
 import { beanieGeo, bucketGeo, capGeo, crownGeo, glassesFit, perch, topHatGeo } from './hats';
 import { capeGeo, pantLegGeo, seatGeo, shoeGeo, skirtSculptGeo, sleeveGeo, soleGeo, topGeo, triplanar } from './organic';
 import type { SpeciesDef } from './species';
-import type { Paint, WardrobeSlot } from './types';
+import type { Paint, StyleLook, WardrobeSlot } from './types';
+import { hairGeo, hairLift, type HairStyle } from './hair';
 
 // The one-size-fits-all clothing library. Every item is built in code from
 // simple shapes and attached to the shared body template's bones, so it
@@ -23,7 +24,8 @@ import type { Paint, WardrobeSlot } from './types';
 //  back: same frame as torso
 
 export type Bone = 'torso' | 'armL' | 'armR' | 'legL' | 'legR' | 'hat' | 'face' | 'gear';
-export type PartProps = { mats: THREE.Material[]; species: SpeciesDef };
+// `look` lets a piece react to the rest of the outfit (perched hats and headphones sit on top of hair).
+export type PartProps = { mats: THREE.Material[]; species: SpeciesDef; look?: StyleLook };
 type Part = (p: PartProps) => React.ReactElement | null;
 
 export interface WardrobeItem {
@@ -168,11 +170,11 @@ function CheeseWedge({ mats, species }: PartProps) {
   );
 }
 
-function Crown({ mats, species }: PartProps) {
+function Crown({ mats, species, look }: PartProps) {
   const { geos, at } = crownGeo(species.id);
   const gems = Object.entries(at).filter(([k]) => k.startsWith('gem'));
   return (
-    <group>
+    <group position={[0, hairLift(look), 0]}>
       <HatMesh geo={geos[0]} mat={mats[0]} />
       {gems.map(([k, p]) => (
         <mesh key={k} material={mats[1]} position={p}><sphereGeometry args={[at.size[0], 12, 10]} /></mesh>
@@ -430,11 +432,11 @@ export const WARDROBE: WardrobeItem[] = [
     id: 'partyhat', name: 'Party Hat', slot: 'hat', emoji: '🥳',
     zones: [{ label: 'Hat', paint: P('polka', '#9b59b6', '#f1c40f') }, { label: 'Pom-pom', paint: P('solid', '#ff6b6b') }],
     parts: {
-      hat: ({ mats, species }) => {
+      hat: ({ mats, species, look }) => {
         const at = perch(species.id, 'party');
         const h = at.size * 2.5;
         return (
-          <group position={[0, at.y, at.z]} rotation={[0, 0, -0.16]}>
+          <group position={[0, at.y + hairLift(look), at.z]} rotation={[0, 0, -0.16]}>
             <mesh material={mats[0]} position={[0, h / 2, 0]}><coneGeometry args={[at.size, h, 28]} /></mesh>
             <mesh material={mats[1]} position={[0, h + 0.012, 0]}><sphereGeometry args={[at.size * 0.34, 12, 10]} /></mesh>
           </group>
@@ -500,7 +502,7 @@ export const WARDROBE: WardrobeItem[] = [
     id: 'eardefenders', name: 'Ear Defenders', slot: 'gear', emoji: '🎧', comfort: true, hides: ['ears'],
     zones: [{ label: 'Band', paint: P('solid', '#2c3e50') }, { label: 'Cups', paint: P('solid', '#3498db') }],
     parts: {
-      gear: ({ mats, species: { gear: { w, h } } }) => (
+      gear: ({ mats, species: { gear: g }, look }) => { const lift = hairLift(look); const w = g.w + lift * 0.7, h = g.h + lift; return (
         <group>
           <mesh material={mats[0]} scale={[1, h / w, 1]}><torusGeometry args={[w + 0.02, 0.03, 10, 32, Math.PI]} /></mesh>
           {[-1, 1].map((sd) => (
@@ -509,14 +511,14 @@ export const WARDROBE: WardrobeItem[] = [
             </mesh>
           ))}
         </group>
-      ),
+      ); },
     },
   },
   {
     id: 'headphones', name: 'Headphones', slot: 'gear', emoji: '🎵', hides: ['ears'],
     zones: [{ label: 'Band', paint: P('solid', '#ff6b6b') }, { label: 'Cups', paint: P('solid', '#ffffff') }],
     parts: {
-      gear: ({ mats, species: { gear: { w, h } } }) => (
+      gear: ({ mats, species: { gear: g }, look }) => { const lift = hairLift(look); const w = g.w + lift * 0.7, h = g.h + lift; return (
         <group>
           <mesh material={mats[0]} scale={[1, h / w, 1]}><torusGeometry args={[w + 0.02, 0.035, 10, 32, Math.PI]} /></mesh>
           {[-1, 1].map((sd) => (
@@ -525,7 +527,7 @@ export const WARDROBE: WardrobeItem[] = [
             </mesh>
           ))}
         </group>
-      ),
+      ); },
     },
   },
   // Back
@@ -568,9 +570,37 @@ export const WARDROBE: WardrobeItem[] = [
   },
 ];
 
-export const itemById = (id: string) => WARDROBE.find((i) => i.id === id);
+// Hairstyles and wigs (MOCK-UP ONLY, Build Queue 195, her words 2026-10-15: "We'll have to have a wigs feature.
+// And the wigs can also be added to other players"). Each one is sculpted from the head it sits on (hair.ts), so it
+// fits the person and every animal; under a covering hat only the hair below the hat's edge shows. Not in WARDROBE,
+// so the Style catalog, the Seamstress and the shop never offer them; only the mock-up page uses them.
+const hairItem = (id: string, name: string, emoji: string, style: HairStyle, color: string): WardrobeItem => ({
+  id, name, slot: 'hair', emoji,
+  zones: [{ label: 'Hair', paint: P('solid', color) }],
+  parts: {
+    hat: ({ mats, species, look }) => {
+      const underHat = !!look && Object.values(look.outfit).some((e) => {
+        const it = e ? WARDROBE.find((w) => w.id === e.itemId) : undefined;
+        return !!it && it.slot === 'hat' && !!it.hides?.includes('topEars');
+      });
+      return <HatMesh geo={hairGeo(species.id, style, underHat)} mat={mats[0]} scale={9} />;
+    },
+  },
+});
+export const HAIR_MOCKUP: WardrobeItem[] = [
+  hairItem('hair-short', 'Short Hair', '💇', 'short', '#5b3a24'),
+  hairItem('hair-spiky', 'Spiky Hair', '⚡', 'spiky', '#2b2220'),
+  hairItem('hair-curly', 'Curly Puff', '🌀', 'curly', '#3a2416'),
+  hairItem('hair-bob', 'Bob', '💁', 'bob', '#e8c26a'),
+  hairItem('hair-long', 'Long Hair', '👩', 'long', '#8a3b1f'),
+  hairItem('hair-ponytail', 'Ponytail', '🎀', 'ponytail', '#c98a3a'),
+  hairItem('hair-pigtails', 'Pigtails', '👧', 'pigtails', '#1f1a18'),
+  hairItem('hair-buns', 'Space Buns', '🍡', 'buns', '#ff8fc8'),
+];
+
+export const itemById = (id: string) => WARDROBE.find((i) => i.id === id) ?? HAIR_MOCKUP.find((i) => i.id === id);
 
 export const SLOT_ORDER: WardrobeSlot[] = ['hat', 'face', 'gear', 'top', 'bottom', 'shoes', 'back', 'costume'];
 export const SLOT_LABEL: Record<WardrobeSlot, string> = {
-  hat: 'Hats', face: 'Glasses', gear: 'Comfort', top: 'Tops', bottom: 'Bottoms', shoes: 'Shoes', back: 'Back', costume: 'Costumes',
+  hair: 'Hair', hat: 'Hats', face: 'Glasses', gear: 'Comfort', top: 'Tops', bottom: 'Bottoms', shoes: 'Shoes', back: 'Back', costume: 'Costumes',
 };

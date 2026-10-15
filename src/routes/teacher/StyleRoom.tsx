@@ -346,7 +346,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   // "Item only" frames the item itself up close (a hat floats up where a
   // head would be, shoes sit on the floor).
   const itemOnly = mode === 'workshop' && preview === 'item';
-  const focusY = !itemOnly || !wsItem ? 0.9 : ({ hat: 1.45, face: 1.25, gear: 1.25, top: 0.82, bottom: 0.4, shoes: 0.08, back: 0.8, costume: 0.8 } as Record<WardrobeSlot, number>)[wsItem.slot];
+  const focusY = !itemOnly || !wsItem ? 0.9 : ({ hair: 1.45, hat: 1.45, face: 1.25, gear: 1.25, top: 0.82, bottom: 0.4, shoes: 0.08, back: 0.8, costume: 0.8 } as Record<WardrobeSlot, number>)[wsItem.slot];
   const cam: [number, number, number] = wide ? [0, 1.6, 2.2 + stageLooks.length * 0.8] : itemOnly ? [0.9, focusY + 0.45, 1.9] : [0, 1.2, 3.3];
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [

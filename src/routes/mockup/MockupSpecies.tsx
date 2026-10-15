@@ -4,13 +4,16 @@ import { useEffect } from 'react';
 import { Html } from '@react-three/drei';
 import { useSearchParams } from 'react-router-dom';
 import { StyleCharacter } from '../../style/StyleCharacter';
-import { SPECIES, defaultLook } from '../../style/species';
-import { WARDROBE } from '../../style/wardrobe';
+import { ALL_SPECIES, SKIN_TONES, SPECIES, defaultLook, speciesById } from '../../style/species';
+import { HAIR_MOCKUP, WARDROBE, itemById } from '../../style/wardrobe';
 import type { SpeciesId, StyleLook, WardrobeSlot } from '../../style/types';
 
-// MOCK-UP ONLY (2026-10-15, local branch mockup/new-species, never merged): a fit check sheet for new Style animals.
+// MOCK-UP ONLY: a fit check sheet for new Style characters (not part of the live build; open mockup.html).
 // ?sp=fox&view=front|side|back shows that animal wearing every clothing and accessory item, one per cell;
-// ?mode=outfits shows every animal in the same full outfits side by side.
+// ?mode=outfits shows every animal in the same full outfits side by side (&sps=person,dog,... &o=0-3);
+// ?mode=hair shows every hairstyle / wig on every character (&view=); ?mode=hairhats every hairstyle under every
+// hat on the person; ?mode=people a class of people (skin tones, hair, outfits). Build Queue 195: the person
+// always wears hair (Short Hair unless the cell says otherwise).
 const OUTFITS: Partial<Record<WardrobeSlot, string>>[] = [
   {},
   { top: 'tee', bottom: 'pants', shoes: 'sneakers', hat: 'cap', back: 'backpack' },
@@ -21,14 +24,18 @@ const OUTFITS: Partial<Record<WardrobeSlot, string>>[] = [
   { top: 'tee', bottom: 'pants', hat: 'buckethat', face: 'squareglasses', shoes: 'boots' },
   { top: 'longsleeve', bottom: 'pants', hat: 'cheesehat', shoes: 'sneakers' },
 ];
-const dress = (species: SpeciesId, outfit: Partial<Record<WardrobeSlot, string>>): StyleLook => {
+const dress = (species: SpeciesId, outfit: Partial<Record<WardrobeSlot, string>>, skin?: string): StyleLook => {
   const l = defaultLook(species);
-  for (const [slot, id] of Object.entries(outfit)) {
-    const it = WARDROBE.find((w) => w.id === id); if (!it) continue;
+  if (skin) { const p = { pattern: 'solid' as const, colors: [skin, '#ffffff'] as [string, string] }; l.body = { ...l.body, fur: p, belly: p, accent: p }; }
+  const all = species === 'person' && !('hair' in outfit) ? { hair: 'hair-short', ...outfit } : outfit;
+  for (const [slot, id] of Object.entries(all)) {
+    const it = id ? itemById(id) : undefined; if (!it) continue;
     l.outfit[slot as WardrobeSlot] = { itemId: it.id, zones: it.zones.map((z) => z.paint) };
   }
   return l;
 };
+const HATS = WARDROBE.filter((w) => w.slot === 'hat');
+const HAIR_COLORS = ['#5b3a24', '#2b2220', '#e8c26a', '#8a3b1f', '#c98a3a', '#1f1a18', '#a0522d', '#ff8fc8'];
 const ROT: Record<string, number> = { front: 0, side: Math.PI / 2, back: Math.PI, three: Math.PI / 5 };
 
 // Draw a handful of frames (enough for the pose and every hat to settle), then stop, so a slow test browser can take the picture.
@@ -49,7 +56,23 @@ export default function MockupSpecies() {
     if (mode === 'outfits') {
       const ids = (q.get('sps') ?? SPECIES.map((s) => s.id).join(',')).split(',') as SpeciesId[];
       const [a, b] = (q.get('o') ?? `0-${OUTFITS.length - 1}`).split('-').map(Number);
-      return OUTFITS.slice(a, b + 1).flatMap((o, r) => ids.map((id, c) => ({ key: `${r}-${id}`, look: dress(id, o), label: r === 0 ? SPECIES.find((s) => s.id === id)!.name : '', col: c, row: r })));
+      return OUTFITS.slice(a, b + 1).flatMap((o, r) => ids.map((id, c) => ({ key: `${r}-${id}`, look: dress(id, o), label: r === 0 ? speciesById(id).name : '', col: c, row: r })));
+    }
+    if (mode === 'hair') {
+      const ids = (q.get('sps') ?? ALL_SPECIES.map((s) => s.id).join(',')).split(',') as SpeciesId[];
+      const [a, b] = (q.get('o') ?? `0-${HAIR_MOCKUP.length - 1}`).split('-').map(Number);
+      return HAIR_MOCKUP.slice(a, b + 1).flatMap((hr, r) => ids.map((id, c) => ({ key: `${hr.id}-${id}`, look: dress(id, { hair: hr.id }), label: c === 0 ? hr.name : '', col: c, row: r })));
+    }
+    if (mode === 'hairhats') {
+      const [a, b] = (q.get('o') ?? `0-${HAIR_MOCKUP.length - 1}`).split('-').map(Number);
+      return HAIR_MOCKUP.slice(a, b + 1).flatMap((hr, r) => HATS.map((hat, c) => ({ key: `${hr.id}-${hat.id}`, look: dress('person', { hair: hr.id, hat: hat.id }, SKIN_TONES[(r + c) % SKIN_TONES.length]), label: `${hr.name} + ${hat.name}`, col: c, row: r })));
+    }
+    if (mode === 'people') {
+      return HAIR_MOCKUP.map((hr, i) => {
+        const look = dress('person', { ...OUTFITS[i], hair: hr.id }, SKIN_TONES[i % SKIN_TONES.length]);
+        if (look.outfit.hair) look.outfit.hair.zones = [{ pattern: 'solid', colors: [HAIR_COLORS[i], '#ffffff'] }];
+        return { key: hr.id, look, label: hr.name, col: i % 4, row: Math.floor(i / 4) };
+      });
     }
     const items = [{ id: '', name: 'No clothes', slot: '' as WardrobeSlot | '' }, ...WARDROBE.map((w) => ({ id: w.id, name: w.name, slot: w.slot }))];
     return items.map((it, i) => ({ key: it.id || 'none', look: it.id ? dress(sp, { [it.slot]: it.id }) : defaultLook(sp), label: it.name, col: i % 6, row: Math.floor(i / 6) }));
@@ -61,7 +84,7 @@ export default function MockupSpecies() {
   return (
     <div style={{ width: w, height: h + 60, background: '#f4f1fb', fontFamily: 'Nunito, sans-serif' }}>
       <div style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: 26, fontWeight: 800, color: '#2b2350' }}>
-        {mode === 'outfits' ? 'Every animal in the same outfits' : `${SPECIES.find((s) => s.id === sp)?.emoji} ${SPECIES.find((s) => s.id === sp)?.name}: every item (${view} view)`}
+        {mode === 'outfits' ? 'Every character in the same outfits' : mode === 'hair' ? `Every hairstyle and wig on every character (${view} view)` : mode === 'hairhats' ? 'Hair under every hat' : mode === 'people' ? `People (${view} view)` : `${speciesById(sp).emoji} ${speciesById(sp).name}: every item (${view} view)`}
       </div>
       <Canvas style={{ width: w, height: h }} orthographic dpr={1} frameloop="demand" gl={{ preserveDrawingBuffer: true, antialias: true }}
         camera={{ position: [((cols - 1) * DX) / 2, -((rows - 1) * DY) / 2 + 0.85, 20], zoom: 260 / DX, near: 0.1, far: 100 }}>

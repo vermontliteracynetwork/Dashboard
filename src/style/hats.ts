@@ -33,6 +33,7 @@ const SPEC: Record<SpeciesId, FitSpec> = {
   chicken: { brow: 0.22, tilt: 0.15, perchZ: -0.02, crownR: 0.15, partyR: 0.13, topR: 0.19, cheese: 0.68, cheeseLift: 0.06, topLift: 0.03 },
   squirrel: { brow: 0.21, tilt: 0.15, perchZ: 0.0, crownR: 0.12, partyR: 0.11, topR: 0.19, cheese: 0.68, cheeseLift: 0.06, topLift: 0.045 },
   fox: { brow: 0.2, tilt: 0.15, perchZ: 0.0, crownR: 0.11, partyR: 0.1, topR: 0.19, cheese: 0.68, cheeseLift: 0.06, topLift: 0.045 },
+  person: { brow: 0.2, tilt: 0.15, perchZ: -0.01, crownR: 0.16, partyR: 0.13, topR: 0.19, cheese: 0.68, cheeseLift: 0.06, topLift: 0.04 },
 };
 
 // The frog's eyes sit on top of its head, so its covering hats (ball cap,

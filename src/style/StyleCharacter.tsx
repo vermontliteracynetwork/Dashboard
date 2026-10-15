@@ -53,15 +53,15 @@ function useItemMaterials(equipped: EquippedItem | undefined, item: WardrobeItem
 }
 
 function OutfitParts({ bone, look, species }: { bone: Bone; look: StyleLook; species: SpeciesDef }) {
-  return <>{Object.values(look.outfit).map((eq) => (eq ? <ItemPart key={eq.itemId} bone={bone} eq={eq} species={species} /> : null))}</>;
+  return <>{Object.values(look.outfit).map((eq) => (eq ? <ItemPart key={eq.itemId} bone={bone} eq={eq} species={species} look={look} /> : null))}</>;
 }
 
-function ItemPart({ bone, eq, species }: { bone: Bone; eq: EquippedItem; species: SpeciesDef }) {
+function ItemPart({ bone, eq, species, look }: { bone: Bone; eq: EquippedItem; species: SpeciesDef; look: StyleLook }) {
   const item = itemById(eq.itemId);
   const mats = useItemMaterials(eq, item);
   const part = item?.parts[bone];
   if (!part || mats.length === 0) return null;
-  return createElement(part, { mats, species });
+  return createElement(part, { mats, species, look });
 }
 
 function useBodyMaterial(fur: Paint, belly: Paint, accent: Paint) {
@@ -127,6 +127,8 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
   // A fox's ears are orange outside and white inside.
   const foxEarMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.belly);
   const accentFuzz = usePaintMaterial(look.body.accent, 1, undefined, true);
+  const skin = usePaintMaterial(look.body.fur, 1);
+  const blush = useColorMaterial('#f29a9a', 0.6);
   const geo = headGeo(species.id);
 
   return (
@@ -184,7 +186,7 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
             <mesh material={accentFuzz} rotation={[Math.PI / 2, 0, 0]} position={[0, -0.022, 0.04]} scale={[1, 1, 0.5]}><coneGeometry args={[0.05, 0.11, 20]} /></mesh>
           </group>
           <mesh material={nose} position={[0, -0.14, 0.27]} scale={[0.75, 1.15, 0.6]}><sphereGeometry args={[0.055, 18, 14]} /></mesh>
-          {!hideTopEars && !look.outfit.hat && <group position={[0, 0.3, 0.02]}><mesh geometry={chickenCombGeo()} material={nose} /></group>}
+          {!hideTopEars && !look.outfit.hat && !look.outfit.hair && <group position={[0, 0.3, 0.02]}><mesh geometry={chickenCombGeo()} material={nose} /></group>}
           <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} beady />
           <Mouth mouthRef={rig.mouth} y={-0.075} z={0.37} width={0.05} />
         </>
@@ -199,6 +201,25 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
           {!hideEars && !hideTopEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
             <group key={k} position={[sd * 0.17, 0.24, -0.04]} rotation={[0, sd * -0.2, sd * -0.15]} scale={[0.75, 0.85, 0.75]}>
               <group ref={ref}><mesh geometry={catEarGeo()} material={catEarMat} /></group>
+            </group>
+          ))}
+        </>
+      )}
+      {species.id === 'person' && (
+        <>
+          {/* Mock-up person (Build Queue 195): a small nose, eyebrows (the nose color), rosy cheeks and ears. */}
+          <mesh material={skin} position={[0, -0.04, 0.315]} scale={[1, 0.85, 0.8]}><sphereGeometry args={[0.032, 18, 14]} /></mesh>
+          {[-1, 1].map((sd) => (
+            <group key={sd}>
+              <mesh material={nose} position={[sd * 0.115, 0.15, 0.27]} rotation={[0.25, sd * 0.35, sd * -0.12]} scale={[1, 0.32, 0.45]}><sphereGeometry args={[0.05, 14, 10]} /></mesh>
+              <mesh material={blush} position={[sd * 0.17, -0.07, 0.24]} rotation={[0, sd * 0.6, 0]} scale={[1, 0.6, 0.25]}><sphereGeometry args={[0.045, 14, 10]} /></mesh>
+            </group>
+          ))}
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} />
+          <Mouth mouthRef={rig.mouth} y={-0.15} z={0.29} width={0.06} />
+          {!hideEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
+            <group key={k} position={[sd * 0.3, 0.0, 0.0]}>
+              <group ref={ref}><mesh material={skin} scale={[0.45, 1, 0.75]}><sphereGeometry args={[0.075, 16, 12]} /></mesh></group>
             </group>
           ))}
         </>
@@ -240,7 +261,7 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
   const tip = usePaintMaterial(look.body.accent, 1, undefined, true);
   const white = usePaintMaterial(look.body.belly, 1, undefined, true);
   // No tail on the frog or (teacher request) the capybara.
-  if (species.id === 'frog' || species.id === 'capybara') return null;
+  if (species.id === 'frog' || species.id === 'capybara' || species.id === 'person') return null;
   // The chicken's tail feathers sit low on its rump, so pants, a skirt or a dress cover them (her note 2026-10-15:
   // "Chicken tail shouldn't stick out through pants").
   if (species.id === 'chicken' && (look.outfit.bottom || look.outfit.top?.itemId === 'dress')) return null;

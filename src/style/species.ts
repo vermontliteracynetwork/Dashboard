@@ -113,7 +113,24 @@ export const SPECIES: SpeciesDef[] = [
   },
 ];
 
-export const speciesById = (id: SpeciesId) => SPECIES.find((s) => s.id === id) ?? SPECIES[0];
+// MOCK-UP ONLY (Build Queue 195, her words 2026-10-15: "I want to also add a regular person figure... for boys
+// and girls, it'll be the same basic figure... Do not push this to the students"). One person on the same shared
+// body, so every piece of clothing fits; hair comes from the hair slot (wigs). Not in SPECIES, so no Style picker,
+// Seamstress or Neighbors screen offers it; only the fit-check mock-up page (mockup.html) shows it.
+// Fur, belly and accent are all skin; the nose color is the eyebrows.
+export const PERSON: SpeciesDef = {
+  id: 'person',
+  name: 'Person',
+  emoji: '🧑',
+  eye: { spread: 0.115, y: 0.05, z: 0.265, size: 0.062 },
+  armOut: 0.22,
+  gear: { w: 0.33, h: 0.37 },
+  defaultBody: { fur: solid('#e0ac69'), belly: solid('#e0ac69'), accent: solid('#e0ac69'), eyes: '#3b2a20', nose: '#4a3226' },
+};
+export const SKIN_TONES = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#5c3a21'];
+export const ALL_SPECIES: SpeciesDef[] = [...SPECIES, PERSON];
+
+export const speciesById = (id: SpeciesId) => ALL_SPECIES.find((s) => s.id === id) ?? SPECIES[0];
 
 export function defaultLook(species: SpeciesId = 'dog'): StyleLook {
   return {

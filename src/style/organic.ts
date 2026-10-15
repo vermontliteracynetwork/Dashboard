@@ -138,6 +138,20 @@ function headDef(species: SpeciesId): HeadDef {
         min: [-0.45, -0.5, -0.45], max: [0.45, 0.42, 0.48],
       };
     }
+    case 'person': {
+      // A round, friendly kid's face: soft cheeks and a small chin (mock-up, Build Queue 195). All skin.
+      return {
+        sdf: blend(
+          ellipsoid(0, 0.05, -0.01, 0.3, 0.33, 0.3),
+          [ellipsoid(0.12, -0.1, 0.12, 0.14, 0.12, 0.13), 0.09],
+          [ellipsoid(-0.12, -0.1, 0.12, 0.14, 0.12, 0.13), 0.09],
+          [ellipsoid(0, -0.17, 0.08, 0.16, 0.12, 0.15), 0.08],
+          [neck, 0.12],
+        ),
+        region: () => [1, 0, 0],
+        min: [-0.45, -0.5, -0.45], max: [0.45, 0.45, 0.45],
+      };
+    }
     case 'fox': {
       // A pointed snout and white cheeks, like a real red fox.
       const snout = roundCone([0, -0.05, 0.1], [0, -0.09, 0.42], 0.13, 0.045);
