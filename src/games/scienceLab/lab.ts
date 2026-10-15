@@ -4,7 +4,7 @@
 // chemistry would. Discoveries go in the Science Journal with their recipe, and each one unlocks
 // new bottles, so elements are learned over time. Pure data and rules: no React, no DOM.
 
-import { RULE_HEAT_RECIPES, RULE_RECIPES, TOKENS, elementSubstances, isRadioactive } from './elementLab';
+import { RULE_HEAT_RECIPES, RULE_RECIPES, TOKENS, TOKEN_LABEL, elementSubstances, isRadioactive } from './elementLab';
 
 export type LabState = 'liquid' | 'powder' | 'solid' | 'gas';
 export interface Substance { id: string; name: string; formula: string; color: string; state: LabState; element?: string; fact: string }
@@ -69,13 +69,42 @@ export const SUBSTANCES: Substance[] = [
   { id: 'saltcrystals', name: 'Salt crystals', formula: 'NaCl', color: '#ffffff', state: 'powder', fact: 'The water left as steam and the salt stayed behind.' },
   { id: 'bluecrystals', name: 'Blue crystals', formula: 'CuSO₄', color: '#2f6fd0', state: 'powder', fact: 'Blue crystals grow as the water leaves.' },
   { id: 'lithwater', name: 'Lithium water', formula: 'LiOH', color: '#ffe3e3', state: 'liquid', fact: 'Lithium fizzes gently and gives off hydrogen.' },
+  // Colors and dyes (Build Queue 212, her words 2026-10-15: "add a food color or other dyes element so thye can see
+  // things change colors based on certian reactions"). Kitchen bottles first, then what they make in a beaker.
+  { id: 'reddye', name: 'Red food coloring', formula: 'dye', color: '#e0262b', state: 'liquid', fact: 'Food coloring is a dye: a chemical that soaks up some colors of light and bounces back the rest. Red dye bounces back red.' },
+  { id: 'bluedye', name: 'Blue food coloring', formula: 'dye', color: '#1f5fe0', state: 'liquid', fact: 'Blue food coloring soaks up red, orange and yellow light, so you see blue.' },
+  { id: 'yellowdye', name: 'Yellow food coloring', formula: 'dye', color: '#ffd21f', state: 'liquid', fact: 'Yellow food coloring soaks up blue light, so you see yellow.' },
+  { id: 'bleach', name: 'Bleach', formula: 'NaOCl', color: '#f3f7d6', state: 'liquid', fact: 'Bleach breaks apart the color chemicals in stains. It is a strong base and a strong chemical. Grown-ups only.' },
+  { id: 'turmeric', name: 'Turmeric', formula: 'curcumin', color: '#f0a500', state: 'powder', fact: 'Turmeric is a yellow spice. Its color chemical, curcumin, is an indicator: it turns red in bases.' },
+  { id: 'butterflypea', name: 'Butterfly pea tea', formula: 'indicator', color: '#2f46c8', state: 'liquid', fact: 'Tea made from blue butterfly pea flowers. Like red cabbage juice, it changes color in acids and bases.' },
+  { id: 'phenol', name: 'Phenolphthalein', formula: 'C₂₀H₁₄O₄', color: '#f7f9ff', state: 'liquid', fact: 'A lab indicator that looks just like water. It turns hot pink in a strong base.' },
+  { id: 'milk', name: 'Milk', formula: 'milk', color: '#fbfaf3', state: 'liquid', fact: 'Milk is mostly water with tiny drops of fat and a protein called casein floating in it.' },
+  { id: 'purpledye', name: 'Purple dye', formula: 'red + blue dye', color: '#7a2bc4', state: 'liquid', fact: 'Red and blue dyes mixed. Both dyes are still there.' },
+  { id: 'greendye', name: 'Green dye', formula: 'blue + yellow dye', color: '#1fa64a', state: 'liquid', fact: 'Blue and yellow dyes mixed. Both dyes are still there.' },
+  { id: 'orangedye', name: 'Orange dye', formula: 'red + yellow dye', color: '#ff7a1a', state: 'liquid', fact: 'Red and yellow dyes mixed. Both dyes are still there.' },
+  { id: 'faded', name: 'Faded water', formula: 'broken dye', color: '#eef3e6', state: 'liquid', fact: 'The bleach broke the dye apart, so the color is gone for good.' },
+  { id: 'turmericred', name: 'Red turmeric', formula: 'curcumin in a base', color: '#c4301c', state: 'liquid', fact: 'Red means base.' },
+  { id: 'peapurple', name: 'Purple-pink tea', formula: 'indicator in acid', color: '#b24bc8', state: 'liquid', fact: 'Purple-pink means acid.' },
+  { id: 'peagreen', name: 'Green tea', formula: 'indicator in a base', color: '#2fa77a', state: 'liquid', fact: 'Green means base.' },
+  { id: 'phenolpink', name: 'Hot pink', formula: 'phenolphthalein in a base', color: '#ff2f92', state: 'liquid', fact: 'Hot pink means a strong base.' },
+  { id: 'magicmilk', name: 'Magic milk', formula: 'swirling colors', color: '#f6b9de', state: 'liquid', fact: 'The colors swirl as the soap chases the milk fat.' },
+  { id: 'curds', name: 'Curds and whey', formula: 'casein clumps', color: '#fffbe6', state: 'liquid', fact: 'Clumps of milk protein. This is how cheese starts.' },
 ];
 // Every element has its own bottle (Build Queue 201): the ones the lab did not have are added here.
 SUBSTANCES.push(...elementSubstances(new Set(SUBSTANCES.map((s) => s.id))));
 export const SUB = new Map(SUBSTANCES.map((s) => [s.id, s]));
 export const STARTER = ['water', 'vinegar', 'bakingsoda', 'salt', 'sugar', 'oil', 'lemon', 'H', 'O', 'C', 'Na', 'Cl'];
 // The shelf: kitchen and lab bottles, then all 118 elements, all unlocked (Build Queue 201: "Unlock ... all elements").
-export const KITCHEN = ['water', 'vinegar', 'lemon', 'hcl', 'bakingsoda', 'salt', 'sugar', 'oil', 'cabbage', 'chalk', 'starch', 'soap', 'yeast', 'peroxide', 'silvernitrate', 'coppersulfate'];
+export const KITCHEN = ['water', 'vinegar', 'lemon', 'hcl', 'bakingsoda', 'salt', 'sugar', 'oil', 'milk', 'cabbage', 'chalk', 'starch', 'soap', 'yeast', 'peroxide', 'silvernitrate', 'coppersulfate',
+  'reddye', 'bluedye', 'yellowdye', 'turmeric', 'butterflypea', 'phenol', 'bleach'];
+
+// Dye groups for the color reactions (Build Queue 212).
+TOKENS['@dye'] = ['reddye', 'bluedye', 'yellowdye', 'purpledye', 'greendye', 'orangedye'];
+TOKENS['@base'] = ['bakingsoda', 'lye', 'limewater', 'lithwater', 'soap', 'bleach'];
+TOKENS['@strongbase'] = ['lye', 'limewater', 'lithwater'];
+TOKEN_LABEL['@dye'] = 'any food coloring';
+TOKEN_LABEL['@base'] = 'a base (baking soda, soap or bleach)';
+TOKEN_LABEL['@strongbase'] = 'a strong base (sodium or calcium hydroxide)';
 
 // What a reaction looks like. boom and bigboom empty the beaker (the glass is fine, it is a cartoon).
 export type LabEffect = 'fizz' | 'boom' | 'bigboom' | 'flash' | 'pop' | 'smoke' | 'color' | 'cloudy' | 'layers' | 'dissolve' | 'foam' | 'glow';
@@ -162,6 +191,43 @@ export const RECIPES: Recipe[] = [
   { id: 'alcopper', needs: ['bluewater', 'Al', '@chloride'], makes: ['copper'], effect: 'glow', color: '#c8662f', unlocks: [],
     name: 'Aluminum swaps with copper', equation: '2Al + 3CuSO₄ → Al₂(SO₄)₃ + 3Cu', fact: 'A thin coat of oxide protects aluminum, so nothing happens at first. Salt breaks the coat, then aluminum pushes copper out of the blue liquid, gets hot and fizzes.',
     magic: { name: 'Copper Bloom', line: 'Orange copper blooms out of the blue!' } },
+  // Colors and dyes (Build Queue 212). Every color change here happens in real kitchens and school labs.
+  { id: 'mixpurple', group: 'dye', needs: ['reddye', 'bluedye'], makes: ['purpledye'], effect: 'color', color: '#7a2bc4', unlocks: [],
+    name: 'Red and blue make purple', equation: 'red dye + blue dye → purple (a mixture)', fact: 'Nothing new is made: the red dye and the blue dye are both still there, and together they bounce back purple light. That is a physical change.',
+    magic: { name: 'Royal Ink', line: 'The colors swirl into royal purple.' } },
+  { id: 'mixgreen', group: 'dye', needs: ['bluedye', 'yellowdye'], makes: ['greendye'], effect: 'color', color: '#1fa64a', unlocks: [],
+    name: 'Blue and yellow make green', equation: 'blue dye + yellow dye → green (a mixture)', fact: 'The blue dye soaks up red and yellow light, the yellow dye soaks up blue light, and green is what is left. Both dyes are still there.',
+    magic: { name: 'Meadow Ink', line: 'The colors swirl into meadow green.' } },
+  { id: 'mixorange', group: 'dye', needs: ['reddye', 'yellowdye'], makes: ['orangedye'], effect: 'color', color: '#ff7a1a', unlocks: [],
+    name: 'Red and yellow make orange', equation: 'red dye + yellow dye → orange (a mixture)', fact: 'Mixing two dyes is a physical change. No new chemical is made, the colors just add up to orange.',
+    magic: { name: 'Sunset Ink', line: 'The colors swirl into sunset orange.' } },
+  { id: 'bleachdye', group: 'dye', needs: ['@dye', 'bleach'], makes: ['faded'], effect: 'color', color: '#eef3e6', unlocks: [],
+    name: 'Bleach erases the color', equation: 'NaOCl + dye → colorless pieces', fact: 'Bleach breaks the dye molecules apart at the exact spot that catches light, so the color fades away. That is a chemical change: the color cannot come back. It is how bleach takes out stains.',
+    magic: { name: 'Vanishing Ink', line: 'The color fades away like a ghost!' } },
+  { id: 'bleachacid', group: 'dye', needs: ['bleach', '@acid'], makes: ['chlorinewater'], effect: 'smoke', color: '#e6f3a8', unlocks: [],
+    name: 'Bleach and acid make chlorine gas', equation: 'NaOCl + 2H⁺ → Cl₂ + water + salt', fact: 'Acid pulls chlorine gas out of bleach. Chlorine gas is poisonous, which is why the bottle says never mix bleach with vinegar or other cleaners.',
+    magic: { name: 'Poison Fog', line: 'A sharp green-yellow fog curls up. Stand back!' } },
+  { id: 'turmericbase', group: 'dye', needs: ['turmeric', '@base'], makes: ['turmericred'], effect: 'color', color: '#c4301c', unlocks: [],
+    name: 'Yellow turmeric turns red', equation: 'curcumin + base → red curcumin', fact: 'Turmeric\'s yellow chemical, curcumin, changes shape in a base and turns red. A yellow curry stain turns red when you scrub it with soap! In acids it stays yellow.',
+    magic: { name: 'Dragon Blush', line: 'The golden potion blushes deep red!' } },
+  { id: 'peaacid', group: 'dye', needs: ['butterflypea', '@acid'], makes: ['peapurple'], effect: 'color', color: '#b24bc8', unlocks: [],
+    name: 'Blue tea turns purple-pink', equation: 'butterfly pea tea + acid → purple-pink', fact: 'Butterfly pea flowers have the same family of color chemicals as red cabbage. A squeeze of lemon turns the blue tea purple, and more acid turns it pink. Some color-changing lemonades work this way.',
+    magic: { name: 'Twilight Tea', line: 'The blue tea turns twilight purple!' } },
+  { id: 'peabase', group: 'dye', needs: ['butterflypea', '@base'], makes: ['peagreen'], effect: 'color', color: '#2fa77a', unlocks: [],
+    name: 'Blue tea turns green', equation: 'butterfly pea tea + base → green', fact: 'In a base, the butterfly pea color chemical changes shape again and the tea turns green.',
+    magic: { name: 'Forest Tea', line: 'The blue tea turns forest green!' } },
+  { id: 'phenolpink', group: 'dye', needs: ['phenol', '@strongbase'], makes: ['phenolpink'], effect: 'color', color: '#ff2f92', unlocks: [],
+    name: 'Clear turns hot pink', equation: 'phenolphthalein + strong base → pink', fact: 'Phenolphthalein looks like water, but in a strong base it turns hot pink. Baking soda is too weak a base to do it. Make a strong base first: drop calcium or lithium into water.',
+    magic: { name: 'Flamingo Potion', line: 'Two clear potions make hot pink!' } },
+  { id: 'phenolclear', group: 'dye', needs: ['phenolpink', '@acid'], makes: ['saltwater'], effect: 'color', color: '#eaf4ff', unlocks: [],
+    name: 'The pink disappears', equation: 'base + acid → salt + water, so phenolphthalein goes clear', fact: 'The acid uses up the base (that is called neutralizing). With no base left, the indicator goes back to clear.',
+    magic: { name: 'Vanishing Flamingo', line: 'The pink fades away to nothing!' } },
+  { id: 'magicmilk', group: 'dye', needs: ['milk', '@dye', 'soap'], makes: ['magicmilk'], effect: 'color', color: '#f6b9de', unlocks: [],
+    name: 'Magic milk', equation: 'milk + food coloring + soap → swirling colors', fact: 'Soap breaks the skin on top of the milk and grabs onto the tiny drops of fat. The milk rushes away from the soap and drags the food coloring into swirls.',
+    magic: { name: 'Rainbow Swirl', line: 'The colors dance and swirl all by themselves!' } },
+  { id: 'curds', group: 'dye', needs: ['milk', '@acid'], makes: ['curds'], effect: 'cloudy', color: '#fffbe6', unlocks: [],
+    name: 'Milk makes curds', equation: 'milk protein (casein) + acid → curds', fact: 'Acid makes the casein protein in milk clump together into white curds. That is the first step in making cheese.',
+    magic: { name: 'Cloud Cheese', line: 'The milk clumps into fluffy little clouds!' } },
 ];
 // The 🔥 burner (Build Queue 2026-10-09): heating a beaker. 'heat' is not a bottle, it only starts these.
 export const HEAT_RECIPES: Recipe[] = [
@@ -213,6 +279,9 @@ const SAFETY: Record<string, string> = {
   ironsulfide: 'Heating sulfur makes a gas that hurts lungs. Done in a fume cupboard.',
   ammonia: 'Ammonia gas stings the eyes and lungs. Factories make it, not school labs.',
   toothpastebig: 'Strong hydrogen peroxide burns skin. Schools use a weak one, with gloves and glasses.',
+  bleachdye: 'Bleach burns skin and eyes. Grown-ups only, with gloves, and never mixed with other cleaners.',
+  bleachacid: 'Never mix bleach with vinegar, lemon or other cleaners. Chlorine gas is poisonous. Specialist labs only.',
+  phenolpink: 'Strong bases burn skin. Scientists wear gloves and safety glasses.',
   calciumfizz: 'Calcium makes a strong base in water. Scientists wear gloves and glasses.',
 };
 for (const r of [...RECIPES, ...HEAT_RECIPES]) if (SAFETY[r.id]) r.safety = SAFETY[r.id];
@@ -237,7 +306,8 @@ function take(contents: string[], needs: string[]): string[] | null {
   return left;
 }
 // The plain ingredient list for places that do not use tokens (Supernature's Cauldron).
-export const plainNeeds = (r: Recipe) => r.needs.map((n) => (n === '@wet' ? 'water' : n === '@acid' ? 'vinegar' : n === '@chloride' ? 'salt' : n));
+const PLAIN: Record<string, string> = { '@wet': 'water', '@acid': 'vinegar', '@chloride': 'salt', '@dye': 'reddye', '@base': 'bakingsoda', '@strongbase': 'lye' };
+export const plainNeeds = (r: Recipe) => r.needs.map((n) => PLAIN[n] ?? n);
 
 // Heat a beaker on the burner: the biggest heat recipe whose ingredients are all inside.
 export function heatUp(contents: string[]): MixResult {

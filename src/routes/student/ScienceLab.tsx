@@ -89,6 +89,11 @@ const TRY: TryCard[] = [
   { id: 't10', goal: 'Make a gas glow like a neon sign.', clue: 'Noble gases glow when electricity runs through them. Put neon in a beaker and tap ⚡ Glow tube.', bottles: ['Ne'], tab: 'noble', done: [] },
   { id: 't11', goal: 'Grow a silver tree.', clue: 'Silver nitrate is a clear liquid with silver in it. Copper is more reactive than silver.', bottles: ['silvernitrate', 'Cu'], tab: 'kitchen', done: ['ag-Cu'] },
   { id: 't12', goal: 'Make a salt from a metal and a halogen.', clue: 'Halogens are in the second column from the right. Sodium and chlorine make table salt.', bottles: ['Na', 'Cl'], tab: 'alkali', done: ['makesalt', 's-KCl', 's-LiCl', 's-NaF', 's-KF'] },
+  { id: 't13', goal: 'Mix two food colorings to make a new color.', clue: 'Red, blue and yellow are in the kitchen. Which two make green?', bottles: ['bluedye', 'yellowdye'], tab: 'kitchen', done: ['mixgreen', 'mixpurple', 'mixorange'] },
+  { id: 't14', goal: 'Make a color disappear.', clue: 'Bleach breaks dyes apart. Put food coloring in a beaker, then add bleach.', bottles: ['reddye', 'bleach'], tab: 'kitchen', done: ['bleachdye'] },
+  { id: 't15', goal: 'Turn yellow turmeric red.', clue: 'Turmeric is an indicator. It turns red in a base, like baking soda or soap.', bottles: ['turmeric', 'bakingsoda'], tab: 'kitchen', done: ['turmericbase'] },
+  { id: 't16', goal: 'Turn blue tea purple.', clue: 'Butterfly pea tea changes color in an acid. Try a squeeze of lemon.', bottles: ['butterflypea', 'lemon'], tab: 'kitchen', done: ['peaacid', 'peabase'] },
+  { id: 't17', goal: 'Make magic milk swirl.', clue: 'Milk, a drop of food coloring, then a little dish soap.', bottles: ['milk', 'reddye', 'soap'], tab: 'kitchen', done: ['magicmilk'] },
 ];
 
 // ---- pictures ----
@@ -222,7 +227,7 @@ function Effect({ fx, calm }: { fx: Fx; calm: boolean }) {
 const needLabel = (n: string) => (n === 'heat' ? 'the burner' : TOKEN_LABEL[n] ?? SUB.get(n)?.name ?? n);
 const GROUPS: { id: string; label: string }[] = [
   { id: 'mix', label: '🧪 Kitchen chemistry' }, { id: 'water', label: '💧 Elements and water' }, { id: 'acid', label: '🍋 Metals and acids' },
-  { id: 'swap', label: '🔁 Metal swaps' }, { id: 'salt', label: '🧂 Making salts' }, { id: 'burn', label: '🔥 Burning' }, { id: 'heat', label: '♨️ The burner' },
+  { id: 'dye', label: '🎨 Colors and dyes' }, { id: 'swap', label: '🔁 Metal swaps' }, { id: 'salt', label: '🧂 Making salts' }, { id: 'burn', label: '🔥 Burning' }, { id: 'heat', label: '♨️ The burner' },
 ];
 const groupOf = (r: Recipe) => r.group ?? (HEAT_RECIPES.includes(r) ? 'heat' : 'mix');
 

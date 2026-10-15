@@ -207,6 +207,11 @@ const OXIDE_SKIN = new Set(['Ti', 'Zr', 'Hf', 'Nb', 'Ta', 'W', 'Mo', 'V', 'Re'])
 export function whyNothing(contents: string[]): string | null {
   const has = (ids: string[]) => contents.some((c) => ids.includes(c));
   const metal = contents.find((c) => NO_ACID.has(c) || OXIDE_SKIN.has(c));
+  // Colors and dyes (Build Queue 212).
+  if (contents.includes('turmeric') && has(ACIDS)) return 'Turmeric stays yellow in acids. It only turns red in a base, like baking soda or soap.';
+  if (contents.includes('phenol') && contents.includes('bakingsoda')) return 'Baking soda is too weak a base to turn phenolphthalein pink. Try a strong base: calcium or lithium dropped in water.';
+  if (contents.includes('phenol') && has(ACIDS)) return 'Phenolphthalein stays clear in acids. It turns pink only in a strong base.';
+  if (contents.includes('cabbage') && contents.some((c) => ['reddye', 'bluedye', 'yellowdye'].includes(c))) return 'Food coloring is not an indicator, so the colors just mix. Try red cabbage juice with an acid or a base.';
   if (metal && has(ACIDS)) return NO_ACID.has(metal)
     ? `${name(metal)} is below hydrogen in the reactivity series, so a weak acid cannot push hydrogen out of it. No bubbles.`
     : `${name(metal)} has a thin, tough coat of oxide on it, so the acid cannot get to the metal. No bubbles.`;

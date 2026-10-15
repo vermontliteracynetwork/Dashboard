@@ -69,4 +69,21 @@ describe('burner and Atom Builder', () => {
     expect(atomInfo(11, 12, 10).charge).toBe(1);
     expect(atomInfo(6, 2, 6).stable).toBe(false);
   });
+  it('colors and dyes change color only by real rules (Build Queue 212)', () => {
+    expect(pour(['bluedye'], 'yellowdye').reaction?.id).toBe('mixgreen');
+    expect(pour(['reddye'], 'bleach').contents).toEqual(['faded']);
+    expect(pour(['greendye'], 'bleach').reaction?.id).toBe('bleachdye');
+    expect(pour(['bleach'], 'vinegar').reaction?.id).toBe('bleachacid');
+    expect(pour(['turmeric'], 'bakingsoda').reaction?.id).toBe('turmericbase');
+    expect(pour(['turmeric'], 'soap').reaction?.id).toBe('turmericbase');
+    expect(pour(['turmeric'], 'vinegar').reaction).toBeNull();
+    expect(whyNothing(['turmeric', 'vinegar'])).toMatch(/stays yellow/);
+    expect(pour(['butterflypea'], 'lemon').reaction?.id).toBe('peaacid');
+    expect(pour(['butterflypea'], 'bakingsoda').reaction?.id).toBe('peabase');
+    expect(pour(['phenol'], 'bakingsoda').reaction).toBeNull(); // too weak a base
+    expect(pour(['phenol'], 'limewater').reaction?.id).toBe('phenolpink');
+    expect(pour(['phenolpink'], 'vinegar').reaction?.id).toBe('phenolclear');
+    expect(pour(['milk', 'reddye'], 'soap').reaction?.id).toBe('magicmilk');
+    expect(pour(['milk'], 'lemon').reaction?.id).toBe('curds');
+  });
 });

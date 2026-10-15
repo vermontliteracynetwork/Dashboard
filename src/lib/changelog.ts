@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-lab-dyes",
+    date: "2026-10-15",
+    icon: "🎨",
+    title: "Colors and dyes in the Science Lab",
+    body: "New in the Science Lab: food coloring, turmeric, blue butterfly pea tea, milk and more. Mix colors, make yellow turmeric turn red, turn blue tea purple, make a color disappear, and make magic milk swirl.",
+  },
+  {
     id: "2026-10-15-lab-shelf-loop",
     date: "2026-10-15",
     icon: "🔁",
