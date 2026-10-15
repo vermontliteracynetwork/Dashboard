@@ -298,7 +298,6 @@ export default function ScienceLab() {
       <WebpageFrame url="science-lab" />
       <div className="lab-top">
         <h1>{magic ? '🔮 Potion Lab' : '🔬 Science Lab'}</h1>
-        <a className="lab-btn" href="#/student/supernature" title="Potions and magic moved to Supernature">🔮 Potions are in Supernature</a>
         <div className="lab-mode lab-view" role="radiogroup" aria-label="Lab area">
           <button type="button" role="radio" aria-checked={view === 'bench'} className={view === 'bench' ? 'on' : ''} onClick={() => setView('bench')}>Bench</button>
           <button type="button" role="radio" aria-checked={view === 'atom'} className={view === 'atom' ? 'on' : ''} onClick={() => setView('atom')}>Atom Builder</button>
