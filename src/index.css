@@ -9306,3 +9306,26 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .npc-personality { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 64px; padding: 8px 12px; border-radius: 14px; border: 2px solid #e3c8ff; background: #fff; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; }
 .npc-personality small { font-size: 0.78rem; opacity: 0.75; font-weight: 600; }
 .npc-personality.on { border-color: #9b59b6; background: #f3e6ff; box-shadow: 0 0 0 2px #9b59b6 inset; }
+
+/* Teacher Style (Build Queue 229): a calmer adult layout. Plain words, smaller chips, squarer buttons, the main
+   action (Save) on the right and the secondary actions grouped beside it. Students keep the playful look. */
+.style-room.teacher { font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+.style-room.teacher h1 { font-size: 1.6rem; }
+.style-room.teacher .style-btn, .style-room.teacher .style-mode-btn { border-radius: 10px; font-weight: 700; box-shadow: none; }
+.style-room.teacher .style-btn { min-height: 44px; padding: 0 14px; font-size: 0.95rem; }
+.style-room.teacher .style-btn.primary { min-width: 140px; }
+.style-room.teacher .style-secondary { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.style-room.teacher .style-secondary .style-btn { background: #fff; border-width: 1px; }
+.style-room.teacher .style-head-actions { align-items: center; gap: 10px; }
+.style-room.teacher .style-mode { border-radius: 12px; padding: 4px; }
+.style-room.teacher .style-mode-btn { min-height: 44px; padding: 0 18px; }
+.style-room.teacher .style-release { border-radius: 8px; font-weight: 700; }
+.style-room.teacher .style-chip { border-radius: 8px; min-height: 40px; font-size: 0.88rem; font-weight: 600; }
+.style-room.teacher .style-tab { border-radius: 10px; min-height: 48px; font-size: 0.92rem; }
+.style-room.teacher .style-tile { border-radius: 10px; min-height: 56px; font-size: 0.9rem; font-weight: 600; justify-content: center; }
+.style-room.teacher .style-anim-label { font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+.style-room.teacher .npc-pick { min-height: 64px; border-radius: 10px; border-width: 2px; }
+.style-room.teacher .npc-pick small { font-weight: 600; }
+.style-room.teacher .npc-pick-add b { font-size: 0.95rem; }
+.style-room.teacher .npc-editor { border-radius: 14px; border-width: 2px; }
+.style-room.teacher .npc-animal { border-radius: 10px; min-height: 44px; }

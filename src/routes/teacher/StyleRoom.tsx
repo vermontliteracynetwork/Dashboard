@@ -388,6 +388,9 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
 
   // The Hair tab only exists for the Person (Build Queue 213); switching to another character leaves it.
   useEffect(() => { if (tab === 'hair' && !canWearHair(look.species)) setTab('body'); }, [tab, look.species]);
+  // Build Queue 229 (her words 2026-10-15: "streamline the general view for teachers, emojis are not needed, buttons
+  // can be organzied better for adults"): the teacher's Style shows plain words; students keep their emojis.
+  const em = (e: string) => (studentMode ? e : '');
   const tabs: { id: Tab; label: string; emoji: string }[] = [
     { id: 'body', label: 'Body', emoji: '🐾' },
     ...SLOT_ORDER.filter((s) => s !== 'hair' || canWearHair(look.species)).map((s) => ({ id: s as Tab, label: SLOT_LABEL[s], emoji: catalog.find((i) => i.slot === s)?.emoji ?? '✨' })),
@@ -396,7 +399,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   return (
     <div className={studentMode ? 'style-student-shell' : 'app-shell'}>
       {!studentMode && <TeacherNav />}
-      <div className={`style-room${wtActive ? ' wt-on' : ''}`}>
+      <div className={`style-room${wtActive ? ' wt-on' : ''}${studentMode ? '' : ' teacher'}`}>
         <header className="style-head">
           <div>
             {studentMode && (
@@ -404,22 +407,22 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 ← {wtActive ? 'Finish later' : dirty && canSave ? 'Save and go back' : 'Back to Town Square'}
               </button>
             )}
-            <h1>{studentMode ? '🧵 The Seamstress' : '👗 Style'}</h1>
+            <h1>{studentMode ? '🧵 The Seamstress' : 'Style'}</h1>
             {studentMode && student && <p className="style-note">💵 You have {money(student.coins)}</p>}
             {!studentMode && (
               <p className="style-note">
-                {settings.released ? 'Students can use Style now (from their pie menu).' : 'Only you can see Style right now. Students get it (from their pie menu) when you turn it on.'}
-                {' '}
-                <button type="button" className={`style-release${settings.released ? ' on' : ''}`} onClick={() => setConfirmRelease(true)}>
-                  {settings.released ? '✅ Students: ON' : '🔒 Students: OFF'}
+                Your character and the Neighbors.{' '}
+                <button type="button" className={`style-release${settings.released ? ' on' : ''}`} onClick={() => setConfirmRelease(true)} aria-label={settings.released ? 'Student access is on. Change it.' : 'Student access is off. Change it.'}>
+                  Student access: {settings.released ? 'On' : 'Off'}
                 </button>
               </p>
             )}
           </div>
           {!studentMode && <div className="style-mode" role="tablist" aria-label="Style mode">
-            <button type="button" role="tab" aria-selected={mode === 'dress' && !dressNpc} className={`style-mode-btn${mode === 'dress' && !dressNpc ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('dress'); else setMode('dress'); styleSound.tap(); }}>🪞 Dress up</button>
-            <button type="button" role="tab" aria-selected={mode === 'workshop'} className={`style-mode-btn${mode === 'workshop' ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('workshop'); else setMode('workshop'); styleSound.tap(); }}>🧵 Item workshop</button>
-            <button type="button" role="tab" aria-selected={mode === 'neighbors' || !!dressNpc} className={`style-mode-btn${mode === 'neighbors' || dressNpc ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('neighbors'); else setMode('neighbors'); styleSound.tap(); }}>🏘️ Neighbors</button>
+            {/* Build Queue 229 (her words 2026-10-15: "change style to only be my teacher character and the neightbors"):
+                the Item workshop tab is gone from the teacher's Style. */}
+            <button type="button" role="tab" aria-selected={mode === 'dress' && !dressNpc} className={`style-mode-btn${mode === 'dress' && !dressNpc ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('dress'); else setMode('dress'); styleSound.tap(); }}>My character</button>
+            <button type="button" role="tab" aria-selected={mode === 'neighbors' || !!dressNpc} className={`style-mode-btn${mode === 'neighbors' || dressNpc ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('neighbors'); else setMode('neighbors'); styleSound.tap(); }}>Neighbors</button>
           </div>}
           {mode === 'neighbors' ? (
             <div className="style-head-actions"><span className="style-note">Pick a Neighbor, then change their animal, name, title, facts and clothes.</span></div>
@@ -427,14 +430,16 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
             <div className="style-head-actions">
               {dressNpc && (
                 <span className="style-dressing">
-                  🎨 Dressing {npcProfiles[dressNpc]?.name}
+                  {em('🎨 ')}Dressing {npcProfiles[dressNpc]?.name}
                   <button type="button" className="style-btn" onClick={() => { stopDressNpc('neighbors'); styleSound.swish(); }}>← Back to Neighbors</button>
                 </span>
               )}
-              <button type="button" className={`style-btn${lk('surprise')}`} onClick={surprise}>🎲 Surprise me</button>
-              <button type="button" className={`style-btn${lk('reset')}`} onClick={() => { setLook(defaultLook(look.species)); styleSound.swish(); }}>↺ Start over</button>
-              <button type="button" className={`style-btn${lk('undo')}`} disabled={!dirty} onClick={() => { setLook(saved); styleSound.swish(); }}>Undo changes</button>
-              <button type="button" data-wt="save" className={`style-btn primary${lk('save')}`} disabled={!canSave} onClick={save}>{!canSave ? '🔒 Locked items on' : dirty || wtStep?.id === 'save' ? (dressNpc ? `💾 Save ${npcProfiles[dressNpc]?.name}'s look` : '💾 Save my look') : '✓ Saved'}</button>
+              <span className="style-secondary">
+                <button type="button" className={`style-btn${lk('surprise')}`} onClick={surprise}>{studentMode ? '🎲 Surprise me' : 'Random'}</button>
+                <button type="button" className={`style-btn${lk('reset')}`} onClick={() => { setLook(defaultLook(look.species)); styleSound.swish(); }}>{studentMode ? '↺ Start over' : 'Reset'}</button>
+                <button type="button" className={`style-btn${lk('undo')}`} disabled={!dirty} onClick={() => { setLook(saved); styleSound.swish(); }}>Undo changes</button>
+              </span>
+              <button type="button" data-wt="save" className={`style-btn primary${lk('save')}`} disabled={!canSave} onClick={save}>{!canSave ? `${em('🔒 ')}Locked items on` : dirty || wtStep?.id === 'save' ? (dressNpc ? `${em('💾 ')}Save ${npcProfiles[dressNpc]?.name}'s look` : `${em('💾 ')}Save my look`) : 'Saved'}</button>
             </div>
           ) : (
             <div className="style-head-actions">
@@ -476,7 +481,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 </mesh>
                 <OrbitControls target={[0, focusY, 0]} enablePan={false} minDistance={0.8} maxDistance={9} maxPolarAngle={Math.PI / 1.9} />
               </Canvas>
-              {toast && <div className="style-toast">✨ {toast}</div>}
+              {toast && <div className="style-toast">{em('✨ ')}{toast}</div>}
               {lockedInLook.length > 0 && (
                 <div className="style-locked-note" role="status">
                   <strong>🔒 You are wearing locked items. Want to purchase?</strong>
@@ -496,19 +501,19 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 <span className="style-anim-label">Move</span>
                 {(['idle', 'walk', 'run', 'swim', 'tread'] as StyleMove[]).map((m) => (
                   <button key={m} type="button" className={`style-chip${move === m ? ' on' : ''}`} onClick={() => { setMove(m); styleSound.tap(); }}>
-                    {m === 'idle' ? '🧍 Stand' : m === 'walk' ? '🚶 Walk' : '🏃 Run'}
+                    {m === 'idle' ? `${em('🧍 ')}Stand` : m === 'walk' ? `${em('🚶 ')}Walk` : m === 'run' ? `${em('🏃 ')}Run` : m === 'swim' ? `${em('🏊 ')}Swim` : `${em('🌊 ')}Tread water`}
                   </button>
                 ))}
-                <button type="button" className="style-chip" onClick={() => play('jump')}>🦘 Jump</button>
+                <button type="button" className="style-chip" onClick={() => play('jump')}>{em('🦘 ')}Jump</button>
                 <button type="button" className="style-chip" onClick={() => setSpin((s) => s + Math.PI / 4)} aria-label="Turn left">⟲ Turn</button>
                 <button type="button" className="style-chip" onClick={() => setSpin((s) => s - Math.PI / 4)} aria-label="Turn right">Turn ⟳</button>
               </div>
               <div className="style-anim-group">
                 <span className="style-anim-label">Emotes</span>
-                <button type="button" data-wt="wave" className={`style-chip${lk('wave')}`} onClick={() => play('wave')}>👋 Wave</button>
-                <button type="button" className={`style-chip${talking ? ' on' : ''}${lk('emote')}`} onClick={() => { setTalking((v) => !v); styleSound.tap(); }}>💬 {talking ? 'Stop talking' : 'Talk'}</button>
-                <button type="button" className={`style-chip${lk('emote')}`} onClick={() => play('cheer')}>🙌 Cheer</button>
-                <button type="button" className={`style-chip${lk('emote')}`} onClick={() => play('dance')}>💃 Dance</button>
+                <button type="button" data-wt="wave" className={`style-chip${lk('wave')}`} onClick={() => play('wave')}>{em('👋 ')}Wave</button>
+                <button type="button" className={`style-chip${talking ? ' on' : ''}${lk('emote')}`} onClick={() => { setTalking((v) => !v); styleSound.tap(); }}>{em('💬 ')}{talking ? 'Stop talking' : 'Talk'}</button>
+                <button type="button" className={`style-chip${lk('emote')}`} onClick={() => play('cheer')}>{em('🙌 ')}Cheer</button>
+                <button type="button" className={`style-chip${lk('emote')}`} onClick={() => play('dance')}>{em('💃 ')}Dance</button>
               </div>
             </div>
           </section>
@@ -541,7 +546,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 <nav className="style-tabs" aria-label="Style categories">
                   {tabs.map((t) => (
                     <button key={t.id} type="button" data-wt={`tab:${t.id}`} className={`style-tab${tab === t.id ? ' on' : ''}${lk(`tab:${t.id}`)}`} onClick={() => { setTab(t.id); styleSound.tap(); }}>
-                      <span aria-hidden="true">{t.emoji}</span>{t.label}
+                      {studentMode && <span aria-hidden="true">{t.emoji}</span>}{t.label}
                     </button>
                   ))}
                 </nav>
@@ -554,7 +559,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                           onClick={() => {
                             setLook((l) => asSpecies(l, sp.id)); styleSound.pop(); play('wave');
                           }}>
-                          <span className="style-tile-emoji">{sp.emoji}</span>{sp.name}
+                          {studentMode && <span className="style-tile-emoji">{sp.emoji}</span>}{sp.name}
                           {spLocked(sp.id) ? <span className="style-tile-lock" aria-label="Locked">🔒 {money(SPECIES_PRICE)}</span> : null}
                         </button>
                       ))}
@@ -593,7 +598,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                     {tab === 'costume' && <p className="style-note">A costume turns your character into someone new, from head to toe. Your clothes are kept and come back when you take it off.</p>}
                     {tab !== 'costume' && look.outfit.costume && <p className="style-note">You are wearing a costume. Picking something here takes the costume off.</p>}
                     <div data-wt="items" className={lk('items')}>
-                      <ItemGrid items={catalog.filter((i) => i.slot === tab)} selected={look.outfit[tab]?.itemId ?? null} onPick={(id) => equip(tab, id)} allowNone locked={studentMode ? lockOf : undefined} />
+                      <ItemGrid items={catalog.filter((i) => i.slot === tab)} selected={look.outfit[tab]?.itemId ?? null} onPick={(id) => equip(tab, id)} allowNone locked={studentMode ? lockOf : undefined} plain={!studentMode} />
                     </div>
                     <div data-wt="zones" className={lk('zones')}>
                       {(() => {
@@ -723,33 +728,32 @@ function NeighborsPanel({ profiles, removed, selected, animal, onAnimal, onSelec
   const p = profiles.find((x) => x.id === selected) ?? profiles[0];
   return (
     <div className="style-section npc-panel">
-      <h2 className="npc-group">🏡 Neighbors <small>({profiles.length})</small></h2>
+      <h2 className="npc-group">Neighbors <small>({profiles.length})</small></h2>
       <div className="npc-picker" role="listbox" aria-label="Neighbors">
         {profiles.map((x) => (
           <button key={x.id} type="button" role="option" aria-selected={x.id === p?.id} className={`npc-pick${x.id === p?.id ? ' on' : ''}`} onClick={() => onSelect(x.id)}>
-            <span className="npc-pick-emoji" aria-hidden="true">{speciesById(x.id === p?.id && animal ? animal : x.look.species).emoji}</span>
             <b>{x.name}</b>
+            <small>{speciesById(x.id === p?.id && animal ? animal : x.look.species).name}</small>
             <small>{x.title}</small>
           </button>
         ))}
         <button type="button" className="npc-pick npc-pick-add" onClick={onAdd}>
-          <span className="npc-pick-emoji" aria-hidden="true">➕</span>
-          <b>Add a neighbor</b>
+          <b>+ Add a neighbor</b>
           <small>Start from scratch</small>
         </button>
       </div>
       {removed.length > 0 && (
         <div className="npc-restore">
-          <span className="npc-label">♻️ Bring back:</span>
+          <span className="npc-label">Deleted (tap to bring back):</span>
           {removed.map((x) => (
-            <button key={x.id} type="button" className="style-chip" onClick={() => onRestore(x.id)}>{speciesById(x.look.species).emoji} {x.name}</button>
+            <button key={x.id} type="button" className="style-chip" onClick={() => onRestore(x.id)}>{x.name}</button>
           ))}
         </div>
       )}
       {p ? (
         <NeighborEditor key={`${p.id}-${p.title}-${p.facts.join('|')}-${p.look.species}-${p.personality ?? ''}`} p={p} animal={animal} onAnimal={onAnimal} onDress={onDress} onSave={onSaveDetails} onDelete={onDelete} onRename={onRename} />
       ) : (
-        <p className="style-note">No neighbors in town yet. Tap ➕ Add a neighbor.</p>
+        <p className="style-note">No neighbors in town yet. Tap Add a neighbor.</p>
       )}
     </div>
   );
@@ -774,12 +778,11 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave, onDelete, onRena
   return (
     <div className="npc-editor">
       <div className="npc-editor-head">
-        <span className="npc-editor-emoji" aria-hidden="true">{speciesById(species).emoji}</span>
         <div>
           <h2>{name.trim() || p.defaultName}</h2>
           <small>Neighbor{changed ? ' · not saved yet' : ''}</small>
         </div>
-        <button type="button" className="style-chip npc-rename" onClick={() => { const el = document.getElementById(`npc-name-${p.id}`) as HTMLInputElement | null; el?.focus(); el?.select(); }}>✏️ Rename</button>
+        <button type="button" className="style-chip npc-rename" onClick={() => { const el = document.getElementById(`npc-name-${p.id}`) as HTMLInputElement | null; el?.focus(); el?.select(); }}>Rename</button>
       </div>
 
       <div className="npc-field">
@@ -787,11 +790,11 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave, onDelete, onRena
         <div className="npc-animals" role="radiogroup" aria-label={`${p.name}'s animal`}>
           {SPECIES.map((sp) => (
             <button key={sp.id} type="button" role="radio" aria-checked={species === sp.id} className={`npc-animal${species === sp.id ? ' on' : ''}`} onClick={() => onAnimal(sp.id)}>
-              <span aria-hidden="true">{sp.emoji}</span>{sp.name}
+              {sp.name}
             </button>
           ))}
         </div>
-        {species !== p.look.species && <p className="style-note">Their clothes stay on. Tap 🎨 Dress to change their colors.</p>}
+        {species !== p.look.species && <p className="style-note">Their clothes stay on. Use Dress to change their colors.</p>}
       </div>
 
       <div className="npc-two">
@@ -825,42 +828,42 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave, onDelete, onRena
               <button type="button" className="npc-fact-x" aria-label={`Remove fact ${i + 1}`} onClick={() => setFacts((fs) => (fs.length > 1 ? fs.filter((_, j) => j !== i) : ['']))}>✕</button>
             </div>
           ))}
-          <button type="button" className="style-btn npc-fact-add" onClick={() => setFacts((fs) => [...fs, ''])}>➕ Add a fact</button>
+          <button type="button" className="style-btn npc-fact-add" onClick={() => setFacts((fs) => [...fs, ''])}>+ Add a fact</button>
         </div>
       </div>
 
       <div className="npc-editor-actions">
-        <button type="button" className="style-btn" onClick={() => onDress(p.id)}>🎨 Dress {name.trim() || p.name}</button>
-        <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={() => onSave(p.id, name, title, factList, personality)}>{changed ? '💾 Save changes' : '✓ Saved'}</button>
+        <button type="button" className="style-btn" onClick={() => onDress(p.id)}>Dress {name.trim() || p.name}</button>
+        <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={() => onSave(p.id, name, title, factList, personality)}>{changed ? 'Save changes' : 'Saved'}</button>
       </div>
       {askDelete ? (
         <div className="npc-delete-ask" role="alertdialog" aria-label={`Delete ${p.name}?`}>
           <p>Delete <b>{p.name}</b>? Students will not see them in Town Square anymore.</p>
           <div className="npc-editor-actions">
             <button type="button" className="style-btn" onClick={() => setAskDelete(false)}>Keep {p.name}</button>
-            <button type="button" className="style-btn npc-delete-yes" onClick={() => onDelete(p.id)}>🗑️ Yes, delete</button>
+            <button type="button" className="style-btn npc-delete-yes" onClick={() => onDelete(p.id)}>Yes, delete</button>
           </div>
         </div>
       ) : (
-        <button type="button" className="style-btn npc-delete" onClick={() => setAskDelete(true)}>🗑️ Delete {p.name}</button>
+        <button type="button" className="style-btn npc-delete" onClick={() => setAskDelete(true)}>Delete {p.name}</button>
       )}
     </div>
   );
 }
 
-function ItemGrid({ items, selected, onPick, allowNone, edited, locked }: { items: WardrobeItem[]; selected: string | null; onPick: (id: string | null) => void; allowNone?: boolean; edited?: Record<string, unknown>; locked?: (item: WardrobeItem) => Lock | null }) {
+function ItemGrid({ items, selected, onPick, allowNone, edited, locked, plain }: { items: WardrobeItem[]; selected: string | null; onPick: (id: string | null) => void; allowNone?: boolean; edited?: Record<string, unknown>; locked?: (item: WardrobeItem) => Lock | null; plain?: boolean }) {
   return (
     <div className="style-grid">
       {allowNone && (
         <button type="button" className={`style-tile${!selected ? ' on' : ''}`} onClick={() => onPick(null)}>
-          <span className="style-tile-emoji">🚫</span>None
+          {!plain && <span className="style-tile-emoji">🚫</span>}None
         </button>
       )}
       {items.map((item) => {
         const lock = locked?.(item) ?? null;
         return (
           <button key={item.id} type="button" className={`style-tile${selected === item.id ? ' on' : ''}${lock ? ' locked' : ''}`} onClick={() => onPick(item.id)}>
-            <span className="style-tile-emoji">{item.emoji}</span>{item.name}
+            {!plain && <span className="style-tile-emoji">{item.emoji}</span>}{item.name}
             {edited?.[item.id] ? <span className="style-tile-badge">edited</span> : null}
             {lock ? <span className="style-tile-lock" aria-label="Locked">🔒 {lock.kind === 'buy' ? money(lock.price) : 'Earn it'}</span> : null}
           </button>
