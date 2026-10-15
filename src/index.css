@@ -9275,3 +9275,8 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
    buttons are drawn at 52px to stay at least 44px on screen (Build Queue 207). */
 .sn-stage .sn-rank, .sn-stage button.sn-saved { min-height: 52px; }
 .sn-stage .sn-listen { min-width: 52px; min-height: 52px; }
+
+/* Person skin tones (Build Queue 214). */
+.style-skin-tones { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
+.style-skin { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #d8c8ee; cursor: pointer; touch-action: manipulation; padding: 0; }
+.style-skin.on { box-shadow: 0 0 0 4px #9b59b6; }

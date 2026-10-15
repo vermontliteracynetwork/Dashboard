@@ -4,14 +4,15 @@ import { useEffect } from 'react';
 import { Html } from '@react-three/drei';
 import { useSearchParams } from 'react-router-dom';
 import { StyleCharacter } from '../../style/StyleCharacter';
-import { ALL_SPECIES, SKIN_TONES, SPECIES, defaultLook, speciesById } from '../../style/species';
+import { SKIN_TONES, SKIN_TONE_LIST, SPECIES, defaultLook, speciesById } from '../../style/species';
 import { HAIR_MOCKUP, WARDROBE, itemById } from '../../style/wardrobe';
 import type { SpeciesId, StyleLook, WardrobeSlot } from '../../style/types';
 
 // MOCK-UP ONLY: a fit check sheet for new Style characters (not part of the live build; open mockup.html).
 // ?sp=fox&view=front|side|back shows that animal wearing every clothing and accessory item, one per cell;
 // ?mode=outfits shows every animal in the same full outfits side by side (&sps=person,dog,... &o=0-3);
-// ?mode=hair shows every hairstyle / wig on every character (&view=); ?mode=hairhats every hairstyle under every
+// ?mode=hair shows every hairstyle on the person in six skin tones (&view=; Build Queue 213: only the Person wears
+// hair now); ?mode=skin the person in all twelve skin tones (Build Queue 214); ?mode=hairhats every hairstyle under every
 // hat on the person; ?mode=people a class of people (skin tones, hair, outfits). Build Queue 195: the person
 // always wears hair (Short Hair unless the cell says otherwise).
 const OUTFITS: Partial<Record<WardrobeSlot, string>>[] = [
@@ -59,9 +60,12 @@ export default function MockupSpecies() {
       return OUTFITS.slice(a, b + 1).flatMap((o, r) => ids.map((id, c) => ({ key: `${r}-${id}`, look: dress(id, o), label: r === 0 ? speciesById(id).name : '', col: c, row: r })));
     }
     if (mode === 'hair') {
-      const ids = (q.get('sps') ?? ALL_SPECIES.map((s) => s.id).join(',')).split(',') as SpeciesId[];
       const [a, b] = (q.get('o') ?? `0-${HAIR_MOCKUP.length - 1}`).split('-').map(Number);
-      return HAIR_MOCKUP.slice(a, b + 1).flatMap((hr, r) => ids.map((id, c) => ({ key: `${hr.id}-${id}`, look: dress(id, { hair: hr.id }), label: c === 0 ? hr.name : '', col: c, row: r })));
+      const tones = [0, 2, 4, 6, 8, 10].map((i) => SKIN_TONES[i]);
+      return HAIR_MOCKUP.slice(a, b + 1).flatMap((hr, r) => tones.map((tone, c) => ({ key: `${hr.id}-${c}`, look: dress('person', { hair: hr.id }, tone), label: c === 0 ? hr.name : '', col: c, row: r })));
+    }
+    if (mode === 'skin') {
+      return SKIN_TONE_LIST.map((t, i) => ({ key: t.hex, look: dress('person', { ...OUTFITS[1 + (i % 7)], hair: HAIR_MOCKUP[i % HAIR_MOCKUP.length].id }, t.hex), label: t.name, col: i % 6, row: Math.floor(i / 6) }));
     }
     if (mode === 'hairhats') {
       const [a, b] = (q.get('o') ?? `0-${HAIR_MOCKUP.length - 1}`).split('-').map(Number);
@@ -84,7 +88,7 @@ export default function MockupSpecies() {
   return (
     <div style={{ width: w, height: h + 60, background: '#f4f1fb', fontFamily: 'Nunito, sans-serif' }}>
       <div style={{ height: 60, display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: 26, fontWeight: 800, color: '#2b2350' }}>
-        {mode === 'outfits' ? 'Every character in the same outfits' : mode === 'hair' ? `Every hairstyle and wig on every character (${view} view)` : mode === 'hairhats' ? 'Hair under every hat' : mode === 'people' ? `People (${view} view)` : `${speciesById(sp).emoji} ${speciesById(sp).name}: every item (${view} view)`}
+        {mode === 'outfits' ? 'Every character in the same outfits' : mode === 'hair' ? `Every hairstyle on the Person, in six skin tones (${view} view)` : mode === 'skin' ? 'The Person in twelve skin tones' : mode === 'hairhats' ? 'Hair under every hat' : mode === 'people' ? `People (${view} view)` : `${speciesById(sp).emoji} ${speciesById(sp).name}: every item (${view} view)`}
       </div>
       <Canvas style={{ width: w, height: h }} orthographic dpr={1} frameloop="demand" gl={{ preserveDrawingBuffer: true, antialias: true }}
         camera={{ position: [((cols - 1) * DX) / 2, -((rows - 1) * DY) / 2 + 0.85, 20], zoom: 260 / DX, near: 0.1, far: 100 }}>

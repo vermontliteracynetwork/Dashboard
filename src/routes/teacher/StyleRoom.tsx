@@ -5,7 +5,7 @@ import { ContactShadows, OrbitControls } from '@react-three/drei';
 import TeacherNav from '../../components/TeacherNav';
 import { useStore } from '../../store/store';
 import { StyleCharacter, type StyleCharacterHandle } from '../../style/StyleCharacter';
-import { SPECIES, defaultLook, speciesById } from '../../style/species';
+import { SKIN_TONE_LIST, SPECIES, defaultLook, speciesById } from '../../style/species';
 import { SLOT_LABEL, SLOT_ORDER, type WardrobeItem } from '../../style/wardrobe';
 import { useStyleCatalog, useStyleSettings } from '../../style/catalog';
 import { PATTERNS, patternSwatch } from '../../style/patterns';
@@ -555,14 +555,31 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                       ))}
                     </div>
                     {studentMode && !wtActive && inv.species.length > 0 && <p className="style-note">Your first animal was free. Each new animal costs {money(SPECIES_PRICE)}.</p>}
+                    {look.species === 'person' ? (
+                      <div className="style-paint">
+                        <h3>Skin tone</h3>
+                        <div className="style-skin-tones" role="radiogroup" aria-label="Skin tone">
+                          {SKIN_TONE_LIST.map((t) => {
+                            const on = look.body.fur.colors[0].toLowerCase() === t.hex;
+                            return (
+                              <button key={t.hex} type="button" role="radio" aria-checked={on} aria-label={t.name} title={t.name} className={`style-skin${on ? ' on' : ''}`} style={{ background: t.hex }}
+                                onClick={() => { const p: Paint = { pattern: 'solid', colors: [t.hex, '#ffffff'] }; setLook((l) => ({ ...l, body: { ...l.body, fur: p, belly: p, accent: p } })); styleSound.pop(); }} />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : <>
                     <div data-wt="fur" className={lk('fur')}>
                       <PaintEditor label="Fur" paint={look.body.fur} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, fur: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, fur: { ...l.body.fur, pattern: pt } } })))} />
                     </div>
+                    </>}
                     <div className={lk('belly')}>
+                    {look.species !== 'person' && <>
                       <PaintEditor label={look.species === 'frog' ? 'Tummy & chin' : look.species === 'chicken' ? 'Tummy & cheeks' : look.species === 'fox' ? 'Tummy, cheeks & tail tip' : 'Tummy & muzzle'} paint={look.body.belly} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, belly: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, belly: { ...l.body.belly, pattern: pt } } })))} />
                       <PaintEditor label={look.species === 'frog' ? 'Spots & feet' : look.species === 'capybara' ? 'Nose tip, ears & feet' : look.species === 'chicken' ? 'Beak & feet' : look.species === 'fox' ? 'Paws & feet' : 'Ears, paws & feet'} paint={look.body.accent} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, accent: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, accent: { ...l.body.accent, pattern: pt } } })))} />
+                    </>}
                       <ColorOnlyEditor label="Eyes" color={look.body.eyes} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, eyes: c } }))} />
-                      <ColorOnlyEditor label={look.species === 'chicken' ? 'Comb & wattle' : 'Nose'} color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
+                      <ColorOnlyEditor label={look.species === 'chicken' ? 'Comb & wattle' : look.species === 'person' ? 'Eyebrows' : 'Nose'} color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
                     </div>
                   </div>
                 ) : (

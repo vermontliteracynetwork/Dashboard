@@ -1,7 +1,7 @@
 import { Suspense, createElement, forwardRef, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { BODY, HIP_Y, SHOULDER_Y, speciesById, type SpeciesDef } from './species';
+import { BODY, HIP_Y, SHOULDER_Y, speciesById, withoutForeignHair, type SpeciesDef } from './species';
 import { backZ } from './body';
 import { prewarmHats } from './hats';
 import { CostumeBody } from './costumes';
@@ -293,7 +293,8 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
 
 const ease = (cur: number, target: number, rate: number, dt: number) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
 
-export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look, move = 'idle', talking = false, scale = 1, reduceMotion = false, bodyless = false }, handle) {
+export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look: lookIn, move = 'idle', talking = false, scale = 1, reduceMotion = false, bodyless = false }, handle) {
+  const look = useMemo(() => withoutForeignHair(lookIn), [lookIn]);
   const species = speciesById(look.species);
   useEffect(() => prewarmHats(species.id), [species.id]);
   const bodyMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.accent);

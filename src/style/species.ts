@@ -127,7 +127,23 @@ export const PERSON: SpeciesDef = {
   gear: { w: 0.33, h: 0.37 },
   defaultBody: { fur: solid('#e0ac69'), belly: solid('#e0ac69'), accent: solid('#e0ac69'), eyes: '#3b2a20', nose: '#4a3226' },
 };
-export const SKIN_TONES = ['#ffdbac', '#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#5c3a21'];
+// Build Queue 214 (her words 2026-10-15: "make sure person skin color can change to a variety of human skin
+// tones"): twelve real skin tones from very light to very deep, with warm, neutral and cool undertones.
+export const SKIN_TONE_LIST: { hex: string; name: string }[] = [
+  { hex: '#fde7d6', name: 'Very light' }, { hex: '#f6d3bd', name: 'Light rosy' }, { hex: '#f1c9a0', name: 'Light' },
+  { hex: '#e9b98a', name: 'Light warm' }, { hex: '#e0ac69', name: 'Light medium' }, { hex: '#d09a62', name: 'Golden' },
+  { hex: '#c68642', name: 'Medium' }, { hex: '#a96b40', name: 'Tan' }, { hex: '#8d5524', name: 'Brown' },
+  { hex: '#744327', name: 'Deep brown' }, { hex: '#5c3a21', name: 'Deep' }, { hex: '#3e2617', name: 'Very deep' },
+];
+export const SKIN_TONES = SKIN_TONE_LIST.map((t) => t.hex);
+// Build Queue 213 (her words 2026-10-15: "remove wigs for all characters except "Person""): only the Person wears
+// hair; any other character drops it, even from an old saved look.
+export const canWearHair = (species: SpeciesId) => species === 'person';
+export function withoutForeignHair(look: StyleLook): StyleLook {
+  if (!look.outfit.hair || canWearHair(look.species)) return look;
+  const { hair: _hair, ...outfit } = look.outfit;
+  return { ...look, outfit };
+}
 export const ALL_SPECIES: SpeciesDef[] = [...SPECIES, PERSON];
 
 export const speciesById = (id: SpeciesId) => ALL_SPECIES.find((s) => s.id === id) ?? SPECIES[0];
