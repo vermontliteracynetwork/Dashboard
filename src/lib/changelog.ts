@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-new-neighbors",
+    date: "2026-10-15",
+    icon: "🏡",
+    title: "New neighbors in town",
+    body: "Your teacher can now make brand new neighbors for Town Square. Look for new faces walking around. Tap one to chat, hear a joke, or play a game with them.",
+  },
+  {
     id: "2026-10-15-science-lab",
     date: "2026-10-15",
     icon: "🔬",

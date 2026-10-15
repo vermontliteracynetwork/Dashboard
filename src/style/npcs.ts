@@ -5,6 +5,7 @@ import { TOWNSPEOPLE } from '../lib/worldTownspeople';
 import { speciesById } from './species';
 import { itemById } from './wardrobe';
 import type { Paint, SpeciesId, StyleLook, WardrobeSlot } from './types';
+import { addedNpcs, removedNpcIds } from './npcRoster';
 
 // Neighbors and Townspeople as Style characters (teacher direction
 // 2026-10-04): every one of them is built from Style animals and clothes,
@@ -14,7 +15,7 @@ import type { Paint, SpeciesId, StyleLook, WardrobeSlot } from './types';
 // npcTitleOverrides setting so the World Editor's Roster stays in sync.
 
 export type NpcKind = 'neighbor' | 'townsperson';
-export interface NpcEntry { id: string; kind: NpcKind; defaultName: string; defaultTitle: string }
+export interface NpcEntry { id: string; kind: NpcKind; defaultName: string; defaultTitle: string; custom?: boolean }
 
 export const NPC_ROSTER: NpcEntry[] = [
   ...QUEST1_NEIGHBORS.map((n) => ({ id: n.id, kind: 'neighbor' as const, defaultName: n.name, defaultTitle: n.role })),
@@ -90,12 +91,26 @@ export const DEFAULT_NPC_LOOKS: Record<string, StyleLook> = {
   }),
 };
 
+// Everyone in town, as one list of Neighbors (built-in Neighbors and Townspeople she has not deleted, then the ones
+// she made from scratch). Build Queue 204 and 205.
+export function useNpcRoster(): NpcEntry[] {
+  const rows = useStore((s) => s.styleLooks);
+  return useMemo(() => {
+    const gone = removedNpcIds(rows);
+    return [
+      ...NPC_ROSTER.filter((e) => !gone.has(e.id)),
+      ...addedNpcs(rows).filter((a) => !gone.has(a.id)).map((a) => ({ id: a.id, kind: 'neighbor' as const, defaultName: a.name, defaultTitle: a.title, custom: true })),
+    ];
+  }, [rows]);
+}
+
 export function useNpcProfiles(): Record<string, NpcProfile> {
   const rows = useStore((s) => s.styleLooks);
   const titles = useStore((s) => s.npcTitleOverrides);
   return useMemo(() => {
     const out: Record<string, NpcProfile> = {};
-    for (const e of NPC_ROSTER) {
+    const added: NpcEntry[] = addedNpcs(rows).map((a) => ({ id: a.id, kind: 'neighbor' as const, defaultName: a.name, defaultTitle: a.title, custom: true }));
+    for (const e of [...NPC_ROSTER, ...added]) {
       const row = rows.find((r) => r.ownerId === npcOwner(e.id))?.look as NpcProfileRow | undefined;
       const look = row?.look && row.look.species && row.look.body && row.look.outfit ? row.look : DEFAULT_NPC_LOOKS[e.id] ?? dress('dog', {});
       out[e.id] = {

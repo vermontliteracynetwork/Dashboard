@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store/store';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
+import { questNeighborIds } from '../style/npcRoster';
 import { SEL_STARTER_TOOLS, SEL_ZONE_FACE } from '../lib/selZones';
 import type { SelZone } from '../types';
 import SelZoneEmotionPicker from './SelZoneEmotionPicker';
@@ -15,6 +16,7 @@ import SelSupportMenu from './SelSupportMenu';
 export default function SelZoneCheckIn({ studentId, studentName, onDone }: { studentId: string; studentName: string; onDone: () => void }) {
   const student = useStore((s) => s.students.find((st) => st.id === studentId));
   const recordSelCheckIn = useStore((s) => s.recordSelCheckIn);
+  const styleLooks = useStore((s) => s.styleLooks);
   const addSelCheckInTool = useStore((s) => s.addSelCheckInTool);
   const addSelCheckInNote = useStore((s) => s.addSelCheckInNote);
   const scheduleSelRecheck = useStore((s) => s.scheduleSelRecheck);
@@ -34,8 +36,10 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
 
   const handleContinue = () => {
     if (!picked) return;
-    const neighbor = QUEST1_NEIGHBORS[Math.floor(Math.random() * QUEST1_NEIGHBORS.length)];
-    scheduleSelRecheck(picked.checkInId, neighbor.id);
+    // Only a Neighbor who is still in town comes back to check in (Build Queue 204).
+    const inTown = questNeighborIds(styleLooks);
+    const pool = inTown.length ? inTown : QUEST1_NEIGHBORS.map((n) => n.id);
+    scheduleSelRecheck(picked.checkInId, pool[Math.floor(Math.random() * pool.length)]);
     markSelLoginCheckInDone(studentId);
     onDone();
   };

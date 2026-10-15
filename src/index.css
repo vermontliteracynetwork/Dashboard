@@ -4225,6 +4225,15 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .npc-fact-add { align-self: flex-start; min-height: 44px; }
 .npc-editor-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 .npc-editor-actions .style-btn { min-height: 52px; flex: 1 1 180px; }
+.npc-group small { font-weight: 700; opacity: 0.6; }
+.npc-pick-add { border-style: dashed; border-color: #9b59b6; background: #fbf6ff; }
+.npc-restore { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.npc-restore .style-chip { min-height: 44px; }
+.npc-rename { margin-left: auto; min-height: 44px; }
+.npc-delete { align-self: flex-start; min-height: 48px; border-color: #e74c3c; color: #c0392b; background: #fff; }
+.npc-delete-ask { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 16px; border: 2px solid #e74c3c; background: #fff3f1; }
+.npc-delete-ask p { margin: 0; font-weight: 700; }
+.npc-delete-yes { background: #e74c3c; border-color: #c0392b; color: #fff; }
 /* Neighbor pie menu + character sheet (iPad sized) */
 .npc-pie-backdrop { position: fixed; inset: 0; z-index: 235; background: rgba(31, 17, 71, 0.45); display: grid; place-items: center; }
 .npc-pie { position: relative; width: 340px; height: 420px; }

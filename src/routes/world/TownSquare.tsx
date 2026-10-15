@@ -19,6 +19,7 @@ import { formatMoney } from '../../lib/money';
 import { StyleCharacter } from '../../style/StyleCharacter';
 import { StyleAvatar, STYLE_IN_WORLD_SCALE } from '../../style/StyleAvatar';
 import { useNpcProfiles, renameIn, DEFAULT_NPC_LOOKS } from '../../style/npcs';
+import { addedNpcs, removedNpcIds } from '../../style/npcRoster';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
 import GameDashboard from '../../components/GameDashboard';
@@ -320,6 +321,34 @@ const AMBIENT_NPCS: { id: string; modelPath: string; home: [number, number] }[] 
   { id: 'amb-2', modelPath: '/world/models/characters/ambient-2.glb', home: [4, -3] },
   { id: 'amb-3', modelPath: '/world/models/characters/ambient-3.glb', home: [-2, 9] },
 ];
+
+// Neighbors the teacher made from scratch in Style > Neighbors (Build Queue 205). They wander from the same
+// safe homes as the Townspeople and chat from their own name, title and facts. Jokes have no jokeId on purpose:
+// the Joke Book only banks the built-in jokes.
+type CustomTownsperson = Townsperson & { jokes: ConversationStep[][] };
+const CUSTOM_VOICES = ['light-cheerful', 'calm-slow', 'warm-gravelly'];
+const CUSTOM_JOKES: [string, string][] = [
+  ['What do you call a sleeping bull?', 'A bulldozer!'],
+  ['Why did the teddy bear say no to dessert?', 'It was already stuffed!'],
+  ['What do you call cheese that is not yours?', 'Nacho cheese!'],
+];
+function customTownsperson(id: string, name: string, title: string, facts: string[], i: number): CustomTownsperson {
+  const hello = `Hi! I'm ${name}${title && title !== 'Neighbor' ? `, ${title}` : ''}.`;
+  const middle: ConversationStep[] = facts.length
+    ? facts.slice(0, 3).map((f) => ({ npc: `Fun fact about me: ${f}`, options: ['Cool!', 'Neat!'] }))
+    : [{ npc: "I'm new in town. It's a nice day for a walk!", options: ['It sure is!', 'Welcome to town!'] }];
+  return {
+    id,
+    name,
+    voicePresetId: CUSTOM_VOICES[i % CUSTOM_VOICES.length],
+    dialogues: [[{ npc: hello, options: [`Hi ${name}!`, 'Hello!'] }, ...middle, { npc: 'It was nice to talk with you. See you around!' }]],
+    jokes: CUSTOM_JOKES.map(([setup, punch]) => [
+      { npc: `Here's a joke. ${setup}`, options: ["I don't know, what?", 'Tell me!'] },
+      { npc: punch, options: ['Ha!', 'Good one!'] },
+      { npc: 'See you around!' },
+    ]),
+  };
+}
 
 // BUILDINGS, ROLE_VIEWS, MARKET_STALLS/SCALE, ROAD_TILES/SCALE, DECOR_PROPS
 // and CITY_PROPS now live in townLayout.ts, a plain-data module with no
@@ -3384,6 +3413,13 @@ export default function TownSquare() {
   // opens with that Neighbor as the other player (teacher direction 2026-10-04).
   const [playWith, setPlayWith] = useState<{ id: string; name: string } | null>(null);
   const npcProfiles = useNpcProfiles();
+  // Build Queue 204/205: Neighbors the teacher deleted stay out of town; ones she made from scratch walk in.
+  const goneNpcs = useMemo(() => removedNpcIds(styleLooksAll), [styleLooksAll]);
+  const customNpcs = useMemo(() => addedNpcs(styleLooksAll).filter((a) => !goneNpcs.has(a.id)).map((a, i) => {
+    const prof = npcProfiles[a.id];
+    const base = AMBIENT_NPCS[i % AMBIENT_NPCS.length];
+    return { id: a.id, modelPath: base.modelPath, home: base.home, tp: customTownsperson(a.id, prof?.name ?? a.name, prof?.title ?? a.title, prof?.facts ?? [], i) };
+  }), [styleLooksAll, goneNpcs, npcProfiles]);
   const townSizeRule = useTownSizeRule();
   const [feelingsNeighbor, setFeelingsNeighbor] = useState<{ id: string; name: string; voicePresetId: string; modelPath?: string } | null>(null);
   const [stepIndex, setStepIndex] = useState(0);
@@ -4107,6 +4143,11 @@ export default function TownSquare() {
   };
   const chatTownsperson = (tp: Townsperson, joke = false) => {
     setTownsMenu(null);
+    const own = (tp as Partial<CustomTownsperson>).jokes;
+    if (joke && own?.length) {
+      beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: maybeAppendFocusLine(own[Math.floor(Math.random() * own.length)], currentLiteracyFocus) });
+      return;
+    }
     if (joke) {
       beginConversation({ kind: 'townsperson', id: tp.id, name: tp.name, steps: maybeAppendFocusLine(pickJokeVariant(tp.dialogues, student?.worldJokesHeardIds ?? []), currentLiteracyFocus) });
       return;
@@ -5370,7 +5411,7 @@ export default function TownSquare() {
               />
             );
           })}
-          {QUEST1_NEIGHBORS.map((n) => (
+          {QUEST1_NEIGHBORS.filter((n) => !goneNpcs.has(n.id)).map((n) => (
             <Neighbor
               key={n.id}
               n={n}
@@ -5386,8 +5427,8 @@ export default function TownSquare() {
               displayName={npcProfiles[n.id]?.name}
             />
           ))}
-          {AMBIENT_NPCS.map((npc) => {
-            const tp = TOWNSPEOPLE[npc.id];
+          {[...AMBIENT_NPCS.filter((npc) => !goneNpcs.has(npc.id)).map((npc) => ({ ...npc, tp: TOWNSPEOPLE[npc.id] as Townsperson | undefined })), ...customNpcs].map((npc) => {
+            const tp = npc.tp;
             return (
               <WanderingNPC
                 key={npc.id}
@@ -5863,6 +5904,7 @@ export default function TownSquare() {
         const defaultPresetId =
           QUEST1_NEIGHBORS.find((n) => n.id === activeConversation.id)?.voicePresetId
           ?? TOWNSPEOPLE[activeConversation.id]?.voicePresetId
+          ?? customNpcs.find((c) => c.id === activeConversation.id)?.tp.voicePresetId
           ?? 'plain-default';
         const npcVoiceProfile = resolveNpcVoiceProfile(activeConversation.id, defaultPresetId, npcVoiceOverrides);
         return (

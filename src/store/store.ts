@@ -10,7 +10,8 @@ import { STARTER_FONT_IDS, STARTER_COLOR_IDS, STARTER_VOICE_IDS, STARTER_MARKETP
 import { avatarById, avatarPriceFor } from '../lib/avatarCatalog';
 import { DEFAULT_TASK_REWARD_CENTS, DEFAULT_BADGE_REWARD_CENTS, formatMoney } from '../lib/money';
 import { getDailySpinSegments } from '../lib/dailySpin';
-import { QUEST1_NEIGHBOR_COUNT, QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
+import { QUEST1_GRAND_PRIZE_CENTS } from '../lib/worldQuest1';
+import { questNeighborIds } from '../style/npcRoster';
 import type { SpinItemKind } from '../lib/dailySpin';
 import { petDefById, rarityFor, canPetFollow, PET_OWNERSHIP_CAP, PET_STAT_FLOOR, PET_DECAY_AMOUNT, rollMysteryPet, MYSTERY_PACK_PRICE_CENTS, PET_TRAINING_CAP, PET_TRICKS, PETS_PAUSED } from '../lib/petCatalog';
 import type { PetDef } from '../lib/petCatalog';
@@ -2152,7 +2153,9 @@ export const useStore = create<AppState>()(
         // a separate register row, not folded into that Neighbor's own
         // item reward, so a student's history shows the two as the
         // distinct moments they actually were (§First quest).
-        if (metIds.length >= QUEST1_NEIGHBOR_COUNT) {
+        // Only Neighbors still in town count (she can delete Neighbors in Style, Build Queue 204).
+        const inTown = questNeighborIds(get().styleLooks);
+        if (inTown.length > 0 && inTown.every((id) => metIds.includes(id)) && !inTown.every((id) => student.worldQuest1MetIds.includes(id))) {
           get().recordTransaction(studentId, QUEST1_GRAND_PRIZE_CENTS, '🎉 Meet the Neighbors: quest complete!', '🏆', 'task');
         }
       },

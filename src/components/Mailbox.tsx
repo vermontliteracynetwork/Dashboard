@@ -1,5 +1,6 @@
 import { useStore } from '../store/store';
 import { QUEST1_NEIGHBORS } from '../lib/worldQuest1';
+import { removedNpcIds } from '../style/npcRoster';
 import { Suspense } from 'react';
 import { lazyFresh } from '../lib/freshBuild';
 import { useNpcProfiles } from '../style/npcs';
@@ -19,10 +20,12 @@ export default function Mailbox() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const npcProfiles = useNpcProfiles();
+  const styleLooks = useStore((s) => s.styleLooks);
   const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
 
-  const received = QUEST1_NEIGHBORS.filter((n) => student.worldQuest1MetIds.includes(n.id));
+  const gone = removedNpcIds(styleLooks);
+  const received = QUEST1_NEIGHBORS.filter((n) => student.worldQuest1MetIds.includes(n.id) && !gone.has(n.id));
 
   return (
     // Direct teacher instruction: every "webpage" screen reads as

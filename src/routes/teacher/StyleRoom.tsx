@@ -12,7 +12,8 @@ import { PATTERNS, patternSwatch } from '../../style/patterns';
 import ColorWheel from '../../style/ColorWheel';
 import { styleSound } from '../../style/styleSounds';
 import BawkGuide from '../../components/BawkGuide';
-import { NPC_ROSTER, useNpcProfiles, type NpcProfile } from '../../style/npcs';
+import { NPC_ROSTER, useNpcProfiles, useNpcRoster, type NpcProfile } from '../../style/npcs';
+import { ROSTER_OWNER, rosterOf } from '../../style/npcRoster';
 import { SPECIES_PRICE, PATTERN_PRICE, FREE_PATTERNS, asInventory, inventoryOwner, itemLock, money, patternLocked, speciesLocked, type Lock } from '../../style/shop';
 import type { Paint, PatternId, SpeciesId, StyleLook, StyleMove, StyleOneShot, WardrobeSlot } from '../../style/types';
 
@@ -101,6 +102,40 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const npcProfiles = useNpcProfiles();
   const saveNpcProfile = useStore((s) => s.saveNpcProfile);
   const setNpcTitleOverride = useStore((s) => s.setNpcTitleOverride);
+  const npcRoster = useNpcRoster();
+  const styleRows = useStore((s) => s.styleLooks);
+  const mergeStyleRow = useStore((s) => s.mergeStyleRow);
+  // Build Queue 205: a brand new Neighbor from scratch (starts as a dog in a plain outfit; she picks the rest).
+  const addNeighbor = () => {
+    const r = rosterOf(styleRows);
+    const id = `custom-${Date.now().toString(36)}`;
+    mergeStyleRow(ROSTER_OWNER, { ...r, added: [...(r.added ?? []), { id, name: 'New neighbor', title: 'Neighbor' }] });
+    setNpcSel(id);
+    setNpcAnimal(null);
+    styleSound.save();
+    flash('New neighbor added! Give them a name.');
+    window.setTimeout(() => { const el = document.getElementById(`npc-name-${id}`) as HTMLInputElement | null; el?.focus(); el?.select(); }, 120);
+  };
+  // Build Queue 204: delete any Neighbor (built-in or one she made). Built-in ones can come back from "Bring back".
+  const deleteNeighbor = (id: string) => {
+    const r = rosterOf(styleRows);
+    const name = npcProfiles[id]?.name ?? 'Neighbor';
+    const isCustom = (r.added ?? []).some((a) => a.id === id);
+    mergeStyleRow(ROSTER_OWNER, isCustom
+      ? { ...r, added: (r.added ?? []).filter((a) => a.id !== id) }
+      : { ...r, removed: [...new Set([...(r.removed ?? []), id])] });
+    setNpcSel(npcRoster.find((e) => e.id !== id)?.id ?? '');
+    setNpcAnimal(null);
+    styleSound.tap();
+    flash(`${name} left town.`);
+  };
+  const restoreNeighbor = (id: string) => {
+    const r = rosterOf(styleRows);
+    mergeStyleRow(ROSTER_OWNER, { ...r, removed: (r.removed ?? []).filter((x) => x !== id) });
+    setNpcSel(id);
+    styleSound.save();
+    flash(`${npcProfiles[id]?.name ?? 'Neighbor'} is back in town!`);
+  };
   const [npcSel, setNpcSel] = useState<string>(NPC_ROSTER[0]?.id ?? 'scout');
   const [dressNpc, setDressNpc] = useState<string | null>(null);
   const [npcAnimal, setNpcAnimal] = useState<SpeciesId | null>(null);
@@ -477,7 +512,12 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
           <section className="style-panel">
             {mode === 'neighbors' ? (
               <NeighborsPanel
-                profiles={NPC_ROSTER.map((e) => npcProfiles[e.id]).filter(Boolean)}
+                profiles={npcRoster.map((e) => npcProfiles[e.id]).filter(Boolean)}
+                removed={NPC_ROSTER.filter((e) => !npcRoster.some((r) => r.id === e.id)).map((e) => npcProfiles[e.id]).filter(Boolean)}
+                onAdd={addNeighbor}
+                onDelete={deleteNeighbor}
+                onRestore={restoreNeighbor}
+                onRename={(id, name) => { saveNpcProfile(id, { name: name.trim() }); styleSound.save(); flash(`Renamed to ${name.trim()}!`); }}
                 selected={npcSel}
                 animal={npcAnimal}
                 onAnimal={(sp) => { setNpcAnimal(sp === npcProfiles[npcSel]?.look.species ? null : sp); styleSound.pop(); window.setTimeout(() => charRefs.current[0]?.play('wave'), 150); }}
@@ -486,7 +526,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 onSaveDetails={(id, name, title, facts) => {
                   saveNpcProfile(id, { name: name.trim(), facts, ...(npcAnimal ? { look: withAnimal(npcProfiles[id].look, npcAnimal) } : {}) });
                   setNpcAnimal(null);
-                  setNpcTitleOverride(id, title.trim() === NPC_ROSTER.find((e) => e.id === id)?.defaultTitle ? null : title);
+                  setNpcTitleOverride(id, title.trim() === npcRoster.find((e) => e.id === id)?.defaultTitle ? null : title);
                   styleSound.save();
                   flash(`${name.trim() || 'Neighbor'} saved!`);
                 }}
@@ -640,50 +680,67 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
 }
 
 // The teacher's Neighbors screen (Build Queue 193, her words 2026-10-15: "redo this design so its easier to
-// navigate"). Was one long table with five cramped columns per row; now it is two steps: tap a Neighbor in the
-// picker grid (Neighbors and Townspeople in their own groups), then edit that one in a roomy card below: animal,
-// name, title, one box per fact, and Save / Dress buttons that always stay inside the card.
-function NeighborsPanel({ profiles, selected, animal, onAnimal, onSelect, onDress, onSaveDetails }: {
+// navigate"). Two steps: tap a Neighbor in the picker grid, then edit that one in a roomy card below: animal,
+// name, title, one box per fact, and Save / Dress buttons that always stay inside the card. Build Queue 204 to
+// 206 (same day): Neighbors and Townspeople are one "Neighbors" list, any of them can be deleted (built-in ones
+// can be brought back), "➕ Add a neighbor" makes one from scratch, and the name saves itself when she renames.
+function NeighborsPanel({ profiles, removed, selected, animal, onAnimal, onSelect, onDress, onSaveDetails, onAdd, onDelete, onRestore, onRename }: {
   profiles: NpcProfile[];
+  removed: NpcProfile[];
   selected: string;
   animal: SpeciesId | null;
   onAnimal: (sp: SpeciesId) => void;
   onSelect: (id: string) => void;
   onDress: (id: string) => void;
   onSaveDetails: (id: string, name: string, title: string, facts: string[]) => void;
+  onAdd: () => void;
+  onDelete: (id: string) => void;
+  onRestore: (id: string) => void;
+  onRename: (id: string, name: string) => void;
 }) {
   const p = profiles.find((x) => x.id === selected) ?? profiles[0];
-  const groups: { kind: NpcProfile['kind']; label: string }[] = [{ kind: 'neighbor', label: '🏡 Neighbors' }, { kind: 'townsperson', label: '🧑‍🤝‍🧑 Townspeople' }];
   return (
     <div className="style-section npc-panel">
-      {groups.map((g) => {
-        const list = profiles.filter((x) => x.kind === g.kind);
-        if (!list.length) return null;
-        return (
-          <div key={g.kind}>
-            <h2 className="npc-group">{g.label}</h2>
-            <div className="npc-picker" role="listbox" aria-label={g.label}>
-              {list.map((x) => (
-                <button key={x.id} type="button" role="option" aria-selected={x.id === p?.id} className={`npc-pick${x.id === p?.id ? ' on' : ''}`} onClick={() => onSelect(x.id)}>
-                  <span className="npc-pick-emoji" aria-hidden="true">{speciesById(x.id === p?.id && animal ? animal : x.look.species).emoji}</span>
-                  <b>{x.name}</b>
-                  <small>{x.title}</small>
-                </button>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-      {p && <NeighborEditor key={`${p.id}-${p.name}-${p.title}-${p.facts.join('|')}-${p.look.species}`} p={p} animal={animal} onAnimal={onAnimal} onDress={onDress} onSave={onSaveDetails} />}
+      <h2 className="npc-group">🏡 Neighbors <small>({profiles.length})</small></h2>
+      <div className="npc-picker" role="listbox" aria-label="Neighbors">
+        {profiles.map((x) => (
+          <button key={x.id} type="button" role="option" aria-selected={x.id === p?.id} className={`npc-pick${x.id === p?.id ? ' on' : ''}`} onClick={() => onSelect(x.id)}>
+            <span className="npc-pick-emoji" aria-hidden="true">{speciesById(x.id === p?.id && animal ? animal : x.look.species).emoji}</span>
+            <b>{x.name}</b>
+            <small>{x.title}</small>
+          </button>
+        ))}
+        <button type="button" className="npc-pick npc-pick-add" onClick={onAdd}>
+          <span className="npc-pick-emoji" aria-hidden="true">➕</span>
+          <b>Add a neighbor</b>
+          <small>Start from scratch</small>
+        </button>
+      </div>
+      {removed.length > 0 && (
+        <div className="npc-restore">
+          <span className="npc-label">♻️ Bring back:</span>
+          {removed.map((x) => (
+            <button key={x.id} type="button" className="style-chip" onClick={() => onRestore(x.id)}>{speciesById(x.look.species).emoji} {x.name}</button>
+          ))}
+        </div>
+      )}
+      {p ? (
+        <NeighborEditor key={`${p.id}-${p.title}-${p.facts.join('|')}-${p.look.species}`} p={p} animal={animal} onAnimal={onAnimal} onDress={onDress} onSave={onSaveDetails} onDelete={onDelete} onRename={onRename} />
+      ) : (
+        <p className="style-note">No neighbors in town yet. Tap ➕ Add a neighbor.</p>
+      )}
     </div>
   );
 }
 
-function NeighborEditor({ p, animal, onAnimal, onDress, onSave }: {
+function NeighborEditor({ p, animal, onAnimal, onDress, onSave, onDelete, onRename }: {
   p: NpcProfile; animal: SpeciesId | null; onAnimal: (sp: SpeciesId) => void; onDress: (id: string) => void;
   onSave: (id: string, name: string, title: string, facts: string[]) => void;
+  onDelete: (id: string) => void; onRename: (id: string, name: string) => void;
 }) {
   const [name, setName] = useState(p.name);
+  const [askDelete, setAskDelete] = useState(false);
+  const commitName = () => { if (name.trim() && name.trim() !== p.name) onRename(p.id, name); };
   const [title, setTitle] = useState(p.title);
   const [facts, setFacts] = useState<string[]>(p.facts.length ? p.facts : ['']);
   const clean = (t: string) => t.replace(/—/g, '-');
@@ -697,8 +754,9 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave }: {
         <span className="npc-editor-emoji" aria-hidden="true">{speciesById(species).emoji}</span>
         <div>
           <h2>{name.trim() || p.defaultName}</h2>
-          <small>{p.kind === 'neighbor' ? 'Neighbor' : 'Townsperson'}{changed ? ' · not saved yet' : ''}</small>
+          <small>Neighbor{changed ? ' · not saved yet' : ''}</small>
         </div>
+        <button type="button" className="style-chip npc-rename" onClick={() => { const el = document.getElementById(`npc-name-${p.id}`) as HTMLInputElement | null; el?.focus(); el?.select(); }}>✏️ Rename</button>
       </div>
 
       <div className="npc-field">
@@ -716,7 +774,7 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave }: {
       <div className="npc-two">
         <label className="npc-field">
           <span className="npc-label">Name</span>
-          <input id={`npc-name-${p.id}`} className="style-name-input" value={name} maxLength={30} onChange={(e) => setName(clean(e.target.value))} />
+          <input id={`npc-name-${p.id}`} className="style-name-input" value={name} maxLength={30} onChange={(e) => setName(clean(e.target.value))} onBlur={commitName} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
         </label>
         <label className="npc-field">
           <span className="npc-label">Title or job</span>
@@ -741,6 +799,17 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave }: {
         <button type="button" className="style-btn" onClick={() => onDress(p.id)}>🎨 Dress {name.trim() || p.name}</button>
         <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={() => onSave(p.id, name, title, factList)}>{changed ? '💾 Save changes' : '✓ Saved'}</button>
       </div>
+      {askDelete ? (
+        <div className="npc-delete-ask" role="alertdialog" aria-label={`Delete ${p.name}?`}>
+          <p>Delete <b>{p.name}</b>? Students will not see them in Town Square anymore.</p>
+          <div className="npc-editor-actions">
+            <button type="button" className="style-btn" onClick={() => setAskDelete(false)}>Keep {p.name}</button>
+            <button type="button" className="style-btn npc-delete-yes" onClick={() => onDelete(p.id)}>🗑️ Yes, delete</button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="style-btn npc-delete" onClick={() => setAskDelete(true)}>🗑️ Delete {p.name}</button>
+      )}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { StylePortrait } from '../style/StylePortrait';
-import { QUEST1_NEIGHBOR_COUNT } from '../lib/worldQuest1';
+import { questNeighborIds } from '../style/npcRoster';
 
 // The Welcome Center's 2D view — Scout's whole role is "shows you
 // around," so a Town-Hall-style passport (who you are, what you've
@@ -13,6 +13,7 @@ export default function Passport() {
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const badges = useStore((s) => s.badges);
+  const styleLooks = useStore((s) => s.styleLooks);
   const student = students.find((s) => s.id === currentStudentId);
   if (!student) return null;
 
@@ -47,7 +48,7 @@ export default function Passport() {
           </div>
           <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
             <span style={{ fontSize: '1.6rem' }}>🙋</span>
-            <strong>{student.worldQuest1MetIds.length}/{QUEST1_NEIGHBOR_COUNT}</strong>
+            <strong>{questNeighborIds(styleLooks).filter((id) => student.worldQuest1MetIds.includes(id)).length}/{questNeighborIds(styleLooks).length}</strong>
             <span style={{ fontSize: '0.8rem', opacity: 0.7 }}>Neighbors met</span>
           </div>
           <div className="stack" style={{ alignItems: 'center', gap: 2 }}>
