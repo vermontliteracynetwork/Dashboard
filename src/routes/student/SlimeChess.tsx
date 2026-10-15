@@ -6,8 +6,8 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import ReadAloud from '../../components/ReadAloud';
 import {
-  PIECE_NAME, PIECE_RULE, PIECE_VALUE, describeMove, explainIllegal, other, pickComputerMove, riskyTargets, suggestMove,
-  kingSquare, type Hint, type Level,
+  PIECE_NAME, PIECE_RULE, PIECE_VALUE, describeMove, explainIllegal, other, pickComputerMove, riskMap, suggestMove,
+  kingSquare, type Hint, type Level, type Risk,
 } from '../../lib/chessCoach';
 import { slimeSound } from '../../lib/slimeSounds';
 import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
@@ -293,7 +293,7 @@ export default function SlimeChess() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [selected, fen],
   );
-  const risky = useMemo(() => (selected ? riskyTargets(fen, selected) : new Set<string>()), [selected, fen]);
+  const risky = useMemo(() => (selected ? riskMap(fen, selected) : new Map<string, Risk>()), [selected, fen]);
 
 
   const checkedKing = game.inCheck() ? kingSquare(game, turn) : null;
@@ -488,11 +488,15 @@ export default function SlimeChess() {
         : `This ${name} has no moves right now. It's blocked in, or moving it would put your King in danger. ${PIECE_RULE[piece.type]}`, 'warn');
       return;
     }
-    const r = riskyTargets(g.fen(), sq);
+    const r = riskMap(g.fen(), sq);
     const caps = moves.filter((m) => m.captured).length;
+    const risks = [...r.values()];
     let text = `${PIECE_RULE[piece.type]} Your ${name} can go to ${moves.length} square${moves.length === 1 ? '' : 's'} (the green bubbles).`;
     if (caps) text += ` Pink rings mean it can capture something!`;
-    if (r.size) text += ` Yellow bubbles with a ! are risky: your ${name} could be captured there on their next move.`;
+    if (risks.some((x) => x.by.length && x.level === 'trade')) text += ` A yellow ! means they could capture your ${name} there, but you could capture right back.`;
+    if (risks.some((x) => x.by.length && x.level === 'lose')) text += ` A red !! means they could capture your ${name} there and you could not capture back.`;
+    const exposed = [...new Set(risks.flatMap((x) => x.exposes))];
+    if (exposed.length) text += ` Careful: some moves leave your ${exposed.map((e) => `${PIECE_NAME[g.get(e as Square)!.type]} on ${e}`).join(' and ')} open to capture (red !!).`;
     say(text, 'info');
   };
 
@@ -654,8 +658,8 @@ export default function SlimeChess() {
                   {row === 7 && <span className="sc-coord file">{sq[0]}</span>}
                   {col === 0 && <span className="sc-coord rank">{sq[1]}</span>}
                   {target && (
-                    <span className={`sc-target${target.captured ? ' capture' : ''}${risky.has(sq) ? ' risky' : ''}`} aria-hidden="true">
-                      {risky.has(sq) && <span className="sc-target-bang">!</span>}
+                    <span className={`sc-target${target.captured ? ' capture' : ''}${risky.has(sq) ? ` risky${risky.get(sq)!.level === 'lose' ? ' lose' : ''}` : ''}`} aria-hidden="true">
+                      {risky.has(sq) && <span className="sc-target-bang">{risky.get(sq)!.level === 'lose' ? '!!' : '!'}</span>}
                     </span>
                   )}
                 </button>
@@ -741,7 +745,8 @@ export default function SlimeChess() {
           <div className="sc-legend">
             <span><i className="dot ok" /> can move</span>
             <span><i className="dot cap" /> can capture</span>
-            <span><i className="dot risky" /> risky</span>
+            <span><i className="dot risky" /> ! trade</span>
+            <span><i className="dot risky lose" /> !! you lose it</span>
           </div>
 
         </aside>

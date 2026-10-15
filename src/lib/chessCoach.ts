@@ -371,19 +371,57 @@ function capturesOn(chess: Chess, sq: Square): Move[] {
   });
 }
 
-export function riskyTargets(fen: string, from: Square): Set<string> {
+// Build Queue 220 (her words 2026-10-15: "Students are finding that when they move, some pieces are noted as risky
+// when they are not (or not risky when they are actually)"). Each risky square now says exactly why:
+//  - 'trade': they could capture your piece there, but you could capture right back.
+//  - 'lose': they could capture it there and you could not capture back, so you would just lose it.
+//  - exposes: moving there leaves another of your pieces open to capture that was safe before (a piece it was
+//    guarding, or a line it was blocking). Before, these moves showed no warning at all.
+export interface Risk { level: 'trade' | 'lose'; by: Square[]; exposes: Square[] }
+
+// Squares the other side could capture on in this position (it must be their turn).
+function capturableSquares(chess: Chess, mine: Color): Set<string> {
+  const out = new Set<string>();
+  for (const mv of chess.moves({ verbose: true })) {
+    if (!mv.captured) continue;
+    out.add(mv.flags.includes('e') ? `${mv.to[0]}${mv.from[1]}` : mv.to);
+  }
+  for (const sq of [...out]) if (chess.get(sq as Square)?.color !== mine) out.delete(sq);
+  return out;
+}
+
+export function riskMap(fen: string, from: Square): Map<string, Risk> {
   const chess = new Chess(fen);
   const piece = chess.get(from);
-  const risky = new Set<string>();
-  if (!piece) return risky;
+  const risks = new Map<string, Risk>();
+  if (!piece) return risks;
+  const me = piece.color;
+  // Which of my other pieces could already be captured right now (if it were their turn)?
+  const openBefore = new Set<string>();
+  for (const row of chess.board()) for (const c of row) if (c && c.color === me && c.type !== 'k' && c.square !== from && chess.isAttacked(c.square, other(me))) openBefore.add(c.square);
   for (const m of chess.moves({ square: from, verbose: true })) {
     // The 4 promotion choices share one square; judge it as a Queen.
     if (m.promotion && m.promotion !== 'q') continue;
     chess.move(m);
-    if (!chess.isCheckmate() && capturesOn(chess, m.to as Square).length > 0) risky.add(m.to);
+    if (chess.isCheckmate()) { chess.undo(); continue; }
+    const caps = capturesOn(chess, m.to as Square);
+    let level: Risk['level'] = 'trade';
+    for (const c of caps) {
+      chess.move(c);
+      const back = chess.moves({ verbose: true }).some((r) => r.captured && r.to === m.to);
+      chess.undo();
+      if (!back) { level = 'lose'; break; }
+    }
+    const open = capturableSquares(chess, me);
+    const exposes = [...open].filter((sq) => sq !== m.to && !openBefore.has(sq) && chess.get(sq as Square)?.type !== 'k') as Square[];
     chess.undo();
+    if (caps.length || exposes.length) risks.set(m.to, { level: caps.length ? level : 'lose', by: caps.map((c) => c.from as Square), exposes });
   }
-  return risky;
+  return risks;
+}
+
+export function riskyTargets(fen: string, from: Square): Set<string> {
+  return new Set(riskMap(fen, from).keys());
 }
 
 // Plain-language line for the move list ("Blueberry Knight jumped to f6, capturing a Pawn").

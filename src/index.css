@@ -9280,3 +9280,9 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .style-skin-tones { display: grid; grid-template-columns: repeat(auto-fill, minmax(52px, 1fr)); gap: 8px; }
 .style-skin { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 0 0 2px #d8c8ee; cursor: pointer; touch-action: manipulation; padding: 0; }
 .style-skin.on { box-shadow: 0 0 0 4px #9b59b6; }
+
+/* Slime Chess risky warning (Build Queue 220): ! = a trade (you could capture back), !! = you would lose it. */
+.sc-target.risky.lose { background: radial-gradient(circle at 32% 30%, #fff 0 14%, #ff7a5c 15% 70%, #d63a1f 71%); }
+.sc-target.capture.risky.lose { border-color: #e8452a; box-shadow: 0 0 12px #e8452a; background: rgba(255, 122, 92, 0.5); }
+.sc-target.risky.lose .sc-target-bang { color: #fff; }
+.sc-legend .dot.risky.lose { background: #d63a1f; }

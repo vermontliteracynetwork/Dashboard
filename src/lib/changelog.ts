@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-chess-risky",
+    date: "2026-10-15",
+    icon: "♟️",
+    title: "Smarter risky warnings in Slime Chess",
+    body: "A yellow ! means they could capture your piece there, but you could capture right back. A red !! means you would lose it, or that the move leaves another piece open. Look before you move!",
+  },
+  {
     id: "2026-10-15-litmanip-app",
     date: "2026-10-15",
     icon: "🔤",
