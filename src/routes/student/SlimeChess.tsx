@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { lazyFresh } from '../../lib/freshBuild';
 import { useLocation } from 'react-router-dom';
 import { Chess, type Color, type Move, type PieceSymbol, type Square } from 'chess.js';
@@ -211,6 +212,9 @@ export default function SlimeChess() {
   const rivalName = rival?.name ?? 'Your Neighbor';
 
   useEffect(() => () => { if (aiTimer.current) window.clearTimeout(aiTimer.current); }, []);
+  // Build Queue 232: a game a Neighbor was invited to ends with a short chat with them, not straight back.
+  const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | 'left' | null>(null);
+  const leaveNow = () => { if (rivalId) setWrap('left'); else back.go(); };
 
   const game = gameRef.current;
   const turn = game.turn();
@@ -561,7 +565,7 @@ export default function SlimeChess() {
     return (
       <div className={`slime-chess${calm ? ' sc-calm' : ''}`}>
         <Bubbles />
-        <button className="sc-back" onClick={() => back.go()}>← {backLabel}</button>
+        <button className="sc-back" onClick={leaveNow}>← {backLabel}</button>
         <div className="sc-menu">
           <h1 className="sc-title">Slime Chess</h1>
           <p className="sc-sub">Real chess, extra squishy. {student ? `Ready, ${student.name}?` : ''}</p>
@@ -709,7 +713,7 @@ export default function SlimeChess() {
                 </div>
               )}
             </div>
-            <button className="sc-corner-btn" onClick={() => (inProgress ? setConfirmLeave('leave') : back.go())} aria-label={backLabel} title={backLabel}>
+            <button className="sc-corner-btn" onClick={() => (inProgress ? setConfirmLeave('leave') : leaveNow())} aria-label={backLabel} title={backLabel}>
               <img src="/chess/btn-home.png" alt="" />
             </button>
             <button
@@ -795,7 +799,7 @@ export default function SlimeChess() {
                 onClick={() => {
                   const which = confirmLeave;
                   setConfirmLeave(null);
-                  if (which === 'leave') { saveIfUnfinished(); if (aiTimer.current) window.clearTimeout(aiTimer.current); back.go(); } else goToMenu();
+                  if (which === 'leave') { saveIfUnfinished(); if (aiTimer.current) window.clearTimeout(aiTimer.current); leaveNow(); } else goToMenu();
                 }}
               >
                 {confirmLeave === 'leave' ? 'Leave game' : 'New game'}
@@ -850,6 +854,9 @@ export default function SlimeChess() {
               );
             })()}
             <ReadAloud text={`${gameOver.title}. ${gameOver.text}`} small />
+            {rivalId && rival && (
+              <button className="sc-soft-btn green" onClick={() => { setWrap(gameOver.win === true ? 'won' : gameOver.win === false ? 'lost' : 'tie'); setGameOver(null); }}>Done playing with {rival.name}</button>
+            )}
             <div className="sc-choice-row">
               <button className="sc-soft-btn green" onClick={startGame}>Play again</button>
               <button className="sc-soft-btn red" onClick={() => { setGameOver(null); setScreen('menu'); }}>Change settings</button>
@@ -858,6 +865,7 @@ export default function SlimeChess() {
           </div>
         </div>
       )}
+      {wrap && rivalId && <NeighborGameWrapUp neighborId={rivalId} game="Slime Chess" outcome={wrap} route="/student/chess" onSameGame={() => { setWrap(null); startGame(); }} />}
     </div>
   );
 }

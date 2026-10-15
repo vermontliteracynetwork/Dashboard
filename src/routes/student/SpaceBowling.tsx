@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useLocation } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { useStore } from '../../store/store';
@@ -423,13 +424,17 @@ export default function SpaceBowling() {
     return { species: 'dog', body: structuredClone(speciesById('dog').defaultBody), outfit: item ? { costume: { itemId: item.id, zones: item.zones.map((z) => z.paint) } } : {} };
   }, []);
 
-  const leave = () => { if (inGame) setConfirmLeave(true); else back.go(); };
+  // Build Queue 232: a game a Neighbor was invited to ends with a short chat with them, not straight back.
+  const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | 'left' | null>(null);
+  const leaveNow = () => { if (rivalId) setWrap('left'); else back.go(); };
+  const leave = () => { if (inGame) setConfirmLeave(true); else leaveNow(); };
   const humans = players.filter((p) => !p.cpu);
   const winner = phase === 'gameover' ? [...players].sort((a, b) => b.score - a.score)[0] : null;
   const tie = phase === 'gameover' && players.length > 1 && players.filter((p) => p.score === winner?.score).length > 1;
 
   return (
     <div className="sb-root">
+      {wrap && rivalId && <NeighborGameWrapUp neighborId={rivalId} game="Space Bowling" outcome={wrap} route="/student/space-bowling" onSameGame={() => { setWrap(null); startGame(); }} />}
       {phase === 'launch' ? (
         <div className="sb-launch">
           <header className="sb-top">
@@ -611,6 +616,9 @@ export default function SpaceBowling() {
                   </div>
                 )}
                 {playerCount === 1 && humans[0] && <p>Your best game: {Math.max(stats.best ?? 0, humans[0].score)} pins.</p>}
+                {rivalId && rival && playerCount === 1 && (
+                  <button className="sb-btn big" onClick={() => setWrap(tie ? 'tie' : winner && !winner.cpu ? 'won' : 'lost')}>Done playing with {rival.name}</button>
+                )}
                 <div className="sb-row">
                   <button className="sb-btn big" onClick={startGame}>Play again</button>
                   <button className="sb-btn" onClick={() => setPhase('launch')}>Change settings</button>
@@ -666,7 +674,7 @@ export default function SpaceBowling() {
             <p>This game won't be finished. Your right answers still count toward the Space Alien costume.</p>
             <div className="sb-row">
               <button className="sb-btn" onClick={() => setConfirmLeave(false)}>Keep playing</button>
-              <button className="sb-btn big" onClick={() => { setConfirmLeave(false); setQuestion(null); stopMusic(); payOutRef.current(); back.go(); }}>Leave</button>
+              <button className="sb-btn big" onClick={() => { setConfirmLeave(false); setQuestion(null); stopMusic(); payOutRef.current(); leaveNow(); }}>Leave</button>
             </div>
           </div>
         </div>

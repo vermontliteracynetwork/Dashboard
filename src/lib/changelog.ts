@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-neighbor-wrapup",
+    date: "2026-10-15",
+    icon: "🗨️",
+    title: "Neighbors check in after a game",
+    body: "When you finish a game of Slime Chess or Space Bowling with a neighbor, they stop to chat about how it went. Then you pick what to do next: play another game together, go back to Town Square, check on your pet or go to the Arcade.",
+  },
+  {
     id: "2026-10-15-npc-personality",
     date: "2026-10-15",
     icon: "🎭",
