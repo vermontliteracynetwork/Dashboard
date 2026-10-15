@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-new-animals",
+    date: "2026-10-15",
+    icon: "🦊",
+    title: "Three new animals at the Seamstress",
+    body: "You can be a chicken, a squirrel or a fox now! Every hat, shirt, pair of shoes and costume fits them, just like the cat, dog, frog and capybara. The chicken has a red comb, the squirrel has a big bushy tail, and the fox has a white tip on its tail.",
+  },
+  {
     id: "2026-10-14-explore-only",
     date: "2026-10-14",
     icon: "📖",

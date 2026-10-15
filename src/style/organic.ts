@@ -110,6 +110,50 @@ function headDef(species: SpeciesId): HeadDef {
         min: [-0.45, -0.5, -0.5], max: [0.45, 0.42, 0.6],
       };
     }
+    case 'chicken': {
+      // A round feathery head with soft cheeks; the beak, comb and wattle are added on top (StyleCharacter).
+      const chest = ellipsoid(0, -0.2, 0.12, 0.22, 0.12, 0.2);
+      return {
+        sdf: blend(
+          ellipsoid(0, 0.05, -0.01, 0.3, 0.32, 0.3),
+          [ellipsoid(0.13, -0.07, 0.12, 0.14, 0.12, 0.13), 0.09],
+          [ellipsoid(-0.13, -0.07, 0.12, 0.14, 0.12, 0.13), 0.09],
+          [neck, 0.12],
+        ),
+        region: (x, y, z) => { const m = smooth(0.05, -0.02, chest(x, y, z)); return [1 - m, m, 0]; },
+        min: [-0.45, -0.5, -0.45], max: [0.45, 0.45, 0.45],
+      };
+    }
+    case 'squirrel': {
+      const muzzle = ellipsoid(0, -0.08, 0.24, 0.13, 0.1, 0.11);
+      return {
+        sdf: blend(
+          ellipsoid(0, 0.04, -0.01, 0.31, 0.3, 0.3),
+          [ellipsoid(0.15, -0.07, 0.12, 0.16, 0.13, 0.14), 0.09],
+          [ellipsoid(-0.15, -0.07, 0.12, 0.16, 0.13, 0.14), 0.09],
+          [muzzle, 0.08],
+          [neck, 0.12],
+        ),
+        region: (x, y, z) => { const m = smooth(0.05, -0.01, muzzle(x, y, z)); return [1 - m, m, 0]; },
+        min: [-0.45, -0.5, -0.45], max: [0.45, 0.42, 0.48],
+      };
+    }
+    case 'fox': {
+      // A pointed snout and white cheeks, like a real red fox.
+      const snout = roundCone([0, -0.05, 0.1], [0, -0.09, 0.42], 0.13, 0.045);
+      const lower = ellipsoid(0, -0.15, 0.18, 0.27, 0.11, 0.32);
+      return {
+        sdf: blend(
+          ellipsoid(0, 0.03, -0.02, 0.33, 0.29, 0.3),
+          [ellipsoid(0.17, -0.08, 0.08, 0.16, 0.12, 0.14), 0.09],
+          [ellipsoid(-0.17, -0.08, 0.08, 0.16, 0.12, 0.14), 0.09],
+          [snout, 0.08],
+          [neck, 0.12],
+        ),
+        region: (x, y, z) => { const m = smooth(0.04, -0.02, lower(x, y, z)); return [1 - m, m, 0]; },
+        min: [-0.5, -0.5, -0.45], max: [0.5, 0.4, 0.55],
+      };
+    }
   }
 }
 
@@ -174,6 +218,32 @@ export const catTailGeo = () => cached('cat-tail', () => {
   };
   return meshSDF(tail, [-0.08, -0.07, -0.29], [0.08, 0.46, 0.1], 0.008);
 });
+
+// Tails for the new animals (mock-up 2026-10-15): one smooth chain of soft segments each.
+function chainTail(pts: Vec3[], radii: number[], k = 0.06): SDF {
+  const segs = pts.slice(1).map((p, i) => roundCone(pts[i], p, radii[i], radii[i + 1]));
+  return (x, y, z) => { let d = segs[0](x, y, z); for (let i = 1; i < segs.length; i++) d = smin(d, segs[i](x, y, z), k); return d; };
+}
+// Fox: a big bushy tail that swoops out and up (its white tip is added in StyleCharacter).
+export const foxTailGeo = () => cached('fox-tail', () => meshSDF(
+  chainTail([[0, 0, 0.02], [0, -0.03, -0.1], [0, 0.0, -0.23], [0, 0.08, -0.34], [0, 0.18, -0.4]], [0.055, 0.1, 0.125, 0.11, 0.075]),
+  [-0.2, -0.2, -0.56], [0.2, 0.32, 0.12], 0.012));
+// Squirrel: a huge fluffy tail curling up the back like a question mark.
+export const squirrelTailGeo = () => cached('squirrel-tail', () => meshSDF(
+  chainTail([[0, 0, 0.02], [0, 0.05, -0.14], [0, 0.25, -0.27], [0, 0.55, -0.32], [0, 0.85, -0.28], [0, 1.05, -0.14], [0, 1.06, 0.0]], [0.07, 0.12, 0.15, 0.16, 0.15, 0.12, 0.08], 0.08),
+  [-0.24, -0.14, -0.54], [0.24, 1.28, 0.16], 0.015));
+// Chicken: a perky fan of three rounded tail feathers.
+export const chickenTailGeo = () => cached('chicken-tail', () => meshSDF(
+  (x, y, z) => Math.min(
+    ellipsoid(0, 0.12, -0.04, 0.05, 0.16, 0.06)(x, y, z),
+    ellipsoid(0.08, 0.1, -0.03, 0.045, 0.14, 0.055)(x * Math.cos(0.4) - (y - 0.0) * Math.sin(0.4), x * Math.sin(0.4) + y * Math.cos(0.4), z),
+    ellipsoid(-0.08, 0.1, -0.03, 0.045, 0.14, 0.055)(x * Math.cos(-0.4) - y * Math.sin(-0.4), x * Math.sin(-0.4) + y * Math.cos(-0.4), z),
+  ),
+  [-0.2, -0.1, -0.14], [0.2, 0.32, 0.08], 0.01));
+// Chicken comb: three soft bumps along the top of the head.
+export const chickenCombGeo = () => cached('chicken-comb', () => meshSDF(
+  (x, y, z) => smin(smin(ellipsoid(0, 0.06, 0.08, 0.05, 0.075, 0.055)(x, y, z), ellipsoid(0, 0.1, 0, 0.055, 0.09, 0.055)(x, y, z), 0.03), ellipsoid(0, 0.06, -0.08, 0.05, 0.07, 0.055)(x, y, z), 0.03),
+  [-0.08, -0.04, -0.16], [0.08, 0.2, 0.16], 0.008));
 
 // Cat ear: a soft rounded triangle with a pink inside.
 export const catEarGeo = () => cached('cat-ear', () => meshSDF(

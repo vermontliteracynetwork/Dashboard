@@ -82,6 +82,35 @@ export const SPECIES: SpeciesDef[] = [
     gear: { w: 0.335, h: 0.36 },
     defaultBody: { fur: solid('#d88b2e'), belly: solid('#f4e6cf'), accent: solid('#7a4a28'), eyes: '#141010', nose: '#4a3530' },
   },
+  // Mock-up (2026-10-15): three new animals on the same shared body, so every piece of clothing fits.
+  {
+    id: 'chicken',
+    name: 'Chicken',
+    emoji: '🐔',
+    eye: { spread: 0.165, y: 0.08, z: 0.235, size: 0.058 },
+    armOut: 0.22,
+    gear: { w: 0.335, h: 0.37 },
+    // Fur = feathers, belly = chest, accent = beak, wing tips and feet, nose = comb and wattle.
+    defaultBody: { fur: solid('#fbf7ee'), belly: solid('#fff1d6'), accent: solid('#f5a524'), eyes: '#141010', nose: '#e0352b' },
+  },
+  {
+    id: 'squirrel',
+    name: 'Squirrel',
+    emoji: '🐿️',
+    eye: { spread: 0.135, y: 0.09, z: 0.25, size: 0.08 },
+    armOut: 0.22,
+    gear: { w: 0.35, h: 0.34 },
+    defaultBody: { fur: solid('#b06a3b'), belly: solid('#fbeedb'), accent: solid('#7a4426'), eyes: '#141010', nose: '#3b2620' },
+  },
+  {
+    id: 'fox',
+    name: 'Fox',
+    emoji: '🦊',
+    eye: { spread: 0.125, y: 0.08, z: 0.25, size: 0.072 },
+    armOut: 0.22,
+    gear: { w: 0.36, h: 0.33 },
+    defaultBody: { fur: solid('#e8742c'), belly: solid('#fff8ef'), accent: solid('#3a2418'), eyes: '#5a3a12', nose: '#1d1414' },
+  },
 ];
 
 export const speciesById = (id: SpeciesId) => SPECIES.find((s) => s.id === id) ?? SPECIES[0];

@@ -3,7 +3,7 @@
 // arms, legs and joint positions), so every clothing item fits every
 // species and every species moves with the same animations.
 
-export type SpeciesId = 'dog' | 'cat' | 'frog' | 'capybara';
+export type SpeciesId = 'dog' | 'cat' | 'frog' | 'capybara' | 'chicken' | 'squirrel' | 'fox';
 
 export type PatternId =
   | 'solid'

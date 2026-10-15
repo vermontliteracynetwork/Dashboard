@@ -22,7 +22,7 @@ import type { Paint, PatternId, SpeciesId, StyleLook, StyleMove, StyleOneShot, W
 //  - Dress up: pick an animal, color every part of it, wear one outfit.
 //  - Item workshop: every clothing item on its own (not on a character),
 //    rename it and change its default colors and patterns, and preview it
-//    on each animal (or all four at once) while editing.
+//    on each animal (or all of them at once) while editing.
 
 type Tab = 'body' | WardrobeSlot;
 type Mode = 'dress' | 'workshop' | 'neighbors';
@@ -103,6 +103,8 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const setNpcTitleOverride = useStore((s) => s.setNpcTitleOverride);
   const [npcSel, setNpcSel] = useState<string>(NPC_ROSTER[0]?.id ?? 'scout');
   const [dressNpc, setDressNpc] = useState<string | null>(null);
+  const [npcAnimal, setNpcAnimal] = useState<SpeciesId | null>(null);
+  const withAnimal = (l: StyleLook, sp: SpeciesId | null): StyleLook => (!sp || sp === l.species ? l : { ...l, species: sp, body: structuredClone(speciesById(sp).defaultBody) });
   const [saved, setSaved] = useState<StyleLook>(() => loadInitial(row?.look, owner));
   const [look, setLook] = useState<StyleLook>(saved);
   const [tab, setTab] = useState<Tab>('body');
@@ -260,9 +262,10 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const startDressNpc = (id: string) => {
     const p = npcProfiles[id];
     if (!p) return;
+    const l = withAnimal(p.look, npcAnimal);
     setDressNpc(id);
-    setSaved(p.look);
-    setLook(p.look);
+    setSaved(l);
+    setLook(l);
     setTab('body');
     setMode('dress');
     styleSound.pop();
@@ -331,20 +334,20 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   // What the stage shows.
   const stageLooks: { look: StyleLook; x: number; bodyless?: boolean }[] = useMemo(() => {
     if (mode === 'dress') return [{ look, x: 0 }];
-    if (mode === 'neighbors') return npcProfiles[npcSel] ? [{ look: npcProfiles[npcSel].look, x: 0 }] : [];
+    if (mode === 'neighbors') return npcProfiles[npcSel] ? [{ look: withAnimal(npcProfiles[npcSel].look, npcAnimal), x: 0 }] : [];
     if (!wsItem) return [];
     const outfitOnly: StyleLook['outfit'] = { [wsItem.slot]: { itemId: wsItem.id, zones: wsZones } };
     const on = (sp: SpeciesId): StyleLook => ({ species: sp, body: structuredClone(speciesById(sp).defaultBody), outfit: outfitOnly });
     if (preview === 'item') return [{ look: on('dog'), x: 0, bodyless: true }];
-    if (preview === 'all') return SPECIES.map((sp, i) => ({ look: on(sp.id), x: (i - 1.5) * 1.15 }));
+    if (preview === 'all') return SPECIES.map((sp, i) => ({ look: on(sp.id), x: (i - (SPECIES.length - 1) / 2) * 0.95 }));
     return [{ look: on(preview), x: 0 }];
-  }, [mode, look, wsItem, wsZones, preview, npcProfiles, npcSel]);
+  }, [mode, look, wsItem, wsZones, preview, npcProfiles, npcSel, npcAnimal]);
   const wide = stageLooks.length > 1;
   // "Item only" frames the item itself up close (a hat floats up where a
   // head would be, shoes sit on the floor).
   const itemOnly = mode === 'workshop' && preview === 'item';
   const focusY = !itemOnly || !wsItem ? 0.9 : ({ hat: 1.45, face: 1.25, gear: 1.25, top: 0.82, bottom: 0.4, shoes: 0.08, back: 0.8, costume: 0.8 } as Record<WardrobeSlot, number>)[wsItem.slot];
-  const cam: [number, number, number] = wide ? [0, 1.5, 5.6] : itemOnly ? [0.9, focusY + 0.45, 1.9] : [0, 1.2, 3.3];
+  const cam: [number, number, number] = wide ? [0, 1.6, 2.2 + stageLooks.length * 0.8] : itemOnly ? [0.9, focusY + 0.45, 1.9] : [0, 1.2, 3.3];
 
   const tabs: { id: Tab; label: string; emoji: string }[] = [
     { id: 'body', label: 'Body', emoji: '🐾' },
@@ -380,7 +383,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
             <button type="button" role="tab" aria-selected={mode === 'neighbors' || !!dressNpc} className={`style-mode-btn${mode === 'neighbors' || dressNpc ? ' on' : ''}`} onClick={() => { if (dressNpc) stopDressNpc('neighbors'); else setMode('neighbors'); styleSound.tap(); }}>🏘️ Neighbors</button>
           </div>}
           {mode === 'neighbors' ? (
-            <div className="style-head-actions"><span className="style-note">Edit each Neighbor's name, title, facts and look.</span></div>
+            <div className="style-head-actions"><span className="style-note">Pick a Neighbor, then change their animal, name, title, facts and clothes.</span></div>
           ) : mode === 'dress' ? (
             <div className="style-head-actions">
               {dressNpc && (
@@ -408,7 +411,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
             {mode === 'workshop' && (
               <div className="style-preview-row" aria-label="Preview on">
                 <span>Preview:</span>
-                {([['item', '🧵 Item only'], ...SPECIES.map((s) => [s.id, `${s.emoji} ${s.name}`]), ['all', '👥 All four']] as [Preview, string][]).map(([id, label]) => (
+                {([['item', '🧵 Item only'], ...SPECIES.map((s) => [s.id, `${s.emoji} ${s.name}`]), ['all', '👥 All animals']] as [Preview, string][]).map(([id, label]) => (
                   <button key={id} type="button" className={`style-chip${preview === id ? ' on' : ''}`} onClick={() => { setPreview(id); styleSound.tap(); }}>{label}</button>
                 ))}
               </div>
@@ -427,9 +430,9 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                     </group>
                   ))}
                 </Suspense>
-                <ContactShadows position={[0, 0.001, 0]} opacity={0.3} scale={wide ? 8 : 4} blur={2.4} far={2} />
+                <ContactShadows position={[0, 0.001, 0]} opacity={0.3} scale={wide ? 9 : 4} blur={2.4} far={2} />
                 <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]}>
-                  <circleGeometry args={[wide ? 3 : 1.3, 48]} />
+                  <circleGeometry args={[wide ? 3.8 : 1.3, 48]} />
                   <meshStandardMaterial color="#ffffff" />
                 </mesh>
                 <OrbitControls target={[0, focusY, 0]} enablePan={false} minDistance={0.8} maxDistance={9} maxPolarAngle={Math.PI / 1.9} />
@@ -476,10 +479,13 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
               <NeighborsPanel
                 profiles={NPC_ROSTER.map((e) => npcProfiles[e.id]).filter(Boolean)}
                 selected={npcSel}
-                onSelect={(id) => { setNpcSel(id); styleSound.tap(); }}
-                onDress={startDressNpc}
+                animal={npcAnimal}
+                onAnimal={(sp) => { setNpcAnimal(sp === npcProfiles[npcSel]?.look.species ? null : sp); styleSound.pop(); window.setTimeout(() => charRefs.current[0]?.play('wave'), 150); }}
+                onSelect={(id) => { setNpcSel(id); setNpcAnimal(null); styleSound.tap(); }}
+                onDress={(id) => { if (npcAnimal) saveNpcProfile(id, { look: withAnimal(npcProfiles[id].look, npcAnimal) }); setNpcAnimal(null); startDressNpc(id); }}
                 onSaveDetails={(id, name, title, facts) => {
-                  saveNpcProfile(id, { name: name.trim(), facts });
+                  saveNpcProfile(id, { name: name.trim(), facts, ...(npcAnimal ? { look: withAnimal(npcProfiles[id].look, npcAnimal) } : {}) });
+                  setNpcAnimal(null);
                   setNpcTitleOverride(id, title.trim() === NPC_ROSTER.find((e) => e.id === id)?.defaultTitle ? null : title);
                   styleSound.save();
                   flash(`${name.trim() || 'Neighbor'} saved!`);
@@ -513,10 +519,10 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                       <PaintEditor label="Fur" paint={look.body.fur} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, fur: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, fur: { ...l.body.fur, pattern: pt } } })))} />
                     </div>
                     <div className={lk('belly')}>
-                      <PaintEditor label={look.species === 'frog' ? 'Tummy & chin' : 'Tummy & muzzle'} paint={look.body.belly} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, belly: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, belly: { ...l.body.belly, pattern: pt } } })))} />
-                      <PaintEditor label={look.species === 'frog' ? 'Spots & feet' : look.species === 'capybara' ? 'Nose tip, ears & feet' : 'Ears, paws & feet'} paint={look.body.accent} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, accent: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, accent: { ...l.body.accent, pattern: pt } } })))} />
+                      <PaintEditor label={look.species === 'frog' ? 'Tummy & chin' : look.species === 'chicken' ? 'Tummy & cheeks' : look.species === 'fox' ? 'Tummy, cheeks & tail tip' : 'Tummy & muzzle'} paint={look.body.belly} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, belly: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, belly: { ...l.body.belly, pattern: pt } } })))} />
+                      <PaintEditor label={look.species === 'frog' ? 'Spots & feet' : look.species === 'capybara' ? 'Nose tip, ears & feet' : look.species === 'chicken' ? 'Beak & feet' : look.species === 'fox' ? 'Paws & feet' : 'Ears, paws & feet'} paint={look.body.accent} onChange={(p) => setLook((l) => ({ ...l, body: { ...l.body, accent: p } }))} isLocked={patLocked} onLocked={(pt) => buyPattern(pt, () => setLook((l) => ({ ...l, body: { ...l.body, accent: { ...l.body.accent, pattern: pt } } })))} />
                       <ColorOnlyEditor label="Eyes" color={look.body.eyes} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, eyes: c } }))} />
-                      <ColorOnlyEditor label="Nose" color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
+                      <ColorOnlyEditor label={look.species === 'chicken' ? 'Comb & wattle' : 'Nose'} color={look.body.nose} onChange={(c) => setLook((l) => ({ ...l, body: { ...l.body, nose: c } }))} />
                     </div>
                   </div>
                 ) : (
@@ -633,50 +639,108 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   );
 }
 
-// The teacher's Neighbors table: every Neighbor and Townsperson with their
-// name, title and facts (shown on their character sheet in Town Square),
-// plus a button to dress them in Style.
-function NeighborsPanel({ profiles, selected, onSelect, onDress, onSaveDetails }: {
+// The teacher's Neighbors screen (Build Queue 193, her words 2026-10-15: "redo this design so its easier to
+// navigate"). Was one long table with five cramped columns per row; now it is two steps: tap a Neighbor in the
+// picker grid (Neighbors and Townspeople in their own groups), then edit that one in a roomy card below: animal,
+// name, title, one box per fact, and Save / Dress buttons that always stay inside the card.
+function NeighborsPanel({ profiles, selected, animal, onAnimal, onSelect, onDress, onSaveDetails }: {
   profiles: NpcProfile[];
   selected: string;
+  animal: SpeciesId | null;
+  onAnimal: (sp: SpeciesId) => void;
   onSelect: (id: string) => void;
   onDress: (id: string) => void;
   onSaveDetails: (id: string, name: string, title: string, facts: string[]) => void;
 }) {
+  const p = profiles.find((x) => x.id === selected) ?? profiles[0];
+  const groups: { kind: NpcProfile['kind']; label: string }[] = [{ kind: 'neighbor', label: '🏡 Neighbors' }, { kind: 'townsperson', label: '🧑‍🤝‍🧑 Townspeople' }];
   return (
-    <div className="style-section">
-      <h2>Neighbors</h2>
-      <p className="style-note">Tap a row to see them on the stage. Facts show on their character sheet when students tap "About" in Town Square. One fact per line.</p>
-      <div className="npc-table" role="table" aria-label="Neighbors">
-        <div className="npc-row npc-head" role="row">
-          <span role="columnheader">Look</span><span role="columnheader">Name</span><span role="columnheader">Title / role</span><span role="columnheader">Facts</span><span role="columnheader" />
-        </div>
-        {profiles.map((p) => <NeighborRow key={`${p.id}-${p.name}-${p.title}-${p.facts.join('|')}`} p={p} on={selected === p.id} onSelect={onSelect} onDress={onDress} onSave={onSaveDetails} />)}
-      </div>
+    <div className="style-section npc-panel">
+      {groups.map((g) => {
+        const list = profiles.filter((x) => x.kind === g.kind);
+        if (!list.length) return null;
+        return (
+          <div key={g.kind}>
+            <h2 className="npc-group">{g.label}</h2>
+            <div className="npc-picker" role="listbox" aria-label={g.label}>
+              {list.map((x) => (
+                <button key={x.id} type="button" role="option" aria-selected={x.id === p?.id} className={`npc-pick${x.id === p?.id ? ' on' : ''}`} onClick={() => onSelect(x.id)}>
+                  <span className="npc-pick-emoji" aria-hidden="true">{speciesById(x.id === p?.id && animal ? animal : x.look.species).emoji}</span>
+                  <b>{x.name}</b>
+                  <small>{x.title}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {p && <NeighborEditor key={`${p.id}-${p.name}-${p.title}-${p.facts.join('|')}-${p.look.species}`} p={p} animal={animal} onAnimal={onAnimal} onDress={onDress} onSave={onSaveDetails} />}
     </div>
   );
 }
 
-function NeighborRow({ p, on, onSelect, onDress, onSave }: {
-  p: NpcProfile; on: boolean; onSelect: (id: string) => void; onDress: (id: string) => void;
+function NeighborEditor({ p, animal, onAnimal, onDress, onSave }: {
+  p: NpcProfile; animal: SpeciesId | null; onAnimal: (sp: SpeciesId) => void; onDress: (id: string) => void;
   onSave: (id: string, name: string, title: string, facts: string[]) => void;
 }) {
   const [name, setName] = useState(p.name);
   const [title, setTitle] = useState(p.title);
-  const [facts, setFacts] = useState(p.facts.join('\n'));
+  const [facts, setFacts] = useState<string[]>(p.facts.length ? p.facts : ['']);
   const clean = (t: string) => t.replace(/—/g, '-');
-  const factList = facts.split('\n').map((f) => f.trim()).filter(Boolean);
-  const changed = name !== p.name || title !== p.title || factList.join('|') !== p.facts.join('|');
+  const factList = facts.map((f) => f.trim()).filter(Boolean);
+  const species = animal ?? p.look.species;
+  const changed = name !== p.name || title !== p.title || factList.join('|') !== p.facts.join('|') || species !== p.look.species;
+  const setFact = (i: number, v: string) => setFacts((fs) => fs.map((f, j) => (j === i ? clean(v) : f)));
   return (
-    <div className={`npc-row${on ? ' on' : ''}`} role="row" onClick={() => onSelect(p.id)}>
-      <span role="cell" className="npc-look">{speciesById(p.look.species).emoji}<small>{p.kind === 'neighbor' ? 'Neighbor' : 'Townsperson'}</small></span>
-      <input role="cell" className="style-name-input" value={name} maxLength={30} aria-label={`${p.name}'s name`} onChange={(e) => setName(clean(e.target.value))} />
-      <input role="cell" className="style-name-input" value={title} maxLength={40} aria-label={`${p.name}'s title`} onChange={(e) => setTitle(clean(e.target.value))} />
-      <textarea role="cell" className="style-name-input npc-facts" value={facts} rows={3} aria-label={`Facts about ${p.name}`} placeholder="Loves pancakes&#10;Has a pet goldfish" onChange={(e) => setFacts(clean(e.target.value))} />
-      <span role="cell" className="npc-actions">
-        <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={(e) => { e.stopPropagation(); onSave(p.id, name, title, factList); }}>💾 Save</button>
-        <button type="button" className="style-btn" onClick={(e) => { e.stopPropagation(); onDress(p.id); }}>🎨 Dress</button>
-      </span>
+    <div className="npc-editor">
+      <div className="npc-editor-head">
+        <span className="npc-editor-emoji" aria-hidden="true">{speciesById(species).emoji}</span>
+        <div>
+          <h2>{name.trim() || p.defaultName}</h2>
+          <small>{p.kind === 'neighbor' ? 'Neighbor' : 'Townsperson'}{changed ? ' · not saved yet' : ''}</small>
+        </div>
+      </div>
+
+      <div className="npc-field">
+        <h3>Animal</h3>
+        <div className="npc-animals" role="radiogroup" aria-label={`${p.name}'s animal`}>
+          {SPECIES.map((sp) => (
+            <button key={sp.id} type="button" role="radio" aria-checked={species === sp.id} className={`npc-animal${species === sp.id ? ' on' : ''}`} onClick={() => onAnimal(sp.id)}>
+              <span aria-hidden="true">{sp.emoji}</span>{sp.name}
+            </button>
+          ))}
+        </div>
+        {species !== p.look.species && <p className="style-note">Their clothes stay on. Tap 🎨 Dress to change their colors.</p>}
+      </div>
+
+      <div className="npc-two">
+        <label className="npc-field">
+          <span className="npc-label">Name</span>
+          <input id={`npc-name-${p.id}`} className="style-name-input" value={name} maxLength={30} onChange={(e) => setName(clean(e.target.value))} />
+        </label>
+        <label className="npc-field">
+          <span className="npc-label">Title or job</span>
+          <input id={`npc-title-${p.id}`} className="style-name-input" value={title} maxLength={40} placeholder="the Mayor" onChange={(e) => setTitle(clean(e.target.value))} />
+        </label>
+      </div>
+
+      <div className="npc-field">
+        <h3>Facts <small>(students see these when they tap "About" in Town Square)</small></h3>
+        <div className="npc-facts-list">
+          {facts.map((f, i) => (
+            <div key={i} className="npc-fact">
+              <input id={`npc-fact-${p.id}-${i}`} className="style-name-input" value={f} maxLength={80} placeholder={i === 0 ? 'Loves pancakes' : 'Another fact'} aria-label={`Fact ${i + 1}`} onChange={(e) => setFact(i, e.target.value)} />
+              <button type="button" className="npc-fact-x" aria-label={`Remove fact ${i + 1}`} onClick={() => setFacts((fs) => (fs.length > 1 ? fs.filter((_, j) => j !== i) : ['']))}>✕</button>
+            </div>
+          ))}
+          <button type="button" className="style-btn npc-fact-add" onClick={() => setFacts((fs) => [...fs, ''])}>➕ Add a fact</button>
+        </div>
+      </div>
+
+      <div className="npc-editor-actions">
+        <button type="button" className="style-btn" onClick={() => onDress(p.id)}>🎨 Dress {name.trim() || p.name}</button>
+        <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={() => onSave(p.id, name, title, factList)}>{changed ? '💾 Save changes' : '✓ Saved'}</button>
+      </div>
     </div>
   );
 }

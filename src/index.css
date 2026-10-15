@@ -4197,16 +4197,34 @@ body.teacher-mode .content-well { border-radius: 10px; }
 .bawk-rooster, .bawk-rooster * { pointer-events: none !important; }
 /* Style: teacher's Neighbors table */
 .style-dressing { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; background: #fff2c9; border-radius: 999px; padding: 4px 6px 4px 14px; }
-.npc-table { display: flex; flex-direction: column; gap: 8px; }
-.npc-row { display: grid; grid-template-columns: 70px 1fr 1fr 1.6fr auto; gap: 8px; align-items: start; background: #fff; border: 2px solid #eadcff; border-radius: 16px; padding: 8px; cursor: pointer; }
-.npc-row.on { border-color: #9b59b6; box-shadow: 0 0 0 2px #9b59b6 inset; }
-.npc-head { background: transparent; border: none; font-weight: 800; font-size: 0.8rem; opacity: 0.7; cursor: default; padding-block: 0; }
-.npc-look { font-size: 2rem; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
-.npc-look small { font-size: 0.65rem; font-weight: 700; opacity: 0.7; }
-.npc-facts { min-height: 72px; resize: vertical; font: inherit; }
-.npc-actions { display: flex; flex-direction: column; gap: 6px; }
-.npc-actions .style-btn { min-height: 44px; }
-@media (max-width: 1100px) { .npc-row { grid-template-columns: 60px 1fr 1fr; } .npc-facts { grid-column: 1 / -1; } .npc-actions { grid-column: 1 / -1; flex-direction: row; } .npc-head { display: none; } }
+.npc-panel { gap: 12px; }
+.npc-group { margin: 4px 0 6px; font-size: 1.05rem; }
+.npc-picker { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.npc-pick { display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 96px; padding: 8px 6px; border-radius: 18px; border: 3px solid #eadcff; background: #fff; cursor: pointer; font: inherit; color: inherit; touch-action: manipulation; text-align: center; }
+.npc-pick b { font-size: 0.98rem; line-height: 1.15; overflow-wrap: anywhere; }
+.npc-pick small { font-size: 0.75rem; font-weight: 700; opacity: 0.7; line-height: 1.15; overflow-wrap: anywhere; }
+.npc-pick.on { border-color: #9b59b6; background: #f6ecff; box-shadow: 0 3px 0 #9b59b6; }
+.npc-pick-emoji { font-size: 2rem; line-height: 1.1; }
+.npc-editor { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; padding: 14px; border-radius: 22px; border: 3px solid #9b59b6; background: #fcf8ff; }
+.npc-editor-head { display: flex; align-items: center; gap: 12px; }
+.npc-editor-head h2 { margin: 0; font-size: 1.4rem; }
+.npc-editor-head small { font-weight: 700; opacity: 0.7; }
+.npc-editor-emoji { font-size: 2.6rem; line-height: 1; }
+.npc-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.npc-field h3, .npc-label { margin: 0; font-size: 0.95rem; font-weight: 800; }
+.npc-field h3 small { font-weight: 600; opacity: 0.7; }
+.npc-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.npc-animals { display: flex; flex-wrap: wrap; gap: 6px; }
+.npc-animal { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 6px 12px; border-radius: 24px; border: 2px solid #e3c8ff; background: #fff; font: inherit; font-weight: 800; cursor: pointer; touch-action: manipulation; }
+.npc-animal span { font-size: 1.4rem; }
+.npc-animal.on { border-color: #9b59b6; background: #9b59b6; color: #fff; }
+.npc-facts-list { display: flex; flex-direction: column; gap: 6px; }
+.npc-fact { display: flex; gap: 6px; align-items: center; }
+.npc-fact .style-name-input { flex: 1; min-width: 0; }
+.npc-fact-x { flex: none; width: 44px; height: 44px; border-radius: 50%; border: 2px solid #e3c8ff; background: #fff; font-weight: 900; cursor: pointer; }
+.npc-fact-add { align-self: flex-start; min-height: 44px; }
+.npc-editor-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.npc-editor-actions .style-btn { min-height: 52px; flex: 1 1 180px; }
 /* Neighbor pie menu + character sheet (iPad sized) */
 .npc-pie-backdrop { position: fixed; inset: 0; z-index: 235; background: rgba(31, 17, 71, 0.45); display: grid; place-items: center; }
 .npc-pie { position: relative; width: 340px; height: 420px; }

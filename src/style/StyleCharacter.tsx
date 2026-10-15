@@ -8,7 +8,7 @@ import { CostumeBody } from './costumes';
 import { itemById, type Bone, type WardrobeItem } from './wardrobe';
 import { makePaintMaterial, useColorMaterial, usePaintMaterial } from './paint';
 import { paintKey } from './patterns';
-import { armGeo, catEarGeo, catTailGeo, dogEarGeo, headGeo, legGeo, makeBodyMaterial, torsoGeo } from './organic';
+import { armGeo, catEarGeo, catTailGeo, chickenCombGeo, chickenTailGeo, dogEarGeo, foxTailGeo, headGeo, legGeo, makeBodyMaterial, squirrelTailGeo, torsoGeo } from './organic';
 import type { EquippedItem, Paint, StyleLook, StyleMove, StyleOneShot } from './types';
 
 // One Style character. The body is sculpted (organic.ts): a soft pear
@@ -124,6 +124,8 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
   const white = useColorMaterial('#ffffff', 0.25);
   const earMat = useBodyMaterial(look.body.accent, look.body.accent, look.body.accent);
   const catEarMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.accent);
+  // A fox's ears are orange outside and white inside.
+  const foxEarMat = useBodyMaterial(look.body.fur, look.body.belly, look.body.belly);
   const accentFuzz = usePaintMaterial(look.body.accent, 1, undefined, true);
   const geo = headGeo(species.id);
 
@@ -174,6 +176,45 @@ function Head({ look, species, rig, bodyMat, hideEars, hideTopEars }: {
           ))}
         </>
       )}
+      {species.id === 'chicken' && (
+        <>
+          {/* Beak (accent), with a little split line; comb and wattle use the nose color. */}
+          <group position={[0, -0.03, 0.3]}>
+            <mesh material={accentFuzz} rotation={[Math.PI / 2, 0, 0]} position={[0, 0.012, 0.055]} scale={[1.15, 1, 0.7]}><coneGeometry args={[0.065, 0.15, 20]} /></mesh>
+            <mesh material={accentFuzz} rotation={[Math.PI / 2, 0, 0]} position={[0, -0.022, 0.04]} scale={[1, 1, 0.5]}><coneGeometry args={[0.05, 0.11, 20]} /></mesh>
+          </group>
+          <mesh material={nose} position={[0, -0.14, 0.27]} scale={[0.75, 1.15, 0.6]}><sphereGeometry args={[0.055, 18, 14]} /></mesh>
+          {!hideTopEars && !look.outfit.hat && <group position={[0, 0.3, 0.02]}><mesh geometry={chickenCombGeo()} material={nose} /></group>}
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} beady />
+          <Mouth mouthRef={rig.mouth} y={-0.075} z={0.37} width={0.05} />
+        </>
+      )}
+      {species.id === 'squirrel' && (
+        <>
+          <mesh material={nose} position={[0, -0.04, 0.355]} scale={[1.3, 0.9, 0.8]}><sphereGeometry args={[0.035, 18, 14]} /></mesh>
+          {/* Two little front teeth. */}
+          {[-1, 1].map((sd) => <mesh key={sd} material={white} position={[sd * 0.016, -0.135, 0.33]}><boxGeometry args={[0.028, 0.04, 0.012]} /></mesh>)}
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} />
+          <Mouth mouthRef={rig.mouth} y={-0.105} z={0.33} width={0.055} />
+          {!hideEars && !hideTopEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
+            <group key={k} position={[sd * 0.17, 0.24, -0.04]} rotation={[0, sd * -0.2, sd * -0.15]} scale={[0.75, 0.85, 0.75]}>
+              <group ref={ref}><mesh geometry={catEarGeo()} material={catEarMat} /></group>
+            </group>
+          ))}
+        </>
+      )}
+      {species.id === 'fox' && (
+        <>
+          <mesh material={nose} position={[0, -0.085, 0.475]} scale={[1.25, 0.9, 0.9]}><sphereGeometry args={[0.04, 20, 14]} /></mesh>
+          <Eyes eyes={eyes} white={white} blinkRef={rig.blink} {...species.eye} />
+          <Mouth mouthRef={rig.mouth} y={-0.165} z={0.4} width={0.07} />
+          {!hideEars && !hideTopEars && ([['L', rig.earL, 1], ['R', rig.earR, -1]] as const).map(([k, ref, sd]) => (
+            <group key={k} position={[sd * 0.19, 0.22, -0.03]} rotation={[0, sd * -0.2, sd * -0.28]} scale={[1.05, 1.55, 1]}>
+              <group ref={ref}><mesh geometry={catEarGeo()} material={foxEarMat} /></group>
+            </group>
+          ))}
+        </>
+      )}
       {species.id === 'capybara' && (
         <>
           <mesh material={nose} position={[0, 0.005, 0.525]} scale={[1.3, 0.85, 0.6]}><sphereGeometry args={[0.1, 32, 22]} /></mesh>
@@ -197,6 +238,7 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
   // Plain round shapes (no sculpted color regions), so a regular fuzzy paint.
   const mat = usePaintMaterial(look.body.fur, 1, undefined, true);
   const tip = usePaintMaterial(look.body.accent, 1, undefined, true);
+  const white = usePaintMaterial(look.body.belly, 1, undefined, true);
   // No tail on the frog or (teacher request) the capybara.
   if (species.id === 'frog' || species.id === 'capybara') return null;
   return (
@@ -207,6 +249,14 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
           <mesh material={tip} position={[0, 0.22, 0]}><sphereGeometry args={[0.05, 16, 12]} /></mesh>
         </group>
       )}
+      {species.id === 'fox' && (
+        <group>
+          <mesh geometry={foxTailGeo()} material={mat} />
+          <mesh material={white} position={[0, 0.2, -0.42]} scale={[1, 1.15, 1]}><sphereGeometry args={[0.08, 18, 14]} /></mesh>
+        </group>
+      )}
+      {species.id === 'squirrel' && <group rotation={[0, 0, 0.32]}><mesh geometry={squirrelTailGeo()} material={mat} /></group>}
+      {species.id === 'chicken' && <group position={[0, 0.02, 0.02]} rotation={[-0.35, 0, 0]}><mesh geometry={chickenTailGeo()} material={mat} /></group>}
       {species.id === 'cat' && (
         <group>
           <mesh geometry={catTailGeo()} material={mat} />
