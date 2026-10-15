@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-word-bubbles",
+    date: "2026-10-15",
+    icon: "🗨️",
+    title: "Word bubbles on grammar symbols",
+    body: "In Literacy Manipulatives, every grammar symbol has a word bubble under it now. Tap the bubble and type your own word. Punctuation gets its own gray button: tap it to change it. You can make the bubbles solid or just an outline.",
+  },
+  {
     id: "2026-10-15-new-animals",
     date: "2026-10-15",
     icon: "🦊",
