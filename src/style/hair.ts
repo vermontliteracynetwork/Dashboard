@@ -74,8 +74,13 @@ export function hairGeo(species: SpeciesId, style: HairStyle, underHat: boolean)
 
   // How far down the hair comes: at the front it starts at the brow; toward the sides and back it drops.
   const drop = { short: 0.27, spiky: 0.25, curly: 0.3, bob: 0.44, long: 0.5, ponytail: 0.24, pigtails: 0.27, buns: 0.27 }[style];
-  const reach = style === 'bob' || style === 'long' ? 0.32 : 0.7;
-  const line = (x: number, z: number) => brow + 0.01 - drop * smoothstep(0.06, reach, h.t(z)) - (style === 'curly' ? 0 : 0.03 * smoothstep(0.1, 0.3, Math.abs(x)));
+  const long = style === 'bob' || style === 'long';
+  // Long styles keep the face open: the hair stays at the brow across the face and only falls past the cheeks.
+  const line = (x: number, z: number) => {
+    const t = h.t(z);
+    const fall = long ? smoothstep(0.2, 0.42, t) * smoothstep(0.12, 0.26, Math.abs(x)) + smoothstep(0.42, 0.6, t) * (1 - smoothstep(0.12, 0.26, Math.abs(x))) : smoothstep(0.06, 0.7, t);
+    return brow + 0.01 - drop * Math.min(1, fall) - (style === 'curly' ? 0 : 0.03 * smoothstep(0.1, 0.3, Math.abs(x)));
+  };
   const bottom = style === 'long' ? -0.36 : style === 'bob' ? -0.24 : -0.2;
   const thick = (y: number) => (style === 'curly' ? 0.085 : style === 'bob' ? 0.035 + 0.03 * smoothstep(0.1, -0.2, y) : 0.035);
   const curls = (x: number, y: number, z: number) => (style === 'curly' ? 0.018 * Math.sin(x * 34) * Math.sin(y * 34 + 1) * Math.sin(z * 34 + 2) : 0);
@@ -123,7 +128,7 @@ export function hairGeo(species: SpeciesId, style: HairStyle, underHat: boolean)
   // Under a covering hat, keep only the hair below the hat's edge (the hat's own clip line, see hats.ts).
   if (underHat) {
     const base = hair;
-    hair = (x, y, z) => smax(base(x, y, z), y - (brow - 0.015 - 0.15 * h.t(z)), 0.01);
+    hair = (x, y, z) => smax(smax(base(x, y, z), y - (brow - 0.015 - 0.15 * h.t(z)), 0.01), (0.34 - h.t(z)) * 0.6, 0.02);
   }
   // Never cover the frog's eyes.
   if (species === 'frog') {

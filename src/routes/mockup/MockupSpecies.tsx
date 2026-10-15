@@ -75,7 +75,7 @@ export default function MockupSpecies() {
       });
     }
     const items = [{ id: '', name: 'No clothes', slot: '' as WardrobeSlot | '' }, ...WARDROBE.map((w) => ({ id: w.id, name: w.name, slot: w.slot }))];
-    return items.map((it, i) => ({ key: it.id || 'none', look: it.id ? dress(sp, { [it.slot]: it.id }) : defaultLook(sp), label: it.name, col: i % 6, row: Math.floor(i / 6) }));
+    return items.map((it, i) => ({ key: it.id || 'none', look: it.id ? dress(sp, { [it.slot]: it.id }) : dress(sp, {}), label: it.name, col: i % 6, row: Math.floor(i / 6) }));
   }, [mode, sp, q]);
   const cols = Math.max(...cells.map((c) => c.col)) + 1;
   const rows = Math.max(...cells.map((c) => c.row)) + 1;
