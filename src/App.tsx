@@ -23,8 +23,7 @@ import GamesHub from './routes/student/GamesHub';
 import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
 import GameReportBubble from './components/GameReportBubble';
-import ListenFab from './components/ListenFab';
-import DraggableFabs from './components/DraggableFabs';
+import MainMenu from './components/MainMenu';
 import PetTrainedToast from './components/PetTrainedToast';
 import GymWatcher from './components/GymWatcher';
 import CheckOnPetHost from './components/CheckOnPet';
@@ -154,8 +153,7 @@ export default function App() {
         <CoinDropOverlay />
         <StreakLayer />
         <GameReportBubble />
-        <ListenFab />
-        <DraggableFabs />
+        <MainMenu />
         <PetTrainedToast />
         <GymWatcher />
         <CheckOnPetHost />

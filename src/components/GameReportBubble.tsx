@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { OPEN_AZALEA } from '../lib/mainMenu';
 import { useLocation } from 'react-router-dom';
 import { useStore } from '../store/store';
 import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from '../lib/nativeGames';
@@ -58,7 +59,8 @@ export default function GameReportBubble() {
   const submitFeedback = useStore((s) => s.submitFeedback);
   const here = placeOf(pathname);
   const isStudent = role === 'student' && !!student && pathname !== '/student/login';
-  const showBubble = isStudent && !pathname.startsWith('/student/grammar-gus');
+  // Build Queue 224: no floating bubble any more; Report opens from the one main menu.
+  useEffect(() => { const on = () => setOpen(true); window.addEventListener(OPEN_AZALEA, on); return () => window.removeEventListener(OPEN_AZALEA, on); }, []);
   const [open, setOpen] = useState(false);
   const [kind, setKind] = useState<'bug' | 'idea' | null>(null);
   const [about, setAbout] = useState(here);
@@ -75,11 +77,6 @@ export default function GameReportBubble() {
   const recRef = useRef<{ r: MediaRecorder; stream: MediaStream; timer: number; chunks: Blob[]; start: number } | null>(null);
   const first = (student?.name ?? '').split(' ')[0];
 
-  useEffect(() => {
-    if (!showBubble) return;
-    document.body.classList.add('has-report-bubble');
-    return () => document.body.classList.remove('has-report-bubble');
-  }, [showBubble]);
   const stopMemo = () => {
     const c = recRef.current; if (!c) return;
     window.clearInterval(c.timer);
@@ -188,11 +185,6 @@ export default function GameReportBubble() {
   const cover = (t: string) => NATIVE_GAME_CARDS.find((g) => g.title === t)?.cover;
   return (
     <>
-      {showBubble && (
-        <button type="button" className="report-bubble" onClick={() => setOpen(true)} aria-label={`Talk to Azalea: report a bug or share an idea for ${here}`}>
-          <img src={`${AZ}azalea-head.png`} alt="" /><small>Report</small>
-        </button>
-      )}
       {open && (
         <div className="pf-overlay report-back" onClick={close}>
           <div className="pf-panel report-card az" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Talk to Azalea">

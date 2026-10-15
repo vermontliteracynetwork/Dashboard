@@ -9287,5 +9287,16 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .sc-target.risky.lose .sc-target-bang { color: #fff; }
 .sc-legend .dot.risky.lose { background: #d63a1f; }
 
-/* Side buttons drag anywhere (Build Queue 222): no page scrolling or zooming while a finger drags one. */
-.report-bubble, .listen-fab, .tools-fab, .whatnow-fab, .help-fab, .fab-style-btn, [data-drag-fab] { touch-action: none; }
+/* The one main menu (Build Queue 224): a single draggable button on every student screen and its pie menu. */
+.main-menu-btn { position: fixed; z-index: 190; width: 64px; height: 64px; border-radius: 50%; border: 3px solid #1f2a44; background: #5b6b8a; color: #fff; box-shadow: 0 5px 0 #1f2a44, 0 8px 18px rgba(0, 0, 0, 0.25); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 0; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; font: inherit; }
+.main-menu-btn small { font-size: 0.66rem; font-weight: 900; line-height: 1; }
+.main-menu-ico { font-size: 1.5rem; line-height: 1; }
+.main-menu-streak { position: absolute; top: -8px; right: -10px; min-width: 30px; height: 24px; padding: 0 5px; border-radius: 999px; background: #fff; color: #c2410c; border: 2px solid #ff8a1f; font-size: 0.72rem; font-weight: 900; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.main-menu-back { position: fixed; inset: 0; z-index: 330; background: rgba(31, 17, 71, 0.5); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; }
+.main-menu-pie { position: relative; max-width: 100%; }
+.main-menu-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); color: #fff; font-weight: 900; font-size: 1rem; text-align: center; display: flex; flex-direction: column; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6); pointer-events: none; }
+.main-menu-center small { font-size: 0.7rem; font-weight: 700; }
+.main-menu-wedge { position: absolute; transform: translate(-50%, -50%); width: 76px; height: 76px; border-radius: 50%; border: 3px solid #1f2a44; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); touch-action: manipulation; font: inherit; }
+.main-menu-wedge-ico { font-size: 1.4rem; line-height: 1; }
+.main-menu-wedge-label { font-size: 11px; font-weight: 800; line-height: 1.1; text-align: center; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.main-menu-cancel { min-height: 48px; padding: 0 18px; border-radius: 999px; border: 3px solid #1f2a44; background: #fff; font: inherit; font-weight: 800; cursor: pointer; }

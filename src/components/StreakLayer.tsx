@@ -28,17 +28,6 @@ export const openStreakView = () => window.dispatchEvent(new Event(OPEN_STREAK_E
 // Supernature has no questions, and its Home and Sounds buttons sit in the top right corner
 // where the streak pill rests (her ask, 2026-10-13: Home in the top right beside Sounds).
 const HIDE_ON = ['/', '/student/login', '/student/supernature'];
-const POS_KEY = 'streak-pill-pos';
-const MIN_KEY = 'streak-pill-min';
-const HINT_KEY = 'streak-pill-hint-seen';
-
-function load<T>(key: string, fallback: T): T {
-  try { const v = localStorage.getItem(key); return v ? (JSON.parse(v) as T) : fallback; } catch { return fallback; }
-}
-function store(key: string, v: unknown) {
-  try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* private mode */ }
-}
-
 function Flame({ count, big }: { count: number; big?: boolean }) {
   return (
     <span className={`streak-flame${big ? ' big' : ''}`} aria-hidden="true">
@@ -192,86 +181,6 @@ function DailyCard({ studentId, r, onDone }: { studentId: string; r: StreakRow; 
   );
 }
 
-function Meter({ r, onOpen }: { r: StreakRow; onOpen: () => void }) {
-  const today = todayISO();
-  const correct = r.today?.day === today ? r.today.correct : 0;
-  const saved = r.lastSavedDay === today;
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(() => load(POS_KEY, null));
-  const [min, setMin] = useState<boolean>(() => load(MIN_KEY, false));
-  const [hint, setHint] = useState<boolean>(() => !load(HINT_KEY, false));
-  const drag = useRef<{ dx: number; dy: number; moved: boolean; startX: number; startY: number } | null>(null);
-  const lastFireTap = useRef(0);
-  const el = useRef<HTMLDivElement | null>(null);
-  useEffect(() => { if (hint) { const t = window.setTimeout(() => { setHint(false); store(HINT_KEY, true); }, 7000); return () => window.clearTimeout(t); } }, [hint]);
-  // A saved spot can end up off screen after turning the iPad: pull it back in.
-  useEffect(() => {
-    const fit = () => setPos((p) => (p ? clamp(p.x, p.y) : p));
-    fit();
-    window.addEventListener('resize', fit);
-    window.addEventListener('orientationchange', fit);
-    return () => { window.removeEventListener('resize', fit); window.removeEventListener('orientationchange', fit); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  // Keyboard, VoiceOver and Switch Control send a click, not pointer events.
-  const pointerHandled = useRef(false);
-  const clamp = (x: number, y: number) => {
-    const w = el.current?.offsetWidth ?? 200;
-    const h = el.current?.offsetHeight ?? 50;
-    return { x: Math.max(4, Math.min(window.innerWidth - w - 4, x)), y: Math.max(4, Math.min(window.innerHeight - h - 4, y)) };
-  };
-  const down = (e: React.PointerEvent) => {
-    const rect = el.current!.getBoundingClientRect();
-    drag.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top, moved: false, startX: e.clientX, startY: e.clientY };
-    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
-  };
-  const move = (e: React.PointerEvent) => {
-    const d = drag.current;
-    if (!d) return;
-    if (Math.abs(e.clientX - d.startX) + Math.abs(e.clientY - d.startY) > 6) d.moved = true;
-    if (d.moved) setPos(clamp(e.clientX - d.dx, e.clientY - d.dy));
-  };
-  const up = (e: React.PointerEvent, onFire: boolean) => {
-    const d = drag.current;
-    drag.current = null;
-    if (!d) return;
-    pointerHandled.current = true;
-    window.setTimeout(() => { pointerHandled.current = false; }, 400);
-    if (d.moved) { store(POS_KEY, clamp(e.clientX - d.dx, e.clientY - d.dy)); return; }
-    if (onFire) {
-      const now = performance.now();
-      if (now - lastFireTap.current < 450) { lastFireTap.current = 0; setMin((m) => { store(MIN_KEY, !m); return !m; }); setHint(false); store(HINT_KEY, true); return; }
-      lastFireTap.current = now;
-      return;
-    }
-    onOpen();
-  };
-  // Default spot: the left edge, a bit above the middle. Top center was taken
-  // by the car dashboard and Space Bowling's round counter, the corners by
-  // menus and the D-pad. Students can drag it anywhere.
-  const style: React.CSSProperties = pos ? { left: pos.x, top: pos.y } : { left: 8, top: '38%' };
-  return (
-    <div ref={el} className={`streak-pill${min ? ' min' : ''}${saved ? ' saved' : ''}`} style={style} onPointerMove={move}>
-      <button
-        type="button"
-        className="streak-pill-fire"
-        aria-label={min ? 'Daily streak: grow the meter' : 'Daily streak: shrink the meter'}
-        onPointerDown={down}
-        onPointerUp={(e) => up(e, true)}
-        onClick={() => { if (pointerHandled.current) return; setMin((m) => { store(MIN_KEY, !m); return !m; }); }}
-      >
-        🔥<span className="streak-pill-count">{r.count ?? 0}</span>
-      </button>
-      {!min && (
-        <button type="button" className="streak-pill-body" onPointerDown={down} onPointerUp={(e) => up(e, false)} onClick={() => { if (!pointerHandled.current) onOpen(); }} aria-label={saved ? 'Today is saved. Open my streak' : `${correct} of ${streakGoal()} right answers today. Open my streak`}>
-          <span className="streak-pill-bar"><span style={{ width: `${Math.min(100, (correct / streakGoal()) * 100)}%` }} /></span>
-          <span className="streak-pill-text">{saved ? 'Saved!' : `${Math.min(correct, streakGoal())}/${streakGoal()}`}</span>
-        </button>
-      )}
-      {hint && !min && <span className="streak-pill-hint">Drag me anywhere. Double tap the 🔥 to shrink me.</span>}
-    </div>
-  );
-}
-
 export default function StreakLayer() {
   const role = useStore((s) => s.role);
   const studentId = useStore((s) => s.currentStudentId);
@@ -295,11 +204,12 @@ export default function StreakLayer() {
   }, []);
   useEffect(() => { setCardDone(false); }, [studentId]);
   streakOverlay.open = view || !!r.chestsPending;
-  if (role !== 'student' || !studentId || HIDE_ON.includes(location.pathname)) return null;
-  const cardDue = r.cardShownDay !== todayISO() && !cardDone && location.pathname === '/world/town';
+  if (role !== 'student' || !studentId) return null;
+  // Build Queue 224: the floating meter is gone; My Streak lives in the one main menu (which shows the count).
+  const cardDue = !HIDE_ON.includes(location.pathname) && r.cardShownDay !== todayISO() && !cardDone && location.pathname === '/world/town';
   return (
     <>
-      {cardDue ? <DailyCard studentId={studentId} r={r} onDone={() => setCardDone(true)} /> : <Meter r={r} onOpen={() => setView(true)} />}
+      {cardDue && <DailyCard studentId={studentId} r={r} onDone={() => setCardDone(true)} />}
       {view && <StreakView studentId={studentId} onClose={() => setView(false)} />}
       {r.chestsPending && <Chests studentId={studentId} r={r} />}
     </>

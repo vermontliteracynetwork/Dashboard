@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { MenuItems } from '../lib/mainMenu';
 import { isRobotVoice } from '../lib/voiceCatalog';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -1219,14 +1220,12 @@ export default function ToolsPanel({ student, subject, variant = 'fab', hideCalc
 
   return (
     <>
-      <button
-        className={variant === 'fab' ? 'tools-fab' : 'btn btn-sm btn-teal'}
-        onClick={() => setMenuOpen(true)}
-        aria-label="My Tools"
-        title="My Tools"
-      >
-        🧰{variant === 'inline' ? ' Tools' : ''}
-      </button>
+      {variant === 'fab' ? (
+        // Build Queue 224: no floating 🧰 circle; My Tools is a button in the one main menu.
+        <MenuItems items={[{ id: 'tools', icon: '🧰', label: 'My Tools', bg: '#2f8a8a', order: 30, onSelect: () => setMenuOpen(true) }]} />
+      ) : (
+        <button className="btn btn-sm btn-teal" onClick={() => setMenuOpen(true)} aria-label="My Tools" title="My Tools">🧰 Tools</button>
+      )}
 
       {menuOpen && (
         <div className="overlay-backdrop" onClick={() => setMenuOpen(false)}>

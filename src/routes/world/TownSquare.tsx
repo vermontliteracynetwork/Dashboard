@@ -1,4 +1,5 @@
 import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { MenuItems, openMainMenu } from '../../lib/mainMenu';
 import GroundPatchMesh from './GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
@@ -23,7 +24,7 @@ import { addedNpcs, removedNpcIds } from '../../style/npcRoster';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
 import GameDashboard from '../../components/GameDashboard';
-import { openStreakView, streakOverlay, useStreakCardDue } from '../../components/StreakLayer';
+import { streakOverlay, useStreakCardDue } from '../../components/StreakLayer';
 import { defaultLook } from '../../style/species';
 import { useStyleSettings } from '../../style/catalog';
 import type { StyleLook, StyleMove } from '../../style/types';
@@ -3299,22 +3300,7 @@ export default function TownSquare() {
   const [showCompanionMenu, setShowCompanionMenu] = useState(false);
   const [talkPetId, setTalkPetId] = useState<string | null>(null);
   const [companionCue, setCompanionCue] = useState<(PetMoveCue & { petId?: string }) | null>(null);
-  const [showSelfMenu, setShowSelfMenu] = useState(false);
   const { released: styleReleased } = useStyleSettings();
-  // Claudia's audit (H3): the pie menu had grown to 7-8 wedges, past her
-  // own 5-6 cap and hard to scan under time pressure. Settings/Map/My
-  // Stuff, plus the newer Computer and To-Do List wedges, live on a
-  // second page instead of a separate popup list — direct teacher
-  // instruction: "instead of opening to a pop up window for more, it
-  // should interact like the sims... the pie menu options should change
-  // to show the more. this acts in a circular motion, opening the more
-  // items until it returns to the first set." selfMenuPage cycles
-  // 0 -> 1 -> 0 via each page's own "More" wedge, replacing the old
-  // showMoreMenu popup entirely.
-  const [selfMenuPage, setSelfMenuPage] = useState(0);
-  useEffect(() => {
-    if (!showSelfMenu) setSelfMenuPage(0);
-  }, [showSelfMenu]);
   const [showCompass, setShowCompass] = useState(false);
 
   // Soft need-decay only ticks while a student is actively here in Town
@@ -3398,7 +3384,7 @@ export default function TownSquare() {
   const routeLocation = useLocation();
   // The Arcade's ☰ Menu button (teacher 2026-10-12: "add a main pie menu button to the top right hand
   // corner") comes back here and opens this menu.
-  useEffect(() => { if ((routeLocation.state as { openMenu?: boolean } | null)?.openMenu) setShowSelfMenu(true); }, [routeLocation.state]);
+  useEffect(() => { if ((routeLocation.state as { openMenu?: boolean } | null)?.openMenu) openMainMenu(); }, [routeLocation.state]);
   const arrivedFromHome = useRef(false);
   const [waterSoundOff] = useState(() => { try { return localStorage.getItem('water-sound-off') === '1'; } catch { return false; } });
   const [activeConversation, setActiveConversation] = useState<ActiveConversation | null>(null);
@@ -4775,101 +4761,6 @@ export default function TownSquare() {
           </div>
         </div>
       )}
-      {/* Direct teacher instruction: "Pie menu format should be adopted
-          for all buttons on the right hand side," including Tasks and
-          Help/break — only Tools and Menu stay as standalone buttons,
-          everything else (including Help) lives as a wedge here. This is
-          a deliberate, explicit override of Claudia's earlier H2 finding
-          ("regulation tools are never gated behind an extra tap+scan") —
-          the teacher was shown that tradeoff directly and chose this
-          anyway, so Help costs one extra tap now (open Menu, then Help)
-          instead of zero. Settings/Map/My Stuff/Computer/To-Do List sit
-          on a second page (see selfMenuPage above) instead of each taking
-          their own slot on the main fan or opening a separate popup. */}
-      {showSelfMenu && (() => {
-        const page1: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
-          { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', onSelect: () => setShowHelp(true) },
-          { id: 'whatnow', icon: '❓', iconName: 'question', label: 'What now?', bg: '#c2953f', onSelect: () => setShowWhatNow(true) },
-          { id: 'home', icon: '🏠', iconName: 'home', label: 'My Home', bg: '#c26a3e', onSelect: () => navigate('/world/home-room') },
-          // Teacher 2026-10-12: "add games to main pie menue" (and every game lives in the Arcade).
-          { id: 'arcade', icon: '🕹️', label: 'Arcade', bg: '#7c3aed', onSelect: () => navigate('/student/games', { state: { from: 'town' } }) },
-          { id: 'piggybank', icon: '🐷', label: 'Piggy Bank', bg: '#e0709a', onSelect: () => navigate('/student/piggy-bank', { state: { from: 'town' } }) },
-          ...(styleReleased ? [{ id: 'style', icon: '👗', label: 'Style', bg: '#b0559a', onSelect: () => navigate('/student/style', { state: { from: 'town' } }) }] : []),
-          ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', onSelect: () => setShowCompanionMenu(true) }] : []),
-          { id: 'more', icon: '⚙️', iconName: 'settingsAlt', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(1) },
-        ];
-        const page2: { id: string; icon: string; iconName?: string; label: string; bg: string; onSelect: () => void }[] = [
-          { id: 'streak', icon: '🔥', label: 'My Streak', bg: '#e0611a', onSelect: () => openStreakView() },
-          { id: 'todo', icon: '📋', label: totalTasksLeft + (seamstressDue ? 1 : 0) > 0 ? `To-Do List (${totalTasksLeft + (seamstressDue ? 1 : 0)})` : 'To-Do List', bg: '#3e7c6b', onSelect: () => setShowTodayTasks(true) },
-          { id: 'computer', icon: '💻', label: 'Computer', bg: '#3e6b7c', onSelect: () => navigate('/student/home') },
-          ...(ownedPets.length > 0 ? [{ id: 'gym', icon: '🏋️', label: "Buff Doge's Gym", bg: '#d98c1e', onSelect: () => navigate('/student/gym', { state: { from: 'town' } }) }] : []),
-          { id: 'settings', icon: '⚙️', iconName: 'settingsAlt', label: 'Settings', bg: '#5b6b8a', onSelect: () => setSettingsOpen(true) },
-          { id: 'map', icon: '🗺️', label: mapView ? 'Close Map' : 'Map', bg: '#8a6b5b', onSelect: () => setMapView((v) => !v) },
-          { id: 'mystuff', icon: '🎒', label: showInventory ? 'Close My Stuff' : 'My Stuff', bg: '#6b5b8a', onSelect: () => setShowInventory((v) => !v) },
-          { id: 'compass', icon: '🧭', label: showCompass ? 'Hide Compass' : 'Compass', bg: '#2f8f6b', onSelect: () => setShowCompass((v) => !v) },
-          { id: 'more2', icon: '↩️', label: 'More', bg: '#5b6b8a', onSelect: () => setSelfMenuPage(0) },
-        ];
-        const wedges = selfMenuPage === 0 ? page1 : page2;
-        return (
-          <div
-            style={{ position: 'fixed', inset: 0, zIndex: 230, background: 'rgba(31,17,71,0.45)', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: 198, paddingRight: 130 }}
-            onClick={() => setShowSelfMenu(false)}
-          >
-            <div style={{ position: 'relative', width: 260, height: 260 }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 90, textAlign: 'center', fontSize: '0.72rem', fontWeight: 800, color: '#fff', pointerEvents: 'none' }}>
-                Menu
-              </div>
-              {wedges.map((w, i) => {
-                const angle = (i / wedges.length) * Math.PI * 2 - Math.PI / 2;
-                const r = 100;
-                const x = Math.cos(angle) * r;
-                const y = Math.sin(angle) * r;
-                return (
-                  <button
-                    key={w.id}
-                    title={w.label}
-                    onClick={() => {
-                      // "More" pages the fan in place — every other wedge
-                      // closes the whole menu and opens its own thing. Bug
-                      // fixed here: closing the menu unconditionally used to
-                      // fire before onSelect(), so tapping "More" closed the
-                      // menu instead of advancing to page 2 (the page-reset
-                      // effect above then snapped selfMenuPage back to 0).
-                      if (w.id !== 'more' && w.id !== 'more2') setShowSelfMenu(false);
-                      w.onSelect();
-                    }}
-                    style={{
-                      position: 'absolute', left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)`, transform: 'translate(-50%, -50%)',
-                      width: 68, height: 68, borderRadius: '50%', border: '2px solid var(--ink)', background: w.bg, color: '#fff',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                      cursor: 'pointer', boxShadow: '0 3px 10px rgba(0,0,0,0.35)', padding: 4,
-                    }}
-                  >
-                    <span style={{ fontSize: '1.2rem', lineHeight: 1 }}>
-                      {w.iconName ? <Icon name={w.iconName} size={22} fallback={w.icon} /> : w.icon}
-                    </span>
-                    {/* Bumped from 8px (Claudia's audit H3 — unreadable at a
-                        glance for a dyslexic/low-vision student scanning a
-                        radial layout under time pressure) to 11px. */}
-                    <span style={{ fontSize: 11, fontWeight: 800, textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1.1, textAlign: 'center' }}>{w.label}</span>
-                  </button>
-                );
-              })}
-              <button
-                title="Cancel"
-                onClick={() => setShowSelfMenu(false)}
-                style={{
-                  position: 'absolute', left: '50%', top: 'calc(50% + 168px)', transform: 'translate(-50%, -50%)',
-                  minHeight: 44, borderRadius: 20, border: '2px solid var(--ink)', background: '#fff',
-                  fontSize: '0.7rem', fontWeight: 700, padding: '4px 12px', cursor: 'pointer',
-                }}
-              >
-                <Icon name="close" size={14} fallback="✕" /> Cancel
-              </button>
-            </div>
-          </div>
-        );
-      })()}
       {/* Shared music picker — car radio, Concert Hall, Boom Box all open
           this same list. Direct teacher request: audio only, so tapping a
           track just starts the hidden player below and shows a small
@@ -5060,43 +4951,22 @@ export default function TownSquare() {
       >
         🧭 Stuck? Tap here
       </button>
-      {/* Direct teacher instruction: What now?, Tasks, and (later) Help all
-          live as wedges inside the pie menu below, not their own corner
-          FAB — only Tools (above) and this Menu trigger stay standalone.
-          Positioned at top:84 rather than top:16 — a real bug found while
-          fixing Claudia's audit: ToolsPanel's own .tools-fab ("My Tools",
-          rendered a few lines up) sits at the app-wide standard top:16/
-          right:16 with a higher z-index, so this trigger used to sit
-          exactly underneath it, completely covered and unclickable. This
-          stacks the two 58px buttons vertically with an 8px gap instead. */}
-      <button
-        data-drag-fab="town-menu"
-        onClick={() => setShowSelfMenu(true)}
-        // z-index 110 matches .tools-fab's own deliberate above-overlay
-        // tier (see its CSS comment) — direct teacher bug report: the Menu
-        // button used to sit at z:60, under the To-Do List overlay's
-        // backdrop (.overlay-backdrop is z:100), so it was invisible and
-        // untappable the whole time that overlay (or any other standard
-        // one — Music picker, etc.) was open.
-        style={{ position: 'fixed', top: 84, right: 16, zIndex: 110, width: 58, height: 58, borderRadius: '50%', border: 'var(--chunk, 3px) solid var(--ink, #1f4238)', background: '#5b6b8a', boxShadow: '5px 5px 0 var(--ink, #1f4238)', cursor: 'pointer', padding: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1 }}
-        aria-label={totalTasksLeft > 0 ? `Menu, ${totalTasksLeft} tasks left today` : 'Menu'}
-      >
-        <span style={{ fontSize: '1.3rem', lineHeight: 1, pointerEvents: 'none' }}>🧭</span>
-        {/* Claudia's daily-review audit: the wedge labels inside this same
-            menu were bumped from 8px to 11px for readability, but this
-            trigger's own "Menu" label was missed in that pass. */}
-        <span style={{ fontSize: 11, fontWeight: 800, color: '#fff', textShadow: '0 1px 2px rgba(0,0,0,0.6)', lineHeight: 1, pointerEvents: 'none' }}>
-          Menu
-        </span>
-        {totalTasksLeft > 0 && (
-          <span
-            aria-hidden
-            style={{ position: 'absolute', top: -6, right: -6, minWidth: 22, height: 22, borderRadius: '50%', background: '#e2775c', border: '2px solid var(--ink, #1f4238)', color: '#fff', fontSize: 11, fontWeight: 900, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px', pointerEvents: 'none' }}
-          >
-            {totalTasksLeft}
-          </span>
-        )}
-      </button>
+      {/* Build Queue 224 (her words 2026-10-15: "there should be one menu icon (the main menu) not a million small
+          circles"): Town Square's own Menu circle is gone. Its pie menu items live in the one main menu, which also
+          holds Report, My Streak, Town Square, the Arcade and the Piggy Bank. */}
+      <MenuItems items={[
+        { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', order: 10, onSelect: () => setShowHelp(true) },
+        { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', order: 11, onSelect: () => setShowWhatNow(true) },
+        { id: 'home', icon: '🏠', label: 'My Home', bg: '#c26a3e', order: 12, onSelect: () => navigate('/world/home-room') },
+        ...(styleReleased ? [{ id: 'style', icon: '👗', label: 'Style', bg: '#b0559a', order: 15, onSelect: () => navigate('/student/style', { state: { from: 'town' } }) }] : []),
+        ...(ownedPets.length > 0 ? [{ id: 'companion', icon: '🐾', label: petsNeedingAttention > 0 ? `Companion (${petsNeedingAttention})` : 'Companion', bg: '#7c5cff', order: 16, onSelect: () => setShowCompanionMenu(true) }] : []),
+        { id: 'todo', icon: '📋', label: totalTasksLeft + (seamstressDue ? 1 : 0) > 0 ? `To-Do List (${totalTasksLeft + (seamstressDue ? 1 : 0)})` : 'To-Do List', bg: '#3e7c6b', order: 20, onSelect: () => setShowTodayTasks(true) },
+        ...(ownedPets.length > 0 ? [{ id: 'gym', icon: '🏋️', label: "Buff Doge's Gym", bg: '#d98c1e', order: 22, onSelect: () => navigate('/student/gym', { state: { from: 'town' } }) }] : []),
+        { id: 'settings', icon: '⚙️', label: 'Settings', bg: '#5b6b8a', order: 23, onSelect: () => setSettingsOpen(true) },
+        { id: 'map', icon: '🗺️', label: mapView ? 'Close Map' : 'Map', bg: '#8a6b5b', order: 24, onSelect: () => setMapView((v) => !v) },
+        { id: 'mystuff', icon: '🎒', label: showInventory ? 'Close My Stuff' : 'My Stuff', bg: '#6b5b8a', order: 25, onSelect: () => setShowInventory((v) => !v) },
+        { id: 'compass', icon: '🧭', label: showCompass ? 'Hide Compass' : 'Compass', bg: '#2f8f6b', order: 26, onSelect: () => setShowCompass((v) => !v) },
+      ]} />
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
       {showCompass && <CompassWidget onClose={() => setShowCompass(false)} />}
       {customRoleLink && (
@@ -5348,7 +5218,7 @@ export default function TownSquare() {
             mapView={mapView}
             teleportTarget={teleportTarget}
             emoteSrc={student.equippedEmoteId ? emoteById(student.equippedEmoteId)?.src ?? null : null}
-            onSelfClick={!activeConversation ? () => setShowSelfMenu(true) : undefined}
+            onSelfClick={!activeConversation ? () => openMainMenu() : undefined}
             hideAvatar={!!drivingObjectId}
             driving={!!drivingObjectId}
             vehicleKind={drivingIsBoat ? 'boat' : drivingIsTrain ? 'train' : drivingIsAircraft ? 'plane' : 'car'}

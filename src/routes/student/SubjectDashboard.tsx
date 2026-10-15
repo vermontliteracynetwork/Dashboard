@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { MenuItems } from '../../lib/mainMenu';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { StartRitual, SubjectCompleteScreen } from './Rituals';
@@ -415,10 +416,11 @@ export default function SubjectDashboard() {
 
       <ToolsPanel student={student} subject={subj} hideCalculator={activeTask?.type === 'quiz'} />
 
-      <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
-        <Icon name="question" size={22} fallback="❓" />
-      </button>
-      <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">🧘</button>
+      {/* Build Queue 224: What now? and Help live in the one main menu, not their own floating circles. */}
+      <MenuItems items={[
+        { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', order: 10, onSelect: () => setShowHelp(true) },
+        { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', order: 11, onSelect: () => setShowWhatNow(true) },
+      ]} />
     </div>
   );
 }

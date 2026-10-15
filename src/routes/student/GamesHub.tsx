@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { openMainMenu } from '../../lib/mainMenu';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
@@ -92,7 +93,7 @@ export default function GamesHub() {
       <header className="games-hub-top">
         <button type="button" className="btn btn-lg" onClick={back.go}>← {back.label.replace(/^\S+\s/, '')}</button>
         <h1>Arcade</h1>
-        <button type="button" className="btn btn-lg games-hub-menu" onClick={() => navigate('/world/town', { state: { openMenu: true } })} aria-label="Open the main menu">Menu</button>
+        <button type="button" className="btn btn-lg games-hub-menu" onClick={() => openMainMenu()} aria-label="Open the main menu">Menu</button>
       </header>
       {anyGame && (
         <p className="games-hub-task">

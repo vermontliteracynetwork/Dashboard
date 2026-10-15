@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-main-menu",
+    date: "2026-10-15",
+    icon: "☰",
+    title: "One menu button",
+    body: "All the little circles are now in one Menu button. Tap it for Town Square, Report, your streak, the Arcade and more. Drag it anywhere you like on the screen.",
+  },
+  {
     id: "2026-10-15-chess-risky",
     date: "2026-10-15",
     icon: "♟️",

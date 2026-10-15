@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MenuItems } from '../../lib/mainMenu';
 import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
@@ -502,12 +503,11 @@ export default function StudentHome() {
         <p style={{ textAlign: 'center' }}>Ask your teacher to set up your tasks!</p>
       )}
 
-      <button className="whatnow-fab" onClick={() => setShowWhatNow(true)} aria-label="What do I do?" title="What do I do?">
-        <Icon name="question" size={22} fallback="❓" />
-      </button>
-      <button className="help-fab" onClick={() => setShowHelp(true)} aria-label="Help">
-        🧘
-      </button>
+      {/* Build Queue 224: What now? and Help live in the one main menu, not their own floating circles. */}
+      <MenuItems items={[
+        { id: 'help', icon: '🧘', label: 'Help / Break', bg: '#fb923c', order: 10, onSelect: () => setShowHelp(true) },
+        { id: 'whatnow', icon: '❓', label: 'What now?', bg: '#c2953f', order: 11, onSelect: () => setShowWhatNow(true) },
+      ]} />
     </div>
       </div>
       <div className="laptop-deck" />

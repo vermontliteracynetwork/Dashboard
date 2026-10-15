@@ -51,13 +51,16 @@ Direct teacher rules (2026-10-07): the Workboard is "a sandbox style for the kid
 Whenever handing the teacher a `.md` file (a dev log, a doc, a summary), convert it to PDF and give her that instead of raw markdown.
 
 ## Text to speech on every screen
-Direct teacher rule (2026-10-12): "Ensure that every screen has a text-to-speech option. For storytelling games like Rescue Shelter, ensure that text-to-speech is the default." Every student screen gets a 🔊 Listen for its text (QuestionScreen already has one); story games read their story lines aloud on their own, with a 🔊/🔇 toggle.
+Direct teacher rule (2026-10-12): "Ensure that every screen has a text-to-speech option. For storytelling games like Rescue Shelter, ensure that text-to-speech is the default." Every student screen gets a 🔊 Listen for its text (QuestionScreen already has one); story games read their story lines aloud on their own, with a 🔊/🔇 toggle. Direct teacher rule (2026-10-15, "remove listen button entirely"): there is no floating 🔊 Listen circle any more; text to speech lives in each screen's own 🔊 buttons and read-aloud.
 
 ## Human voices only
 Direct teacher rule (2026-10-12): "tts voices need to be completely human, no more robot sounds". Every read-aloud goes through `speak()` in `src/components/ReadAloud.tsx`, which plays a real neural voice from `api/tts.ts` (needs `OPENAI_API_KEY` in Vercel) and falls back to the most human device voice (`pickHumanVoice`, never the novelty voices, no big pitch shifts). New characters get a `cloud` voice key in `src/lib/npcVoices.ts`; never call `speechSynthesis` directly in new code.
 
 ## iPad is the priority device for every student view
 Direct, standing teacher instruction: her students use iPads. Every student-facing screen, view, and display (Town Square, Build Mode-adjacent student surfaces, task/quiz UIs, the computer desktop, all of it) must be optimized for iPad first, not just "also work" on it — touch targets, layout at iPad viewport sizes (both orientations), no hover-only affordances, no interactions that assume a mouse or physical keyboard. Claudia's review checklist (`.claude/agents/claudia.md`) treats this as non-negotiable on every review of student-facing work, same tier as the other pass/fail visual standards. Apply this on every change to a student view, not just when explicitly asked.
+
+## One main menu, no floating circles
+Direct teacher rule (2026-10-15): "there should be one menu icon (the main menu) not a million small circles. main menu should open things like report and streak. main menu should be moveable like the streak icon." Every student screen has exactly one floating button, the ☰ main menu (`src/components/MainMenu.tsx`), which students can drag anywhere. Report (Azalea), My Streak, Town Square, Computer, Arcade and Piggy Bank are in it; a screen adds its own items (Help, What now?, My Tools, Town Square's map...) with `MenuItems` from `src/lib/mainMenu.ts`. Never add a new floating corner button; add a menu item instead.
 
 ## No blood, anywhere
 Direct teacher rule (2026-10-13): "NO BLOOD!! IN any supernature or otherwise." No blood, wounds or gore in any art, animation, text or sound across the whole platform. Predators "catch" and prey poofs away; nothing is ever shown hurt.
