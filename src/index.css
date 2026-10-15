@@ -9286,3 +9286,6 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .sc-target.capture.risky.lose { border-color: #e8452a; box-shadow: 0 0 12px #e8452a; background: rgba(255, 122, 92, 0.5); }
 .sc-target.risky.lose .sc-target-bang { color: #fff; }
 .sc-legend .dot.risky.lose { background: #d63a1f; }
+
+/* Side buttons drag anywhere (Build Queue 222): no page scrolling or zooming while a finger drags one. */
+.report-bubble, .listen-fab, .tools-fab, .whatnow-fab, .help-fab, .fab-style-btn, [data-drag-fab] { touch-action: none; }

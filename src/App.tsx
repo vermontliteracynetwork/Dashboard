@@ -24,6 +24,7 @@ import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
 import GameReportBubble from './components/GameReportBubble';
 import ListenFab from './components/ListenFab';
+import DraggableFabs from './components/DraggableFabs';
 import PetTrainedToast from './components/PetTrainedToast';
 import GymWatcher from './components/GymWatcher';
 import CheckOnPetHost from './components/CheckOnPet';
@@ -154,6 +155,7 @@ export default function App() {
         <StreakLayer />
         <GameReportBubble />
         <ListenFab />
+        <DraggableFabs />
         <PetTrainedToast />
         <GymWatcher />
         <CheckOnPetHost />

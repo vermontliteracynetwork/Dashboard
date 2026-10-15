@@ -25,7 +25,9 @@ export default function ListenFab() {
   const role = useStore((s) => s.role);
   const tts = useStore((s) => s.students.find((st) => st.id === s.currentStudentId)?.ttsSettings);
   const studentArea = (pathname.startsWith('/student') || pathname.startsWith('/world')) && (role === 'student' || pathname === '/student/login');
-  const allowed = studentArea && !pathname.startsWith('/student/grammar-gus');
+  // Not on Grammar Gus (it reads aloud itself) or the Literacy Manipulatives board (Build Queue 223, her words
+  // 2026-10-15: "remove listen to board from literacy manipulatives embedd").
+  const allowed = studentArea && !pathname.startsWith('/student/grammar-gus') && pathname !== '/student/grammar';
   const [hasOwn, setHasOwn] = useState(true);
   const [talking, setTalking] = useState(false);
   const playing = useRef<{ pause?: () => void; onend?: unknown } | null>(null);

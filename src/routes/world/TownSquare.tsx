@@ -5070,6 +5070,7 @@ export default function TownSquare() {
           exactly underneath it, completely covered and unclickable. This
           stacks the two 58px buttons vertically with an 8px gap instead. */}
       <button
+        data-drag-fab="town-menu"
         onClick={() => setShowSelfMenu(true)}
         // z-index 110 matches .tools-fab's own deliberate above-overlay
         // tier (see its CSS comment) — direct teacher bug report: the Menu

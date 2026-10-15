@@ -19,32 +19,37 @@ export default function LiteracyManipulativesEmbed() {
   const navigate = useNavigate();
   return (
     <div style={{ position: 'fixed', inset: 0, background: '#f4effe' }}>
+      {/* Build Queue 221 (her words 2026-10-15: "remove home button from top left"): it covered the board's title.
+          It is now a small side button at the bottom right, beside Report, that students can drag anywhere (Build Queue 222). */}
       <button
         type="button"
+        data-drag-fab="lit-home"
         onClick={() => navigate('/student/home')}
-        aria-label="Back to home"
+        aria-label="Back to my computer"
         style={{
-          position: 'absolute',
-          top: 14,
-          left: 14,
-          zIndex: 5,
-          display: 'inline-flex',
+          position: 'fixed',
+          right: 'calc(max(12px, env(safe-area-inset-right)) + 66px)',
+          bottom: 'max(12px, env(safe-area-inset-bottom))',
+          zIndex: 190,
+          width: 56,
+          height: 56,
+          borderRadius: '50%',
+          border: '3px solid #2f8a5a',
+          background: '#fff',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.25)',
+          display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: 6,
-          background: 'rgba(255, 255, 255, 0.92)',
-          border: '2px solid var(--content-border)',
-          borderRadius: 999,
-          padding: '8px 14px',
-          fontFamily: "'Baloo 2', sans-serif",
-          fontWeight: 700,
-          fontSize: '0.85rem',
-          color: 'var(--ink)',
+          justifyContent: 'center',
+          padding: 0,
           cursor: 'pointer',
-          minHeight: 40,
-          boxShadow: '0 3px 0 rgba(0, 0, 0, 0.12)',
+          touchAction: 'none',
+          color: '#1f4a35',
+          font: 'inherit',
         }}
       >
-        ⬅️ Home
+        <span aria-hidden="true" style={{ fontSize: '1.3rem', lineHeight: 1 }}>🏠</span>
+        <small style={{ fontSize: '0.6rem', fontWeight: 900 }}>Home</small>
       </button>
       <iframe
         src={LITERACY_MANIPULATIVES_URL}
