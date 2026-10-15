@@ -230,8 +230,12 @@ export const foxTailGeo = () => cached('fox-tail', () => meshSDF(
   [-0.2, -0.2, -0.56], [0.2, 0.32, 0.12], 0.012));
 // Squirrel: a huge fluffy tail curling up the back like a question mark.
 export const squirrelTailGeo = () => cached('squirrel-tail', () => meshSDF(
-  chainTail([[0, 0, 0.02], [0, 0.05, -0.14], [0, 0.25, -0.27], [0, 0.55, -0.32], [0, 0.85, -0.28], [0, 1.05, -0.14], [0, 1.06, 0.0]], [0.07, 0.12, 0.15, 0.16, 0.15, 0.12, 0.08], 0.08),
-  [-0.24, -0.14, -0.54], [0.24, 1.28, 0.16], 0.015));
+  // Her note (2026-10-15): "smaller and more realistic". A real squirrel's tail leaves the rump, sweeps back,
+  // then rises up behind the back in a soft S with the tip curling outward; it leans to one side so a
+  // little of it always shows past the head from the front.
+  chainTail([[0, 0, 0.02], [0, -0.03, -0.17], [0, 0.07, -0.33], [0, 0.29, -0.42], [0, 0.55, -0.41], [0, 0.76, -0.33], [0, 0.88, -0.2], [0, 0.85, -0.09]],
+    [0.045, 0.075, 0.1, 0.11, 0.11, 0.1, 0.08, 0.05], 0.07),
+  [-0.18, -0.15, -0.58], [0.18, 1.04, 0.12], 0.013));
 // Chicken: a perky fan of three rounded tail feathers.
 export const chickenTailGeo = () => cached('chicken-tail', () => meshSDF(
   (x, y, z) => Math.min(

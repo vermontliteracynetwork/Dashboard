@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-tails",
+    date: "2026-10-15",
+    icon: "🐿️",
+    title: "Better squirrel and chicken tails",
+    body: "The squirrel's tail is smaller and looks more like a real squirrel's, and you can always see it, even with a backpack or a cape. The chicken's tail feathers now tuck inside pants, shorts, skirts and dresses.",
+  },
+  {
     id: "2026-10-15-word-bubbles",
     date: "2026-10-15",
     icon: "🗨️",

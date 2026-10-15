@@ -241,6 +241,9 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
   const white = usePaintMaterial(look.body.belly, 1, undefined, true);
   // No tail on the frog or (teacher request) the capybara.
   if (species.id === 'frog' || species.id === 'capybara') return null;
+  // The chicken's tail feathers sit low on its rump, so pants, a skirt or a dress cover them (her note 2026-10-15:
+  // "Chicken tail shouldn't stick out through pants").
+  if (species.id === 'chicken' && (look.outfit.bottom || look.outfit.top?.itemId === 'dress')) return null;
   return (
     <group ref={tailRef} position={[0, 0.1, -backZ(0.1) + 0.03]}>
       {species.id === 'dog' && (
@@ -255,7 +258,7 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
           <mesh material={white} position={[0, 0.2, -0.42]} scale={[1, 1.15, 1]}><sphereGeometry args={[0.08, 18, 14]} /></mesh>
         </group>
       )}
-      {species.id === 'squirrel' && <group rotation={[0, 0, 0.32]}><mesh geometry={squirrelTailGeo()} material={mat} /></group>}
+      {species.id === 'squirrel' && <group rotation={[0, -0.3, 0.62]}><mesh geometry={squirrelTailGeo()} material={mat} /></group>}
       {species.id === 'chicken' && <group position={[0, 0.02, 0.02]} rotation={[-0.35, 0, 0]}><mesh geometry={chickenTailGeo()} material={mat} /></group>}
       {species.id === 'cat' && (
         <group>
@@ -467,7 +470,8 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
             {!bodyless && (
               <>
                 <mesh geometry={torsoGeo()} material={bodyMat} />
-                {!hidesTail && <Tail look={look} species={species} tailRef={tail} />}
+                {/* The squirrel's tail always shows, even with a backpack or cape (her note 2026-10-15). */}
+                {(!hidesTail || species.id === 'squirrel') && <Tail look={look} species={species} tailRef={tail} />}
               </>
             )}
             <OutfitParts bone="torso" look={look} species={species} />
