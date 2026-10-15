@@ -621,7 +621,7 @@ export default function Marketplace() {
                   <button className="btn btn-primary" style={{ minHeight: 44 }} onClick={goSeamstress}>Go to the Seamstress →</button>
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.85rem' }}>🐾 Animals</strong>
+                  <strong style={{ fontSize: '0.85rem' }}>🐾 Characters</strong>
                   <div className="shop-product-grid" style={{ marginTop: 8 }}>
                     {SPECIES.filter((sp) => matchesSearch(sp.name)).map((sp) => {
                       const owned = inv.species.includes(sp.id);

@@ -3,7 +3,7 @@
 // arms, legs and joint positions), so every clothing item fits every
 // species and every species moves with the same animations.
 
-// 'person' is MOCK-UP ONLY for now (Build Queue 195): it is not in SPECIES, so no picker offers it.
+// 'person' (Build Queue 195) was released to students 2026-10-15 (Build Queue 217, her words: "people are good to push").
 export type SpeciesId = 'dog' | 'cat' | 'frog' | 'capybara' | 'chicken' | 'squirrel' | 'fox' | 'person';
 
 export type PatternId =
@@ -27,7 +27,7 @@ export interface Paint {
 
 // 'costume' replaces the animal and everything else it wears (a full-body
 // character, e.g. the Space Alien).
-// 'hair' (hairstyles and wigs) is MOCK-UP ONLY for now (Build Queue 195): not in SLOT_ORDER, so no tab shows it.
+// 'hair' (hairstyles) is for the Person only (Build Queue 213); its tab shows only while the Person is picked.
 export type WardrobeSlot = 'hat' | 'face' | 'gear' | 'top' | 'bottom' | 'shoes' | 'back' | 'costume' | 'hair';
 
 export interface EquippedItem {

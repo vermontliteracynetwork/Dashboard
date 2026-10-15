@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-person",
+    date: "2026-10-15",
+    icon: "🧑",
+    title: "Be a person in Style!",
+    body: "You can now be a person in Style. Pick from twelve skin tones and eight hairstyles, like Curly Puff, Ponytail and Space Buns, and color your hair any color. All the clothes, hats and glasses fit too.",
+  },
+  {
     id: "2026-10-15-lab-dyes",
     date: "2026-10-15",
     icon: "🎨",

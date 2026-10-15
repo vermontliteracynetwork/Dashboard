@@ -11,6 +11,7 @@ export const PATTERN_PRICE = 500; // each extra pattern is $5, and then works ev
 export const FREE_PATTERNS: PatternId[] = ['solid', 'stripes', 'polka'];
 
 export const FREE_ITEMS = new Set([
+  'hair-short', 'hair-spiky', 'hair-curly', 'hair-bob', 'hair-long', 'hair-ponytail', 'hair-pigtails', 'hair-buns',
   'cap', 'beanie', 'partyhat',
   'roundglasses', 'squareglasses',
   'eardefenders',

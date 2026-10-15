@@ -5,7 +5,7 @@ import { ContactShadows, OrbitControls } from '@react-three/drei';
 import TeacherNav from '../../components/TeacherNav';
 import { useStore } from '../../store/store';
 import { StyleCharacter, type StyleCharacterHandle } from '../../style/StyleCharacter';
-import { SKIN_TONE_LIST, SPECIES, defaultLook, speciesById } from '../../style/species';
+import { SKIN_TONES, SKIN_TONE_LIST, SPECIES, asSpecies, canWearHair, defaultLook, speciesById } from '../../style/species';
 import { SLOT_LABEL, SLOT_ORDER, type WardrobeItem } from '../../style/wardrobe';
 import { useStyleCatalog, useStyleSettings } from '../../style/catalog';
 import { PATTERNS, patternSwatch } from '../../style/patterns';
@@ -139,7 +139,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const [npcSel, setNpcSel] = useState<string>(NPC_ROSTER[0]?.id ?? 'scout');
   const [dressNpc, setDressNpc] = useState<string | null>(null);
   const [npcAnimal, setNpcAnimal] = useState<SpeciesId | null>(null);
-  const withAnimal = (l: StyleLook, sp: SpeciesId | null): StyleLook => (!sp || sp === l.species ? l : { ...l, species: sp, body: structuredClone(speciesById(sp).defaultBody) });
+  const withAnimal = (l: StyleLook, sp: SpeciesId | null): StyleLook => (!sp || sp === l.species ? l : asSpecies(l, sp));
   const [saved, setSaved] = useState<StyleLook>(() => loadInitial(row?.look, owner));
   const [look, setLook] = useState<StyleLook>(saved);
   const [tab, setTab] = useState<Tab>('body');
@@ -351,16 +351,17 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
     const species = studentMode && inv.species.length ? rand(inv.species) : rand(SPECIES).id;
     const outfit: StyleLook['outfit'] = {};
     for (const slot of SLOT_ORDER) {
-      if (slot === 'costume') continue;
+      if (slot === 'costume' || (slot === 'hair' && !canWearHair(species))) continue;
       const options = catalog.filter((i) => i.slot === slot && !lockOf(i));
-      const chance = slot === 'top' || slot === 'bottom' || slot === 'shoes' ? 0.9 : 0.4;
+      const chance = slot === 'hair' ? 1 : slot === 'top' || slot === 'bottom' || slot === 'shoes' ? 0.9 : 0.4;
       if (options.length && Math.random() < chance) {
         const item = rand(options);
         outfit[slot] = { itemId: item.id, zones: item.zones.map(() => randomPaint(studentMode ? [...FREE_PATTERNS, ...inv.patterns] : undefined)) };
       }
     }
     const body = structuredClone(speciesById(species).defaultBody);
-    if (Math.random() < 0.5) body.fur = randomPaint(studentMode ? [...FREE_PATTERNS, ...inv.patterns] : undefined);
+    if (species === 'person') { const skin: Paint = { pattern: 'solid', colors: [rand(SKIN_TONES), '#ffffff'] }; body.fur = skin; body.belly = skin; body.accent = skin; }
+    else if (Math.random() < 0.5) body.fur = randomPaint(studentMode ? [...FREE_PATTERNS, ...inv.patterns] : undefined);
     setLook({ species, body, outfit });
     styleSound.pop();
     play('dance');
@@ -384,9 +385,11 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
   const focusY = !itemOnly || !wsItem ? 0.9 : ({ hair: 1.45, hat: 1.45, face: 1.25, gear: 1.25, top: 0.82, bottom: 0.4, shoes: 0.08, back: 0.8, costume: 0.8 } as Record<WardrobeSlot, number>)[wsItem.slot];
   const cam: [number, number, number] = wide ? [0, 1.6, 2.2 + stageLooks.length * 0.8] : itemOnly ? [0.9, focusY + 0.45, 1.9] : [0, 1.2, 3.3];
 
+  // The Hair tab only exists for the Person (Build Queue 213); switching to another character leaves it.
+  useEffect(() => { if (tab === 'hair' && !canWearHair(look.species)) setTab('body'); }, [tab, look.species]);
   const tabs: { id: Tab; label: string; emoji: string }[] = [
     { id: 'body', label: 'Body', emoji: '🐾' },
-    ...SLOT_ORDER.map((s) => ({ id: s as Tab, label: SLOT_LABEL[s], emoji: catalog.find((i) => i.slot === s)?.emoji ?? '✨' })),
+    ...SLOT_ORDER.filter((s) => s !== 'hair' || canWearHair(look.species)).map((s) => ({ id: s as Tab, label: SLOT_LABEL[s], emoji: catalog.find((i) => i.slot === s)?.emoji ?? '✨' })),
   ];
 
   return (
@@ -446,7 +449,7 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
             {mode === 'workshop' && (
               <div className="style-preview-row" aria-label="Preview on">
                 <span>Preview:</span>
-                {([['item', '🧵 Item only'], ...SPECIES.map((s) => [s.id, `${s.emoji} ${s.name}`]), ['all', '👥 All animals']] as [Preview, string][]).map(([id, label]) => (
+                {([['item', '🧵 Item only'], ...SPECIES.map((s) => [s.id, `${s.emoji} ${s.name}`]), ['all', '👥 All characters']] as [Preview, string][]).map(([id, label]) => (
                   <button key={id} type="button" className={`style-chip${preview === id ? ' on' : ''}`} onClick={() => { setPreview(id); styleSound.tap(); }}>{label}</button>
                 ))}
               </div>
@@ -542,12 +545,12 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 </nav>
                 {tab === 'body' ? (
                   <div className="style-section">
-                    <h2>Pick your animal</h2>
+                    <h2>Pick your character</h2>
                     <div data-wt="species" className={`style-grid${lk('species')}`}>
                       {SPECIES.map((sp) => (
                         <button key={sp.id} type="button" className={`style-tile${look.species === sp.id ? ' on' : ''}${spLocked(sp.id) ? ' locked' : ''}`}
                           onClick={() => {
-                            setLook((l) => ({ ...l, species: sp.id, body: structuredClone(sp.defaultBody) })); styleSound.pop(); play('wave');
+                            setLook((l) => asSpecies(l, sp.id)); styleSound.pop(); play('wave');
                           }}>
                           <span className="style-tile-emoji">{sp.emoji}</span>{sp.name}
                           {spLocked(sp.id) ? <span className="style-tile-lock" aria-label="Locked">🔒 {money(SPECIES_PRICE)}</span> : null}

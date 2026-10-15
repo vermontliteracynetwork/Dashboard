@@ -598,9 +598,11 @@ export const HAIR_MOCKUP: WardrobeItem[] = [
   hairItem('hair-buns', 'Space Buns', '🍡', 'buns', '#ff8fc8'),
 ];
 
-export const itemById = (id: string) => WARDROBE.find((i) => i.id === id) ?? HAIR_MOCKUP.find((i) => i.id === id);
+// Released with the Person (Build Queue 217): hair is part of the catalog, free, and only offered while the Person is picked.
+WARDROBE.push(...HAIR_MOCKUP);
+export const itemById = (id: string) => WARDROBE.find((i) => i.id === id);
 
-export const SLOT_ORDER: WardrobeSlot[] = ['hat', 'face', 'gear', 'top', 'bottom', 'shoes', 'back', 'costume'];
+export const SLOT_ORDER: WardrobeSlot[] = ['hair', 'hat', 'face', 'gear', 'top', 'bottom', 'shoes', 'back', 'costume'];
 export const SLOT_LABEL: Record<WardrobeSlot, string> = {
   hair: 'Hair', hat: 'Hats', face: 'Glasses', gear: 'Comfort', top: 'Tops', bottom: 'Bottoms', shoes: 'Shoes', back: 'Back', costume: 'Costumes',
 };

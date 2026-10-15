@@ -113,10 +113,9 @@ export const SPECIES: SpeciesDef[] = [
   },
 ];
 
-// MOCK-UP ONLY (Build Queue 195, her words 2026-10-15: "I want to also add a regular person figure... for boys
-// and girls, it'll be the same basic figure... Do not push this to the students"). One person on the same shared
-// body, so every piece of clothing fits; hair comes from the hair slot (wigs). Not in SPECIES, so no Style picker,
-// Seamstress or Neighbors screen offers it; only the fit-check mock-up page (mockup.html) shows it.
+// The Person (Build Queue 195, her words 2026-10-15: "I want to also add a regular person figure... for boys and
+// girls, it'll be the same basic figure"). One person on the same shared body, so every piece of clothing fits; hair
+// comes from the hair slot. Released to students 2026-10-15 (Build Queue 217, her words: "people are good to push").
 // Fur, belly and accent are all skin; the nose color is the eyebrows.
 export const PERSON: SpeciesDef = {
   id: 'person',
@@ -144,7 +143,17 @@ export function withoutForeignHair(look: StyleLook): StyleLook {
   const { hair: _hair, ...outfit } = look.outfit;
   return { ...look, outfit };
 }
-export const ALL_SPECIES: SpeciesDef[] = [...SPECIES, PERSON];
+SPECIES.push(PERSON);
+export const ALL_SPECIES: SpeciesDef[] = SPECIES;
+const DEFAULT_HAIR = { itemId: 'hair-short', zones: [solid('#5b3a24')] };
+// Switch a look to another character: its own default body; the Person gets Short Hair if it has none, and every
+// other character takes hair off.
+export function asSpecies(look: StyleLook, species: SpeciesId): StyleLook {
+  const outfit = { ...look.outfit };
+  if (canWearHair(species)) { if (!outfit.hair) outfit.hair = structuredClone(DEFAULT_HAIR); }
+  else delete outfit.hair;
+  return { ...look, species, body: structuredClone(speciesById(species).defaultBody), outfit };
+}
 
 export const speciesById = (id: SpeciesId) => ALL_SPECIES.find((s) => s.id === id) ?? SPECIES[0];
 
@@ -152,7 +161,7 @@ export function defaultLook(species: SpeciesId = 'dog'): StyleLook {
   return {
     species,
     body: structuredClone(speciesById(species).defaultBody),
-    // Direct teacher instruction: characters start with no clothes.
-    outfit: {},
+    // Direct teacher instruction: characters start with no clothes (the Person starts with Short Hair).
+    outfit: canWearHair(species) ? { hair: structuredClone(DEFAULT_HAIR) } : {},
   };
 }
