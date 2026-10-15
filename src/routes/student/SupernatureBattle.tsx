@@ -163,9 +163,10 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
     wait(1000, tickDown); void f;
   };
   const nextQ = (avoid?: string) => drawQuestion(pickableSets(questionSets), avoid) ?? generateAutoQuestion();
-  const answered = () => {
+  // One try per question (Build Queue 209): a wrong answer locks and moves on, and never counts as right.
+  const answered = (gotIt = true) => {
     if (!qs || !me) return;
-    const right = qs.right + (qs.wrong ? 0 : 1); const n = qs.n + 1;
+    const right = qs.right + (gotIt && !qs.wrong ? 1 : 0); const n = qs.n + 1;
     if (n < QUESTIONS_PER_ROUND) { setQs({ q: nextQ(qs.q.id), n, right, wrong: false }); return; }
     // Question accuracy feeds focus and confidence (her rule: "confidence also comes from question accuracy").
     const f = right / QUESTIONS_PER_ROUND;
@@ -353,7 +354,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
         <QuestionScreen key={`${qs.q.id}-${qs.n}`} whoLabel={`Power up ${me.name}: question ${qs.n + 1} of ${QUESTIONS_PER_ROUND}`} whoIcon="⚡"
           prompt={qs.q.prompt} choices={qs.q.choices} correctIndex={qs.q.correctIndex} imageUrl={qs.q.imageUrl} imageAlt={qs.q.imageAlt} done={qs.n} total={QUESTIONS_PER_ROUND}
           onWrongAnswer={() => setQs((x) => (x ? { ...x, wrong: true } : x))}
-          onCorrectAnswer={answered}
+          onCorrectAnswer={() => answered(true)} onSkip={() => answered(false)}
           onExit={() => { reset('foe'); }} ttsSettings={ttsSettings} />
       )}
       {logOpen && (

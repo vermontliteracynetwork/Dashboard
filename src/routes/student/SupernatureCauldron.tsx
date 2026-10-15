@@ -573,7 +573,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
       {quiz && (
         <QuestionScreen key={`${quiz.q.id}-${quiz.n}`} whoLabel={`${POWER_LEVELS[(power[quiz.key] ?? 0) + 1]} ${quiz.label}: question ${quiz.n + 1} of ${quiz.total}`} whoIcon="⚡"
           prompt={quiz.q.prompt} choices={quiz.q.choices} correctIndex={quiz.q.correctIndex} imageUrl={quiz.q.imageUrl} imageAlt={quiz.q.imageAlt} done={quiz.n} total={quiz.total}
-          onCorrectAnswer={answered} onExit={() => setQuiz(null)} ttsSettings={ttsSettings} />
+          onCorrectAnswer={answered} onSkip={() => setQuiz({ ...quiz, q: nextQ(quiz.q.id) })} onExit={() => setQuiz(null)} ttsSettings={ttsSettings} />
       )}
     </div>
   );

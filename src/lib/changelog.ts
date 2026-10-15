@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-one-try",
+    date: "2026-10-15",
+    icon: "🔒",
+    title: "One try for every question",
+    body: "Every question gets one try now. When you pick an answer, all the answers lock. If it was not right, you will see the right answer, and then you go on to the next question. Read carefully before you tap!",
+  },
+  {
     id: "2026-10-15-tails",
     date: "2026-10-15",
     icon: "🐿️",

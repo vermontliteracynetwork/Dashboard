@@ -21,7 +21,8 @@ const DROP_RANGE = { per: { min: 5, max: 20, def: 10 } };
 // Plinko Drop (her student-favorite genres list, 2026-09-30: "a carnival or arcade building; answers
 // choose where the ball drops"). The answer choices label the drop chutes at the top of a carnival
 // Plinko board. Dropping the ball down the right answer's chute sends it bouncing through the pegs
-// into a ticket slot; a wrong chute just pops the ball back up to try again. Tickets are spent at
+// into a ticket slot. A wrong chute locks every chute (one try, Build Queue 209): no ball, no tickets, no pay, and
+// a Next question button. Tickets are spent at
 // the Prize Counter on carnival plushies (tickets are for prizes; money is $1 per right answer).
 
 const COLS = 9, ROWS = 8;
@@ -47,6 +48,7 @@ export default function PlinkoDrop() {
   const [q, setQ] = useState<MCQuestion>(() => next());
   const [ball, setBall] = useState<{ x: number; y: number } | null>(null);
   const [bad, setBad] = useState<number | null>(null);
+  const [missed, setMissed] = useState<number | null>(null);
   const [win, setWin] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [counter, setCounter] = useState(false);
@@ -64,10 +66,9 @@ export default function PlinkoDrop() {
   const busy = ball !== null;
 
   const drop = (choice: number) => {
-    if (busy) return;
+    if (busy || missed !== null) return;
     if (choice !== q.correctIndex) {
-      sfx.boing(); setBad(choice); setNote('Boing! That chute is closed. Try another answer.');
-      timers.current.push(window.setTimeout(() => setBad(null), 600));
+      sfx.boing(); setBad(choice); setMissed(choice); setNote(`Not this time. The answer was ${q.choices[q.correctIndex]}.`);
       return;
     }
     unpaid.current += 1; recordStreakCorrect(student.id); countRight(q);
@@ -112,10 +113,11 @@ export default function PlinkoDrop() {
           <button type="button" className="btn wm-listen" onClick={() => speak(`${q.prompt} ${q.choices.join(', ')}`, student.ttsSettings)}>🔊 Listen</button>
         </div>
         <p className="fd-msg pk-msg" aria-live="polite">{note ?? 'Drop the ball down the chute with the right answer!'}</p>
+        {missed !== null && <button type="button" className="btn btn-primary btn-lg pk-next" onClick={() => { setMissed(null); setBad(null); setNote(null); setQ((old) => next(old.id)); }}>Next question ▶</button>}
         <div className="pk-board">
           <div className="pk-chutes">
             {q.choices.slice(0, 4).map((c, i) => (
-              <button key={`${q.id}-${i}`} type="button" className={`pk-chute${bad === i ? ' oops' : ''}`} style={{ left: `${pct(chutes[i])}%` }} onClick={() => drop(i)} disabled={busy}>
+              <button key={`${q.id}-${i}`} type="button" className={`pk-chute${bad === i ? ' oops' : ''}`} style={{ left: `${pct(chutes[i])}%` }} onClick={() => drop(i)} disabled={busy || missed !== null}>
                 <span>{c}</span><i aria-hidden>⬇️</i>
               </button>
             ))}

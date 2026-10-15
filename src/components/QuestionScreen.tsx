@@ -133,7 +133,10 @@ export default function QuestionScreen({
   autoRead = false,
   voice,
 }: QuestionScreenProps) {
-  const lockAfterWrong = !!onSkip;
+  // One try per question, everywhere (Build Queue 209, her words 2026-10-15: "if a student answers a question
+  // incorrectly ... they should NOT be allowed to select the correct answer from the options ... all answers should
+  // lock if they got it wrong or right ... no money earned and no points collect"). Every pick locks every answer.
+  const lockAfterWrong = true;
   const [wrongIndices, setWrongIndices] = useState<Set<number>>(new Set());
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [answeredCorrectly, setAnsweredCorrectly] = useState(false);
@@ -204,7 +207,8 @@ export default function QuestionScreen({
   }, []);
 
   const handleChoice = (i: number) => {
-    if (answeredCorrectly) return;
+    // Any answer already given locks the question: a later tap on the right answer never counts.
+    if (answeredCorrectly || feedback === 'wrong') return;
     if (qlog.current && !qlog.current.done) qlog.current.tries.push(choices[i] ?? String(i));
     if (i === correctIndex) {
       closeLog('right');
@@ -462,14 +466,16 @@ export default function QuestionScreen({
               const choice = choices[origIdx];
               const isWrong = wrongIndices.has(origIdx);
               const isCorrectPick = answeredCorrectly && origIdx === correctIndex;
+              // After a wrong pick the right answer is shown (outlined, locked), so the student still learns it.
+              const showRight = feedback === 'wrong' && origIdx === correctIndex;
               const bg = isCorrectPick ? '#E7F7EE' : isWrong ? '#FDEBEA' : '#fff';
-              const border = isCorrectPick ? '#8FD3AE' : isWrong ? '#F3B7B0' : '#F2E8D6';
+              const border = isCorrectPick || showRight ? '#8FD3AE' : isWrong ? '#F3B7B0' : '#F2E8D6';
               return (
                 <button
                   key={origIdx}
                   type="button"
                   onClick={() => handleChoice(origIdx)}
-                  disabled={answeredCorrectly || (lockAfterWrong && feedback === 'wrong')}
+                  disabled={answeredCorrectly || feedback === 'wrong'}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -479,7 +485,8 @@ export default function QuestionScreen({
                     border: `2px solid ${border}`,
                     background: bg,
                     textAlign: 'left',
-                    cursor: answeredCorrectly || (lockAfterWrong && feedback === 'wrong') ? 'default' : 'pointer',
+                    cursor: answeredCorrectly || feedback === 'wrong' ? 'default' : 'pointer',
+                    borderStyle: showRight ? 'dashed' : 'solid',
                     minHeight: 68,
                   }}
                 >
@@ -517,15 +524,15 @@ export default function QuestionScreen({
                 color: feedback === 'correct' ? '#1F6B45' : '#9C3A35',
               }}
             >
-              {feedback === 'correct' ? '✅ Correct! Nice work.' : lockAfterWrong ? '❌ Not quite. Let\'s move on to the next one.' : '🔁 Not quite, try again.'}
+              {feedback === 'correct' ? '✅ Correct! Nice work.' : `❌ Not quite. The answer was ${choices[correctIndex] ?? ''}. Let's move on to the next one.`}
             </div>
           )}
 
-          {feedback === 'wrong' && onSkip && (
+          {feedback === 'wrong' && (
             lockAfterWrong ? (
               <button
                 type="button"
-                onClick={onSkip}
+                onClick={onSkip ?? onExit}
                 style={{
                   alignSelf: 'center',
                   minWidth: 220,
