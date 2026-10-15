@@ -1,5 +1,4 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -7,8 +6,8 @@ import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { lazyFresh } from '../../lib/freshBuild';
-import { useNpcProfiles, type NpcProfile } from '../../style/npcs';
-import { pickRival, recordGameMemory } from '../../lib/gameRivals';
+import type { NpcProfile } from '../../style/npcs';
+import { recordGameMemory } from '../../lib/gameRivals';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { spendBoosts, useBoostCounts } from '../../lib/gamePowerups';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
@@ -59,8 +58,6 @@ const bodySrc = (l: Look) => `${ART}${l.color}_body_${l.body}.png`;
 const faceSrc = (l: Look) => `${ART}face_${l.face}.png`;
 
 export default function ShapeDash() {
-  const location = useLocation();
-  const rivalId = (location.state as { rival?: string } | null)?.rival ?? null;
   // Back follows the shared trail: the Game Dashboard, the Computer or Town Square, wherever they came from.
   const back = useBack();
   const studentId = useStore((s) => s.currentStudentId);
@@ -104,9 +101,8 @@ export default function ShapeDash() {
   const [music, setMusic] = useState(() => { try { return localStorage.getItem('sd-music') !== '0'; } catch { return true; } });
   const [effects, setEffects] = useState(() => { try { return localStorage.getItem('sd-sfx') !== '0'; } catch { return true; } });
   useEffect(() => { setSound(music, effects); try { localStorage.setItem('sd-music', music ? '1' : '0'); localStorage.setItem('sd-sfx', effects ? '1' : '0'); } catch { /* fine */ } }, [music, effects]);
-  const npcProfiles = useNpcProfiles();
-  const [rival, setRival] = useState<NpcProfile | null>(null);
-  useEffect(() => { if (!rival) setRival((rivalId && npcProfiles[rivalId]) || pickRival(npcProfiles)); }, [npcProfiles]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Shape Dash is a one-player game, so no Neighbor joins it (Build Queue 231: Neighbors only in 2+ player games).
+  const rival = null as NpcProfile | null;
 
   // --- the run ---
   const [phase, setPhase] = useState<Phase>('launch');

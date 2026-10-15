@@ -25,6 +25,7 @@ import { addedNpcs, removedNpcIds } from '../../style/npcRoster';
 import NpcPieMenu from '../../components/NpcPieMenu';
 import NpcCharacterSheet from '../../components/NpcCharacterSheet';
 import GameDashboard from '../../components/GameDashboard';
+import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
 import { streakOverlay, useStreakCardDue } from '../../components/StreakLayer';
 import { defaultLook } from '../../style/species';
 import { useStyleSettings } from '../../style/catalog';
@@ -5761,7 +5762,10 @@ export default function TownSquare() {
       {playWith && (
         <GameDashboard
           title={`Play a game with ${playWith.name}`}
-          subtitle="Pick a game!"
+          subtitle="Pick a game to play together!"
+          // Build Queue 231 (her words 2026-10-15: "make sure neightbors are only able to be invited to 2+ player
+          // games, not indivdiual"): only games where the Neighbor really plays against you.
+          games={NATIVE_GAME_CARDS.filter((g) => g.versus)}
           onClose={() => setPlayWith(null)}
           onPick={(g) => { const w = playWith; setPlayWith(null); navigate(g.route, { state: { from: 'town', rival: w.id } }); }}
         />
