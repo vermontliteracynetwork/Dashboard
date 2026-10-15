@@ -6215,6 +6215,66 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 }
 @media (max-width: 560px) { .lab-bench { grid-template-columns: 1fr 1fr; } }
 
+/* Science Lab rebuild (Build Queue 201 to 203) */
+.lab-look button { min-width: 0; }
+.lab-toprow { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+.lab-toprow .lab-try { flex: 1 1 380px; }
+.lab-strip { flex: 0 1 470px; display: flex; align-items: center; gap: 12px; padding: 6px 10px; border-radius: 14px; border: 3px solid var(--ink); background: #fff; box-shadow: 3px 3px 0 rgba(36,64,107,0.15); cursor: pointer; text-align: left; font: inherit; color: var(--ink); }
+.lab-strip-title { flex: 0 0 auto; display: flex; flex-direction: column; font: 800 0.95rem 'Lexend', sans-serif; }
+.lab-strip-title small { font-weight: 600; color: var(--soft); font-size: 0.72rem; }
+.lab-pt.mini { flex: 1; min-width: 0; max-width: 300px; margin-left: auto; gap: 1px; grid-template-rows: repeat(7, auto) 3px repeat(2, auto); }
+.lab-pt.mini .lab-pt-cell { aspect-ratio: 1.6; border-radius: 2px; font-size: 0; opacity: 1; background: var(--fam); border-color: rgba(36,64,107,0.25); box-shadow: none; }
+.lab-pt-cell.tried { position: relative; }
+.lab-pt.big .lab-pt-cell.tried::after { content: '✓'; position: absolute; top: 1px; right: 3px; font-size: 0.6rem; color: #0b6b3a; }
+.lab-pt.mini .lab-pt-cell.tried { box-shadow: inset 0 0 0 1px #0b6b3a; }
+.lab-try { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; padding: 10px 14px; border-radius: 14px; border: 3px solid #f0a030; background: #fff8e6; }
+.lab-try-tag { font: 800 0.75rem 'Lexend', sans-serif; color: #9a5a00; text-transform: uppercase; letter-spacing: 0.06em; }
+.lab-try-goal { font-size: 1.05rem; color: var(--ink); flex: 1 1 220px; }
+.lab-try-clue { flex: 1 1 100%; margin: 0; font-weight: 600; color: var(--text); }
+.lab-try-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.lab-tabs { display: flex; gap: 6px; overflow-x: auto; padding: 2px 2px 4px; scrollbar-width: thin; }
+.lab-tab { flex: 0 0 auto; min-height: 44px; padding: 0 12px; border-radius: 999px; border: 2.5px solid var(--ink); background: color-mix(in srgb, var(--fam, #e6eef8) 45%, #fff); color: var(--ink); font: 700 0.82rem 'Lexend', sans-serif; cursor: pointer; white-space: nowrap; }
+.lab-tab.on { background: var(--ink); color: #fff; }
+.lab-tab.hint, .lab-bottle.glow { animation: lab-hint 1.2s ease-in-out infinite; box-shadow: 0 0 0 4px #f0a030; }
+@keyframes lab-hint { 50% { box-shadow: 0 0 0 7px rgba(240,160,48,0.45); } }
+.lab-bottle { touch-action: pan-x; }
+.lab-bottle-pic { width: 64px; height: 64px; object-fit: contain; pointer-events: none; }
+.lab-ghost { position: fixed; z-index: 120; width: 72px; height: 80px; transform: translate(-50%, -70%); pointer-events: none; filter: drop-shadow(0 6px 10px rgba(0,0,0,0.25)); }
+.lab-ghost .lab-bottle-svg, .lab-ghost img { width: 72px; height: 80px; }
+.lab-station-btns .lab-btn.small { padding: 0 8px; font-size: 0.8rem; }
+.lab-flametest { position: absolute; left: 50%; bottom: -6%; width: 46%; height: 70%; transform: translateX(-50%); pointer-events: none; z-index: 3; }
+.lab-flametest i { position: absolute; left: 50%; bottom: 0; width: 60%; height: 100%; margin-left: -30%; border-radius: 50% 50% 40% 40% / 70% 70% 30% 30%; background: radial-gradient(ellipse at 50% 85%, #fff 0%, var(--flame) 35%, color-mix(in srgb, var(--flame) 40%, transparent) 70%, transparent 75%); filter: blur(1px); animation: lab-flick 0.35s ease-in-out infinite alternate; transform-origin: 50% 100%; }
+.lab-flametest i:nth-child(2) { width: 40%; margin-left: -20%; height: 80%; animation-delay: 0.1s; opacity: 0.8; }
+.lab-flametest i:nth-child(3) { width: 26%; margin-left: -13%; height: 55%; animation-delay: 0.2s; background: radial-gradient(ellipse at 50% 85%, #fff 0%, var(--flame) 60%, transparent 75%); }
+.lab-flametest em { position: absolute; left: 50%; bottom: 40%; width: 70%; height: 3px; margin-left: -10%; background: #888; transform: rotate(-25deg); border-radius: 2px; }
+@keyframes lab-flick { from { transform: scaleY(0.92) skewX(-3deg); } to { transform: scaleY(1.06) skewX(3deg); } }
+.lab-tube { position: absolute; left: 50%; top: 4%; width: 26%; height: 84%; transform: translateX(-50%); border-radius: 999px; border: 3px solid #24406b; background: rgba(255,255,255,0.4); pointer-events: none; z-index: 3; }
+.lab-tube i { position: absolute; inset: 8% 18%; border-radius: 999px; background: var(--glow); box-shadow: 0 0 18px 6px var(--glow), 0 0 40px 12px color-mix(in srgb, var(--glow) 50%, transparent); animation: lab-hum 0.12s linear infinite alternate; }
+@keyframes lab-hum { from { opacity: 0.85; } to { opacity: 1; } }
+.lab-geiger { position: absolute; left: 50%; top: 18%; transform: translateX(-50%); padding: 4px 8px; border-radius: 10px; background: #ffd23f; border: 2px solid #24406b; font: 800 0.8rem 'Lexend', sans-serif; white-space: nowrap; animation: lab-word 1.8s ease-out forwards; }
+.lab-geiger-ring { position: absolute; left: 50%; top: 55%; width: 30px; height: 30px; margin: -15px; border-radius: 50%; border: 3px dashed #c9a400; animation: lab-ring 1.2s ease-out 2; }
+.lab-guesses { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
+.lab-guesses .lab-btn { min-height: 56px; font-size: 1rem; text-align: left; }
+.lab-card-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lab-card-row.spread { justify-content: space-between; }
+.lab-predicted { padding: 8px 10px; border-radius: 10px; background: #fff3d6; font-weight: 700; }
+.lab-predicted.right { background: #dcf7e3; }
+.lab-safety { padding: 8px 10px; border-radius: 10px; background: #ffe9e4; border: 2px solid #e2725b; font-weight: 700; color: #7a2a14; }
+.lab-toc { display: grid; gap: 6px; }
+.lab-toc-row { display: flex; justify-content: space-between; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 12px; border: 2px solid rgba(36,64,107,0.25); background: #f7fbff; font: 700 0.95rem 'Lexend', sans-serif; color: #1c2b44; cursor: pointer; }
+.lab-toc-row b { font-variant-numeric: tabular-nums; }
+.lab-swatches { display: flex; flex-direction: column; gap: 6px; }
+.lab-swatches > div { display: flex; flex-wrap: wrap; gap: 6px; }
+.lab-swatches span { padding: 4px 10px; border-radius: 999px; border: 2px dashed rgba(36,64,107,0.3); font-size: 0.8rem; font-weight: 700; }
+.lab-swatches span.on { border-style: solid; border-color: var(--c); background: color-mix(in srgb, var(--c) 22%, #fff); }
+.lab-page { display: flex; flex-direction: column; gap: 8px; min-height: 260px; }
+.lab-page h3 { margin: 0; font-size: 1.25rem; }
+.lab-page-group { font: 800 0.75rem 'Lexend', sans-serif; color: var(--soft, #5b6b85); text-transform: uppercase; letter-spacing: 0.06em; }
+@media (max-width: 600px) { .lab-pt.mini { max-width: 200px; } }
+.lab-science .lab-beaker { width: min(150px, 100%); }
+.lab-science .lab-bottle { min-height: 108px; }
+@media (prefers-reduced-motion: reduce) { .lab-flametest i, .lab-tube i, .lab-tab.hint, .lab-bottle.glow { animation: none; } }
+
 /* Grammar Gus: CER Lab Report (Phase 2) */
 .gwb-cer { max-width: min(860px, 96vw); }
 .gwb-cer-q { position: relative; display: flex; gap: 10px; align-items: flex-start; padding: 10px 48px 10px 12px; border-radius: 14px; border: 3px solid var(--gus-ink); background: #fff; }

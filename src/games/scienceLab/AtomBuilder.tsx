@@ -18,7 +18,7 @@ export function atomInfo(p: number, n: number, e: number) {
   return { el, charge, mass: p + n, stable };
 }
 
-export default function AtomBuilder({ p, n, e, onChange, magic }: { p: number; n: number; e: number; onChange: (p: number, n: number, e: number) => void; magic: boolean }) {
+export default function AtomBuilder({ p, n, e, onChange, magic, say }: { p: number; n: number; e: number; onChange: (p: number, n: number, e: number) => void; magic: boolean; say?: (t: string) => void }) {
   const { el, charge, mass, stable } = atomInfo(p, n, e);
   // Nucleus: protons and neutrons packed in a little spiral.
   const nucleons = useMemo(() => {
@@ -64,6 +64,7 @@ export default function AtomBuilder({ p, n, e, onChange, magic }: { p: number; n
             <p><strong>Charge:</strong> {charge === 0 ? '0, a neutral atom (protons and electrons are equal)' : `${charge > 0 ? '+' : ''}${charge}, an ion (${charge > 0 ? 'fewer electrons than protons' : 'more electrons than protons'})`}</p>
             <p><strong>Mass number:</strong> {mass} ({p} protons + {n} neutrons)</p>
             {stable !== null && <p><strong>Nucleus:</strong> {stable ? `✅ stable. ${el.name}-${mass} is real and lasts.` : `⚠️ unstable. Try ${STABLE[p - 1].map((k) => k).join(' or ')} neutron${STABLE[p - 1].length === 1 && STABLE[p - 1][0] === 1 ? '' : 's'}.`}</p>}
+            {say && <button type="button" className="lab-btn small" onClick={() => say(`${el.name}. It has ${p} protons, so it is ${el.name.toLowerCase()}. Charge ${charge}. Mass number ${mass}.${stable === null ? '' : stable ? ' The nucleus is stable.' : ' The nucleus is not stable.'}`)} aria-label="Read it aloud">🔊 Listen</button>}
           </> : <p>An atom needs protons. The number of protons decides which element it is.</p>}
         </div>
       </div>

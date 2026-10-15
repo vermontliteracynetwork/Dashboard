@@ -3,7 +3,7 @@
 // "real science logic in fun game play way. think magic, wizards, mythology"; "key element required
 // for some; near misses make a weaker potion"). Pure data and rules: no React.
 import { RECIPES, ING, type Recipe } from './supernature';
-import { SUB, RECIPES as LAB_RECIPES, HEAT_RECIPES, type Recipe as LabRecipe } from '../games/scienceLab/lab';
+import { SUB, RECIPES as LAB_RECIPES, HEAT_RECIPES, plainNeeds, type Recipe as LabRecipe } from '../games/scienceLab/lab';
 import { PERIODIC, ELEMENT_USES, elementBySym } from '../games/scienceLab/elements';
 
 export type Action = 'heat' | 'stir' | 'chill' | 'zap';
@@ -216,7 +216,8 @@ export function reactionsOf(id: string): string[] {
 // ingredients meet (or when the pot is heated), with their real equation and a magic name. Students find them by
 // guessing and checking; each one found is kept.
 export type Reaction = LabRecipe;
-export const REACTIONS: Reaction[] = [...LAB_RECIPES, ...HEAT_RECIPES].filter((r) => r.needs.every((n) => n === 'heat' || ELEM.has(n)));
+// The Science Lab's tokens (@wet, @acid) become plain ingredients here, so its real reactions work in the pot too.
+export const REACTIONS: Reaction[] = [...LAB_RECIPES, ...HEAT_RECIPES].map((r) => ({ ...r, needs: plainNeeds(r) })).filter((r) => r.needs.every((n) => n === 'heat' || ELEM.has(n)));
 export function reactionFor(pot: string[], heat: boolean, done: string[]): Reaction | null {
   const hits = REACTIONS.filter((r) => !done.includes(r.id) && r.needs.includes('heat') === heat && r.needs.every((n) => n === 'heat' || pot.includes(n)));
   return hits.sort((a, b) => b.needs.length - a.needs.length)[0] ?? null;

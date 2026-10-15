@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-science-lab",
+    date: "2026-10-15",
+    icon: "🔬",
+    title: "A brand new Science Lab",
+    body: "All 118 elements are on the shelf now, in real lab jars (or switch to pictures). Mix them and see real chemistry. Try the Flame test to see metals color a flame, and the Glow tube to make gases glow like neon signs. Try This cards give you ideas, and you predict what will happen before a new reaction. Every card can read itself to you.",
+  },
+  {
     id: "2026-10-15-one-try",
     date: "2026-10-15",
     icon: "🔒",

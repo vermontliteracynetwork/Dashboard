@@ -62,3 +62,26 @@ Checked against the platform standard (iPad first, text to speech on every scree
 3. Predict first: every time, or only on recipes not found yet? (Suggestion: only the first time, so repeats stay quick.)
 4. Should the Science Lab ask questions or pay Class Cash, or stay a free sandbox? (Suggestion: stay a sandbox, with badges and a teacher view.)
 5. Which Phase 3 ideas, if any?
+
+## Built 2026-10-15 (Build Queue 201, 202 and 203)
+
+**Phase 1 (done):** the bench comes first: the periodic table is now a slim strip beside the Try This card and opens big on a tap, so the jars and beakers fit on an iPad screen. Every card has 🔊 (discovery cards, element cards, journal pages, Atom Builder). Dangerous reactions carry a ⚠️ safety line. Jars can be dragged up onto any beaker (tapping still works). The old Magic mode code is gone.
+
+**Phase 2 (done):** 12 Try This cards with help that fades (a clue, then the right shelf tab and jars glow). Predict first: the first time a reaction is found, the student picks Fizz, A bang, A color change, Light/glow/smoke, It dissolves or Nothing, and the card says whether they were right. The Science Journal is a book: a contents page by group, then one reaction per page, plus the flame colors and glowing gases found.
+
+**Her additions (item 201, done):** all 118 elements are on the shelf and unlocked, in tabs by family. A setting switches between 🫙 Jars (the container a real lab keeps each element in: jars, jars of oil for the alkali metals, sealed glass ampoules for rubidium, cesium and bromine, gas jars, lead pots for radioactive elements and a tiny capsule for the elements that exist only as a few atoms) and 🖼️ Pictures (her element pictures). The cool beaker features: the 🕯️ Flame test (a wire loop in the burner flame; lithium crimson, sodium yellow, potassium lilac, copper blue-green, barium green and more) and the ⚡ Glow tube (neon red-orange, argon lavender, helium peach, hydrogen pink-purple). 148 reactions in all.
+
+## Accuracy audit (item 203)
+
+The rules come from standard chemistry: the reactivity series of metals, group trends for the alkali metals, alkaline earth metals and halogens, and the standard flame test and gas discharge colors. Every reaction is checked by tests (`src/games/scienceLab/__tests__/lab.test.ts`).
+
+**Fixed (they were wrong before):**
+- Burning needs a flame or spark: hydrogen with oxygen, carbon with oxygen, magnesium with oxygen, iron with sulfur and thermite now need the burner. Before, they happened just by pouring.
+- Ammonia only forms with heat, pressure and iron to help (the Haber process). Before, nitrogen and hydrogen made ammonia just by mixing.
+- Aluminum does not swap with copper on its own, because a thin oxide coat protects it. It now needs salt to break the coat, which is how the real demonstration works.
+- Iodine is a dark purple-gray solid, not a liquid. Iodine water (iodine dissolved in water) is what finds starch.
+- Copper sulfate's bright blue crystals are the hydrated form, CuSO₄·5H₂O. Rust is hydrated iron oxide.
+- US pennies are copper only on the outside. Pools are cleaned by chlorine compounds, not chlorine gas. Vinegar is mostly water with a little acetic acid.
+- Sodium in water melts, zooms around and its hydrogen can catch fire (it does not always explode).
+
+**Added, all by real rules:** every alkali metal reacts with water or anything watery (lithium fizzes, cesium explodes hardest); calcium, strontium and barium fizz, faster down the group; beryllium does not react, and magnesium only in hot water; rare earth metals bubble slowly. Metals above hydrogen fizz in acid; copper, silver, gold, platinum and the other noble metals do not, and titanium, tungsten and similar metals are protected by an oxide coat (the lab explains why nothing happened). Metals more reactive than copper or silver push it out of their solutions (including the silver tree on copper). Alkali metals join each halogen to make a salt (with iodine, only when heated). Metals burn with their real flame colors. Noble gases never react. Radioactive elements make the Geiger counter click and are never mixed; the heaviest ones exist only as a few atoms that break apart quickly.

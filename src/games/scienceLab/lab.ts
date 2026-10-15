@@ -4,13 +4,15 @@
 // chemistry would. Discoveries go in the Science Journal with their recipe, and each one unlocks
 // new bottles, so elements are learned over time. Pure data and rules: no React, no DOM.
 
+import { RULE_HEAT_RECIPES, RULE_RECIPES, TOKENS, elementSubstances, isRadioactive } from './elementLab';
+
 export type LabState = 'liquid' | 'powder' | 'solid' | 'gas';
 export interface Substance { id: string; name: string; formula: string; color: string; state: LabState; element?: string; fact: string }
 
 export const SUBSTANCES: Substance[] = [
   // Starter shelf: kitchen things and five elements.
   { id: 'water', name: 'Water', formula: 'H₂O', color: '#9fd8ff', state: 'liquid', fact: 'Water is made of two hydrogen atoms and one oxygen atom.' },
-  { id: 'vinegar', name: 'Vinegar', formula: 'CH₃COOH', color: '#f4f1d0', state: 'liquid', fact: 'Vinegar is an acid. Acids taste sour.' },
+  { id: 'vinegar', name: 'Vinegar', formula: 'CH₃COOH', color: '#f4f1d0', state: 'liquid', fact: 'Vinegar is mostly water with a little acetic acid in it. Acids taste sour.' },
   { id: 'bakingsoda', name: 'Baking soda', formula: 'NaHCO₃', color: '#ffffff', state: 'powder', fact: 'Baking soda is a base. Bases react with acids.' },
   { id: 'salt', name: 'Table salt', formula: 'NaCl', color: '#f2f2f2', state: 'powder', fact: 'Table salt is sodium and chlorine joined together.' },
   { id: 'sugar', name: 'Sugar', formula: 'C₁₂H₂₂O₁₁', color: '#fffdf5', state: 'powder', fact: 'Sugar is made of carbon, hydrogen and oxygen.' },
@@ -20,7 +22,7 @@ export const SUBSTANCES: Substance[] = [
   { id: 'O', name: 'Oxygen', formula: 'O₂', color: '#e1f5fe', state: 'gas', element: 'O', fact: 'Oxygen is the gas we breathe. Fire needs it to burn.' },
   { id: 'C', name: 'Carbon', formula: 'C', color: '#3a3a3a', state: 'powder', element: 'C', fact: 'Carbon is in every living thing. Diamonds and pencil lead are both carbon.' },
   { id: 'Na', name: 'Sodium', formula: 'Na', color: '#d7dde3', state: 'solid', element: 'Na', fact: 'Sodium is a soft metal you can cut with a butter knife. It reacts with water.' },
-  { id: 'Cl', name: 'Chlorine', formula: 'Cl₂', color: '#d8f5a2', state: 'gas', element: 'Cl', fact: 'Chlorine is a yellow-green gas. Tiny amounts keep pool water clean.' },
+  { id: 'Cl', name: 'Chlorine', formula: 'Cl₂', color: '#d8f5a2', state: 'gas', element: 'Cl', fact: 'Chlorine is a poisonous yellow-green gas. Chlorine compounds keep pool water clean.' },
   // Unlocked by discoveries.
   { id: 'cabbage', name: 'Red cabbage juice', formula: 'indicator', color: '#7b4fb3', state: 'liquid', fact: 'Red cabbage juice changes color in acids and bases. It is an indicator.' },
   { id: 'chalk', name: 'Chalk', formula: 'CaCO₃', color: '#fafafa', state: 'powder', fact: 'Chalk and seashells are made of calcium carbonate.' },
@@ -36,10 +38,10 @@ export const SUBSTANCES: Substance[] = [
   { id: 'Li', name: 'Lithium', formula: 'Li', color: '#eeeeee', state: 'solid', element: 'Li', fact: 'Lithium is the lightest metal. It powers phone batteries.' },
   { id: 'yeast', name: 'Yeast', formula: 'yeast', color: '#d7b98a', state: 'powder', fact: 'Yeast is a tiny living thing. It helps bread rise.' },
   { id: 'Fe', name: 'Iron', formula: 'Fe', color: '#8d8d8d', state: 'solid', element: 'Fe', fact: 'Iron is the metal in steel. Earth has a giant iron core.' },
-  { id: 'coppersulfate', name: 'Copper sulfate', formula: 'CuSO₄', color: '#3f8ef0', state: 'powder', element: 'Cu', fact: 'Copper sulfate makes bright blue crystals.' },
+  { id: 'coppersulfate', name: 'Copper sulfate', formula: 'CuSO₄·5H₂O', color: '#3f8ef0', state: 'powder', fact: 'Copper sulfate crystals are bright blue because water is locked inside them. Heated dry, they turn white.' },
   { id: 'Al', name: 'Aluminum', formula: 'Al', color: '#cfd8dc', state: 'powder', element: 'Al', fact: 'Aluminum is the metal in soda cans and foil.' },
   { id: 'S', name: 'Sulfur', formula: 'S', color: '#fff176', state: 'powder', element: 'S', fact: 'Sulfur is a yellow element. Some of its gases smell like rotten eggs.' },
-  { id: 'I', name: 'Iodine', formula: 'I₂', color: '#6d3b1e', state: 'liquid', element: 'I', fact: 'Iodine turns starch dark blue, so it can find starch in food.' },
+  { id: 'I', name: 'Iodine', formula: 'I₂', color: '#3b2a4a', state: 'solid', element: 'I', fact: 'Iodine is a shiny, dark purple-gray solid. Warmed, it turns straight into purple vapor. Dissolved in water, it finds starch.' },
   // Made in the lab (they only show up inside a beaker).
   { id: 'saltwater', name: 'Salt water', formula: 'NaCl + H₂O', color: '#bfe6ff', state: 'liquid', fact: 'The salt is still there, just too small to see.' },
   { id: 'sugarwater', name: 'Sugar water', formula: 'sugar + H₂O', color: '#d6efff', state: 'liquid', fact: 'Sugar dissolves in water.' },
@@ -47,12 +49,14 @@ export const SUBSTANCES: Substance[] = [
   { id: 'lye', name: 'Sodium hydroxide', formula: 'NaOH', color: '#e8f4ff', state: 'liquid', fact: 'Sodium hydroxide is a strong base.' },
   { id: 'co2', name: 'Carbon dioxide', formula: 'CO₂', color: '#eeeeee', state: 'gas', fact: 'You breathe out carbon dioxide. Plants breathe it in.' },
   { id: 'mgo', name: 'Magnesium oxide', formula: 'MgO', color: '#ffffff', state: 'powder', fact: 'The white ash left after magnesium burns.' },
-  { id: 'rust', name: 'Rust', formula: 'Fe₂O₃', color: '#b5561f', state: 'powder', fact: 'Rust forms when iron meets oxygen and water.' },
+  { id: 'rust', name: 'Rust', formula: 'Fe₂O₃·xH₂O', color: '#b5561f', state: 'powder', fact: 'Rust is iron oxide with water locked in it. It forms when iron meets oxygen and water.' },
   { id: 'bluewater', name: 'Blue copper water', formula: 'CuSO₄ + H₂O', color: '#2f7fe8', state: 'liquid', fact: 'Copper sulfate dissolves into a bright blue liquid.' },
-  { id: 'copper', name: 'Copper', formula: 'Cu', color: '#c8662f', state: 'solid', element: 'Cu', fact: 'Copper is the orange metal in wires and pennies.' },
+  { id: 'copper', name: 'Copper coating', formula: 'Cu', color: '#c8662f', state: 'solid', fact: 'Copper is the orange metal in wires and on the outside of pennies.' },
   { id: 'silvercloud', name: 'Silver chloride cloud', formula: 'AgCl', color: '#f3f3f3', state: 'liquid', fact: 'A cloudy solid that forms right in the liquid is called a precipitate.' },
   { id: 'ammonia', name: 'Ammonia', formula: 'NH₃', color: '#f3f6ff', state: 'gas', fact: 'Ammonia smells very strong. Farmers use it to help plants grow.' },
-  { id: 'hcl', name: 'Hydrochloric acid', formula: 'HCl', color: '#f1ffe0', state: 'liquid', fact: 'Your stomach uses a little of this acid to break down food.' },
+  { id: 'hcl', name: 'Dilute hydrochloric acid', formula: 'HCl', color: '#f1ffe0', state: 'liquid', fact: 'A strong acid, watered down for school labs. Your stomach uses a little of it to break down food.' },
+  { id: 'chlorinewater', name: 'Chlorine water', formula: 'HCl + HOCl', color: '#eef8c8', state: 'liquid', fact: 'Chlorine dissolved in water. It kills germs.' },
+  { id: 'iodinewater', name: 'Iodine water', formula: 'I₂ in H₂O', color: '#e8c27a', state: 'liquid', fact: 'A little iodine dissolved in water. It turns dark blue with starch.' },
   { id: 'foam', name: 'Giant foam', formula: 'O₂ foam', color: '#ffffff', state: 'liquid', fact: 'The foam is full of oxygen gas.' },
   { id: 'fes', name: 'Iron sulfide', formula: 'FeS', color: '#4a3f35', state: 'solid', fact: 'A new solid made from iron and sulfur.' },
   { id: 'pinkjuice', name: 'Pink cabbage juice', formula: 'acid', color: '#ff5fa2', state: 'liquid', fact: 'Pink means acid.' },
@@ -66,8 +70,12 @@ export const SUBSTANCES: Substance[] = [
   { id: 'bluecrystals', name: 'Blue crystals', formula: 'CuSO₄', color: '#2f6fd0', state: 'powder', fact: 'Blue crystals grow as the water leaves.' },
   { id: 'lithwater', name: 'Lithium water', formula: 'LiOH', color: '#ffe3e3', state: 'liquid', fact: 'Lithium fizzes gently and gives off hydrogen.' },
 ];
+// Every element has its own bottle (Build Queue 201): the ones the lab did not have are added here.
+SUBSTANCES.push(...elementSubstances(new Set(SUBSTANCES.map((s) => s.id))));
 export const SUB = new Map(SUBSTANCES.map((s) => [s.id, s]));
 export const STARTER = ['water', 'vinegar', 'bakingsoda', 'salt', 'sugar', 'oil', 'lemon', 'H', 'O', 'C', 'Na', 'Cl'];
+// The shelf: kitchen and lab bottles, then all 118 elements, all unlocked (Build Queue 201: "Unlock ... all elements").
+export const KITCHEN = ['water', 'vinegar', 'lemon', 'hcl', 'bakingsoda', 'salt', 'sugar', 'oil', 'cabbage', 'chalk', 'starch', 'soap', 'yeast', 'peroxide', 'silvernitrate', 'coppersulfate'];
 
 // What a reaction looks like. boom and bigboom empty the beaker (the glass is fine, it is a cartoon).
 export type LabEffect = 'fizz' | 'boom' | 'bigboom' | 'flash' | 'pop' | 'smoke' | 'color' | 'cloudy' | 'layers' | 'dissolve' | 'foam' | 'glow';
@@ -75,6 +83,7 @@ export interface Recipe {
   id: string; needs: string[]; makes: string[]; effect: LabEffect; color: string; unlocks: string[];
   name: string; equation: string; fact: string;
   magic: { name: string; line: string };
+  group?: string; safety?: string;
 }
 export const RECIPES: Recipe[] = [
   { id: 'volcano', needs: ['bakingsoda', 'vinegar'], makes: ['fizzwater'], effect: 'fizz', color: '#f7f7ee', unlocks: ['cabbage'],
@@ -92,24 +101,18 @@ export const RECIPES: Recipe[] = [
   { id: 'layers', needs: ['oil', 'water'], makes: ['oilwater'], effect: 'layers', color: '#ffd54a', unlocks: ['soap'],
     name: 'Oil and water do not mix', equation: 'oil + H₂O → two layers', fact: 'Oil is less dense than water, so it floats on top in its own layer.',
     magic: { name: 'Sunset Layers', line: 'Gold floats over blue and refuses to mix!' } },
-  { id: 'sodiumboom', needs: ['Na', 'water'], makes: ['lye'], effect: 'boom', color: '#ffe066', unlocks: ['K'],
-    name: 'Sodium meets water: BOOM!', equation: '2Na + 2H₂O → 2NaOH + H₂', fact: 'Sodium pulls apart water so fast that the hydrogen gas it makes catches fire. Real chemists keep sodium in oil.',
+  { id: 'sodiumboom', needs: ['Na', '@wet'], makes: ['lye'], effect: 'boom', color: '#ffe066', unlocks: ['K'],
+    name: 'Sodium meets water: BOOM!', equation: '2Na + 2H₂O → 2NaOH + H₂', fact: 'Sodium melts into a ball, zooms around and pulls water apart so fast that the hydrogen it makes can catch fire. Real chemists keep sodium under oil.',
     magic: { name: 'Thunder Pebble', line: 'KA-BOOM! The silver pebble wakes the water dragon!' } },
-  { id: 'potassiumboom', needs: ['K', 'water'], makes: [], effect: 'bigboom', color: '#c39bff', unlocks: ['Li'],
+  { id: 'potassiumboom', needs: ['K', '@wet'], makes: [], effect: 'bigboom', color: '#c39bff', unlocks: ['Li'],
     name: 'Potassium meets water: BIG BOOM!', equation: '2K + 2H₂O → 2KOH + H₂', fact: 'Potassium reacts even faster than sodium and burns with a lilac purple flame.',
     magic: { name: 'Purple Dragon Sneeze', line: 'A purple fireball bursts out of the cauldron!' } },
-  { id: 'lithiumfizz', needs: ['Li', 'water'], makes: ['lithwater'], effect: 'fizz', color: '#ffe3e3', unlocks: [],
+  { id: 'lithiumfizz', needs: ['Li', '@wet'], makes: ['lithwater'], effect: 'fizz', color: '#ffe3e3', unlocks: [],
     name: 'Lithium fizzes', equation: '2Li + 2H₂O → 2LiOH + H₂', fact: 'Lithium is in the same family as sodium and potassium, but it reacts the gentlest of the three.',
     magic: { name: 'Pixie Fizz', line: 'A gentle fizz, like a tiny pixie giggling.' } },
   { id: 'makesalt', needs: ['Na', 'Cl'], makes: ['salt'], effect: 'flash', color: '#fff7c2', unlocks: ['Mg'],
     name: 'Making table salt', equation: '2Na + Cl₂ → 2NaCl', fact: 'A soft metal and a green gas join with a bright flash and make the salt you eat.',
     magic: { name: 'Salt Star', line: 'A flash of light, and a pile of salt crystals appears!' } },
-  { id: 'makewater', needs: ['H', 'O'], makes: ['water'], effect: 'pop', color: '#9fd8ff', unlocks: ['He'],
-    name: 'Making water: POP!', equation: '2H₂ + O₂ → 2H₂O', fact: 'Hydrogen and oxygen gas join with a pop and make water. Rockets use this reaction.',
-    magic: { name: 'Raindrop Pop', line: 'POP! Two invisible gases turn into real water.' } },
-  { id: 'makeco2', needs: ['C', 'O'], makes: ['co2'], effect: 'smoke', color: '#bdbdbd', unlocks: ['N'],
-    name: 'Burning carbon', equation: 'C + O₂ → CO₂', fact: 'When carbon burns, it joins with oxygen and makes carbon dioxide.',
-    magic: { name: 'Shadow Smoke', line: 'Grey smoke curls up out of the glass.' } },
   { id: 'pink', needs: ['cabbage', 'vinegar'], makes: ['pinkjuice'], effect: 'color', color: '#ff5fa2', unlocks: ['peroxide'],
     name: 'Indicator: pink means acid', equation: 'red cabbage juice + acid → pink', fact: 'Red cabbage juice turns pink in acids like vinegar.',
     magic: { name: 'Rose Potion', line: 'The purple potion blushes bright pink!' } },
@@ -119,14 +122,11 @@ export const RECIPES: Recipe[] = [
   { id: 'chalkfizz', needs: ['chalk', 'vinegar'], makes: ['fizzwater'], effect: 'fizz', color: '#fafafa', unlocks: ['Ca'],
     name: 'Chalk fizz', equation: 'CaCO₃ + acid → CO₂ + water + calcium acetate', fact: 'Acid slowly eats away chalk and seashells and makes carbon dioxide.',
     magic: { name: 'Seashell Whisper', line: 'Tiny bubbles whisper out of the chalk.' } },
-  { id: 'calciumfizz', needs: ['Ca', 'water'], makes: ['limewater'], effect: 'fizz', color: '#f0f7ff', unlocks: ['Fe'],
+  { id: 'calciumfizz', needs: ['Ca', '@wet'], makes: ['limewater'], effect: 'fizz', color: '#f0f7ff', unlocks: ['Fe'],
     name: 'Calcium fizzes', equation: 'Ca + 2H₂O → Ca(OH)₂ + H₂', fact: 'Calcium reacts with water more slowly than sodium and makes hydrogen bubbles.',
     magic: { name: 'Bone Bubbles', line: 'Slow, steady bubbles rise from the calcium.' } },
-  { id: 'mgburn', needs: ['Mg', 'O'], makes: ['mgo'], effect: 'flash', color: '#ffffff', unlocks: ['Fe'],
-    name: 'Burning magnesium', equation: '2Mg + O₂ → 2MgO', fact: 'Magnesium burns with a white light so bright that you should never look right at it.',
-    magic: { name: 'Starfire', line: 'A blinding white star flares in the glass!' } },
   { id: 'rust', needs: ['Fe', 'O', 'water'], makes: ['rust'], effect: 'color', color: '#b5561f', unlocks: ['Al', 'coppersulfate'],
-    name: 'Iron rusts', equation: '4Fe + 3O₂ + water → 2Fe₂O₃ (rust)', fact: 'Iron needs both oxygen and water to rust. That is why old bikes left in the rain get orange.',
+    name: 'Iron rusts', equation: '4Fe + 3O₂ + water → 2Fe₂O₃·xH₂O (rust)', fact: 'Iron needs both oxygen and water to rust. That is why old bikes left in the rain get orange.',
     magic: { name: 'Dragon Rust', line: 'The iron grows an orange dragon skin.' } },
   { id: 'bluewater', needs: ['coppersulfate', 'water'], makes: ['bluewater'], effect: 'dissolve', color: '#2f7fe8', unlocks: ['S'],
     name: 'Blue copper water', equation: 'CuSO₄ + H₂O → blue solution', fact: 'Copper sulfate dissolves into one of the bluest liquids in chemistry.',
@@ -137,7 +137,7 @@ export const RECIPES: Recipe[] = [
   { id: 'silvercloud', needs: ['silvernitrate', 'saltwater'], makes: ['silvercloud'], effect: 'cloudy', color: '#f3f3f3', unlocks: ['I'],
     name: 'A cloud appears', equation: 'AgNO₃ + NaCl → AgCl + NaNO₃', fact: 'Two clear liquids make a white cloud. The cloud is a new solid called a precipitate.',
     magic: { name: 'Ghost Cloud', line: 'Two clear potions make a ghostly white cloud!' } },
-  { id: 'starchtest', needs: ['I', 'starch'], makes: ['blueblack'], effect: 'color', color: '#1b1f4a', unlocks: [],
+  { id: 'starchtest', needs: ['iodinewater', 'starch'], makes: ['blueblack'], effect: 'color', color: '#1b1f4a', unlocks: [],
     name: 'The starch test', equation: 'iodine + starch → blue-black', fact: 'Iodine turns dark blue-black when starch is there. Scientists use it to find starch in food.',
     magic: { name: 'Midnight Ink', line: 'The potion turns the color of the night sky.' } },
   { id: 'toothpastebig', needs: ['peroxide', 'yeast', 'soap'], makes: ['foam'], effect: 'foam', color: '#ffffff', unlocks: [],
@@ -146,15 +146,9 @@ export const RECIPES: Recipe[] = [
   { id: 'toothpaste', needs: ['peroxide', 'yeast'], makes: ['water'], effect: 'fizz', color: '#e0f7fa', unlocks: [],
     name: 'Oxygen bubbles', equation: '2H₂O₂ → 2H₂O + O₂', fact: 'Yeast breaks peroxide into water and oxygen bubbles. Add soap to trap the bubbles!',
     magic: { name: 'Breath Bubbles', line: 'Bubbles rise. Something is missing to make it foam.' } },
-  { id: 'ammonia', needs: ['N', 'H'], makes: ['ammonia'], effect: 'smoke', color: '#eef2ff', unlocks: [],
-    name: 'Making ammonia', equation: 'N₂ + 3H₂ → 2NH₃', fact: 'Nitrogen and hydrogen make ammonia, which helps feed plants all over the world.',
-    magic: { name: 'Stinky Mist', line: 'A very stinky mist swirls up. Pee-yew!' } },
   { id: 'hclboom', needs: ['H', 'Cl'], makes: ['hcl'], effect: 'boom', color: '#d8f5a2', unlocks: [],
     name: 'Hydrogen and chlorine: BOOM!', equation: 'H₂ + Cl₂ → 2HCl', fact: 'In light, hydrogen and chlorine react with a bang and make hydrochloric acid.',
     magic: { name: 'Lightning Jar', line: 'A green-white thunderclap rattles the shelf!' } },
-  { id: 'ironsulfide', needs: ['Fe', 'S'], makes: ['fes'], effect: 'glow', color: '#ff9a3c', unlocks: [],
-    name: 'Iron and sulfur glow', equation: 'Fe + S → FeS', fact: 'Heated iron and sulfur glow orange and join into a new solid. A magnet can no longer pick it up.',
-    magic: { name: 'Ember Stone', line: 'The powder glows like a sleeping ember.' } },
   // More recipes (Build Queue 2026-10-09).
   { id: 'lemonpink', needs: ['cabbage', 'lemon'], makes: ['pinkjuice'], effect: 'color', color: '#ff5fa2', unlocks: [],
     name: 'Lemon turns it pink', equation: 'red cabbage juice + citric acid → pink', fact: 'Lemon juice is an acid too, so the indicator turns pink, just like with vinegar.',
@@ -165,15 +159,30 @@ export const RECIPES: Recipe[] = [
   { id: 'mgfizz', needs: ['Mg', 'vinegar'], makes: ['fizzwater'], effect: 'fizz', color: '#f4f1d0', unlocks: [],
     name: 'Magnesium fizzes in acid', equation: 'Mg + 2CH₃COOH → magnesium acetate + H₂', fact: 'Acids eat away some metals and give off hydrogen gas. The bubbles are hydrogen.',
     magic: { name: 'Silver Sizzle', line: 'The metal sizzles away into tiny bubbles!' } },
-  { id: 'alcopper', needs: ['bluewater', 'Al'], makes: ['copper'], effect: 'glow', color: '#c8662f', unlocks: [],
-    name: 'Aluminum swaps with copper', equation: '2Al + 3CuSO₄ → Al₂(SO₄)₃ + 3Cu', fact: 'Aluminum pushes copper out of the blue liquid. It gets warm, and orange copper appears.',
+  { id: 'alcopper', needs: ['bluewater', 'Al', '@chloride'], makes: ['copper'], effect: 'glow', color: '#c8662f', unlocks: [],
+    name: 'Aluminum swaps with copper', equation: '2Al + 3CuSO₄ → Al₂(SO₄)₃ + 3Cu', fact: 'A thin coat of oxide protects aluminum, so nothing happens at first. Salt breaks the coat, then aluminum pushes copper out of the blue liquid, gets hot and fizzes.',
     magic: { name: 'Copper Bloom', line: 'Orange copper blooms out of the blue!' } },
-  { id: 'thermite', needs: ['Al', 'rust'], makes: ['molteniron'], effect: 'bigboom', color: '#ffb02e', unlocks: [],
-    name: 'Thermite!', equation: '2Al + Fe₂O₃ → Al₂O₃ + 2Fe', fact: 'Aluminum steals the oxygen from rust so fast it gets hot enough to melt iron. Welders use it on train tracks.',
-    magic: { name: 'Phoenix Fire', line: 'Sparks fly like a phoenix being born!' } },
 ];
 // The 🔥 burner (Build Queue 2026-10-09): heating a beaker. 'heat' is not a bottle, it only starts these.
 export const HEAT_RECIPES: Recipe[] = [
+  { id: 'makewater', needs: ['H', 'O', 'heat'], makes: ['water'], effect: 'pop', color: '#9fd8ff', unlocks: ['He'],
+    name: 'Making water: POP!', equation: '2H₂ + O₂ → 2H₂O', fact: 'Hydrogen and oxygen sit together quietly until a spark or flame. Then they join with a POP and make water. Rockets use this reaction.',
+    magic: { name: 'Raindrop Pop', line: 'POP! Two invisible gases turn into real water.' } },
+  { id: 'makeco2', needs: ['C', 'O', 'heat'], makes: ['co2'], effect: 'smoke', color: '#bdbdbd', unlocks: ['N'],
+    name: 'Burning carbon', equation: 'C + O₂ → CO₂', fact: 'Carbon needs a flame to start burning. Then it joins with oxygen and makes carbon dioxide, an invisible gas.',
+    magic: { name: 'Shadow Smoke', line: 'Grey smoke curls up out of the glass.' } },
+  { id: 'mgburn', needs: ['Mg', 'O', 'heat'], makes: ['mgo'], effect: 'flash', color: '#ffffff', unlocks: ['Fe'],
+    name: 'Burning magnesium', equation: '2Mg + O₂ → 2MgO', fact: 'Magnesium burns with a white light so bright that you should never look right at it.',
+    magic: { name: 'Starfire', line: 'A blinding white star flares in the glass!' } },
+  { id: 'ammonia', needs: ['N', 'H', 'Fe', 'heat'], makes: ['ammonia', 'Fe'], effect: 'smoke', color: '#eef2ff', unlocks: [],
+    name: 'Making ammonia', equation: 'N₂ + 3H₂ → 2NH₃ (iron helps, with heat and pressure)', fact: 'Nitrogen and hydrogen only join with heat, high pressure and iron to help (the Haber process). The ammonia makes fertilizer that feeds plants all over the world.',
+    magic: { name: 'Stinky Mist', line: 'A very stinky mist swirls up. Pee-yew!' } },
+  { id: 'ironsulfide', needs: ['Fe', 'S', 'heat'], makes: ['fes'], effect: 'glow', color: '#ff9a3c', unlocks: [],
+    name: 'Iron and sulfur glow', equation: 'Fe + S → FeS', fact: 'Heated iron and sulfur glow orange and join into a new solid. A magnet can no longer pick it up.',
+    magic: { name: 'Ember Stone', line: 'The powder glows like a sleeping ember.' } },
+  { id: 'thermite', needs: ['Al', 'rust', 'heat'], makes: ['molteniron'], effect: 'bigboom', color: '#ffb02e', unlocks: [],
+    name: 'Thermite!', equation: '2Al + Fe₂O₃ → Al₂O₃ + 2Fe', fact: 'Thermite needs a very hot start, like a burning magnesium ribbon. Then aluminum steals the oxygen from rust so fast it gets hot enough to melt iron. Welders use it on train tracks.',
+    magic: { name: 'Phoenix Fire', line: 'Sparks fly like a phoenix being born!' } },
   { id: 'boil', needs: ['water', 'heat'], makes: [], effect: 'smoke', color: '#e3f2fd', unlocks: [],
     name: 'Boiling water', equation: 'H₂O (liquid) + heat → H₂O (gas, steam)', fact: 'At 100 °C water boils and turns into steam, a gas. It is still water, just spread out.',
     magic: { name: 'Cloud Maker', line: 'The water floats away as a puffy cloud!' } },
@@ -190,28 +199,68 @@ export const HEAT_RECIPES: Recipe[] = [
     name: 'Glowing hot', equation: 'FeS + heat → glowing FeS', fact: 'Very hot solids glow orange, like the coils in a toaster.',
     magic: { name: 'Ember Heart', line: 'The stone glows like a dragon heart.' } },
 ];
+// Safety lines on the dangerous recipes (Build Queue 202 Phase 1 and 203).
+const SAFETY: Record<string, string> = {
+  sodiumboom: 'Only done by scientists, with a tiny piece, safety glasses and a screen. Never at home.',
+  potassiumboom: 'Only done by scientists, with a tiny piece, safety glasses and a screen. Never at home.',
+  lithiumfizz: 'Lithium makes a strong base. Scientists wear gloves and safety glasses.',
+  makesalt: 'Chlorine gas is poisonous and sodium is very reactive. Only scientists do this, behind a screen.',
+  makewater: 'Hydrogen catches fire very easily. Never light hydrogen yourself.',
+  hclboom: 'Chlorine is poisonous and this mix explodes in light. Specialist labs only.',
+  mgburn: 'Never look straight at burning magnesium. Its light can hurt your eyes.',
+  thermite: 'Thermite burns at over 2,000 °C and cannot be put out with water. Experts only.',
+  silvercloud: 'Silver nitrate stains skin black. Scientists wear gloves.',
+  ironsulfide: 'Heating sulfur makes a gas that hurts lungs. Done in a fume cupboard.',
+  ammonia: 'Ammonia gas stings the eyes and lungs. Factories make it, not school labs.',
+  toothpastebig: 'Strong hydrogen peroxide burns skin. Schools use a weak one, with gloves and glasses.',
+  calciumfizz: 'Calcium makes a strong base in water. Scientists wear gloves and glasses.',
+};
+for (const r of [...RECIPES, ...HEAT_RECIPES]) if (SAFETY[r.id]) r.safety = SAFETY[r.id];
+
+// Rule-made reactions for all 118 elements (elementLab.ts, Build Queue 201 and 203).
+RECIPES.push(...RULE_RECIPES);
+HEAT_RECIPES.push(...RULE_HEAT_RECIPES);
 export const RECIPE = new Map([...RECIPES, ...HEAT_RECIPES].map((r) => [r.id, r]));
-// Heat a beaker on the burner: the first heat recipe whose ingredients are inside.
-export function heatUp(contents: string[]): MixResult {
-  const r = HEAT_RECIPES.find((x) => x.needs.filter((n) => n !== 'heat').every((n) => contents.includes(n))) ?? null;
-  if (!r) return { contents, reaction: null };
-  const left = [...contents];
-  r.needs.filter((n) => n !== 'heat').forEach((n) => left.splice(left.indexOf(n), 1));
-  return { contents: [...left, ...r.makes], reaction: r };
-}
 export const BEAKER_MAX = 5;
 
-export interface MixResult { contents: string[]; reaction: Recipe | null; full?: boolean; noble?: boolean }
-// Pour one substance into a beaker. The reaction with the most ingredients wins (so peroxide, yeast
-// and soap make the giant foam, not just bubbles). A boom empties the beaker.
+// Does this beaker hold everything a recipe needs? Tokens (@wet, @acid, @chloride) match any one of their group.
+// Returns what is left after the recipe's ingredients are used up, or null.
+function take(contents: string[], needs: string[]): string[] | null {
+  const left = [...contents];
+  // Exact ingredients first, so a token never uses up something a named ingredient needs.
+  for (const n of [...needs].sort((x, y) => Number(x.startsWith('@')) - Number(y.startsWith('@')))) {
+    if (n === 'heat') continue;
+    const i = n.startsWith('@') ? left.findIndex((c) => TOKENS[n]?.includes(c)) : left.indexOf(n);
+    if (i < 0) return null;
+    left.splice(i, 1);
+  }
+  return left;
+}
+// The plain ingredient list for places that do not use tokens (Supernature's Cauldron).
+export const plainNeeds = (r: Recipe) => r.needs.map((n) => (n === '@wet' ? 'water' : n === '@acid' ? 'vinegar' : n === '@chloride' ? 'salt' : n));
+
+// Heat a beaker on the burner: the biggest heat recipe whose ingredients are all inside.
+export function heatUp(contents: string[]): MixResult {
+  const r = [...HEAT_RECIPES].sort((x, y) => y.needs.length - x.needs.length).find((x) => take(contents, x.needs)) ?? null;
+  if (!r) return { contents, reaction: null };
+  const left = take(contents, r.needs)!;
+  const after = r.effect === 'boom' || r.effect === 'bigboom' ? [] : [...left, ...r.makes];
+  return { contents: after, reaction: r };
+}
+
+export interface MixResult { contents: string[]; reaction: Recipe | null; full?: boolean; noble?: boolean; radioactive?: string }
+const NOBLE_GASES = ['He', 'Ne', 'Ar', 'Kr', 'Xe'];
+// Pour one substance into a beaker. The reaction with the most ingredients wins (so peroxide, yeast and soap make
+// the giant foam, not just bubbles). A boom empties the beaker. A radioactive element never reacts here: the
+// Geiger counter clicks instead.
 export function pour(contents: string[], id: string): MixResult {
   if (contents.length >= BEAKER_MAX) return { contents, reaction: null, full: true };
   const next = [...contents, id];
-  const has = (needs: string[]) => { const left = [...next]; return needs.every((n) => { const i = left.indexOf(n); if (i < 0) return false; left.splice(i, 1); return true; }); };
-  const r = [...RECIPES].sort((a, b) => b.needs.length - a.needs.length).find((x) => x.needs.includes(id) && has(x.needs)) ?? null;
-  if (!r) return { contents: next, reaction: null, noble: id === 'He' && contents.length > 0 };
-  const left = [...next];
-  r.needs.forEach((n) => left.splice(left.indexOf(n), 1));
+  if (isRadioactive(id)) return { contents: next, reaction: null, radioactive: id };
+  const r = [...RECIPES].sort((a, b) => b.needs.length - a.needs.length)
+    .find((x) => x.needs.some((n) => n === id || (n.startsWith('@') && TOKENS[n]?.includes(id))) && take(next, x.needs)) ?? null;
+  if (!r) return { contents: next, reaction: null, noble: NOBLE_GASES.includes(id) && contents.length > 0 };
+  const left = take(next, r.needs)!;
   const after = r.effect === 'boom' || r.effect === 'bigboom' ? [] : [...left, ...r.makes];
   return { contents: after, reaction: r };
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PERIODIC } from '../elements';
-import { RECIPES, STARTER, SUB, SUBSTANCES, pour } from '../lab';
+import { HEAT_RECIPES, KITCHEN, RECIPES, STARTER, SUB, SUBSTANCES, heatUp, pour } from '../lab';
+import { whyNothing } from '../elementLab';
 
 describe('Science Lab', () => {
   it('has all 118 elements in unique spots', () => {
@@ -8,17 +9,31 @@ describe('Science Lab', () => {
     expect(new Set(PERIODIC.map((e) => `${e.row}-${e.col}`)).size).toBe(118);
     expect(PERIODIC.find((e) => e.sym === 'Og')).toMatchObject({ n: 118, row: 7, col: 18 });
   });
-  it('every recipe uses and makes real substances, and everything can be reached', () => {
-    for (const r of RECIPES) [...r.needs, ...r.makes, ...r.unlocks].forEach((id) => expect(SUB.get(id), `${r.id}: ${id}`).toBeTruthy());
-    // Walk the unlock ladder from the starter shelf.
-    const have = new Set(STARTER);
-    const made = new Set<string>();
-    for (let pass = 0; pass < 20; pass++) for (const r of RECIPES) {
-      if (r.needs.every((n) => have.has(n) || made.has(n))) { r.unlocks.forEach((u) => have.add(u)); r.makes.forEach((m) => made.add(m)); }
-    }
-    for (const r of RECIPES) expect(r.needs.every((n) => have.has(n) || made.has(n)), r.id).toBe(true);
-    const shelf = SUBSTANCES.filter((s) => RECIPES.some((r) => r.unlocks.includes(s.id)));
-    shelf.forEach((s) => expect(have.has(s.id), s.id).toBe(true));
+  it('every recipe uses and makes real substances, and every element has a bottle', () => {
+    for (const r of [...RECIPES, ...HEAT_RECIPES]) [...r.needs, ...r.makes].forEach((id) => expect(id === 'heat' || id.startsWith('@') || SUB.get(id), `${r.id}: ${id}`).toBeTruthy());
+    PERIODIC.forEach((e) => expect(SUB.get(e.sym)?.element, e.sym).toBe(e.sym));
+    KITCHEN.forEach((id) => expect(SUB.get(id), id).toBeTruthy());
+    expect(STARTER.every((id) => SUB.has(id))).toBe(true);
+    expect(new Set([...RECIPES, ...HEAT_RECIPES].map((r) => r.id)).size).toBe(RECIPES.length + HEAT_RECIPES.length);
+  });
+  it('real chemistry rules', () => {
+    expect(pour(['vinegar'], 'K').reaction?.effect).toBe('bigboom'); // alkali metals react with anything watery
+    expect(pour(['water'], 'Cs').reaction?.id).toBe('w-Cs');
+    expect(pour(['hcl'], 'Zn').reaction?.id).toBe('a-Zn');
+    expect(pour(['hcl'], 'Cu').reaction).toBeNull(); // copper is below hydrogen
+    expect(whyNothing(['hcl', 'Cu'])).toMatch(/below hydrogen/);
+    expect(pour(['bluewater'], 'Zn').reaction?.id).toBe('cu-Zn');
+    expect(pour(['bluewater'], 'Al').reaction).toBeNull(); // the oxide coat protects aluminum
+    expect(pour(['bluewater', 'Al'], 'salt').reaction?.id).toBe('alcopper');
+    expect(pour(['silvernitrate'], 'Cu').reaction?.id).toBe('ag-Cu');
+    expect(pour(['H'], 'O').reaction).toBeNull(); // needs a spark
+    expect(heatUp(['H', 'O']).reaction?.id).toBe('makewater');
+    expect(heatUp(['Mg', 'O']).reaction?.id).toBe('mgburn');
+    expect(pour(['U'], 'water').reaction).toBeNull();
+    expect(pour(['water'], 'U').radioactive).toBe('U');
+    expect(pour(['water'], 'Ne').noble).toBe(true);
+    expect(pour(['water'], 'I').contents).toEqual(['iodinewater']);
+    expect(pour(['iodinewater'], 'starch').reaction?.id).toBe('starchtest');
   });
   it('sodium and water explode and empty the beaker', () => {
     const r = pour(['water'], 'Na');
@@ -41,7 +56,6 @@ describe('Science Lab', () => {
   });
 });
 
-import { heatUp, HEAT_RECIPES } from '../lab';
 import { atomInfo } from '../AtomBuilder';
 describe('burner and Atom Builder', () => {
   it('heating salt water leaves salt crystals; heating oil does nothing', () => {
