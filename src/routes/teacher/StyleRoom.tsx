@@ -527,7 +527,8 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 onSelect={(id) => { setNpcSel(id); setNpcAnimal(null); styleSound.tap(); }}
                 onDress={(id) => { if (npcAnimal) saveNpcProfile(id, { look: withAnimal(npcProfiles[id].look, npcAnimal) }); setNpcAnimal(null); startDressNpc(id); }}
                 onSaveDetails={(id, name, title, facts) => {
-                  saveNpcProfile(id, { name: name.trim(), facts, ...(npcAnimal ? { look: withAnimal(npcProfiles[id].look, npcAnimal) } : {}) });
+                  // Name, title and facts save together in one write (Build Queue 227).
+                  saveNpcProfile(id, { name: name.trim(), title: title.trim(), facts, ...(npcAnimal ? { look: withAnimal(npcProfiles[id].look, npcAnimal) } : {}) });
                   setNpcAnimal(null);
                   setNpcTitleOverride(id, title.trim() === npcRoster.find((e) => e.id === id)?.defaultTitle ? null : title);
                   styleSound.save();

@@ -1342,7 +1342,17 @@ export const pushQuizStruggle = (q: QuizStruggle) => upsert('quiz_struggles', qu
 
 export const pushSelCheckIn = (c: SelCheckIn) => upsert('sel_check_ins', selCheckInToRow(c));
 export const pushChessGame = (g: ChessGameRecord) => upsert('chess_games', chessGameToRow(g));
-export const pushStyleLook = (ownerId: string, look: unknown) => upsert('style_looks', { owner_id: ownerId, look, updated_at: new Date().toISOString() });
+// Writes for the same row go out one after another (Build Queue 227): a quick rename followed by Save changes used
+// to send two writes at once, and if the older one landed last it wiped the title and facts.
+const styleChains = new Map<string, Promise<unknown>>();
+export const pushStyleLook = (ownerId: string, look: unknown) => {
+  if (!isSupabaseConfigured) return;
+  const row = { owner_id: ownerId, look, updated_at: new Date().toISOString() };
+  const next = (styleChains.get(ownerId) ?? Promise.resolve())
+    .then(() => pushWithRetry(() => supabase.from('style_looks').upsert(row), 'upsert style_looks'))
+    .catch(() => undefined);
+  styleChains.set(ownerId, next);
+};
 
 export const pushOffscreenReview = (o: OffscreenReview) =>
   upsert('offscreen_reviews', {

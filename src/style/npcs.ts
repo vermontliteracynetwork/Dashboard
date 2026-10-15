@@ -22,7 +22,7 @@ export const NPC_ROSTER: NpcEntry[] = [
   ...Object.values(TOWNSPEOPLE).map((t) => ({ id: t.id, kind: 'townsperson' as const, defaultName: t.name, defaultTitle: 'Townsperson' })),
 ];
 
-export interface NpcProfileRow { look?: StyleLook; name?: string; facts?: string[] }
+export interface NpcProfileRow { look?: StyleLook; name?: string; title?: string; facts?: string[] }
 export interface NpcProfile { id: string; kind: NpcKind; name: string; title: string; facts: string[]; look: StyleLook; defaultName: string }
 
 export const npcOwner = (id: string) => `npc:${id}`;
@@ -117,7 +117,8 @@ export function useNpcProfiles(): Record<string, NpcProfile> {
         id: e.id,
         kind: e.kind,
         name: row?.name?.trim() || e.defaultName,
-        title: titles[e.id]?.trim() || e.defaultTitle,
+        // The title saved with the Neighbor (Build Queue 227) wins; the older World Editor title is the fallback.
+        title: row?.title?.trim() || titles[e.id]?.trim() || e.defaultTitle,
         facts: Array.isArray(row?.facts) ? row!.facts.filter((f) => typeof f === 'string' && f.trim()) : [],
         look,
         defaultName: e.defaultName,
