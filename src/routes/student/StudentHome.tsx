@@ -449,6 +449,15 @@ export default function StudentHome() {
           <span className="widget-icon"><img src="/games/supernature/theme/kitty-curiousIdleBreaker.gif" alt="" className="widget-icon-img" /></span>
           <span className="widget-label">Supernature</span>
         </button>
+        {/* Literacy Manipulatives (Build Queue 219, her words 2026-10-15: "add literacy manipulatives as an app on the computrr"). */}
+        <button
+          className="widget-card widget-icon-card widget-grammar-gus"
+          onClick={() => navigate('/student/grammar')}
+          aria-label="Literacy Manipulatives"
+        >
+          <span className="widget-icon"><img src="/literacy/grammar-symbols/noun.png" alt="" className="widget-icon-img" /></span>
+          <span className="widget-label">Literacy Manipulatives</span>
+        </button>
         {/* Science Lab (teacher 2026-10-09: "science lab should be an app in the computer not a native game"). */}
         <button
           className="widget-card widget-icon-card widget-grammar-gus"

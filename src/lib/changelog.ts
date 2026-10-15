@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-litmanip-app",
+    date: "2026-10-15",
+    icon: "🔤",
+    title: "Literacy Manipulatives on your computer",
+    body: "Literacy Manipulatives is now an app on your computer. Tap it to open the whiteboard with grammar symbols, word bubbles and symbol sentences.",
+  },
+  {
     id: "2026-10-15-person",
     date: "2026-10-15",
     icon: "🧑",

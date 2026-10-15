@@ -17,7 +17,7 @@ type Row = { items?: QLogEntry[] };
 const MAX_A_DAY = 600;
 const PATH_GAME: Record<string, string> = {
   '/student/gym': "Buff Doge's Gym", '/student/science-lab': 'Science Lab', '/student/supernature': 'Supernature', '/student/farmers-market': 'Farmers Market',
-  '/student/grammar': 'Grammar Sandbox', '/world/town': 'Town Square', '/student/home': 'Home Room', '/student/arcade': 'Arcade',
+  '/student/grammar': 'Literacy Manipulatives', '/world/town': 'Town Square', '/student/home': 'Home Room', '/student/arcade': 'Arcade',
 };
 export const dayOf = (iso: string) => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 

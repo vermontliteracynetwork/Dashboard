@@ -34,7 +34,7 @@ const LABELS: Record<string, string> = {
   '/student/bubble-shooter': '🫧 Bubble Shooter',
   '/student/space-bowling': '🎳 Space Bowling',
   '/student/bakery': '🧁 Bakery Match',
-  '/student/grammar': '✏️ Grammar',
+  '/student/grammar': '🔤 Literacy Manipulatives',
   '/student/castle-defense': '🏰 Castle Defense',
   '/student/chess': '♟️ Slime Chess',
   '/student/quiz-mode': '❓ Quiz Mode',

@@ -264,8 +264,8 @@ Not in this run (waiting on her): Tappy Plane (her "go"), the quest-only pets an
 215. ❓ **Her questions: the human voice key, item 110 and "42"** ANSWERED 2026-10-15 (her words, verbatim): "tell me how to do the human voice key. what are you waiting on for 110? what about 42?" Answered in chat: step by step OpenAI key into Vercel as `OPENAI_API_KEY` then a redeploy (item 93); 110 waits on music files (none uploaded); "42" was the Gus Daily Challenge and $25 streak, on hold by her own words 2026-10-08 ("no Gus Daily Challenge and the $25 streak yet") until she says go.
 216. ❓ **Her question: exactly what is waiting on her** ANSWERED 2026-10-15 (her words, verbatim): "tell me specifically what you are waiting on for me" Answered in chat with the full list: the OpenAI key (93), music files (110), the Person mock-up OK (195), the 10 typed-answer questions (166), her Cupcake Tycoon material (208), Gus Daily Challenge go (on hold), the SQL file to run, the Supernature room assets, the Space Bowling models re-upload and Bowling GUI rights, the missing color files for about 500 catalog models, Alchemy and Gus decisions, Tappy Plane go, and the live iPad checks.
 217. ~~🧑 **Release the Person (with hair and skin tones) to students**~~ SHIPPED 2026-10-15 (her words, verbatim): "people are good to push" (her OK on item 195) **What shipped:** 🧑 Person is now a Style character for everyone: in the Style picker ("Pick your character"), the Marketplace's Characters row (same price as any other character, the first one free), the teacher's Neighbors animal row and 🎲 Surprise me. A Person starts with Short Hair; a new 💇 Hair tab (first tab, only while the Person is picked) offers all eight hairstyles (Short Hair, Spiky Hair, Curly Puff, Bob, Long Hair, Ponytail, Pigtails, Space Buns), free, each with its own hair color on the color wheel. The Body tab shows the twelve skin tone swatches plus Eyes and Eyebrows. Every clothing item, hat and accessory fits the Person (same body). Switching to another character takes the hair off (item 213). Files: `src/style/species.ts` (`asSpecies`), `wardrobe.tsx`, `shop.ts`, `types.ts`, `src/routes/teacher/StyleRoom.tsx`, `Marketplace.tsx`.
-218. ✍️ **Typed-answer question sets: say back what she is asking for, and build it out in the dev plan** IN PROGRESS 2026-10-15 (her words, verbatim): "tell me what you think im asking for question sets with typed answers, and lets build that out in development plan while you work" (goes with item 166)
-219. 💻 **Literacy manipulatives as an app on the computer** QUEUED 2026-10-15 (her words, verbatim): "add literacy manipulatives as an app on the computrr"
+218. ~~✍️ **Typed-answer question sets: say back what she is asking for, and build it out in the dev plan**~~ DONE 2026-10-15 (her words, verbatim): "tell me what you think im asking for question sets with typed answers, and lets build that out in development plan while you work" (goes with item 166) **What shipped:** a full spec section in this plan, "✍️ SYMBOL SENTENCE WRITER" (above "WAITING ON THE TEACHER"): what she is asking for in plain words, what already exists to build on, the 8-level help ladder and the sentence path, the up and down rule, the iPad student screen, the teacher side, a 3-phase build plan, and her 10 questions with a suggested answer for each. Building waits on her answers (item 166).
+219. ~~💻 **Literacy manipulatives as an app on the computer**~~ SHIPPED 2026-10-15 (her words, verbatim): "add literacy manipulatives as an app on the computrr" **What shipped:** a "Literacy Manipulatives" app card on the student computer (beside Science Lab), with her noun symbol as its icon, that opens the Literacy Manipulatives whiteboard (`/student/grammar`, the live embedded site). The back trail and Azalea reports now call it "Literacy Manipulatives" instead of Grammar or Grammar Sandbox. File: `src/routes/student/StudentHome.tsx`.
 220. ♟️ **Slime Chess: make the "risky" warning accurate** QUEUED 2026-10-15 (her words, verbatim): "add to queue Slime Chess * Can capture vs can move function is not totally correct. Students are finding that when they move, some pieces are noted as risky when they are not (or not risky when they are actually). Lets make sure the “risky” warning component is accurate to support students"
 221. 🏠 **Literacy Manipulatives: remove the Home button from the top left** QUEUED 2026-10-15 (her words, verbatim, with a screenshot of `#/student/grammar` where a Home pill sits over the "Manipulatives" title): "remove home button from top left."
 222. ↔️ **Every side button can be dragged anywhere (Report, Menu, Streak, Listen...) on every screen that has them** QUEUED 2026-10-15 (her words, verbatim): "all side buttons (including report and menu, streak) should be moveable and can drag around where the student needs them. ensure this is true on all spots where they have side buttons."
@@ -439,6 +439,65 @@ Not in this run (waiting on her): Tappy Plane (her "go"), the quest-only pets an
 - 2026-10-09: Castle Defense, the Wisp's build poof on the build tiles (her words: "add the wisp build animation to castle defense map tiles").
 - 2026-10-08: Castle Defense, remove a placed tower, with the Wisp collapse animation.
 - 2026-10-08: Home Build Mode for students (catalog tabs and arrows, Sims-style walls, 12 by 12 yard, camera pad).
+
+## ✍️ SYMBOL SENTENCE WRITER: typed-answer question sets (Build Queue 166 and 218), full development spec
+
+Her words: 166 (2026-10-14) "lets make a new feature for question sets where students will have to have a text input. my goal is that students will be scaffolded, starting with filling in one word of a setnence, and working their way up to having full sentences created by them. we are going to use my symbol sentences. lets fully develop this before you build it at all"; 218 (2026-10-15) "tell me what you think im asking for question sets with typed answers, and lets build that out in development plan while you work". **Status: DESIGNED, NOT BUILT.** Nothing is built until she OKs this spec (or changes it). Design PDF: `docs/symbol-sentence-writer-design.pdf`.
+
+### What she is asking for (in plain words)
+1. A new kind of question set where students **type** the answer instead of tapping a choice.
+2. It is built on **her symbol sentences**: the sentence cards where every word sits under its grammar symbol (pointing hand noun, crown proper noun, magnet article, arrows verb, pencil circle adjective, gear adverb, box preposition, double arrow conjunction, cycle pronoun, ! interjection).
+3. It **grows with the student**: it starts tiny (type one missing word in a sentence, with help) and step by step works up to the student writing a whole sentence of their own that matches the symbols.
+4. It is fully planned first. No code until she approves.
+
+### What already exists to build on
+- **The sentences:** `src/lib/symbolSentences.ts` (her deck, each word tagged with its word class) plus her 10 new proper noun sentences (34 to 43) from `Grammar_Sentences_Comprehensive.zip`, and her new symbol icons (already cut for the Literacy Manipulatives whiteboard, item 175).
+- **Typed answers:** question sets already have a `fill` type (`FillBlankQuestion`: prompt, answer, optional word bank) and a typo-tolerant checker (`isCloseEnoughAnswer` in `src/lib/answerMatch.ts`, short words need exact spelling).
+- **Where questions run:** Assignments (`QuizTask`), Quiz Mode, and the game question screen. The one-try rule (item 209) and the 95% focus rule (item 210) apply.
+
+### The two ladders (move separately)
+**A. Help ladder, 8 levels** (what the student types):
+1. One missing word, with two word cards to choose from to copy (errorless start).
+2. One missing word, on their own.
+3. Two missing words.
+4. Every naming, action and describing word missing (the small words stay).
+5. Look, cover, write: see the whole sentence, it hides, type it all; checks for a capital letter at the start and punctuation at the end.
+6. Write the whole sentence from the symbols alone, with word helpers to tap.
+7. My own sentence that matches the symbols; each typed word lights up under its symbol as it fits (noun under the hand, verb under the arrows...).
+8. My own sentence, then I pick the symbols for it.
+
+**B. Sentence path:** her sentences 1 to 43, simple to harder (the deck's own order), plus any she adds.
+
+**Moving up and down:** up a level after 4 of the last 5 are right on the first try; after 3 misses in a row a step down is offered (never forced). Errorless help: second try shows the first letter, third try shows the answer to copy (counts as effort, not right). The one-try lock (item 209) applies to money and points only: the student still finishes the word with help so they always leave with the right sentence.
+
+### The student screen (iPad first)
+- The symbol row on top, the sentence with blank boxes under each symbol, the keyboard below; the boxes stay in the top half so the iPad keyboard never covers them.
+- iPad auto-capitalize, autocorrect and spell check are **off** (spelling, capital letters and punctuation are the skill).
+- The Next key on the keyboard moves to the next box; 🔊 on every symbol, every word and the whole sentence (human voice).
+- Right: the word slides into place under its symbol with a chime; the finished sentence is read aloud.
+
+### The teacher side
+- A new question set type "✍️ Symbol Sentence Writer" in Question Sets, preloaded with her 43 sentences.
+- Pick which sentences and which levels; set each student's starting level, see their highest level, and lock a level if she wants.
+- Add her own sentences: type the sentence, the app suggests the symbols, she fixes any.
+- Question Reports show exactly what was typed (and the help used); a ladder picture per student; a wall of the sentences each student wrote at levels 7 and 8.
+
+### Build plan (after her OK)
+- **Phase 1:** the data (sentences with symbols, levels), the student screen for levels 1 to 4, typed-answer checking, Assignments and Quiz Mode, Question Reports.
+- **Phase 2:** levels 5 and 6 (look cover write, capital letter and punctuation checks), the teacher controls (start, highest, lock), her own sentences with suggested symbols.
+- **Phase 3:** levels 7 and 8 (her own sentences matched to symbols), the student wall, game pop-ups (levels 1 to 3 only).
+
+### Her 10 questions (my suggestion in brackets; her answer decides)
+1. Use the new icons here, and switch the Grammar Sandbox and Gus to them too? (Yes here; the Sandbox and Gus later, her call.)
+2. In a blank, only the card's own word counts, or any word that fits? (Only the card's word at levels 1 to 4; any fitting word at 7 and 8.)
+3. Spelling: exact, or close spellings count? (Exact for short words, one typo allowed for long ones, the same as today's typed answers; the right spelling is always shown.)
+4. Show up inside games too? (Only levels 1 to 3, as pop-ups.)
+5. Allow voice typing (the iPad microphone)? (No; typing is the skill. A setting she can turn on per student.)
+6. The up and down rule above (4 of 5 up, a step down offered after 3 misses)? (Yes.)
+7. Students' own sentences (levels 7 and 8): checked by the app, and shown on her wall? (The app checks that the words fit the symbols; she sees every one on the wall.)
+8. Sentence order: her deck's order, or mixed? (Her order.)
+9. Rewards: $1 like other questions, with whole-sentence levels (5 to 8) counting double? (Yes.)
+10. The name: "Symbol Sentence Writer"? (Or her choice.)
 
 ## ⚠️ WAITING ON THE TEACHER: SQL to run, answers owed, live checks
 

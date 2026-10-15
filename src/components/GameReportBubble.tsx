@@ -24,7 +24,7 @@ import { speak } from './ReadAloud';
 // standing Gus rule); the Tools menu's Give Feedback opens Azalea everywhere, Gus included.
 const EXTRA: Record<string, string> = {
   '/student/gym': "Buff Doge's Gym", '/student/science-lab': 'Science Lab', '/student/supernature': 'Supernature',
-  '/student/farmers-market': 'Farmers Market', '/student/grammar': 'Grammar Sandbox', '/student/home': 'Home',
+  '/student/farmers-market': 'Farmers Market', '/student/grammar': 'Literacy Manipulatives', '/student/home': 'Home',
   '/student/marketplace': 'Marketplace', '/student/piggy-bank': 'Piggy Bank', '/student/mailbox': 'Mailbox',
   '/student/passport': 'Passport', '/student/games': 'Arcade', '/student/arcade': 'Arcade', '/student/library': 'Library',
   '/student/style': 'Style', '/student/pet-shelter': 'Pet Finder', '/student/pet-finder': 'Pet Finder',
