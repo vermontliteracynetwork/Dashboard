@@ -307,7 +307,7 @@ interface AppState {
   adoptPetV2: (studentId: string, opts: { defId: string; name: string; age: 'baby' | 'juvenile' | 'adult'; sex: string; via: 'shelter' | 'mystery' | 'coupon' | 'stray'; priceCents: number; shelterId?: string }) => string | null;
   // A Neighbor/Townsperson's Style look, name and facts (src/style/npcs.ts),
   // saved as the `npc:<id>` row. Merges into what is already saved.
-  saveNpcProfile: (npcId: string, patch: { look?: StyleLook; name?: string; title?: string; facts?: string[] }) => void;
+  saveNpcProfile: (npcId: string, patch: { look?: StyleLook; name?: string; title?: string; facts?: string[]; personality?: string }) => void;
   // Pays Class Cash for an animal, item or pattern; false if they can't afford it.
   buyStyle: (studentId: string, kind: 'species' | 'item' | 'pattern', id: string, priceCents: number, label: string) => boolean;
   selCheckIns: SelCheckIn[];

@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { personalityById } from '../lib/npcPersonality';
 import { lazyFresh } from '../lib/freshBuild';
 import type { NpcProfile } from '../style/npcs';
 import { useStore } from '../store/store';
@@ -22,6 +23,7 @@ export default function NpcCharacterSheet({ profile, onClose, onPlay }: { profil
           <p className="npc-sheet-kicker">{profile.kind === 'neighbor' ? 'Neighbor' : 'Townsperson'}</p>
           <h2 className="npc-sheet-name">{profile.name}</h2>
           <p className="npc-sheet-title">{profile.title}</p>
+          {personalityById(profile.personality) && <p className="npc-sheet-title">Personality: {personalityById(profile.personality)!.label}</p>}
           <h3>Fun facts</h3>
           {profile.facts.length > 0 ? (
             <ul className="npc-sheet-facts">

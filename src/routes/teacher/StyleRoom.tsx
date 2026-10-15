@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { PERSONALITIES } from '../../lib/npcPersonality';
 import { useNavigate } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
 import { ContactShadows, OrbitControls } from '@react-three/drei';
@@ -526,9 +527,9 @@ export function StyleRoomView({ owner, studentMode = false, backTo = '/world/tow
                 onAnimal={(sp) => { setNpcAnimal(sp === npcProfiles[npcSel]?.look.species ? null : sp); styleSound.pop(); window.setTimeout(() => charRefs.current[0]?.play('wave'), 150); }}
                 onSelect={(id) => { setNpcSel(id); setNpcAnimal(null); styleSound.tap(); }}
                 onDress={(id) => { if (npcAnimal) saveNpcProfile(id, { look: withAnimal(npcProfiles[id].look, npcAnimal) }); setNpcAnimal(null); startDressNpc(id); }}
-                onSaveDetails={(id, name, title, facts) => {
-                  // Name, title and facts save together in one write (Build Queue 227).
-                  saveNpcProfile(id, { name: name.trim(), title: title.trim(), facts, ...(npcAnimal ? { look: withAnimal(npcProfiles[id].look, npcAnimal) } : {}) });
+                onSaveDetails={(id, name, title, facts, personality) => {
+                  // Name, title, facts and personality save together in one write (Build Queue 227, 228).
+                  saveNpcProfile(id, { name: name.trim(), title: title.trim(), facts, personality, ...(npcAnimal ? { look: withAnimal(npcProfiles[id].look, npcAnimal) } : {}) });
                   setNpcAnimal(null);
                   setNpcTitleOverride(id, title.trim() === npcRoster.find((e) => e.id === id)?.defaultTitle ? null : title);
                   styleSound.save();
@@ -713,7 +714,7 @@ function NeighborsPanel({ profiles, removed, selected, animal, onAnimal, onSelec
   onAnimal: (sp: SpeciesId) => void;
   onSelect: (id: string) => void;
   onDress: (id: string) => void;
-  onSaveDetails: (id: string, name: string, title: string, facts: string[]) => void;
+  onSaveDetails: (id: string, name: string, title: string, facts: string[], personality: string) => void;
   onAdd: () => void;
   onDelete: (id: string) => void;
   onRestore: (id: string) => void;
@@ -746,7 +747,7 @@ function NeighborsPanel({ profiles, removed, selected, animal, onAnimal, onSelec
         </div>
       )}
       {p ? (
-        <NeighborEditor key={`${p.id}-${p.title}-${p.facts.join('|')}-${p.look.species}`} p={p} animal={animal} onAnimal={onAnimal} onDress={onDress} onSave={onSaveDetails} onDelete={onDelete} onRename={onRename} />
+        <NeighborEditor key={`${p.id}-${p.title}-${p.facts.join('|')}-${p.look.species}-${p.personality ?? ''}`} p={p} animal={animal} onAnimal={onAnimal} onDress={onDress} onSave={onSaveDetails} onDelete={onDelete} onRename={onRename} />
       ) : (
         <p className="style-note">No neighbors in town yet. Tap ➕ Add a neighbor.</p>
       )}
@@ -756,18 +757,19 @@ function NeighborsPanel({ profiles, removed, selected, animal, onAnimal, onSelec
 
 function NeighborEditor({ p, animal, onAnimal, onDress, onSave, onDelete, onRename }: {
   p: NpcProfile; animal: SpeciesId | null; onAnimal: (sp: SpeciesId) => void; onDress: (id: string) => void;
-  onSave: (id: string, name: string, title: string, facts: string[]) => void;
+  onSave: (id: string, name: string, title: string, facts: string[], personality: string) => void;
   onDelete: (id: string) => void; onRename: (id: string, name: string) => void;
 }) {
   const [name, setName] = useState(p.name);
   const [askDelete, setAskDelete] = useState(false);
+  const [personality, setPersonality] = useState(p.personality ?? 'friendly');
   const commitName = () => { if (name.trim() && name.trim() !== p.name) onRename(p.id, name); };
   const [title, setTitle] = useState(p.title);
   const [facts, setFacts] = useState<string[]>(p.facts.length ? p.facts : ['']);
   const clean = (t: string) => t.replace(/—/g, '-');
   const factList = facts.map((f) => f.trim()).filter(Boolean);
   const species = animal ?? p.look.species;
-  const changed = name !== p.name || title !== p.title || factList.join('|') !== p.facts.join('|') || species !== p.look.species;
+  const changed = name !== p.name || title !== p.title || factList.join('|') !== p.facts.join('|') || species !== p.look.species || personality !== (p.personality ?? 'friendly');
   const setFact = (i: number, v: string) => setFacts((fs) => fs.map((f, j) => (j === i ? clean(v) : f)));
   return (
     <div className="npc-editor">
@@ -804,6 +806,17 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave, onDelete, onRena
       </div>
 
       <div className="npc-field">
+        <h3>Personality <small>(how they talk to students in Town Square)</small></h3>
+        <div className="npc-personalities" role="radiogroup" aria-label={`${p.name}'s personality`}>
+          {PERSONALITIES.map((pp) => (
+            <button key={pp.id} type="button" role="radio" aria-checked={personality === pp.id} className={`npc-personality${personality === pp.id ? ' on' : ''}`} onClick={() => setPersonality(pp.id)}>
+              <b>{pp.label}</b><small>{pp.short}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="npc-field">
         <h3>Facts <small>(students see these when they tap "About" in Town Square)</small></h3>
         <div className="npc-facts-list">
           {facts.map((f, i) => (
@@ -818,7 +831,7 @@ function NeighborEditor({ p, animal, onAnimal, onDress, onSave, onDelete, onRena
 
       <div className="npc-editor-actions">
         <button type="button" className="style-btn" onClick={() => onDress(p.id)}>🎨 Dress {name.trim() || p.name}</button>
-        <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={() => onSave(p.id, name, title, factList)}>{changed ? '💾 Save changes' : '✓ Saved'}</button>
+        <button type="button" className="style-btn primary" disabled={!changed || !name.trim()} onClick={() => onSave(p.id, name, title, factList, personality)}>{changed ? '💾 Save changes' : '✓ Saved'}</button>
       </div>
       {askDelete ? (
         <div className="npc-delete-ask" role="alertdialog" aria-label={`Delete ${p.name}?`}>

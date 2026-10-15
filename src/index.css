@@ -9300,3 +9300,9 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .main-menu-wedge-ico { font-size: 1.4rem; line-height: 1; }
 .main-menu-wedge-label { font-size: 11px; font-weight: 800; line-height: 1.1; text-align: center; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
 .main-menu-cancel { min-height: 48px; padding: 0 18px; border-radius: 999px; border: 3px solid #1f2a44; background: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+
+/* Neighbor personality picker (Build Queue 228). */
+.npc-personalities { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.npc-personality { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-height: 64px; padding: 8px 12px; border-radius: 14px; border: 2px solid #e3c8ff; background: #fff; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; }
+.npc-personality small { font-size: 0.78rem; opacity: 0.75; font-weight: 600; }
+.npc-personality.on { border-color: #9b59b6; background: #f3e6ff; box-shadow: 0 0 0 2px #9b59b6 inset; }

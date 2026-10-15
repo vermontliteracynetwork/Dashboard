@@ -1,4 +1,5 @@
 import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { withPersonality } from '../../lib/npcPersonality';
 import { MenuItems, openMainMenu } from '../../lib/mainMenu';
 import GroundPatchMesh from './GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
@@ -4058,6 +4059,8 @@ export default function TownSquare() {
           jokeBookEntry: st.jokeBookEntry ? { ...st.jokeBookEntry, npcName: to } : undefined,
         })),
       };
+      // Their personality (Build Queue 228): their own hello first and a line of small talk before goodbye.
+      if (prof.personality) c = { ...c, steps: withPersonality(c.steps, prof.personality) };
     }
     // A game they finished together comes up first, once (teacher direction
     // 2026-10-04: "Remember that time we played bowling and I won?").

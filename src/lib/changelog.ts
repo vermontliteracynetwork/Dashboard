@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-npc-personality",
+    date: "2026-10-15",
+    icon: "🎭",
+    title: "Neighbors have personalities",
+    body: "Every neighbor in Town Square has their own personality now. Some are friendly, some are sassy, some are shy, silly or grumpy. Go say hi and see how each one talks to you!",
+  },
+  {
     id: "2026-10-15-main-menu",
     date: "2026-10-15",
     icon: "☰",

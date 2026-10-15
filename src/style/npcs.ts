@@ -22,8 +22,8 @@ export const NPC_ROSTER: NpcEntry[] = [
   ...Object.values(TOWNSPEOPLE).map((t) => ({ id: t.id, kind: 'townsperson' as const, defaultName: t.name, defaultTitle: 'Townsperson' })),
 ];
 
-export interface NpcProfileRow { look?: StyleLook; name?: string; title?: string; facts?: string[] }
-export interface NpcProfile { id: string; kind: NpcKind; name: string; title: string; facts: string[]; look: StyleLook; defaultName: string }
+export interface NpcProfileRow { look?: StyleLook; name?: string; title?: string; facts?: string[]; personality?: string }
+export interface NpcProfile { id: string; kind: NpcKind; name: string; title: string; facts: string[]; look: StyleLook; defaultName: string; personality?: string }
 
 export const npcOwner = (id: string) => `npc:${id}`;
 
@@ -122,6 +122,7 @@ export function useNpcProfiles(): Record<string, NpcProfile> {
         facts: Array.isArray(row?.facts) ? row!.facts.filter((f) => typeof f === 'string' && f.trim()) : [],
         look,
         defaultName: e.defaultName,
+        personality: row?.personality,
       };
     }
     return out;
