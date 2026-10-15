@@ -42,7 +42,8 @@ interface Live { c: Creature; x: number; y: number; d: number; t: number; hp: nu
 
 const W = 1152, H = 584;
 const POND = { x: 800, y: 370, w: 330, h: 190 };
-const CAVE = { x: 16, y: 150 };
+// Moved in from x 16, y 150 (Build Queue 207) so the Ocean arrow never covers the Shelter sign on an iPad.
+const CAVE = { x: 96, y: 120 };
 const G = '/games/castle-defense/craftpix/';
 const OBJ = `${G}tileset/2-objects/`, SW = `${G}swamp/props/`, HB = `${SN}habitat/`;
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';

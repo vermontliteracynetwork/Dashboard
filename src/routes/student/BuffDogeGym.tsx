@@ -18,6 +18,7 @@ import { playCheer } from '../../lib/petSounds';
 import { sayInPetVoice, petVoiceLine } from '../../lib/petSpeak';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
+import TurnSideways from '../../components/TurnSideways';
 import { recordStreakCorrect } from '../../lib/streak';
 import { openCheckOnPet } from '../../components/CheckOnPet';
 import PetStage3D, { type TrickCue } from '../../components/PetStage3D';
@@ -385,6 +386,7 @@ export default function BuffDogeGym() {
           </div>
         </div>
       )}
+      <TurnSideways game="Buff Doge's Gym" />
     </div>
   );
 }

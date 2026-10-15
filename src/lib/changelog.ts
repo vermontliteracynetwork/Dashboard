@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-15-ipad-fit",
+    date: "2026-10-15",
+    icon: "📱",
+    title: "Games fit your iPad better",
+    body: "Doc Fishing's buttons never sit on top of what Doc says anymore. Some buttons got bigger and easier to tap. Supernature and Buff Doge's Gym ask you to turn your iPad sideways, so everything is big.",
+  },
+  {
     id: "2026-10-15-new-neighbors",
     date: "2026-10-15",
     icon: "🏡",

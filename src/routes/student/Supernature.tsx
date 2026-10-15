@@ -18,6 +18,7 @@ import SupernatureGlobe from './SupernatureGlobe';
 import PopCard from './SupernaturePopCard';
 import SupernatureCauldron from './SupernatureCauldron';
 import { ElementBook } from './SupernatureElements';
+import TurnSideways from '../../components/TurnSideways';
 
 // Supernature, the witchy creature app on the student computer (her design, 2026-10-13; plan in
 // docs/SUPERNATURE_PLAN.md). Home is the Witch's House with the Cat Wizard as host. Every other room
@@ -178,6 +179,7 @@ export default function Supernature() {
           }} />}
         {toast && <div className="sn-toast" role="status">{toast}</div>}
       </div>
+      <TurnSideways game="Supernature" />
     </div>
   );
 }
