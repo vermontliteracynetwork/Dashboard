@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-plinko",
+    date: "2026-10-20",
+    icon: "🎯",
+    title: "A brand new Plinko",
+    body: "Answer the question first, then pick where your ball drops. Hit gold star pegs for bonus points and use power-ups like Magnet and Double. Try mixing a dog and a mermaid in Alchemy too!",
+  },
+  {
     id: "2026-10-20-read-first",
     date: "2026-10-20",
     icon: "👀",
