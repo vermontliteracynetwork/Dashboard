@@ -33,11 +33,14 @@ const RANGES = { rounds: { min: 3, max: 10, def: 5 }, per: { min: 1, max: 5, def
 const ROWS = 7;
 // Drawn icons, not emojis (Build Queue 288, her words: "no emojis in plinko").
 const I = (d: React.ReactNode) => <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden>{d}</svg>;
+// Build Queue 295: her Cute Cartoony icons for three power-ups (cut from her demo sheets), the drawn magnet for the fourth.
+const UI = '/games/plinko/ui/';
+const PIC = (src: string) => <img src={src} alt="" width={34} height={34} style={{ objectFit: 'contain' }} />;
 const POWERS = {
-  double: { name: 'Double', icon: I(<><rect x="3" y="6" width="26" height="20" rx="8" fill="#FF8AC4" /><text x="16" y="21" textAnchor="middle" fontSize="12" fontWeight="800" fill="#fff">2x</text></>), does: 'Counts twice.' },
-  big: { name: 'Big Ball', icon: I(<><circle cx="16" cy="16" r="13" fill="#93BFE6" /><circle cx="11" cy="11" r="4" fill="#fff" opacity=".6" /></>), does: 'Bounces less.' },
+  double: { name: 'Double', icon: PIC(`${UI}power-double.png`), does: 'Counts twice.' },
+  big: { name: 'Big Ball', icon: PIC(`${UI}power-big.png`), does: 'Bounces less.' },
   magnet: { name: 'Magnet', icon: I(<path d="M8 5v11a8 8 0 0 0 16 0V5h-6v11a2 2 0 0 1-4 0V5z" fill="#127FB5" stroke="#6C626E" strokeWidth="1.2" />), does: 'Pulls to the top bucket.' },
-  again: { name: 'Second Drop', icon: I(<><circle cx="16" cy="16" r="13" fill="#C3FCB6" /><path d="M16 9v14M9 16h14" stroke="#6C626E" strokeWidth="3.4" strokeLinecap="round" /></>), does: 'One more ball.' },
+  again: { name: 'Second Drop', icon: PIC(`${UI}power-again.png`), does: 'One more ball.' },
 } as const;
 type Power = keyof typeof POWERS;
 const POWER_IDS = Object.keys(POWERS) as Power[];
@@ -225,7 +228,7 @@ export default function PlinkoDrop() {
         {theme?.title ? <h1 className="pk2-title-img"><img src={theme.title} alt={`Plinko: ${theme.name}`} /></h1> : <h1>Plinko</h1>}
         <SfxToggle plain />
         <MyBest game="plinkoDrop" unit="XP" />
-        <span className="btn" aria-label={`${saved.xp ?? 0} Plinko XP in all`}>{saved.xp ?? 0} XP</span>
+        <span className="btn" aria-label={`${saved.xp ?? 0} Plinko XP in all`}><img className="pk2-star-sm" src={`${UI}star_full.png`} alt="" /> {saved.xp ?? 0} XP</span>
       </header>
 
       <main className="pk2-main">
@@ -258,7 +261,7 @@ export default function PlinkoDrop() {
             {ball && <b className={`pk2-ball${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(active.includes('big') ? 63 : 45) / zones}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, 1fr)` }}>
-            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{'★'.repeat(stars[i])}</em> : null}{v}</span>)}
+            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{Array.from({ length: stars[i] }, (_, k) => <img key={k} src={`${UI}star_full.png`} alt="" />)}</em> : null}{v}</span>)}
           </div>
           <p className="pk2-msg" aria-live="polite">{note ?? ''}</p>
         </section>
@@ -279,8 +282,8 @@ export default function PlinkoDrop() {
           ) : (
             <>
               {active.map((pw) => <div key={`a-${pw}`} className="pk2-power on"><span>{pIcon(pw)}</span><b>{pName(pw)}</b><small>On for this drop</small></div>)}
-              {!active.length && <p className="pk2-small">★ = a power-up next turn</p>}
-              {players.filter((p) => p.owed > 0).map((p) => <p key={p.key} className="pk2-small">{p.name}: {'★'.repeat(p.owed)} next turn</p>)}
+              {!active.length && <p className="pk2-small"><img className="pk2-star-sm" src={`${UI}star_full.png`} alt="A star" /> = a power-up next turn</p>}
+              {players.filter((p) => p.owed > 0).map((p) => <p key={p.key} className="pk2-small">{p.name}: {Array.from({ length: p.owed }, (_, k) => <img key={k} className="pk2-star-sm" src={`${UI}star_full.png`} alt="" />)} next turn</p>)}
             </>
           )}
         </aside>

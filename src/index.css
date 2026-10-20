@@ -9890,3 +9890,9 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .symq-punct button.on { background: #6b7280; color: #fff; border-color: #6b7280; }
 .symq-punct.fix button { border-color: #e5533c; }
 .symq-punct.ok button.on { background: #22c55e; border-color: #22c55e; }
+
+/* Her Plinko art (Build Queue 295): picture balls with their own outlines, CrispKit stars. */
+.pkx-ball, .pk2-ball, .pk2-ball-icon, .pks-ball { border: none; background-color: transparent; }
+.pkx-ball { box-shadow: none; }
+.pk2-stars { display: flex; gap: 2px; justify-content: center; } .pk2-stars img { width: 22px; height: 22px; }
+.pk2-star-sm { width: 18px; height: 18px; vertical-align: -3px; }

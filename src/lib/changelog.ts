@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-plinko-balls",
+    date: "2026-10-20",
+    icon: "🎱",
+    title: "30 new Plinko balls",
+    body: "Pick a basketball, a soccer ball, the Earth, the Moon, a bowling ball and more. Power-ups have new pictures too.",
+  },
+  {
     id: "2026-10-20-caps-punct",
     date: "2026-10-20",
     icon: "🔠",
