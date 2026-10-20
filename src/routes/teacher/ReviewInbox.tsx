@@ -117,7 +117,7 @@ export default function ReviewInbox() {
         timestamp: c.timestamp,
         done: c.inboxResolved ?? false,
         zone: c.zone as 'blue' | 'yellow',
-        emotion: c.emotion,
+        emotion: c.energy ? `${c.emotion}, ${c.energy} energy` : c.emotion,
         noteText: c.noteText,
       })),
   ].sort((a, b) => (a.timestamp < b.timestamp ? 1 : -1));

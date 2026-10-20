@@ -246,6 +246,7 @@ export interface SelCheckIn {
   timestamp: string; // ISO, when the zone was first picked (login gate)
   zone: SelZone;
   emotion: string; // one word from SEL_ZONE_EMOTIONS[zone]
+  energy?: string; // Build Queue 234: 'very high' to 'very low', saved inside the emotion column as "Furious | high energy"
   toolsUsedLabels: string[]; // tools tapped from the support/re-check board, in the order tapped
   noteText?: string; // typed, or voice-transcribed via useTextBoxVoiceToText — never recorded audio (spec §6)
   // Review Inbox: Blue/Yellow land as a normal selNote item (spec §5); Red

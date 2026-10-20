@@ -311,7 +311,7 @@ interface AppState {
   // Pays Class Cash for an animal, item or pattern; false if they can't afford it.
   buyStyle: (studentId: string, kind: 'species' | 'item' | 'pattern', id: string, priceCents: number, label: string) => boolean;
   selCheckIns: SelCheckIn[];
-  recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string) => string;
+  recordSelCheckIn: (studentId: string, zone: SelZone, emotion: string, energy?: string) => string;
   addSelCheckInNote: (id: string, noteText: string) => void;
   addSelCheckInTool: (id: string, toolLabel: string) => void;
   scheduleSelRecheck: (id: string, neighborId: string) => void;
@@ -2853,13 +2853,14 @@ export const useStore = create<AppState>()(
         set((s) => ({ chessGames: [game, ...s.chessGames.filter((g) => g.id !== game.id)] }));
         pushChessGame(game);
       },
-      recordSelCheckIn: (studentId, zone, emotion) => {
+      recordSelCheckIn: (studentId, zone, emotion, energy) => {
         const checkIn: SelCheckIn = {
           id: makeId(),
           studentId,
           timestamp: new Date().toISOString(),
           zone,
           emotion,
+          ...(energy ? { energy } : {}),
           toolsUsedLabels: [],
         };
         set((s) => ({ selCheckIns: [checkIn, ...s.selCheckIns] }));

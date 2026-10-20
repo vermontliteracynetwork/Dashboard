@@ -46,6 +46,7 @@ export default function SelCheckInLog() {
             <p><strong>Date/time:</strong> {new Date(c.timestamp).toLocaleString()}</p>
             <p><strong>Zone:</strong> {SEL_ZONE_LABELS[c.zone]}</p>
             <p><strong>Feeling word:</strong> {c.emotion}</p>
+            {c.energy && <p><strong>Energy level:</strong> {c.energy}</p>}
             <p><strong>Tools used:</strong> {c.toolsUsedLabels.length > 0 ? c.toolsUsedLabels.join(', ') : 'None recorded'}</p>
             <p><strong>Note to teacher:</strong> {c.noteText ?? 'None'}</p>
             {c.recheckDueAt && (
@@ -100,7 +101,7 @@ export default function SelCheckInLog() {
                 <span className="score-avatar"><StylePortrait studentId={c.studentId} size={40} /></span>
                 <div className="score-body">
                   <div className="score-title">
-                    {nameFor(c.studentId)}: {SEL_ZONE_FACE[c.zone]} {SEL_ZONE_LABELS[c.zone]} — {c.emotion}
+                    {nameFor(c.studentId)}: {SEL_ZONE_FACE[c.zone]} {SEL_ZONE_LABELS[c.zone]} — {c.emotion}{c.energy ? `, ${c.energy} energy` : ''}
                   </div>
                   <div className="score-meta">
                     {new Date(c.timestamp).toLocaleString()}

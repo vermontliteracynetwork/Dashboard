@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import { joinSelEmotion, splitSelEmotion } from './feelingsWheel';
 import type {
   Student,
   Subject,
@@ -230,7 +231,7 @@ const rowToSelCheckIn = (r: Row): SelCheckIn => ({
   studentId: r.student_id,
   timestamp: r.occurred_at,
   zone: r.zone,
-  emotion: r.emotion,
+  ...splitSelEmotion(r.emotion ?? ''),
   toolsUsedLabels: r.tools_used_labels ?? [],
   noteText: r.note_text ?? undefined,
   inboxResolved: r.inbox_resolved ?? false,
@@ -274,7 +275,7 @@ const selCheckInToRow = (c: SelCheckIn): Row => ({
   student_id: c.studentId,
   occurred_at: c.timestamp,
   zone: c.zone,
-  emotion: c.emotion,
+  emotion: joinSelEmotion(c.emotion, c.energy),
   tools_used_labels: c.toolsUsedLabels,
   note_text: c.noteText ?? null,
   inbox_resolved: c.inboxResolved ?? false,

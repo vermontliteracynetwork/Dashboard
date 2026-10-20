@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-feelings-wheel",
+    date: "2026-10-20",
+    icon: "🎡",
+    title: "Spin the Feelings Wheel",
+    body: "When you log in, spin the Feelings Wheel to check in with yourself. Stop on a feeling, look at its picture, and stay a moment to see more feelings like it. Then pick your energy level.",
+  },
+  {
     id: "2026-10-15-neighbor-wrapup",
     date: "2026-10-15",
     icon: "🗨️",
