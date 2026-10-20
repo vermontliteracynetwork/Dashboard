@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
+import { applyPetLook } from '../lib/petCoats';
 import { useStore } from '../store/store';
 import { PET_TRICKS, TRICK_REPS_TO_LEARN, trickUnlocked, speakWordFor, nextMilestone } from '../lib/petCatalog';
 import type { PetDef, PetTrick } from '../lib/petCatalog';
@@ -20,18 +21,7 @@ import type { StudentPet } from '../types';
 
 function tintedClone(scene: THREE.Object3D, tintColor?: string) {
   const c = cloneSkinned(scene);
-  if (tintColor) {
-    const color = new THREE.Color(tintColor);
-    c.traverse((child) => {
-      if (!(child instanceof THREE.Mesh)) return;
-      const tint = (mat: THREE.Material) => {
-        const m = mat.clone();
-        if (m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhongMaterial || m instanceof THREE.MeshBasicMaterial) m.color = color;
-        return m;
-      };
-      child.material = Array.isArray(child.material) ? child.material.map(tint) : tint(child.material);
-    });
-  }
+  applyPetLook(c, tintColor); // Build Queue 278: natural coats or a paint color
   return c;
 }
 

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-pet-coats",
+    date: "2026-10-20",
+    icon: "🐾",
+    title: "Real fur colors for your pet",
+    body: "In your Home Room, tap your pet and pick a natural coat, like a red Husky or an orange tabby cat.",
+  },
+  {
     id: "2026-10-20-build-catalog-clean",
     date: "2026-10-20",
     icon: "🧹",

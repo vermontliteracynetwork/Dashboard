@@ -6,6 +6,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
+import { applyPetLook } from '../../lib/petCoats';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import DailySpinWheel from '../../components/DailySpinWheel';
@@ -869,23 +870,8 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
   const { scene, animations } = useGLTF(path);
   const cloned = useMemo(() => {
     const c = cloneSkinned(scene);
-    // Pet paint-brush customization — same clone-material-and-override-color
-    // approach used everywhere else a tinted model renders (WorldObjectRenderer,
-    // HomeRoom's HomePetPresence).
-    if (tintColor) {
-      const color = new THREE.Color(tintColor);
-      c.traverse((child) => {
-        if (!(child instanceof THREE.Mesh)) return;
-        const applyTint = (mat: THREE.Material) => {
-          const clonedMat = mat.clone();
-          if (clonedMat instanceof THREE.MeshStandardMaterial || clonedMat instanceof THREE.MeshPhongMaterial || clonedMat instanceof THREE.MeshBasicMaterial) {
-            clonedMat.color = color;
-          }
-          return clonedMat;
-        };
-        child.material = Array.isArray(child.material) ? child.material.map(applyTint) : applyTint(child.material);
-      });
-    }
+    // Pet looks (Build Queue 278): a natural coat for the breed or a paint-brush color.
+    applyPetLook(c, tintColor);
     return c;
   }, [scene, tintColor]);
   const scale = useMemo(() => {

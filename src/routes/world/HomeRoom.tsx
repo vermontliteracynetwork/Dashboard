@@ -5,6 +5,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber'
 import { Html, OrbitControls, useGLTF, useTexture, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
+import { applyPetLook, coatsFor, isCoat } from '../../lib/petCoats';
 import { StyleAvatar } from '../../style/StyleAvatar';
 import { useStore } from '../../store/store';
 import { WorldObjectRenderer } from './WorldObjectRenderer';
@@ -623,7 +624,23 @@ function PetCareCard({
           cosmetic autonomy, no cost, no cap, reversible any time. A true
           Sims-4-style freehand coat brush is still a future build (see the
           dev plan); the native "more colors" picker covers any color. */}
-      <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75, marginBottom: 4 }}>🎨 Color</div>
+      {coatsFor(pet.petDefId).length > 0 && (
+        <>
+          <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75, marginBottom: 4 }}>🐾 Natural coat</div>
+          <div className="row-wrap" style={{ gap: 6, marginBottom: 8 }}>
+            {coatsFor(pet.petDefId).map((c, i) => {
+              const on = pet.tintColor ? pet.tintColor === `coat:${c.id}` : i === 0;
+              return (
+                <button key={c.id} type="button" aria-pressed={on} onClick={() => tintPet(pet.id, i === 0 ? null : `coat:${c.id}`)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 44, padding: '0 10px', borderRadius: 10, border: on ? '3px solid var(--ink, #1f4238)' : '1px solid #0002', background: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: c.swatch, border: '1px solid #0003' }} />{c.name}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+      <div style={{ fontSize: 12, fontWeight: 700, opacity: 0.75, marginBottom: 4 }}>🎨 Fun color</div>
       <div className="row-wrap" style={{ gap: 6, marginBottom: 8, alignItems: 'center' }}>
         {PET_TINT_SWATCHES.map((c) => (
           <button
@@ -637,14 +654,14 @@ function PetCareCard({
         <label style={{ display: 'flex', alignItems: 'center', gap: 2, fontSize: 11, margin: 0 }}>
           <input
             type="color"
-            value={pet.tintColor ?? '#ffffff'}
+            value={pet.tintColor && !isCoat(pet.tintColor) ? pet.tintColor : '#ffffff'}
             onChange={(e) => tintPet(pet.id, e.target.value)}
             style={{ width: 36, height: 36, minWidth: 36, minHeight: 36, padding: 0, cursor: 'pointer' }}
             title="More colors"
             aria-label="Pick any color for your pet"
           />
         </label>
-        {pet.tintColor && (
+        {pet.tintColor && !isCoat(pet.tintColor) && (
           <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 12, padding: '0 10px' }} onClick={() => tintPet(pet.id, null)}>
             ✕ Reset
           </button>
@@ -692,24 +709,8 @@ function HomePetPresence({ pet, def, position, cue, onTap, roam, obstacles = [] 
   const { scene, animations } = useGLTF(def.modelPath);
   const cloned = useMemo(() => {
     const c = cloneSkinned(scene);
-    // Pet paint-brush customization — same clone-material-and-override-
-    // color approach WorldObjectRenderer's useRecenteredScene uses for
-    // WorldObject.tintColor, so this pet's shared cached GLTF scene (every
-    // other instance of this species) is never mutated in place.
-    if (pet.tintColor) {
-      const color = new THREE.Color(pet.tintColor);
-      c.traverse((child) => {
-        if (!(child instanceof THREE.Mesh)) return;
-        const applyTint = (mat: THREE.Material) => {
-          const clonedMat = mat.clone();
-          if (clonedMat instanceof THREE.MeshStandardMaterial || clonedMat instanceof THREE.MeshPhongMaterial || clonedMat instanceof THREE.MeshBasicMaterial) {
-            clonedMat.color = color;
-          }
-          return clonedMat;
-        };
-        child.material = Array.isArray(child.material) ? child.material.map(applyTint) : applyTint(child.material);
-      });
-    }
+    // Pet looks (Build Queue 278): a natural coat for the breed or a paint-brush color, on a clone.
+    applyPetLook(c, pet.tintColor);
     return c;
   }, [scene, pet.tintColor]);
   const stage = growthStageFor(pet.trainingProgress);
