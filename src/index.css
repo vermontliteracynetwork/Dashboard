@@ -9385,3 +9385,5 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .fw-energy-btn.on { border-color: #5a3d9e; background: #ece4fb; transform: scale(1.04); }
 @media (max-width: 560px) { .fw-energy-row { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .fw-morph.anim, .fw-card, .fw-canvas, .fw-energy-btn { transition: none; } .fw-energy { animation: none; } }
+.fw-root.fw-overlay { z-index: 2000; }
+.fw-tools { display: flex; gap: 8px; flex: none; }

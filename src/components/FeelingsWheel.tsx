@@ -60,7 +60,9 @@ const ringFor = (parent: FeelingNode | null) => {
 const norm = (a: number) => { a = (a + Math.PI) % TAU; if (a < 0) a += TAU; return a - Math.PI; };
 const hexA = (hex: string, a: number) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
 
-export default function FeelingsWheel({ studentName, onChoose }: { studentName: string; onChoose: (n: FeelingNode) => void }) {
+// Used full screen at login (SelZoneCheckIn) and, since Build Queue 235, as an overlay for every other
+// feelings check-in (pets, Neighbors, the take-a-break pet check) through SelZoneEmotionPicker.
+export default function FeelingsWheel({ studentName, greeting, onChoose, onClose, overlay }: { studentName?: string; greeting?: string; onChoose: (n: FeelingNode) => void; onClose?: () => void; overlay?: boolean }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const chooseRef = useRef(onChoose); chooseRef.current = onChoose;
 
@@ -416,20 +418,27 @@ export default function FeelingsWheel({ studentName, onChoose }: { studentName: 
   }, []);
 
   return (
-    <div className="fw-root" ref={rootRef}>
+    <div className={`fw-root${overlay ? ' fw-overlay' : ''}`} ref={rootRef}>
       <canvas className="fw-canvas" aria-label="Feelings wheel. Drag a ring to spin it." />
       <header className="fw-top">
         <div className="fw-greet">
-          <p className="fw-hi">Hi {studentName}!</p>
+          <p className="fw-hi">{greeting ?? (studentName ? `Hi ${studentName}!` : 'Check in with yourself')}</p>
           <h1 className="fw-q">How are you feeling right now?</h1>
           <p className="fw-hint">Spin the wheel. Stop on the feeling that fits you.</p>
           <button type="button" className="fw-btn fw-back" hidden>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M15 5l-7 7 7 7" /></svg>Back
           </button>
         </div>
-        <button type="button" className="fw-btn fw-listen" aria-label="Listen">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>
-        </button>
+        <div className="fw-tools">
+          <button type="button" className="fw-btn fw-listen" aria-label="Listen">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>
+          </button>
+          {onClose && (
+            <button type="button" className="fw-btn" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          )}
+        </div>
       </header>
       <div className="fw-morph" />
       <section className="fw-card" aria-live="polite">
