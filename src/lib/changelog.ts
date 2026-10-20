@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-alchemy-time",
+    date: "2026-10-20",
+    icon: "⏳",
+    title: "Time magic in Alchemy",
+    body: "Mix a wizard with time to make a warlock, or a book with time to make an ancient scroll.",
+  },
+  {
     id: "2026-10-20-plinko",
     date: "2026-10-20",
     icon: "🎯",

@@ -81,7 +81,8 @@ const BASE_RECIPES: [string, string, string][] = [
 // Build Queue 237 (2026-10-20, students asked for more): her Little Alchemy 2 list adds about 570
 // elements and 3,000 combinations on top of the originals above (src/games/alchemy/data2.ts).
 // Student requests she passes on (Build Queue 248, 2026-10-20: "if you combine dog and mermaid, make it a merdog").
-const REQUESTED_ELEMENTS: [string, string, string][] = [["merdog","🐕🧜","Merdog"]];
-const REQUESTED_RECIPES: [string, string, string][] = [["dog","mermaid","merdog"]];
+// Build Queue 249 (2026-10-20, "Wizard + time = worlock. Book + time = ancient scroll").
+const REQUESTED_ELEMENTS: [string, string, string][] = [["merdog","🐕🧜","Merdog"],["warlock","🧙‍♂️🌑","Warlock"],["ancient-scroll","📜⏳","Ancient Scroll"]];
+const REQUESTED_RECIPES: [string, string, string][] = [["dog","mermaid","merdog"],["wizard","time","warlock"],["book","time","ancient-scroll"]];
 export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS];
 export const RECIPES: [string, string, string][] = [...REQUESTED_RECIPES, ...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];
