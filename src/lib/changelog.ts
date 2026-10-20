@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-read-first",
+    date: "2026-10-20",
+    icon: "👀",
+    title: "Read first, then pick",
+    body: "When a question pops up in a game, the answers wait 3 seconds before you can tap them. Use that time to read the question.",
+  },
+  {
     id: "2026-10-20-madlib",
     date: "2026-10-20",
     icon: "📝",

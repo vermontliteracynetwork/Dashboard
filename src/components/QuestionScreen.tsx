@@ -89,6 +89,7 @@ export interface QuestionScreenProps {
 
 const LETTERS = 'ABCDEFGHIJ';
 const CORRECT_PAUSE_MS = 900;
+const READ_FIRST_MS = 3000; // Build Queue 241: answers wait 3 seconds so the question gets read first
 
 function ProgressPips({ done, total }: { done: number; total: number }) {
   const safeTotal = Math.max(total, 1);
@@ -158,6 +159,10 @@ export default function QuestionScreen({
   const toggleMark = (i: number) => setMarked((prev) => { const next = new Set(prev); if (next.has(i)) next.delete(i); else next.add(i); return next; });
   const advanceTimer = useRef<number | null>(null);
   const shownAt = useRef(Date.now());
+  // Read first (Build Queue 241): for 3 seconds after a question appears the answers show as solid
+  // tiles and taps do nothing, so students read before they pick. Report timing starts after it.
+  const [reading, setReading] = useState(true);
+  const readTimer = useRef<number | null>(null);
   // The question log for the teacher's reports (2026-10-14): every answer tapped, the time taken and
   // how the question ended. A new prompt or leaving the screen closes the open entry.
   const qlog = useRef<{ prompt: string; answer: string; start: number; tries: string[]; done: boolean } | null>(null);
@@ -193,22 +198,26 @@ export default function QuestionScreen({
     setAnsweredCorrectly(false);
     setShowExitConfirm(false);
     setMarked(new Set());
-    shownAt.current = Date.now();
+    shownAt.current = Date.now() + READ_FIRST_MS;
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
     closeLog('skipped');
-    qlog.current = { prompt, answer: choices[correctIndex] ?? '', start: Date.now(), tries: [], done: false };
+    qlog.current = { prompt, answer: choices[correctIndex] ?? '', start: Date.now() + READ_FIRST_MS, tries: [], done: false };
+    setReading(true);
+    if (readTimer.current) window.clearTimeout(readTimer.current);
+    readTimer.current = window.setTimeout(() => { setReading(false); const q = qlog.current; if (q && !q.done) q.start = Date.now(); shownAt.current = Date.now(); }, READ_FIRST_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prompt]);
 
   useEffect(() => () => {
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
+    if (readTimer.current) window.clearTimeout(readTimer.current);
     closeLog('left');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChoice = (i: number) => {
     // Any answer already given locks the question: a later tap on the right answer never counts.
-    if (answeredCorrectly || feedback === 'wrong') return;
+    if (answeredCorrectly || feedback === 'wrong' || reading) return;
     if (qlog.current && !qlog.current.done) qlog.current.tries.push(choices[i] ?? String(i));
     if (i === correctIndex) {
       closeLog('right');
@@ -468,13 +477,14 @@ export default function QuestionScreen({
               const isCorrectPick = answeredCorrectly && origIdx === correctIndex;
               // After a wrong pick the right answer is shown (outlined, locked), so the student still learns it.
               const showRight = feedback === 'wrong' && origIdx === correctIndex;
-              const bg = isCorrectPick ? '#E7F7EE' : isWrong ? '#FDEBEA' : '#fff';
-              const border = isCorrectPick || showRight ? '#8FD3AE' : isWrong ? '#F3B7B0' : '#F2E8D6';
+              const bg = reading ? '#F5EFE3' : isCorrectPick ? '#E7F7EE' : isWrong ? '#FDEBEA' : '#fff';
+              const border = reading ? '#F5EFE3' : isCorrectPick || showRight ? '#8FD3AE' : isWrong ? '#F3B7B0' : '#F2E8D6';
               return (
                 <button
                   key={origIdx}
                   type="button"
                   onClick={() => handleChoice(origIdx)}
+                  aria-disabled={reading || undefined}
                   disabled={answeredCorrectly || feedback === 'wrong'}
                   style={{
                     display: 'flex',
@@ -485,7 +495,8 @@ export default function QuestionScreen({
                     border: `2px solid ${border}`,
                     background: bg,
                     textAlign: 'left',
-                    cursor: answeredCorrectly || feedback === 'wrong' ? 'default' : 'pointer',
+                    cursor: answeredCorrectly || feedback === 'wrong' || reading ? 'default' : 'pointer',
+                    transition: 'background 0.35s, border-color 0.35s',
                     borderStyle: showRight ? 'dashed' : 'solid',
                     minHeight: 68,
                   }}
