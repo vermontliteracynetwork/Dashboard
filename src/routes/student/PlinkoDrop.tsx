@@ -31,11 +31,13 @@ import { themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
 
 const RANGES = { rounds: { min: 3, max: 10, def: 5 }, per: { min: 1, max: 5, def: 1 } };
 const ROWS = 7;
+// Drawn icons, not emojis (Build Queue 288, her words: "no emojis in plinko").
+const I = (d: React.ReactNode) => <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden>{d}</svg>;
 const POWERS = {
-  double: { name: 'Double', icon: '✖️2', does: 'This drop counts twice.' },
-  big: { name: 'Big Ball', icon: '🟠', does: 'A big ball that bounces less, easier to aim.' },
-  magnet: { name: 'Magnet', icon: '🧲', does: 'Pulls the ball toward the biggest bucket.' },
-  again: { name: 'Second Drop', icon: '➕', does: 'Drop a second ball right after this one.' },
+  double: { name: 'Double', icon: I(<><rect x="3" y="6" width="26" height="20" rx="8" fill="#FF8AC4" /><text x="16" y="21" textAnchor="middle" fontSize="12" fontWeight="800" fill="#fff">2x</text></>), does: 'Counts twice.' },
+  big: { name: 'Big Ball', icon: I(<><circle cx="16" cy="16" r="13" fill="#93BFE6" /><circle cx="11" cy="11" r="4" fill="#fff" opacity=".6" /></>), does: 'Bounces less.' },
+  magnet: { name: 'Magnet', icon: I(<path d="M8 5v11a8 8 0 0 0 16 0V5h-6v11a2 2 0 0 1-4 0V5z" fill="#127FB5" stroke="#6C626E" strokeWidth="1.2" />), does: 'Pulls to the top bucket.' },
+  again: { name: 'Second Drop', icon: I(<><circle cx="16" cy="16" r="13" fill="#C3FCB6" /><path d="M16 9v14M9 16h14" stroke="#6C626E" strokeWidth="3.4" strokeLinecap="round" /></>), does: 'One more ball.' },
 } as const;
 type Power = keyof typeof POWERS;
 const POWER_IDS = Object.keys(POWERS) as Power[];
@@ -219,16 +221,16 @@ export default function PlinkoDrop() {
   return (
     <div className={`pk2${theme ? ' themed' : ''}`} style={themeVars(theme) as React.CSSProperties}>
       <header className="fd-head pk-head">
-        <LeaveButton onLeave={() => { pay(); back.go(); }} />
+        <LeaveButton plain onLeave={() => { pay(); back.go(); }} />
         {theme?.title ? <h1 className="pk2-title-img"><img src={theme.title} alt={`Plinko: ${theme.name}`} /></h1> : <h1>Plinko</h1>}
-        <SfxToggle />
+        <SfxToggle plain />
         <MyBest game="plinkoDrop" unit="XP" />
-        <span className="btn" aria-label={`${saved.xp ?? 0} Plinko XP in all`}>⭐ {saved.xp ?? 0} XP</span>
+        <span className="btn" aria-label={`${saved.xp ?? 0} Plinko XP in all`}>{saved.xp ?? 0} XP</span>
       </header>
 
       <main className="pk2-main">
         <aside className="pk2-panel pk2-score" aria-label="Scoreboard">
-          <h2>Scoreboard</h2>
+          <h2>Scores</h2>
           {players.map((p) => (
             <div key={p.key} className={`pk2-player${cur && p.key === cur.key && phase !== 'over' ? ' on' : ''}`}>
               <span className="pk2-ball-icon" style={{ background: ballBg(p) }} aria-hidden />
@@ -275,7 +277,7 @@ export default function PlinkoDrop() {
           ) : (
             <>
               {active.map((pw) => <div key={`a-${pw}`} className="pk2-power on"><span>{pIcon(pw)}</span><b>{pName(pw)}</b><small>On for this drop</small></div>)}
-              {!active.length && <p className="pk2-small">Land in a bucket with ★ stars. Each star is a power-up to pick at the start of your next turn.</p>}
+              {!active.length && <p className="pk2-small">★ = a power-up next turn</p>}
               {players.filter((p) => p.owed > 0).map((p) => <p key={p.key} className="pk2-small">{p.name}: {'★'.repeat(p.owed)} next turn</p>)}
             </>
           )}
@@ -287,14 +289,15 @@ export default function PlinkoDrop() {
           <div>
             <span className="pk2-ball-icon" style={{ background: ballBg(cur) }} aria-hidden />
             <b>{players.length > 1 ? `${cur.name}'s turn!` : `Round ${round + 1}`}</b>
-            <small>Round {round + 1} of {totalRounds}</small>
+            {players.length > 1 && <small>Round {round + 1} of {totalRounds}</small>}
           </div>
         </div>
       )}
       {started && phase === 'question' && cur && cur.kind !== 'npc' && (
         <QuestionScreen
           key={`${q.id}-${turnNo}-${qDone}`}
-          whoLabel={`🎯 ${cur.name}'s question · Round ${round + 1} of ${totalRounds}${assignment && cur.kind === 'me' ? ' · 📋 counts for your assignment' : ''}`}
+          whoLabel={`${cur.name} · Round ${round + 1} of ${totalRounds}${assignment && cur.kind === 'me' ? ' · Assignment' : ''}`}
+          plain
           prompt={q.prompt} typed={q.typed} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt}
           done={qDone} total={rs.perRound}
           onCorrectAnswer={onRight}
@@ -315,7 +318,7 @@ export default function PlinkoDrop() {
           <div className="pf-panel fd-catch">
             <h2>Game over!</h2>
             <ol className="pk2-podium">
-              {ranked.map((p, i) => <li key={p.key}><span>{i === 0 ? '👑' : `${i + 1}.`}</span> <b>{p.name}</b> <strong>{p.xp} XP</strong></li>)}
+              {ranked.map((p, i) => <li key={p.key}><span>{i + 1}.</span> <b>{p.name}</b> <strong>{p.xp} XP</strong></li>)}
             </ol>
             {me && <p>You earned <b>{me.xp} XP</b>. Your Plinko XP: {(saved.xp ?? 0)}.</p>}
             <div className="pf-detail-actions">

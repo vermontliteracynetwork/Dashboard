@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Lexend:wght@400;600;700&family=Press+Start+2P&family=Playwrite+US+Trad&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inclusive+Sans:ital@0;1&family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&family=Lexend:wght@400;600;700&family=Press+Start+2P&family=Playwrite+US+Trad&display=swap');
 
 /* Full-screen 3D world views (Town Square, Home Room, Creative Island) set
    an inline 100vh as a fallback for browsers with no dvh support, then this
@@ -9788,3 +9788,53 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .pkx .pks-who { color: #3b1873; background: #fff7d6; border-radius: 18px; padding: 12px; width: 100%; box-sizing: border-box; }
 @media (max-width: 760px) { .pkx-slider { grid-template-columns: 1fr; gap: 4px; } .pkx-btn { min-width: 140px; font-size: 1.5rem; } }
 @media (prefers-reduced-motion: reduce) { .pkx-ball, .pkx-btn { transition: none; } }
+
+/* Plinko main theme (Build Queue 288, her reference Plinko.pdf): Plink-oh's layout, her look. Inclusive Sans and her
+   ten colors: soft blue #93BFE6, pink #FDC3EC, peach #FFDCD6, deep blue #127FB5, aqua #9AEFF6, pale lime #E3FCC3,
+   mint #C3FCB6, hot pink #FF8AC4, off-white #F9FBF4, dark mauve #6C626E; pastel pattern panels with thin mauve edges
+   like her swatch sheet. These rules come last so they replace the earlier yellow Plink-oh styling. */
+.pkx { --ink: #6C626E; background: #E9E4F7 repeating-linear-gradient(135deg, rgba(255,255,255,.45) 0 14px, transparent 14px 28px); }
+.pkx-card { color: var(--ink); font-family: 'Inclusive Sans', 'Nunito', system-ui, sans-serif; border: 3px solid var(--ink); box-shadow: 0 8px 0 rgba(108,98,110,.25);
+  background: linear-gradient(115deg, #FDC3EC 0 18%, #F9FBF4 18% 24%, #9AEFF6 24% 44%, #F9FBF4 44% 50%, #C3FCB6 50% 70%, #F9FBF4 70% 76%, #FFDCD6 76%); }
+.pkx-card > * { position: relative; }
+.pkx-card::before { content: ''; position: absolute; inset: 14px; border-radius: 18px; background: rgba(249,251,244,.86); pointer-events: none; }
+.pkx-say { background: #F9FBF4; color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 4px 0 var(--ink); display: grid; place-items: center; z-index: 1; }
+.pkx-title h1 { font: 400 clamp(3.4rem, 9vw, 6rem)/1 'Inclusive Sans', sans-serif; color: var(--ink); transform: none; -webkit-text-stroke: 0; text-shadow: 3px 3px 0 #FDC3EC; letter-spacing: -1px; }
+.pkx-o { background: radial-gradient(circle at 35% 30%, #FDC3EC, #FF8AC4 70%); border: 3px solid var(--ink); box-shadow: 3px 3px 0 #9AEFF6; }
+.pkx-slider-label b, .pkx-value, .pkx-h { color: var(--ink); -webkit-text-stroke: 0; text-shadow: none; font-family: 'Inclusive Sans', sans-serif; font-weight: 400; }
+.pkx-slider-label b { font-size: clamp(1.6rem, 3.2vw, 2.2rem); }
+.pkx-value { font-size: 1.9rem; }
+.pkx-h { font-size: clamp(2.2rem, 5vw, 3.2rem); text-shadow: 3px 3px 0 #FDC3EC; }
+.pkx-slider input[type=range] { height: 26px; border: 3px solid var(--ink); background: linear-gradient(90deg, #93BFE6 var(--pct), #F9FBF4 var(--pct)); }
+.pkx-slider input[type=range]::-webkit-slider-thumb { background: radial-gradient(circle at 35% 30%, #FDC3EC, #FF8AC4 70%); border: 3px solid var(--ink); box-shadow: 2px 3px 0 var(--ink); }
+.pkx-slider input[type=range]::-moz-range-thumb { background: #FF8AC4; border: 3px solid var(--ink); }
+.pkx-note { color: var(--ink); font-weight: 400; }
+.pkx-btn { background: #93BFE6; color: var(--ink); -webkit-text-stroke: 0; font: 400 1.7rem 'Inclusive Sans', sans-serif; border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); }
+.pkx-btn.go { background: #C3FCB6; box-shadow: 0 5px 0 var(--ink); }
+.pkx-btn:active { box-shadow: 0 1px 0 var(--ink); }
+.pkx-theme { background: #F9FBF4; color: var(--ink); border: 3px solid var(--ink); font-family: 'Inclusive Sans', sans-serif; font-weight: 400; }
+.pkx-theme.on { border-color: #127FB5; box-shadow: 0 0 0 3px #9AEFF6; }
+.pkx-theme-main { background: linear-gradient(115deg, #FDC3EC 0 33%, #9AEFF6 33% 66%, #C3FCB6 66%) !important; }
+.pkx-tag { background: #F9FBF4; color: var(--ink); -webkit-text-stroke: 0; font: 400 1.15rem 'Inclusive Sans', sans-serif; border: 2px solid var(--ink); box-shadow: none; }
+.pkx-tag.who { background: #127FB5; color: #F9FBF4; box-shadow: none; }
+.pkx-ball { border: 3px solid var(--ink); }
+.pkx-cell.mine .pkx-ball { box-shadow: 0 0 0 5px #F9FBF4, 0 0 0 8px #FF8AC4; }
+.pkx .pks-who { color: var(--ink); background: #F9FBF4; border: 2px solid var(--ink); }
+/* The game board in the main theme (a picked theme still overrides these through themeVars). */
+.pk2 { --pk-bg: linear-gradient(135deg, #9AEFF6 0%, #E9E4F7 45%, #FDC3EC 100%); --pk-board: #127FB5; --pk-board-edge: #6C626E; --pk-peg: #F9FBF4; --pk-ink: #6C626E; --pk-panel: #F9FBF4; --pk-panel-edge: #6C626E; --pk-cur: #FF8AC4;
+  font-family: 'Inclusive Sans', 'Nunito', system-ui, sans-serif; }
+.pk2 .pk-head h1 { color: #6C626E; text-shadow: 3px 3px 0 #FDC3EC; font-family: 'Inclusive Sans', sans-serif; font-weight: 400; }
+.pk2-panel { border-width: 3px; box-shadow: 0 5px 0 rgba(108,98,110,.25); }
+.pk2-panel h2 { font-weight: 400; }
+.pk2-buckets span { color: #6C626E; text-shadow: none; border: 3px solid #6C626E; font-weight: 700; }
+.pk2-buckets .b10 { background: #C3FCB6; } .pk2-buckets .b20 { background: #FFDCD6; } .pk2-buckets .b30 { background: #FDC3EC; } .pk2-buckets .b40 { background: #9AEFF6; }
+.pk2-field i { box-shadow: inset 0 -2px 0 rgba(108,98,110,.35); }
+.pk2-power { border-color: #6C626E; border-width: 2px; }
+.pk2-power span { display: grid; place-items: center; }
+.pk2-power.on { background: #E3FCC3; border-color: #6C626E; }
+.pk2-player.on { box-shadow: 0 0 0 3px #FF8AC4; }
+.pk2-intro > div { border-color: #FF8AC4; font-family: 'Inclusive Sans', sans-serif; color: #6C626E; }
+.pk2-intro b { font-weight: 400; }
+.pk2-msg { color: #6C626E; text-shadow: none; }
+.pk2-zone { border-color: rgba(249,251,244,.8); }
+.pkx-card > .pkx-say { position: absolute; top: 24px; left: 24px; }

@@ -11,3 +11,6 @@ Plinko custom theme kit
 4. In the teacher dashboard: menu, Plinko themes. Name the theme, pick a font,
    type power-up names if you want (Magnet could be Super Smell), upload the PDF.
 5. Check the preview, then tap Approve for students.
+
+Main theme reference: main-theme-reference/Plinko-main-theme.pdf
+(Inclusive Sans and the ten pastel colors used by the built-in Plinko look.)

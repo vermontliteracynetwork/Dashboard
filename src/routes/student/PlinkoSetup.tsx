@@ -15,7 +15,10 @@ const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
 // Rounds and Questions each turn, plus the theme row. 2 Who is playing (only with 2 or more): a classmate's name or
 // a Neighbor invite ("Inviting Roscoe..." with their picture, Build Queue 255). 3 The ball grid: "Ava, pick your
 // ball" over every ball, numbered; a picked ball wears its player's name tag; it moves on to the next player by
-// itself. 4 Players: each player's ball and name, with Back, Random and Start. 🔊 reads every page.
+// itself. 4 Players: each player's ball and name, with Back, Random and Start. The speaker button reads every page.
+// Build Queue 288 (her words: "no emojis in plinko, lessen the word length for titles, remove unneccary subtitles. dont
+// completely model the visual design, but rather the layout"): Plink-oh's layout, her own look (Inclusive Sans and her
+// pastel palette, see .pkx in index.css), short titles, no emojis.
 
 export const BALLS = [
   { id: 'sunset', name: 'Sunset', bg: 'radial-gradient(circle at 35% 30%, #ffd2a6, #ff7a1a 55%, #c94a00)' },
@@ -38,11 +41,13 @@ export const BALLS = [
 
 export interface SetupPlayer { key: string; name: string; kind: 'me' | 'irl' | 'npc'; npcId?: string; ball: number }
 
-function Slider({ icon, label, sub, value, min, max, onChange, disabled }: { icon: string; label: string; sub?: string; value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean }) {
+export const SpeakerIcon = () => <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>;
+
+function Slider({ label, value, min, max, onChange, disabled }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean }) {
   const pct = max === min ? 0 : ((value - min) / (max - min)) * 100;
   return (
     <div className="pkx-slider">
-      <div className="pkx-slider-label"><span aria-hidden>{icon}</span><div><b>{label}</b>{sub && <small>{sub}</small>}</div></div>
+      <div className="pkx-slider-label"><b>{label}</b></div>
       <div className="pkx-track-wrap">
         <span className="pkx-value" style={{ left: `calc(${pct}% + ${24 - pct * 0.48}px)` }}>{value}</span>
         <input type="range" min={min} max={max} step={1} value={value} disabled={disabled} aria-label={label}
@@ -73,10 +78,10 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
   const say = (t: string) => speak(t, tts);
   const names = [studentName, ...others.slice(0, count - 1).map((o) => (o.kind === 'npc' ? profiles[o.npcId ?? '']?.name ?? 'Neighbor' : o.name || 'Player'))];
   const SAY: Record<string, string> = {
-    menu: 'Plinko! Slide to pick how many players, rounds and questions each turn.',
+    menu: 'Plinko! Slide to pick players, rounds and questions.',
     who: 'Who is playing with you? Add a classmate or invite a Neighbor.',
-    balls: `${names[ballFor]}, pick your ball.`,
-    players: 'Here are the players. Tap Start to play!',
+    balls: `${names[ballFor]}, pick a ball.`,
+    players: 'Ready? Tap Start.',
   };
   useEffect(() => { say(SAY[cur]); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cur, ballFor]);
@@ -111,19 +116,19 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
   return (
     <div className="pkx">
       <div className="pkx-card">
-        <button type="button" className="pkx-say" onClick={() => say(SAY[cur])} aria-label="Listen">🔊</button>
+        <button type="button" className="pkx-say" onClick={() => say(SAY[cur])} aria-label="Listen"><SpeakerIcon /></button>
         {cur === 'menu' && (
           <>
-            <div className="pkx-title">{theme?.title ? <img src={theme.title} alt={`Plinko: ${theme.name}`} /> : <h1 aria-label="Plinko">Pl<span>i</span>nk<b className="pkx-o" aria-hidden />!</h1>}</div>
+            <div className="pkx-title">{theme?.title ? <img src={theme.title} alt={`Plinko: ${theme.name}`} /> : <h1 aria-label="Plinko">Plink<b className="pkx-o" aria-hidden /></h1>}</div>
             <div className="pkx-sliders">
-              <Slider icon="👥" label="PLAYERS" sub={count === 1 ? 'just you' : 'with classmates or Neighbors'} value={count} min={1} max={5} onChange={(n) => { setCount(n); setSlot(0); }} />
-              <Slider icon="🔁" label="ROUNDS" value={rounds} min={ranges.rounds.min} max={ranges.rounds.max} onChange={onRounds} disabled={locked} />
-              <Slider icon="❓" label="QUESTIONS" sub="each turn" value={perTurn} min={ranges.per.min} max={ranges.per.max} onChange={onPerTurn} disabled={locked} />
+              <Slider label="Players" value={count} min={1} max={5} onChange={(n) => { setCount(n); setSlot(0); }} />
+              <Slider label="Rounds" value={rounds} min={ranges.rounds.min} max={ranges.rounds.max} onChange={onRounds} disabled={locked} />
+              <Slider label="Questions" value={perTurn} min={ranges.per.min} max={ranges.per.max} onChange={onPerTurn} disabled={locked} />
             </div>
-            {locked && <p className="pkx-note">Your teacher set the rounds and questions for your assignment.</p>}
+            {locked && <p className="pkx-note">Set by your teacher</p>}
             {themes.length > 0 && (
               <div className="pkx-themes" aria-label="Theme">
-                <button type="button" className={`pkx-theme${!theme ? ' on' : ''}`} onClick={() => { onTheme?.(null); sfx.pop(); }}><span style={{ background: 'radial-gradient(circle at 50% 35%, #ffd34d, #f39a12)' }}>🎯</span>Classic</button>
+                <button type="button" className={`pkx-theme${!theme ? ' on' : ''}`} onClick={() => { onTheme?.(null); sfx.pop(); }}><span className="pkx-theme-main" />Classic</button>
                 {themes.map((t) => (
                   <button key={t.id} type="button" className={`pkx-theme${theme?.id === t.id ? ' on' : ''}`} onClick={() => { onTheme?.(t.id); setBalls([null, null, null, null, null]); sfx.pop(); say(t.name); }}>
                     <span style={{ background: t.background ? `center / cover url("${t.background}")` : t.colors.primary ?? '#5a3d9e' }} />{t.name}
@@ -132,15 +137,15 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
               </div>
             )}
             <div className="pkx-nav">
-              <button type="button" className="pkx-btn" onClick={onLeave}>← Leave</button>
-              <button type="button" className="pkx-btn go" onClick={nextFromMenu}>→ Next</button>
+              <button type="button" className="pkx-btn" onClick={onLeave}>Leave</button>
+              <button type="button" className="pkx-btn go" onClick={nextFromMenu}>Next</button>
             </div>
           </>
         )}
 
         {cur === 'who' && (
           <>
-            <h2 className="pkx-h">WHO IS PLAYING?</h2>
+            <h2 className="pkx-h">Players</h2>
             <div className="pks-slots">
               <span className="pks-chip me">{studentName} (you)</span>
               {others.slice(0, count - 1).map((o, i) => (
@@ -151,12 +156,12 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
             </div>
             <div className="pks-who">
               <div className="pks-irl">
-                <b>A classmate here with you</b>
+                <b>Classmate</b>
                 <input value={others[slot]?.kind === 'irl' ? others[slot].name : ''} placeholder="Type their name" aria-label={`Player ${slot + 2} name`} maxLength={18}
                   onChange={(e) => setOthers((o) => o.map((x, i) => (i === slot ? { kind: 'irl', name: e.target.value } : x)))} />
               </div>
               <div className="pks-npcs">
-                <b>Or invite a Neighbor</b>
+                <b>Neighbor</b>
                 <div className="pks-npc-grid">
                   {Object.values(profiles).map((p) => {
                     const taken = chosenNpcs.has(p.id) && others[slot]?.npcId !== p.id;
@@ -171,15 +176,15 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
               </div>
             </div>
             <div className="pkx-nav">
-              <button type="button" className="pkx-btn" onClick={() => go('menu')}>← Back</button>
-              <button type="button" className="pkx-btn go" disabled={!whoDone} onClick={() => { setBallFor(0); go('balls'); }}>→ Next</button>
+              <button type="button" className="pkx-btn" onClick={() => go('menu')}>Back</button>
+              <button type="button" className="pkx-btn go" disabled={!whoDone} onClick={() => { setBallFor(0); go('balls'); }}>Next</button>
             </div>
           </>
         )}
 
         {cur === 'balls' && (
           <>
-            <h2 className="pkx-h">{names[ballFor]}, pick your ball!</h2>
+            <h2 className="pkx-h">{names[ballFor]}</h2>
             <div className="pkx-grid">
               {ballList.map((b, k) => {
                 const owner = balls.slice(0, count).findIndex((x) => x === k);
@@ -192,15 +197,15 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
               })}
             </div>
             <div className="pkx-nav">
-              <button type="button" className="pkx-btn" onClick={() => go(count > 1 ? 'who' : 'menu')}>← Back</button>
-              <button type="button" className="pkx-btn" onClick={() => { random(); go('players'); }}>🔀 Random</button>
+              <button type="button" className="pkx-btn" onClick={() => go(count > 1 ? 'who' : 'menu')}>Back</button>
+              <button type="button" className="pkx-btn" onClick={() => { random(); go('players'); }}>Random</button>
             </div>
           </>
         )}
 
         {cur === 'players' && (
           <>
-            <h2 className="pkx-h">PLAYERS</h2>
+            <h2 className="pkx-h">Ready?</h2>
             <div className="pkx-team">
               {names.map((n, i) => (
                 <div key={i} className="pkx-member">
@@ -210,9 +215,9 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
               ))}
             </div>
             <div className="pkx-nav four">
-              <button type="button" className="pkx-btn" onClick={() => { setBallFor(0); go('balls'); }}>← Back</button>
-              <button type="button" className="pkx-btn" onClick={random}>🔀 Random</button>
-              <button type="button" className="pkx-btn go" onClick={start}>▶ Start</button>
+              <button type="button" className="pkx-btn" onClick={() => { setBallFor(0); go('balls'); }}>Back</button>
+              <button type="button" className="pkx-btn" onClick={random}>Random</button>
+              <button type="button" className="pkx-btn go" onClick={start}>Start</button>
             </div>
           </>
         )}

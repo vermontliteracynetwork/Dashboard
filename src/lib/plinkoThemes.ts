@@ -28,7 +28,8 @@ export interface PlinkoTheme {
 }
 
 export const PLINKO_FONTS = [
-  { id: 'default', label: 'Game font (Nunito)', css: "'Nunito', system-ui, sans-serif" },
+  { id: 'default', label: 'Main font (Inclusive Sans)', css: "'Inclusive Sans', 'Nunito', system-ui, sans-serif" },
+  { id: 'nunito', label: 'Rounded (Nunito)', css: "'Nunito', system-ui, sans-serif" },
   { id: 'baloo', label: 'Round and bubbly (Baloo 2)', css: "'Baloo 2', 'Nunito', sans-serif" },
   { id: 'lexend', label: 'Easy reading (Lexend)', css: "'Lexend', system-ui, sans-serif" },
   { id: 'comic', label: 'Hand drawn (Comic)', css: "'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive" },

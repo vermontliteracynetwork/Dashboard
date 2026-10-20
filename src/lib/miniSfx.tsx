@@ -50,8 +50,8 @@ export const sfx = {
   creak: () => tone(110, 0.4, 'sawtooth', 0.03, 180),
 };
 
-export function SfxToggle() {
+export function SfxToggle({ plain = false }: { plain?: boolean } = {}) {
   const [on, setOn] = useState(sfxOn);
   const flip = () => { const v = !on; setOn(v); try { localStorage.setItem(KEY, v ? '1' : '0'); } catch { /* fine */ } if (v) sfx.chime(); };
-  return <button type="button" className="btn sfx-toggle" onClick={flip} aria-label={on ? 'Sound effects on. Tap to turn them off.' : 'Sound effects off. Tap to turn them on.'} aria-pressed={on}>{on ? '🔊' : '🔇'}</button>;
+  return <button type="button" className="btn sfx-toggle" onClick={flip} aria-label={on ? 'Sound effects on. Tap to turn them off.' : 'Sound effects off. Tap to turn them on.'} aria-pressed={on}>{plain ? <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />{on ? <path d="M16.5 8.5a5 5 0 0 1 0 7" /> : <path d="M16 9l5 6M21 9l-5 6" />}</svg> : on ? '🔊' : '🔇'}</button>;
 }

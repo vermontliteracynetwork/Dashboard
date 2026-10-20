@@ -89,6 +89,8 @@ export interface QuestionScreenProps {
   whoIcon?: string;
   // Build Queue 264: a typed answer question (symbol sentence or Mad Lib) shows its answer boxes instead of choices.
   typed?: SymbolQuestion | MadLibQuestion;
+  // Build Queue 288: Plinko asks for no emojis; plain words and a drawn speaker instead.
+  plain?: boolean;
 }
 
 const LETTERS = 'ABCDEFGHIJ';
@@ -138,6 +140,7 @@ export default function QuestionScreen({
   autoRead = false,
   voice,
   typed,
+  plain = false,
 }: QuestionScreenProps) {
   const qKey = typed ? typed.id : prompt;
   // One try per question, everywhere (Build Queue 209, her words 2026-10-15: "if a student answers a question
@@ -317,7 +320,7 @@ export default function QuestionScreen({
               cursor: 'pointer',
             }}
           >
-            🧰
+            {plain ? <span style={{ fontSize: 13, fontWeight: 800 }}>Tools</span> : '🧰'}
           </button>
           {showToolbox && (
             <div
@@ -366,7 +369,7 @@ export default function QuestionScreen({
                     touchAction: 'manipulation',
                   }}
                 >
-                  <span style={{ fontSize: 20 }}>{tool.icon}</span>
+                  {!plain && <span style={{ fontSize: 20 }}>{tool.icon}</span>}
                   {tool.label}
                 </button>
               ))}
@@ -474,7 +477,7 @@ export default function QuestionScreen({
                 cursor: 'pointer',
               }}
             >
-              🔊 Listen
+              {plain ? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /></svg> : '🔊'} Listen
             </button>
           </div>
 
@@ -551,7 +554,7 @@ export default function QuestionScreen({
                 color: feedback === 'correct' ? '#1F6B45' : '#9C3A35',
               }}
             >
-              {feedback === 'correct' ? '✅ Correct! Nice work.' : "❌ Not quite. On to the next one."}
+              {feedback === 'correct' ? `${plain ? '' : '✅ '}Correct! Nice work.` : `${plain ? '' : '❌ '}Not quite. On to the next one.`}
             </div>
           )}
 
@@ -573,7 +576,7 @@ export default function QuestionScreen({
                   cursor: 'pointer',
                 }}
               >
-                Next Question ▶
+                {plain ? 'Next question' : 'Next Question ▶'}
               </button>
             ) : (
               <button
@@ -603,7 +606,7 @@ export default function QuestionScreen({
       {showPad && <Scratchpad onClose={() => setShowPad(false)} />}
       {highlightOn && (
         <div style={{ position: 'fixed', top: 104, left: '50%', transform: 'translateX(-50%)', zIndex: 204, display: 'flex', alignItems: 'center', gap: 8, background: '#FFF8D6', border: '2px solid #FFE14D', borderRadius: 999, padding: '4px 6px 4px 16px', fontWeight: 700, fontSize: 14, color: '#3A342A' }}>
-          🖍️ Tap words in the question to highlight them
+          {plain ? '' : '🖍️ '}Tap words in the question to highlight them
           <button type="button" onClick={() => setHighlightOn(false)} style={{ minHeight: 40, borderRadius: 999, border: 'none', background: '#fff', padding: '0 14px', fontWeight: 700, cursor: 'pointer' }}>Done</button>
         </div>
       )}
