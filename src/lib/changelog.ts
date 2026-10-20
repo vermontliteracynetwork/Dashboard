@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-symbol-tips",
+    date: "2026-10-20",
+    icon: "💬",
+    title: "Symbol meanings show in full",
+    body: "Tap a grammar symbol and its whole meaning shows in a bubble that always fits on the screen.",
+  },
+  {
     id: "2026-10-20-typed-in-games",
     date: "2026-10-20",
     icon: "✍️",

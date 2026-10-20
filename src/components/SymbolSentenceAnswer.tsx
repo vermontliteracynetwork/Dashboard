@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { SymbolQuestion, TTSSettings } from '../types';
 import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, fullSentence, grammarProblem, inkOn, randomWord } from '../lib/symbolSentence';
 import { speak } from './ReadAloud';
+import SymbolTip from './SymbolTip';
 
 // The student side of a symbol sentence question (Build Queue 253): her symbols in a row, each with its
 // word box under it, like her sentence cards. Solid boxes are her words; outline boxes are for the
@@ -15,6 +16,7 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult }: { q
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [tries, setTries] = useState(0);
   const inputs = useRef<Record<number, HTMLInputElement | null>>({});
+  const icons = useRef<Record<number, HTMLButtonElement | null>>({});
   const open = q.slots.map((s, i) => (s.given ? -1 : i)).filter((i) => i >= 0);
   const allFilled = open.every((i) => (vals[i] ?? '').trim());
 
@@ -53,11 +55,11 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult }: { q
           const info = SYMBOLS[s.pos];
           return (
             <div key={i} className="symq-slot">
-              <button type="button" className="symq-icon" onClick={() => showTip(i)} aria-label={`${info.name}: ${info.def}`}>
+              <button type="button" ref={(el) => { icons.current[i] = el; }} className="symq-icon" onClick={() => showTip(i)} aria-label={`${info.name}: ${info.def}`}>
                 {info.img ? <img src={info.img} alt="" draggable={false} /> : <span className="sym-dot">{s.word || '.'}</span>}
                 <small style={{ color: info.color }}>{info.name.toLowerCase()}</small>
               </button>
-              {tip === i && <div className="symq-tip" role="tooltip"><b>{info.name}:</b> {info.def}</div>}
+              {tip === i && <SymbolTip anchor={icons.current[i] ?? null} name={info.name} def={info.def} />}
               {s.given ? (
                 <span className="symq-word given" style={{ ['--c' as string]: info.color, ['--ink' as string]: inkOn(s.pos) }}>{s.word}</span>
               ) : (

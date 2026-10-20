@@ -9530,7 +9530,8 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .symq-icon { display: flex; flex-direction: column; align-items: center; border: none; background: none; cursor: pointer; padding: 0; }
 .symq-icon img { width: clamp(52px, 8vw, 84px); height: clamp(52px, 8vw, 84px); object-fit: contain; }
 .symq-icon small { font-weight: 900; font-size: .85rem; }
-.symq-tip { position: absolute; top: -8px; transform: translateY(-100%); z-index: 5; background: #241c3d; color: #fff; border-radius: 10px; padding: 6px 10px; font-size: .9rem; white-space: nowrap; }
+/* Build Queue 265: symbol meanings always show in full (SymbolTip.tsx), wrapped and kept on screen. */
+.sym-tip { position: fixed; z-index: 1000; max-width: min(340px, calc(100vw - 24px)); background: #241c3d; color: #fff; border-radius: 12px; padding: 8px 12px; font: 600 .95rem/1.35 'Nunito', system-ui, sans-serif; white-space: normal; overflow-wrap: break-word; pointer-events: none; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
 .symq-word { min-width: 6ch; min-height: 48px; padding: 4px 16px; border-radius: 999px; border: 4px solid var(--c); background: #fff; font: 800 1.15rem 'Nunito', system-ui, sans-serif; text-align: center; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
 .symq-word.given { background: var(--c); color: var(--ink); }
 .symq-word.fix { box-shadow: 0 0 0 4px rgba(246,168,91,.6); }

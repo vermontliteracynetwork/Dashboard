@@ -4,6 +4,7 @@ import { makeId } from '../../lib/id';
 import ImageUploadField from '../../components/ImageUploadField';
 import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, SYMBOL_ORDER, blankSymbolQuestion, inkOn, sentenceToSlots } from '../../lib/symbolSentence';
 import { SYMBOL_SENTENCE_PAGES } from '../../lib/symbolDeck';
+import SymbolTip from '../../components/SymbolTip';
 
 // Text input question sets built from her grammar symbols (Build Queue 253). One compact row per sentence:
 // optional picture, the symbol strip (tap a symbol in the tray to add it to the sentence you are on, or
@@ -33,6 +34,7 @@ function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete, onDuplicate 
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [sel, setSel] = useState<number | null>(null); // Build Queue 259: tools show only on the tapped symbol
   const [pic, setPic] = useState(false);
+  const [selIcon, setSelIcon] = useState<HTMLDivElement | null>(null);
   // Build Queue 261: a tap anywhere outside the chosen symbol closes its little toolbar.
   const selRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
@@ -78,7 +80,7 @@ function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete, onDuplicate 
           const info = SYMBOLS[s.pos];
           return (
             <div key={i} ref={sel === i ? selRef : undefined} className={`sym-slot${sel === i ? ' sel' : ''}`} onClick={() => setSel(sel === i ? null : i)} draggable onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.stopPropagation(); dropAt(e, i); }}>
-              <div className="sym-icon" title={`${info.name}: ${info.def}`}>
+              <div className="sym-icon" ref={sel === i ? setSelIcon : undefined}>
                 {info.img ? <img src={info.img} alt={info.name} draggable={false} /> : <span className="sym-dot">•</span>}
                 <small style={{ color: info.color }}>{info.name.toLowerCase()}</small>
               </div>
@@ -86,6 +88,7 @@ function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete, onDuplicate 
                 value={s.word} placeholder={s.given ? 'word' : info.name.toLowerCase()} aria-label={`${info.name} word. ${s.given ? 'Given' : 'Student types it'}. Double-tap to switch.`}
                 onChange={(e) => setSlots(q.slots.map((x, k) => (k === i ? { ...x, word: e.target.value } : x)))}
                 onDoubleClick={() => setSlots(q.slots.map((x, k) => (k === i ? { ...x, given: !x.given } : x)))} />
+              {sel === i && <SymbolTip anchor={selIcon} name={info.name} def={info.def} />}
               {sel === i && <div className="sym-slot-tools">
                 <button type="button" aria-label="Move left" disabled={i === 0} onClick={() => move(i, i - 1)}>◀</button>
                 <button type="button" aria-label={s.given ? 'Make the student type it' : 'Make it given'} onClick={() => setSlots(q.slots.map((x, k) => (k === i ? { ...x, given: !x.given } : x)))}>{s.given ? '◼' : '◻'}</button>
@@ -107,6 +110,7 @@ export default function SymbolSetEditor({ questions, onChange }: { questions: Qu
   const qs = questions.filter((q): q is SymbolQuestion => q.kind === 'symbol');
   const settings = qs[0]?.settings ?? DEFAULT_SYMBOL_SETTINGS;
   const [active, setActive] = useState(0);
+  const [hover, setHover] = useState<{ el: HTMLElement; pos: SymbolPos } | null>(null);
   const update = (id: string, nq: SymbolQuestion) => onChange(qs.map((x) => (x.id === id ? nq : x)));
   const addSymbol = (pos: SymbolPos) => {
     const target = qs[Math.min(active, qs.length - 1)];
@@ -120,14 +124,16 @@ export default function SymbolSetEditor({ questions, onChange }: { questions: Qu
         {SYMBOL_ORDER.map((pos) => {
           const info = SYMBOLS[pos];
           return (
-            <button key={pos} type="button" className="sym-tray-btn" draggable onDragStart={(e) => e.dataTransfer.setData('text/symbol', pos)} onClick={() => addSymbol(pos)} title={`${info.name}: ${info.def}`}>
+            <button key={pos} type="button" className="sym-tray-btn" draggable onDragStart={(e) => e.dataTransfer.setData('text/symbol', pos)} onClick={() => addSymbol(pos)} aria-label={`${info.name}: ${info.def}`}
+              onPointerEnter={(e) => { if (e.pointerType === 'mouse') setHover({ el: e.currentTarget, pos }); }} onPointerLeave={() => setHover(null)}>
               {info.img ? <img src={info.img} alt="" draggable={false} /> : <span className="sym-dot">.?!</span>}
               <span style={{ color: info.color }}>{info.name}</span>
             </button>
           );
         })}
       </div>
-      <p className="sym-help">Solid = your word. Outline = the student types it. Double-tap a word to switch; tap a symbol for move and delete.</p>
+      {hover && <SymbolTip anchor={hover.el} name={SYMBOLS[hover.pos].name} def={SYMBOLS[hover.pos].def} />}
+      <p className="sym-help">Solid = your word. Outline = the student types it. Double-tap a word to switch; tap a symbol to see what it means, move it or delete it.</p>
       {qs.map((q, i) => (
         <SymbolRow key={q.id} q={q} index={i} active={i === active} onFocus={() => setActive(i)} onUpdate={(nq) => update(q.id, nq)} onDelete={() => { onChange(qs.filter((x) => x.id !== q.id)); setActive(0); }}
           onDuplicate={() => { const copy: SymbolQuestion = { ...q, id: makeId(), slots: q.slots.map((x) => ({ ...x })) }; onChange([...qs.slice(0, i + 1), copy, ...qs.slice(i + 1)]); setActive(i + 1); }} />
