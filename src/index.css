@@ -2543,9 +2543,13 @@ body.teacher-mode .content-well { border-radius: 10px; }
 }
 .bakery-grid {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  /* minmax(0, 1fr) and min sizes of 0 keep every treat inside the board (Build Queue 240): the shared
+     button min sizes were stretching tiles past the panel's right and bottom edges. */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
 }
+.bakery-board-panel { overflow: hidden; }
+.bakery-grid .bakery-tile { min-width: 0; min-height: 0; width: 100%; height: auto; box-sizing: border-box; overflow: hidden; margin: 0; }
 .bakery-tile {
   aspect-ratio: 1 / 1;
   border-radius: 12px;
