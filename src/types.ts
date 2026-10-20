@@ -364,7 +364,28 @@ export interface SpeakQuestion {
   acceptableVariants?: string[];
 }
 
-export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion | SpeakQuestion;
+// Mad Lib style typed answers (Build Queue 238): the teacher writes the whole sentence or story and
+// marks words to fill in with [brackets] ("The [dog] ran to the [park|playground]."; "|" adds other
+// right answers). The settings travel with the question so every place it plays uses the same help.
+export interface MadLibSettings {
+  blanks: number; // how many words the student fills in (1 to 10); 0 = every marked word
+  pick: 'marked' | 'random'; // the [bracketed] words, or the randomizer: different words each time
+  support: 'bank' | 'bank-extra' | 'first-letter' | 'type'; // tap a word bank, a bank with extra words, type with the first letter shown, or type on their own
+  spellCheck: boolean; // the iPad's spell check underline while typing
+  forgiving: boolean; // accept small spelling slips
+  hints: boolean; // 2nd try shows the first letter, 3rd try shows the word to copy
+}
+export interface MadLibQuestion {
+  id: string;
+  kind: 'madlib';
+  prompt: string;
+  text: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  settings: MadLibSettings;
+}
+
+export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion | SpeakQuestion | MadLibQuestion;
 
 export interface QuizContent {
   questions: QuizQuestion[];

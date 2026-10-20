@@ -6,6 +6,7 @@ import { isCloseEnoughAnswer } from '../../lib/answerMatch';
 import SubjectProgressBar from '../../components/SubjectProgressBar';
 import QuizThemePicker from '../../components/QuizThemePicker';
 import SpeakAnswer from '../../components/SpeakAnswer';
+import MadLibAnswer from '../../components/MadLibAnswer';
 import type { Student, Subject, Task, MatchingQuestion } from '../../types';
 import ZoomableImage from '../../components/ZoomableImage';
 
@@ -301,6 +302,10 @@ export default function QuizTask({ student, subject, task, onDone, onExit }: Pro
 
           {activeQ.kind === 'speak' && (
             <SpeakAnswer key={activeQ.id} q={activeQ} disabled={answered} onResult={(c, o) => submitAnswer(c, o)} />
+          )}
+
+          {activeQ.kind === 'madlib' && (
+            <MadLibAnswer key={activeQ.id} q={activeQ} disabled={answered} tts={student.ttsSettings} onResult={(c, said) => submitAnswer(c, false, said)} />
           )}
 
           {activeQ.kind === 'fill' && (

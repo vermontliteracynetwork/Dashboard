@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-madlib",
+    date: "2026-10-20",
+    icon: "📝",
+    title: "Fill in the missing words",
+    body: "Some questions now give you a sentence with boxes in it. Tap words from the word bank or type them in, then press Check. Tap Read the sentence to hear it.",
+  },
+  {
     id: "2026-10-20-alchemy-more",
     date: "2026-10-20",
     icon: "⚗️",

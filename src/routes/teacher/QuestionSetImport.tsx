@@ -26,6 +26,7 @@ export function setToRows(set: QuestionSet): string[][] {
     if (q.kind === 'mc') { const c = [...q.choices, '', '', '', ''].slice(0, 4); rows.push([q.prompt, ...c, String.fromCharCode(65 + q.correctIndex), q.imageUrl ?? '']); }
     else if (q.kind === 'fill') { const c = [...(q.wordBank ?? []), '', '', '', ''].slice(0, 4); rows.push([q.prompt, ...c, q.answer, q.imageUrl ?? '']); }
     else if (q.kind === 'speak') rows.push([q.prompt, '', '', '', '', q.targetWord, q.imageUrl ?? '']);
+    else if (q.kind === 'madlib') rows.push([q.prompt, q.text, '', '', '', 'Mad Lib', q.imageUrl ?? '']);
     else rows.push([q.prompt, ...q.pairs.slice(0, 4).map((p) => `${p.left} = ${p.right}`), '', q.imageUrl ?? '']);
   }
   return rows;

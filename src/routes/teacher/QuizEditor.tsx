@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { makeId } from '../../lib/id';
 import SetLibraryControls from './SetLibraryControls';
 import ImageUploadField from '../../components/ImageUploadField';
-import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion, SpeakQuestion, Subject } from '../../types';
+import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion, SpeakQuestion, MadLibQuestion, MadLibSettings, Subject } from '../../types';
+import { DEFAULT_MADLIB, markedCount, tokenize } from '../../lib/madlib';
 
 interface Props {
   subject: Subject;
@@ -19,6 +20,7 @@ export const blankMC = (): MCQuestion => ({ id: makeId(), kind: 'mc', prompt: ''
 const blankMatching = (): MatchingQuestion => ({ id: makeId(), kind: 'matching', prompt: '', pairs: [{ left: '', right: '' }, { left: '', right: '' }] });
 const blankFill = (): FillBlankQuestion => ({ id: makeId(), kind: 'fill', prompt: '', answer: '', wordBank: [] });
 const blankSpeak = (): SpeakQuestion => ({ id: makeId(), kind: 'speak', prompt: '', targetWord: '', acceptableVariants: [] });
+const blankMadLib = (settings?: MadLibSettings): MadLibQuestion => ({ id: makeId(), kind: 'madlib', prompt: 'Fill in the missing words.', text: '', settings: { ...DEFAULT_MADLIB, ...settings } });
 
 // A half-filled-in question isn't just untidy — it's a quiz a student
 // literally cannot pass: a blank fill-in answer means no typed input can
@@ -39,6 +41,11 @@ export function getQuestionIssue(q: QuizQuestion): string | null {
     return completePairs < 2 ? 'Needs at least 2 complete pairs (both sides filled in).' : null;
   }
   if (q.kind === 'speak') return q.targetWord.trim() ? null : 'Needs the word the student should say.';
+  if (q.kind === 'madlib') {
+    if (!tokenize(q.text).some((t) => t.word)) return 'Needs the sentence typed in.';
+    if (q.settings.pick === 'marked' && !markedCount(q.text)) return 'Put [brackets] around the words to fill in, or choose "Random words".';
+    return null;
+  }
   // fill
   return q.answer.trim() ? null : 'Needs a correct answer typed in.';
 }
@@ -74,25 +81,76 @@ const ANSWER_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F'];
 // at a glance, not just by reading text.
 const ANSWER_TILE_COLORS = ['#f4a300', '#2a6df4', '#2fae5d', '#e63946', '#8b5cf6', '#14b8a6'];
 
+// Mad Lib question fields (Build Queue 238): the sentence with [brackets], a preview, and its help settings.
+const SUPPORT_LABEL: Record<MadLibSettings['support'], string> = {
+  bank: 'Word bank: tap the right words',
+  'bank-extra': 'Word bank with extra words to choose from',
+  'first-letter': 'Type it, first letter shown',
+  type: 'Type it on their own',
+};
+function MadLibFields({ q, onUpdate, onApplyAll }: { q: MadLibQuestion; onUpdate: (q: QuizQuestion) => void; onApplyAll?: (s: MadLibSettings) => void }) {
+  const st = { ...DEFAULT_MADLIB, ...q.settings };
+  const set = (patch: Partial<MadLibSettings>) => onUpdate({ ...q, settings: { ...st, ...patch } });
+  const marks = markedCount(q.text);
+  const typing = st.support === 'first-letter' || st.support === 'type';
+  const preview = tokenize(q.text).map((t) => (t.marked ? `[${t.answers.join(' or ')}]` : t.text)).join('');
+  return (
+    <div className="stack">
+      <div>
+        <label>Sentence or story. Put [brackets] around words to fill in; add other right answers with | like [big|large].</label>
+        <textarea value={q.text} rows={3} style={{ width: '100%', fontSize: '1rem' }} placeholder="The [dog] ran to the [park|playground] after [lunch]."
+          onChange={(e) => onUpdate({ ...q, text: e.target.value })} />
+        {q.text.trim() && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', opacity: 0.8 }}>{marks} marked word{marks === 1 ? '' : 's'}. Preview: {preview}</p>}
+      </div>
+      <fieldset className="madlib-settings">
+        <legend>Settings for this question</legend>
+        <label>Words to fill in
+          <select value={st.blanks} onChange={(e) => set({ blanks: Number(e.target.value) })}>
+            <option value={0}>Every marked word</option>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </label>
+        <label>Which words
+          <select value={st.pick} onChange={(e) => set({ pick: e.target.value as MadLibSettings['pick'] })}>
+            <option value="marked">The [marked] words</option>
+            <option value="random">Randomizer: different words each time</option>
+          </select>
+        </label>
+        <label>Help
+          <select value={st.support} onChange={(e) => set({ support: e.target.value as MadLibSettings['support'] })}>
+            {(Object.keys(SUPPORT_LABEL) as MadLibSettings['support'][]).map((k) => <option key={k} value={k}>{SUPPORT_LABEL[k]}</option>)}
+          </select>
+        </label>
+        <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={st.spellCheck} disabled={!typing} onChange={(e) => set({ spellCheck: e.target.checked })} /> Spell check while typing</label>
+        <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={st.forgiving} disabled={!typing} onChange={(e) => set({ forgiving: e.target.checked })} /> Accept small spelling slips</label>
+        <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={st.hints} onChange={(e) => set({ hints: e.target.checked })} /> Hints: first letter on the 2nd try, the word to copy on the 3rd</label>
+        {onApplyAll && <button type="button" className="btn btn-sm" onClick={() => onApplyAll(st)}>Use these settings for every Mad Lib in this set</button>}
+      </fieldset>
+    </div>
+  );
+}
+
 function QuestionRow({
   index,
   q,
   issue,
   onUpdate,
   onDelete,
+  onApplyAll,
 }: {
   index: number;
   q: QuizQuestion;
   issue?: string;
   onUpdate: (q: QuizQuestion) => void;
   onDelete: () => void;
+  onApplyAll?: (s: MadLibSettings) => void;
 }) {
   return (
     <div className="stack quiz-question-row" style={{ gap: 0, borderRadius: 16, overflow: 'hidden', border: `3px solid ${issue ? 'var(--danger)' : 'var(--content-border)'}` }}>
       <div className="quiz-question-header space-between">
         <div className="row" style={{ gap: 10 }}>
           <span className="quiz-question-number">Question {index + 1}</span>
-          <span className="tag-pill" style={{ background: '#fff' }}>{q.kind === 'mc' ? '☑️ Multiple choice' : q.kind === 'matching' ? '🔗 Matching' : '✏️ Fill in the blank'}</span>
+          <span className="tag-pill" style={{ background: '#fff' }}>{q.kind === 'mc' ? '☑️ Multiple choice' : q.kind === 'matching' ? '🔗 Matching' : q.kind === 'madlib' ? '📝 Mad Lib (typed words)' : q.kind === 'speak' ? '🗣️ Say it' : '✏️ Fill in the blank'}</span>
         </div>
         <button className="btn btn-sm btn-danger" onClick={onDelete}>Delete question</button>
       </div>
@@ -237,6 +295,8 @@ function QuestionRow({
         </div>
       )}
 
+      {q.kind === 'madlib' && <MadLibFields q={q} onUpdate={onUpdate} onApplyAll={onApplyAll} />}
+
       {q.kind === 'fill' && (
         <div className="stack">
           <div>
@@ -259,12 +319,13 @@ function QuestionRow({
 }
 
 export default function QuizEditor({ subject, questions, onChange, simplified }: Props) {
-  const [addingKind, setAddingKind] = useState<'mc' | 'matching' | 'fill' | 'speak'>('mc');
+  const [addingKind, setAddingKind] = useState<'mc' | 'matching' | 'fill' | 'speak' | 'madlib'>('mc');
 
   const update = (id: string, q: QuizQuestion) => onChange(questions.map((existing) => (existing.id === id ? q : existing)));
   const remove = (id: string) => onChange(questions.filter((q) => q.id !== id));
   const add = () => {
-    const blank = addingKind === 'mc' ? blankMC() : addingKind === 'matching' ? blankMatching() : addingKind === 'speak' ? blankSpeak() : blankFill();
+    const lastMad = [...questions].reverse().find((q): q is MadLibQuestion => q.kind === 'madlib');
+    const blank = addingKind === 'mc' ? blankMC() : addingKind === 'matching' ? blankMatching() : addingKind === 'speak' ? blankSpeak() : addingKind === 'madlib' ? blankMadLib(lastMad?.settings) : blankFill();
     onChange([...questions, blank]);
   };
 
@@ -272,7 +333,8 @@ export default function QuizEditor({ subject, questions, onChange, simplified }:
     <div className="stack">
       <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} minimal={simplified} />
       {questions.map((q, i) => (
-        <QuestionRow key={q.id} index={i} q={q} issue={getQuestionIssue(q) ?? undefined} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)} />
+        <QuestionRow key={q.id} index={i} q={q} issue={getQuestionIssue(q) ?? undefined} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)}
+          onApplyAll={(st) => onChange(questions.map((x) => (x.kind === 'madlib' ? { ...x, settings: { ...st } } : x)))} />
       ))}
       {!simplified && (
         <div className="row">
@@ -281,6 +343,7 @@ export default function QuizEditor({ subject, questions, onChange, simplified }:
             <option value="matching">Matching</option>
             <option value="fill">Fill in the blank</option>
             <option value="speak">Say it (answer out loud)</option>
+            <option value="madlib">Mad Lib (type the missing words)</option>
           </select>
           <button className="btn btn-sm btn-primary" onClick={add}>➕ Add question</button>
         </div>
