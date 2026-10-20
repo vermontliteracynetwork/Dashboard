@@ -822,7 +822,7 @@ export default function SlimeChess() {
       {challengeQuestion && (
         <QuestionScreen
           key={challengeQuestion.id}
-          whoLabel={mode === 'friends' ? `${names[turn]}'s question` : undefined}
+          playerName={mode === 'friends' ? names[turn] : undefined}
           whoIcon={mode === 'friends' ? pieceSrc(theme, turn, 'k') : undefined}
           prompt={challengeQuestion.prompt} typed={challengeQuestion.typed}
           choices={challengeQuestion.choices}

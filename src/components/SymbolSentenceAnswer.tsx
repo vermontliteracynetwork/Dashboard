@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { SymbolQuestion, TTSSettings } from '../types';
 import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, randomWord, suggestWords } from '../lib/symbolSentence';
-import { SUPPORT_LABEL, useTypedSupport } from '../lib/typedSupport';
+import { useTypedSupport } from '../lib/typedSupport';
 import { useVoiceToText } from '../lib/useVoiceToText';
 import { speak } from './ReadAloud';
 import SymbolTip from './SymbolTip';
@@ -14,9 +14,9 @@ import SymbolTip from './SymbolTip';
 // Support levels (Build Queue 273) move with the student (src/lib/typedSupport.ts): level 1 marks each box right
 // or not with no other help; level 2 also says why (not a verb) and says when a word looks misspelled, without
 // fixing it; level 3 turns on the iPad's spell check and autocorrect, shows a list of close spellings to tap, and
-// a 🎤 to say a word into a box. Every box that is right gets its ✓ and locks; the sentence only counts as right
+// a 🎤 to say a word into a box. The level works quietly; students never see a level label (Build Queue 291). Every box that is right gets its ✓ and locks; the sentence only counts as right
 // once every box is right. After two misses, 💡 Help gives a hint for each box still wrong.
-export default function SymbolSentenceAnswer({ q, disabled, tts, onResult }: { q: SymbolQuestion; disabled: boolean; tts?: TTSSettings; onResult: (correct: boolean, said: string) => void }) {
+export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSentence }: { q: SymbolQuestion; disabled: boolean; tts?: TTSSettings; onResult: (correct: boolean, said: string) => void; onSentence?: (text: string) => void }) {
   const st = { ...DEFAULT_SYMBOL_SETTINGS, ...q.settings };
   const { level, record } = useTypedSupport();
   const [vals, setVals] = useState<Record<number, string>>({});
@@ -31,6 +31,16 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult }: { q
   const icons = useRef<Record<number, HTMLButtonElement | null>>({});
   const open = q.slots.map((s, i) => (s.given ? -1 : i)).filter((i) => i >= 0);
   const allFilled = open.every((i) => (vals[i] ?? '').trim());
+  // Build Queue 291: no "Read my sentence" button; the question's own speaker reads the sentence as it is so far.
+  const spoken = q.slots.map((s, i) => (s.given ? s.word : vals[i] || SYMBOLS[s.pos].name)).filter((w) => w !== '.').join(' ');
+  useEffect(() => { onSentence?.(spoken); }, [spoken]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Build Queue 292 (her words: "if a caption is shown on click, it should be closed on click elsewhere").
+  useEffect(() => {
+    if (tip === null) return;
+    const close = (e: PointerEvent) => { const el = icons.current[tip]; if (!el || !el.contains(e.target as Node)) setTip(null); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [tip]);
   const voice = useVoiceToText((heard) => { if (focus !== null && !ok[focus]) setVal(focus, heard.trim().split(/\s+/)[0] ?? ''); }, { continuous: false });
 
   const setVal = (i: number, v: string) => {
@@ -86,17 +96,18 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult }: { q
 
   return (
     <div className="symq stack" style={{ alignItems: 'center' }}>
-      <span className="symq-level" title="Your help level changes as you answer">{SUPPORT_LABEL[level]}</span>
       <div className="symq-row" role="group" aria-label="Symbol sentence">
         {q.slots.map((s, i) => {
           const info = SYMBOLS[s.pos];
           const sugg = level === 3 && notes[i] && !s.given ? suggestWords(vals[i] ?? '', s.pos) : [];
           return (
             <div key={i} className="symq-slot">
-              <button type="button" ref={(el) => { icons.current[i] = el; }} className="symq-icon" onClick={() => showTip(i)} aria-label={`${info.name}: ${info.def}`}>
-                {info.img ? <img src={info.img} alt="" draggable={false} /> : <span className="sym-dot">{s.word || '.'}</span>}
-                <small style={{ color: info.color }}>{info.name.toLowerCase()}</small>
-              </button>
+              {s.pos === 'punctuation' ? <span className="symq-icon symq-icon-blank" aria-hidden /> : (
+                <button type="button" ref={(el) => { icons.current[i] = el; }} className="symq-icon" onClick={() => showTip(i)} aria-label={`${info.name}: ${info.def}`}>
+                  {info.img ? <img src={info.img} alt="" draggable={false} /> : <span className="sym-dot">{s.word || '.'}</span>}
+                  <small style={{ color: info.color }}>{info.name.toLowerCase()}</small>
+                </button>
+              )}
               {tip === i && <SymbolTip anchor={icons.current[i] ?? null} name={info.name} def={info.def} />}
               {s.given ? (
                 <span className="symq-word given" style={{ ['--c' as string]: info.color, ['--ink' as string]: inkOn(s.pos) }}>{s.word}</span>
@@ -122,7 +133,6 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult }: { q
         })}
       </div>
       <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
-        <button type="button" className="btn btn-sm btn-blue" onClick={() => speak(q.slots.map((s, i) => (s.given ? s.word : vals[i] || SYMBOLS[s.pos].name)).join(' '), tts)}>🔈 Read my sentence</button>
         {tries >= 2 && !disabled && <button type="button" className="btn btn-sm" onClick={help}>💡 Help</button>}
       </div>
       <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !allFilled} onClick={check}>Check</button>

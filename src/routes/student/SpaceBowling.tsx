@@ -632,7 +632,7 @@ export default function SpaceBowling() {
       {question && phase === 'questions' && (
         <QuestionScreen
           key={`${question.id}-${qDone}`}
-          whoLabel={humans.length > 1 && cur ? `${cur.name}'s question` : undefined}
+          playerName={humans.length > 1 && cur ? cur.name : undefined}
           whoIcon={humans.length > 1 && cur ? PLANETS[cur.planet].src : undefined}
           prompt={question.prompt} typed={question.typed}
           choices={question.choices}

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-question-tidy",
+    date: "2026-10-20",
+    icon: "✨",
+    title: "Tidier questions",
+    body: "Questions fit on the screen with no scrolling. In games with friends, your name shows beside the close button. Listen reads your symbol sentence too, and word meanings close when you tap away.",
+  },
+  {
     id: "2026-10-20-diary",
     date: "2026-10-20",
     icon: "📔",

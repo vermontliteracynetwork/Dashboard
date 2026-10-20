@@ -9868,3 +9868,9 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .diary-page time { font-weight: 800; color: #5a3d9e; }
 .diary-page p { margin: 0; font-size: 1.15rem; }
 .diary-page .btn { align-self: flex-start; min-height: 44px; }
+
+/* Build Queue 291: dice and mic sit under the word box; the punctuation slot has no label; sizes follow the screen height. */
+.symq-input-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.symq-icon-blank { display: block; height: clamp(40px, 9vh, 84px); }
+.symq-icon img { width: clamp(40px, 9vh, 84px); height: clamp(40px, 9vh, 84px); }
+.symq-dice { min-width: 44px; min-height: 40px; }

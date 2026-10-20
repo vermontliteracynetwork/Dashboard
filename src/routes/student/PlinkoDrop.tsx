@@ -296,7 +296,7 @@ export default function PlinkoDrop() {
       {started && phase === 'question' && cur && cur.kind !== 'npc' && (
         <QuestionScreen
           key={`${q.id}-${turnNo}-${qDone}`}
-          whoLabel={`${cur.name} · Round ${round + 1} of ${totalRounds}${assignment && cur.kind === 'me' ? ' · Assignment' : ''}`}
+          playerName={players.length > 1 ? cur.name : undefined}
           plain
           prompt={q.prompt} typed={q.typed} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt}
           done={qDone} total={rs.perRound}

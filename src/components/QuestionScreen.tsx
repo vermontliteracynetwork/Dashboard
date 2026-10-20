@@ -91,6 +91,9 @@ export interface QuestionScreenProps {
   typed?: SymbolQuestion | MadLibQuestion;
   // Build Queue 288: Plinko asks for no emojis; plain words and a drawn speaker instead.
   plain?: boolean;
+  // Build Queue 291 (her words: "in multiplayer game, remove ... label from question. instead, put the name of the player
+  // beside the X to close. thats all thats needed"): whose turn it is, shown beside the close button.
+  playerName?: string;
 }
 
 const LETTERS = 'ABCDEFGHIJ';
@@ -141,7 +144,10 @@ export default function QuestionScreen({
   voice,
   typed,
   plain = false,
+  playerName,
 }: QuestionScreenProps) {
+  // Build Queue 291: the speaker reads the symbol sentence too, as the student has it so far.
+  const sentenceRef = useRef('');
   const qKey = typed ? typed.id : prompt;
   // One try per question, everywhere (Build Queue 209, her words 2026-10-15: "if a student answers a question
   // incorrectly ... they should NOT be allowed to select the correct answer from the options ... all answers should
@@ -257,7 +263,7 @@ export default function QuestionScreen({
     const optionLines = order
       .map((origIdx, i) => `Option ${LETTERS[i] ?? i + 1}, ${choices[origIdx]}.`)
       .join(' ');
-    speak(`${prompt} ${optionLines}`, ttsSettings, undefined, voice);
+    speak(typed ? `${prompt} ${sentenceRef.current}` : `${prompt} ${optionLines}`, ttsSettings, undefined, voice);
   };
   // Read aloud on its own when the game asks for it (storytelling games read by default).
   useEffect(() => {
@@ -270,8 +276,8 @@ export default function QuestionScreen({
   const topBar = (
       <div
         style={compact ? { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 } : {
-          height: 92,
-          minHeight: 92,
+          height: 76,
+          minHeight: 76,
           background: '#fff',
           borderBottom: '2px solid #F2E8D6',
           display: 'flex',
@@ -300,6 +306,7 @@ export default function QuestionScreen({
         >
           ✕
         </button>
+        {playerName && <b style={{ fontSize: 20, fontWeight: 800, color: '#3A342A', marginLeft: 12, marginRight: 'auto', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '30vw' }}>{playerName}</b>}
 
         <ProgressPips done={done} total={total} />
 
@@ -397,7 +404,7 @@ export default function QuestionScreen({
       {/* Main content */}
       <div style={compact
         ? { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: 'max(84px, env(safe-area-inset-top)) 16px 96px', overflow: 'auto', pointerEvents: 'none' }
-        : { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40, overflow: 'auto' }}>
+        : { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(10px, 2.5vh, 32px) 16px', overflow: 'auto' }}>
         <div
           style={compact ? {
             background: '#fff',
@@ -417,10 +424,11 @@ export default function QuestionScreen({
             width: '100%',
             borderRadius: 28,
             boxShadow: '0 20px 44px rgba(46,42,36,0.14)',
-            padding: '48px 56px',
+            // Build Queue 291: "never have scroll for questions": spacing shrinks with the screen height.
+            padding: 'clamp(16px, 3.5vh, 44px) clamp(18px, 4vw, 52px)',
             display: 'flex',
             flexDirection: 'column',
-            gap: 26,
+            gap: 'clamp(10px, 2.2vh, 24px)',
           }}
         >
           {compact && topBar}
@@ -484,7 +492,7 @@ export default function QuestionScreen({
           {typed && (
             <div style={{ opacity: reading ? 0.55 : 1, transition: 'opacity 0.35s' }}>
               {typed.kind === 'symbol'
-                ? <SymbolSentenceAnswer key={typed.id} q={typed} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />
+                ? <SymbolSentenceAnswer key={typed.id} q={typed} onSentence={(t) => { sentenceRef.current = t; }} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />
                 : <MadLibAnswer key={typed.id} q={typed} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />}
             </div>
           )}
