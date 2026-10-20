@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-lm-finger",
+    date: "2026-10-20",
+    icon: "👉",
+    title: "New Literacy Manipulatives icon",
+    body: "On the Computer, Literacy Manipulatives now has the red pointing finger, the noun symbol.",
+  },
+  {
     id: "2026-10-20-symbol-tips",
     date: "2026-10-20",
     icon: "💬",
