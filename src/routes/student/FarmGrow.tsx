@@ -382,7 +382,7 @@ export default function FarmGrow() {
         <QuestionScreen
           key={`${block.q.id}-${block.left}`}
           whoLabel={`🌙 Night ${g.round} questions${assignment ? ' · 📋 counts for your assignment' : ''}`}
-          prompt={block.q.prompt}
+          prompt={block.q.prompt} typed={block.q.typed}
           choices={block.q.choices}
           correctIndex={block.q.correctIndex}
           imageUrl={block.q.imageUrl}

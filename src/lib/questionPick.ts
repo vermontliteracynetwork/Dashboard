@@ -1,4 +1,4 @@
-import type { MCQuestion, QuestionSet } from '../types';
+import type { MCQuestion, QuestionSet, QuizQuestion } from '../types';
 
 // How games draw a question from the teacher's question sets. Teacher 2026-10-08: "star/focus question sets
 // must occur at 5x the frequency than other question sets, distributed at an even rate amung alls focus items".
@@ -8,7 +8,19 @@ import type { MCQuestion, QuestionSet } from '../types';
 // many sets there are. With no focus sets, every set is equally likely.
 
 export const FOCUS_SHARE = 1; // was 0.95 (Build Queue 210); 1 since Build Queue 262: starred sets only
-const mcOf = (qs: QuestionSet) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc');
+// Build Queue 264 (her words: "make sure the text input sets are presented to students in the same way multiple
+// choice question sets are"): symbol sentence and Mad Lib questions play everywhere multiple choice does. They
+// travel as a play copy with no choices and the real question in `typed`; QuestionScreen shows its answer boxes.
+export function playableOf(qs: QuizQuestion[]): MCQuestion[] {
+  return qs.flatMap((q): MCQuestion[] => {
+    if (q.kind === 'mc') return [q];
+    if (q.kind === 'symbol' && q.slots.some((s) => !s.given)) return [{ id: q.id, kind: 'mc', prompt: q.prompt || 'Finish the sentence.', imageUrl: q.imageUrl, imageAlt: q.imageAlt, choices: [], correctIndex: -1, typed: q }];
+    if (q.kind === 'madlib' && q.text.trim()) return [{ id: q.id, kind: 'mc', prompt: q.prompt || 'Fill in the blanks.', imageUrl: q.imageUrl, imageAlt: q.imageAlt, choices: [], correctIndex: -1, typed: q }];
+    return [];
+  });
+}
+export const hasPlayable = (qs: QuestionSet) => qs.kind === 'quiz' && playableOf(qs.questions).length > 0;
+const mcOf = (qs: QuestionSet) => playableOf(qs.questions);
 
 export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand: () => number = Math.random): MCQuestion | null {
   const sets = questionSets.filter((qs) => qs.kind === 'quiz').map((qs) => ({ focus: !!qs.isFocus, qs: mcOf(qs) })).filter((s) => s.qs.length > 0);

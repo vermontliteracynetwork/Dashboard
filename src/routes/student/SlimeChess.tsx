@@ -20,7 +20,7 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import QuestionScreen from '../../components/QuestionScreen';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
-import { drawQuestion } from '../../lib/questionPick';
+import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { noteGameStart } from '../../lib/gameReports';
@@ -145,7 +145,7 @@ export default function SlimeChess() {
   const roundSet = useRoundSettings('chess', SC_RANGES, activeGameplayTask?.task);
   const [qDone, setQDone] = useState(0);
   const usableQuestionSets = useMemo<QuestionSet[]>(
-    () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
+    () => questionSets.filter(hasPlayable),
     [questionSets],
   );
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
@@ -161,7 +161,7 @@ export default function SlimeChess() {
       if (gameplayPick) return gameplayPick;
     }
     if (questionMode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
-    const pool = (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const pool = (playableOf(questionSets.find((qs) => qs.id === questionMode.setId)?.questions ?? []));
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
@@ -824,7 +824,7 @@ export default function SlimeChess() {
           key={challengeQuestion.id}
           whoLabel={mode === 'friends' ? `${names[turn]}'s question` : undefined}
           whoIcon={mode === 'friends' ? pieceSrc(theme, turn, 'k') : undefined}
-          prompt={challengeQuestion.prompt}
+          prompt={challengeQuestion.prompt} typed={challengeQuestion.typed}
           choices={challengeQuestion.choices}
           correctIndex={challengeQuestion.correctIndex}
           done={qDone}

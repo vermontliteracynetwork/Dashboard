@@ -9,7 +9,7 @@ import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { payForAnswers } from '../../lib/gameEarnings';
-import { drawQuestion } from '../../lib/questionPick';
+import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import { formatMoney } from '../../lib/money';
 import type { MCQuestion, NativeGameId } from '../../types';
 import { noteGameStart } from '../../lib/gameReports';
@@ -70,7 +70,7 @@ export default function Alchemy() {
   const [every, setEvery] = useState(() => readNum('alchemy.every', 3));
   const [count, setCount] = useState(() => readNum('alchemy.count', 1));
   const [source, setSource] = useState<QuestionSourceMode>({ mode: 'random' });
-  const usableSets = useMemo(() => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((x) => x.kind === 'mc')), [questionSets]);
+  const usableSets = useMemo(() => questionSets.filter(hasPlayable), [questionSets]);
   const active = useMemo(() => {
     if (!student) return null;
     return findActiveGameplayTask(
@@ -100,7 +100,7 @@ export default function Alchemy() {
   const pickQ = (avoid?: string): MCQuestion => {
     if (active) { const g = pickGameplayQuestion(active.task, avoid); if (g) return g; }
     if (source.mode === 'set') {
-      const pool = questionSets.find((qs) => qs.id === source.setId)?.questions.filter((x): x is MCQuestion => x.kind === 'mc') ?? [];
+      const pool = playableOf(questionSets.find((qs) => qs.id === source.setId)?.questions ?? []);
       const choices = pool.length > 1 && avoid ? pool.filter((x) => x.id !== avoid) : pool;
       if (choices.length) return choices[Math.floor(Math.random() * choices.length)];
     }
@@ -340,7 +340,7 @@ export default function Alchemy() {
         <QuestionScreen
           key={question.id + qLeft}
           whoLabel={`⚗️ Alchemy question${qCount > 1 ? ` (${qCount - qLeft + 1} of ${qCount})` : ''}`}
-          prompt={question.prompt}
+          prompt={question.prompt} typed={question.typed}
           choices={question.choices}
           correctIndex={question.correctIndex}
           done={qCount - qLeft}

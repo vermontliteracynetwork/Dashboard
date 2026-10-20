@@ -5,13 +5,14 @@
 // CompletionMode/NativeGameId in types.ts for the full shape.
 
 import type { MCQuestion, NativeGameId, QuizRuntimeState, Subject, Task } from '../types';
+import { playableOf } from './questionPick';
 
 // Native games only render multiple-choice questions (QuestionScreen's
 // choices/correctIndex shape) — a Matching/FillBlank question in the same
 // set is simply not offered here, same as how QuizTask itself only shows
 // what it can render.
 export function gameplayQuestionPool(task: Task): MCQuestion[] {
-  return (task.quiz?.questions ?? []).filter((q): q is MCQuestion => q.kind === 'mc');
+  return playableOf(task.quiz?.questions ?? []);
 }
 
 // How many correct answers this task's gameplay mode needs — the whole

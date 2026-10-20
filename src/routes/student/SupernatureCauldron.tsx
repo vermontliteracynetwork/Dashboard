@@ -572,7 +572,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
         onDone={(ink) => { const inks = [...(trace.inks ?? []), ...(ink ? [ink] : [])]; if (trace.i + 1 < trace.words.length) setTrace({ ...trace, i: trace.i + 1, inks }); else { const t = trace.then; setTrace(null); t(inks); } }} />}
       {quiz && (
         <QuestionScreen key={`${quiz.q.id}-${quiz.n}`} whoLabel={`${POWER_LEVELS[(power[quiz.key] ?? 0) + 1]} ${quiz.label}: question ${quiz.n + 1} of ${quiz.total}`} whoIcon="⚡"
-          prompt={quiz.q.prompt} choices={quiz.q.choices} correctIndex={quiz.q.correctIndex} imageUrl={quiz.q.imageUrl} imageAlt={quiz.q.imageAlt} done={quiz.n} total={quiz.total}
+          prompt={quiz.q.prompt} typed={quiz.q.typed} choices={quiz.q.choices} correctIndex={quiz.q.correctIndex} imageUrl={quiz.q.imageUrl} imageAlt={quiz.q.imageAlt} done={quiz.n} total={quiz.total}
           onCorrectAnswer={answered} onSkip={() => setQuiz({ ...quiz, q: nextQ(quiz.q.id) })} onExit={() => setQuiz(null)} ttsSettings={ttsSettings} />
       )}
     </div>

@@ -18,7 +18,7 @@ import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplay
 import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt, MapAnimations } from '../../components/CastleMapArt';
 import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
-import { drawQuestion } from '../../lib/questionPick';
+import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, TOWER_POOF, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId, SHOT_ART, type ShotArt } from '../../games/castleDefense/catalog';
 import SheetSprite from '../../games/castleDefense/SheetSprite';
 import RoundSettings from '../../components/RoundSettings';
@@ -291,7 +291,7 @@ export default function CastleDefense() {
   const QUESTIONS_PER_GATE = roundSet.perRound;
 
   const usableQuestionSets = useMemo<QuestionSet[]>(
-    () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
+    () => questionSets.filter(hasPlayable),
     [questionSets],
   );
 
@@ -366,7 +366,7 @@ export default function CastleDefense() {
       if (gameplayPick) return gameplayPick;
     }
     if (mode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
-    const pool = (questionSets.find((qs) => qs.id === mode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const pool = (playableOf(questionSets.find((qs) => qs.id === mode.setId)?.questions ?? []));
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
@@ -1077,7 +1077,7 @@ export default function CastleDefense() {
 
       {phase === 'challenge' && challengeQuestion && (
         <QuestionScreen
-          prompt={challengeQuestion.prompt}
+          prompt={challengeQuestion.prompt} typed={challengeQuestion.typed}
           choices={challengeQuestion.choices}
           correctIndex={challengeQuestion.correctIndex}
           done={gateCorrectCount}

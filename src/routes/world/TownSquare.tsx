@@ -5690,7 +5690,7 @@ export default function TownSquare() {
         // behavior; this file only supplies what "correct" and "leave
         // anyway" actually do to this car's gas state.
         <QuestionScreen
-          prompt={gasQuizQuestion.prompt}
+          prompt={gasQuizQuestion.prompt} typed={gasQuizQuestion.typed}
           choices={gasQuizQuestion.choices}
           correctIndex={gasQuizQuestion.correctIndex}
           done={gasLockout ? gasLockoutStreak : 0}

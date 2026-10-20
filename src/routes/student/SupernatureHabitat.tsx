@@ -1682,7 +1682,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       ); })()}
       {train && (() => { const l = live.find((x) => x.c.id === train.id); if (!l) return null; const k = sk(l.c); const full = Object.keys(k).length >= MAX_SKILLS; return train.skill && train.q ? (
         <QuestionScreen key={`${train.q.id}-${prog[l.c.id]?.[train.skill] ?? 0}`} whoLabel={`Training ${l.c.name}: ${SKILL(train.skill).name} (${prog[l.c.id]?.[train.skill] ?? 0} of ${has(k, train.skill) ? LEVEL_COST : LEARN_COST})`} whoIcon={SKILL(train.skill).icon}
-          prompt={train.q.prompt} choices={train.q.choices} correctIndex={train.q.correctIndex} imageUrl={train.q.imageUrl} imageAlt={train.q.imageAlt}
+          prompt={train.q.prompt} typed={train.q.typed} choices={train.q.choices} correctIndex={train.q.correctIndex} imageUrl={train.q.imageUrl} imageAlt={train.q.imageAlt}
           done={prog[l.c.id]?.[train.skill] ?? 0} total={has(k, train.skill) ? LEVEL_COST : LEARN_COST}
           onCorrectAnswer={trainRight} onSkip={() => setTrain({ ...train, q: nextQ(train.q?.id) })} onExit={() => setTrain({ ...train, skill: null, q: null })} ttsSettings={ttsSettings} />
       ) : (

@@ -304,7 +304,7 @@ export default function PetShowRing() {
         <QuestionScreen
           key={`${at}-${q.id}-${qLeft}`}
           whoLabel={`🏅 ${pet.customName} is at the ${STATION_LABEL[st.kind]} (${at + 1} of ${COURSE})`}
-          prompt={q.prompt}
+          prompt={q.prompt} typed={q.typed}
           choices={q.choices}
           correctIndex={q.correctIndex}
           imageUrl={q.imageUrl}

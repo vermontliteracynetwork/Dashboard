@@ -330,6 +330,9 @@ export interface MCQuestion {
   imageAlt?: string;
   choices: string[];
   correctIndex: number;
+  // Build Queue 264: a typed answer question (symbol sentence or Mad Lib) riding the same game plumbing.
+  // Set only on the play copy made by playableOf (src/lib/questionPick.ts); choices is then empty.
+  typed?: SymbolQuestion | MadLibQuestion;
 }
 
 export interface MatchingQuestion {

@@ -26,7 +26,7 @@ import { pickRival, recordGameMemory } from '../../lib/gameRivals';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { spendBoosts } from '../../lib/gamePowerups';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
-import { drawQuestion } from '../../lib/questionPick';
+import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { noteGameStart } from '../../lib/gameReports';
@@ -97,7 +97,7 @@ export default function SpaceBowling() {
       'spaceBowling',
     );
   }, [student, rotations, progress]);
-  const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')), [questionSets]);
+  const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter(hasPlayable), [questionSets]);
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
   const pickQuestion = (avoidId?: string): MCQuestion => {
     if (activeGameplayTask) {
@@ -105,7 +105,7 @@ export default function SpaceBowling() {
       if (g) return g;
     }
     if (questionMode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
-    const pool = (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const pool = (playableOf(questionSets.find((qs) => qs.id === questionMode.setId)?.questions ?? []));
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
@@ -634,7 +634,7 @@ export default function SpaceBowling() {
           key={`${question.id}-${qDone}`}
           whoLabel={humans.length > 1 && cur ? `${cur.name}'s question` : undefined}
           whoIcon={humans.length > 1 && cur ? PLANETS[cur.planet].src : undefined}
-          prompt={question.prompt}
+          prompt={question.prompt} typed={question.typed}
           choices={question.choices}
           correctIndex={question.correctIndex}
           done={qDone}

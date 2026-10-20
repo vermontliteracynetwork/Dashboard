@@ -352,7 +352,7 @@ export default function SupernatureBattle({ bar, say, save, patch, potions, useP
 
       {qs && me && phase === 'fight' && stage === 'questions' && (
         <QuestionScreen key={`${qs.q.id}-${qs.n}`} whoLabel={`Power up ${me.name}: question ${qs.n + 1} of ${QUESTIONS_PER_ROUND}`} whoIcon="⚡"
-          prompt={qs.q.prompt} choices={qs.q.choices} correctIndex={qs.q.correctIndex} imageUrl={qs.q.imageUrl} imageAlt={qs.q.imageAlt} done={qs.n} total={QUESTIONS_PER_ROUND}
+          prompt={qs.q.prompt} typed={qs.q.typed} choices={qs.q.choices} correctIndex={qs.q.correctIndex} imageUrl={qs.q.imageUrl} imageAlt={qs.q.imageAlt} done={qs.n} total={QUESTIONS_PER_ROUND}
           onWrongAnswer={() => setQs((x) => (x ? { ...x, wrong: true } : x))}
           onCorrectAnswer={() => answered(true)} onSkip={() => answered(false)}
           onExit={() => { reset('foe'); }} ttsSettings={ttsSettings} />

@@ -287,7 +287,7 @@ export default function PlinkoDrop() {
         <QuestionScreen
           key={`${q.id}-${turnNo}-${qDone}`}
           whoLabel={`🎯 ${cur.name}'s question · Round ${round + 1} of ${totalRounds}${assignment && cur.kind === 'me' ? ' · 📋 counts for your assignment' : ''}`}
-          prompt={q.prompt} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt}
+          prompt={q.prompt} typed={q.typed} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt}
           done={qDone} total={rs.perRound}
           onCorrectAnswer={onRight}
           onSkip={() => setQ((old) => next(old.id))}

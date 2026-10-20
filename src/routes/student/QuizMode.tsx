@@ -84,7 +84,7 @@ export default function QuizMode() {
   return (
     <QuestionScreen
       key={q.id}
-      prompt={q.prompt}
+      prompt={q.prompt} typed={q.typed}
       choices={q.choices}
       correctIndex={q.correctIndex}
       done={Math.min(doneToday, streakGoal())}

@@ -95,7 +95,7 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
         <QuestionScreen
           key={`${open.q.id}-${open.left}`}
           whoLabel={assignment ? `${open.label} · 📋 counts for your assignment` : open.label}
-          prompt={open.q.prompt}
+          prompt={open.q.prompt} typed={open.q.typed}
           choices={open.q.choices}
           correctIndex={open.q.correctIndex}
           imageUrl={open.q.imageUrl}

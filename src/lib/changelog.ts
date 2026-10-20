@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-typed-in-games",
+    date: "2026-10-20",
+    icon: "✍️",
+    title: "Type your answers in games",
+    body: "Symbol sentence and fill in the blank question sets now show up in every game, not only in quizzes. Type the words into the boxes to answer.",
+  },
+  {
     id: "2026-10-20-wrong-next",
     date: "2026-10-20",
     icon: "➡️",

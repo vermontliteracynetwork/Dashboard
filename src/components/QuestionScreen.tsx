@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { recordStreakCorrect } from '../lib/streak';
-import type { TTSSettings } from '../types';
+import type { MadLibQuestion, SymbolQuestion, TTSSettings } from '../types';
+import SymbolSentenceAnswer from './SymbolSentenceAnswer';
+import MadLibAnswer from './MadLibAnswer';
 import { speak } from './ReadAloud';
 import type { NpcVoiceProfile } from '../lib/npcVoices';
 import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
@@ -85,6 +87,8 @@ export interface QuestionScreenProps {
   // A game host's own voice for reading the question (Doc Fishing reads the Fishing Dock).
   voice?: NpcVoiceProfile;
   whoIcon?: string;
+  // Build Queue 264: a typed answer question (symbol sentence or Mad Lib) shows its answer boxes instead of choices.
+  typed?: SymbolQuestion | MadLibQuestion;
 }
 
 const LETTERS = 'ABCDEFGHIJ';
@@ -133,7 +137,9 @@ export default function QuestionScreen({
   compact = false,
   autoRead = false,
   voice,
+  typed,
 }: QuestionScreenProps) {
+  const qKey = typed ? typed.id : prompt;
   // One try per question, everywhere (Build Queue 209, her words 2026-10-15: "if a student answers a question
   // incorrectly ... they should NOT be allowed to select the correct answer from the options ... all answers should
   // lock if they got it wrong or right ... no money earned and no points collect"). Every pick locks every answer.
@@ -187,7 +193,7 @@ export default function QuestionScreen({
     }
     return o;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prompt]);
+  }, [qKey]);
 
   // A new question (different prompt) means fresh local state, even though
   // this is the same mounted component instance across the whole lockout/
@@ -206,7 +212,7 @@ export default function QuestionScreen({
     if (readTimer.current) window.clearTimeout(readTimer.current);
     readTimer.current = window.setTimeout(() => { setReading(false); const q = qlog.current; if (q && !q.done) q.start = Date.now(); shownAt.current = Date.now(); }, READ_FIRST_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prompt]);
+  }, [qKey]);
 
   useEffect(() => () => {
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
@@ -215,10 +221,10 @@ export default function QuestionScreen({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleChoice = (i: number) => {
+  const handleChoice = (i: number, said?: string) => {
     // Any answer already given locks the question: a later tap on the right answer never counts.
     if (answeredCorrectly || feedback === 'wrong' || reading) return;
-    if (qlog.current && !qlog.current.done) qlog.current.tries.push(choices[i] ?? String(i));
+    if (qlog.current && !qlog.current.done) qlog.current.tries.push(said ?? choices[i] ?? String(i));
     if (i === correctIndex) {
       closeLog('right');
       setAnsweredCorrectly(true);
@@ -256,7 +262,7 @@ export default function QuestionScreen({
     const t = window.setTimeout(handleListen, 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoRead, prompt]);
+  }, [autoRead, qKey]);
 
   const topBar = (
       <div
@@ -472,7 +478,14 @@ export default function QuestionScreen({
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+          {typed && (
+            <div style={{ opacity: reading ? 0.55 : 1, transition: 'opacity 0.35s' }}>
+              {typed.kind === 'symbol'
+                ? <SymbolSentenceAnswer key={typed.id} q={typed} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />
+                : <MadLibAnswer key={typed.id} q={typed} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />}
+            </div>
+          )}
+          <div style={{ display: typed ? 'none' : 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
             {order.map((origIdx, i) => {
               const choice = choices[origIdx];
               const isWrong = wrongIndices.has(origIdx);

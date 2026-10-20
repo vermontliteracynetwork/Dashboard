@@ -16,7 +16,7 @@ import BakeryTreatWheel from '../../components/BakeryTreatWheel';
 import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/QuestionSourcePicker';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { TILE_ART } from '../../lib/bakeryTiles';
-import { drawQuestion } from '../../lib/questionPick';
+import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { noteGameStart, reportPayout } from '../../lib/gameReports';
@@ -195,7 +195,7 @@ export default function BakeryMatch3() {
   const questionsPerGate = roundSet.perRound;
 
   const usableQuestionSets = useMemo<QuestionSet[]>(
-    () => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')),
+    () => questionSets.filter(hasPlayable),
     [questionSets],
   );
 
@@ -259,7 +259,7 @@ export default function BakeryMatch3() {
       if (gameplayPick) return gameplayPick;
     }
     if (mode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
-    const pool = (questionSets.find((qs) => qs.id === mode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const pool = (playableOf(questionSets.find((qs) => qs.id === mode.setId)?.questions ?? []));
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
@@ -700,7 +700,7 @@ export default function BakeryMatch3() {
         // done/total mirrors the Gas Pump lockout's own multi-question
         // framing instead of the old single-question 0/1.
         <QuestionScreen
-          prompt={challengeQuestion.prompt}
+          prompt={challengeQuestion.prompt} typed={challengeQuestion.typed}
           choices={challengeQuestion.choices}
           correctIndex={challengeQuestion.correctIndex}
           done={gateCorrectCount}

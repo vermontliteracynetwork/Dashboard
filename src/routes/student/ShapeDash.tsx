@@ -19,7 +19,7 @@ import {
   type Level, type Runner,
 } from '../../games/shapeDash/engine';
 import { pauseMusic, setSound, sfx, startMusic, stopMusic } from '../../games/shapeDash/audio';
-import { drawQuestion } from '../../lib/questionPick';
+import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
 const SD_RANGES = { per: { min: 1, max: 10, def: 1 } };
@@ -82,12 +82,12 @@ export default function ShapeDash() {
       'shapeDash',
     );
   }, [student, rotations, progress]);
-  const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')), [questionSets]);
+  const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter(hasPlayable), [questionSets]);
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
   const pickQuestion = (avoidId?: string): MCQuestion => {
     if (activeGameplayTask) { const g = pickGameplayQuestion(activeGameplayTask.task, avoidId); if (g) return g; }
     if (questionMode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
-    const pool = (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const pool = (playableOf(questionSets.find((qs) => qs.id === questionMode.setId)?.questions ?? []));
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
@@ -357,7 +357,7 @@ export default function ShapeDash() {
         <QuestionScreen
           key={question.id}
           whoLabel={qReason === 'crash' ? (game.current.hearts > 0 || practice ? '🛡️ Power-up question: answer it for a shield!' : 'One more question to finish your run') : '❓ Question break'}
-          prompt={question.prompt}
+          prompt={question.prompt} typed={question.typed}
           choices={question.choices}
           correctIndex={question.correctIndex}
           done={qReason === 'timer' ? roundSet.perRound - qLeft : 0}

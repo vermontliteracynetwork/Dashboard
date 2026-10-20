@@ -7,7 +7,7 @@ import RoundSettings from '../../components/RoundSettings';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
-import { drawQuestion } from '../../lib/questionPick';
+import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import { payForAnswers } from '../../lib/gameEarnings';
 import { getEconomy } from '../../lib/economy';
 import { formatMoney } from '../../lib/money';
@@ -126,12 +126,12 @@ export default function BubbleShooter() {
     );
   }, [student, rotations, progress]);
   const roundSet = useRoundSettings('bubbleShooter', BS_RANGES, activeGameplayTask?.task);
-  const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter((qs) => qs.kind === 'quiz' && qs.questions.some((q) => q.kind === 'mc')), [questionSets]);
+  const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter(hasPlayable), [questionSets]);
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
   const pickQuestion = (avoidId?: string): MCQuestion => {
     if (activeGameplayTask) { const g = pickGameplayQuestion(activeGameplayTask.task, avoidId); if (g) return g; }
     if (questionMode.mode !== 'set') return drawQuestion(questionSets, avoidId) ?? generateAutoQuestion();
-    const pool = (questionSets.find((qs) => qs.id === questionMode.setId)?.questions.filter((q): q is MCQuestion => q.kind === 'mc') ?? []);
+    const pool = (playableOf(questionSets.find((qs) => qs.id === questionMode.setId)?.questions ?? []));
     const choices = pool.length > 1 && avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
     return choices.length > 0 ? choices[Math.floor(Math.random() * choices.length)] : generateAutoQuestion();
   };
@@ -624,7 +624,7 @@ export default function BubbleShooter() {
         <QuestionScreen
           key={question.id + qDone}
           whoLabel={`🫧 Question ${qDone + 1} of ${roundSet.perRound} before round ${round}: each right answer is a surprise power-up!`}
-          prompt={question.prompt}
+          prompt={question.prompt} typed={question.typed}
           choices={question.choices}
           correctIndex={question.correctIndex}
           done={qDone}
