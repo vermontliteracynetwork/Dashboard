@@ -11,8 +11,7 @@ import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
 import { sfx, SfxToggle } from '../../lib/miniSfx';
 import { MyBest, useVisitScore } from '../../components/MyBest';
-import GameStartCard from '../../components/GameStartCard';
-import RoundSettings from '../../components/RoundSettings';
+import PlinkoSetup, { BALLS, type SetupPlayer } from './PlinkoSetup';
 import QuestionScreen from '../../components/QuestionScreen';
 import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
@@ -26,11 +25,11 @@ import { recordGameMemory } from '../../lib/gameRivals';
 // question pop-up; a wrong answer brings another question until one is right, then the player drops;
 // the board starts with 5 drop zones and 3 buckets and grows by one of each every round; the plain
 // default look until she approves themes (246). Neighbors answer on their own and drop where they like.
-// Power-ups (about one in three turns) sit on the right, the scoreboard on the left.
+// Power-ups sit on the right, the scoreboard on the left. Since Build Queue 257 power-ups come from the
+// buckets: stars on a bucket (up to 3) are how many power-ups the player picks at the start of their next turn.
 
 const RANGES = { rounds: { min: 3, max: 10, def: 5 }, per: { min: 1, max: 5, def: 1 } };
-const ROWS = 7, MAX_PLAYERS = 5;
-const COLORS = ['#ff7a1a', '#22c55e', '#8b5cf6', '#ec4899', '#06b6d4'];
+const ROWS = 7;
 const POWERS = {
   double: { name: 'Double', icon: '✖️2', does: 'This drop counts twice.' },
   big: { name: 'Big Ball', icon: '🟠', does: 'A big ball that bounces less, easier to aim.' },
@@ -41,8 +40,8 @@ type Power = keyof typeof POWERS;
 const POWER_IDS = Object.keys(POWERS) as Power[];
 const shuffle = <T,>(a: T[]) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
-type Player = { key: string; name: string; kind: 'me' | 'irl' | 'npc'; npcId?: string; xp: number; held: Power[] };
-type Phase = 'intro' | 'question' | 'npc' | 'aim' | 'drop' | 'over';
+type Player = { key: string; name: string; kind: 'me' | 'irl' | 'npc'; npcId?: string; xp: number; ball: number; owed: number };
+type Phase = 'intro' | 'powers' | 'question' | 'npc' | 'aim' | 'drop' | 'over';
 
 export default function PlinkoDrop() {
   const back = useBack();
@@ -56,8 +55,6 @@ export default function PlinkoDrop() {
   const rs = useRoundSettings('plinkoDrop', RANGES, assignment?.task);
   const [started, setStarted] = useState(false);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [extra, setExtra] = useState<{ key: string; name: string; kind: 'irl' | 'npc'; npcId?: string }[]>(() => (rivalId ? [{ key: `npc-${rivalId}`, name: '', kind: 'npc', npcId: rivalId }] : []));
-  const [typed, setTyped] = useState('');
   const [turnNo, setTurnNo] = useState(0); // counts every player's turn; round = floor(turnNo / players)
   const [phase, setPhase] = useState<Phase>('question');
   const [q, setQ] = useState<MCQuestion>(() => next());
@@ -67,7 +64,6 @@ export default function PlinkoDrop() {
   const [ball, setBall] = useState<{ x: number; y: number } | null>(null);
   const [aimX, setAimX] = useState(2);
   const [active, setActive] = useState<Power[]>([]);
-  const [earned, setEarned] = useState<Power | null>(null);
   const [win, setWin] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | null>(null);
@@ -95,21 +91,20 @@ export default function PlinkoDrop() {
   const npcName = (id?: string) => (id && profiles[id]?.name) || 'Neighbor';
   const pegs: { x: number; r: number }[] = [];
   for (let r = 0; r < ROWS; r++) for (let x = r % 2 ? 0.5 : 0; x <= zones - 1 + 0.001; x += 1) pegs.push({ x, r });
-  const bucketX = (b: number) => ((b + 0.5) * zones) / nBuckets - 0.5;
 
   const newBoard = (rnd: number) => {
     const nb = Math.min(8, 3 + rnd), z = Math.min(10, 5 + rnd);
     const bk = shuffle(Array.from({ length: nb }, (_, i) => (i + 1) * 10));
-    const pg: number[] = []; let k = 0;
-    for (let r = 0; r < ROWS; r++) for (let x = r % 2 ? 0.5 : 0; x <= z - 1 + 0.001; x += 1) { if (r > 0 && r < ROWS - 1) pg.push(k); k++; }
-    const st = shuffle(pg).slice(0, 3);
+    // Stars on buckets: smaller buckets carry more stars, so aiming is a choice (points now, or power-ups next turn).
+    const st = bk.map((v) => (v === Math.max(...bk) ? 0 : Math.random() < 0.6 ? Math.max(1, Math.min(3, Math.round((40 - Math.min(v, 40)) / 12 + Math.random()))) : 0));
+    if (!st.some(Boolean)) st[bk.indexOf(Math.min(...bk))] = 2;
     boardRef.current = { buckets: bk, stars: st, zones: z, nb };
     setBuckets(bk); setStars(st);
   };
   const beginTurn = (t: number, list: Player[]) => {
     const p = list[t % list.length];
     turnRef.current = t; activeRef.current = [];
-    setActive([]); setBall(null); setWin(null); setEarned(null); setQDone(0);
+    setActive([]); setBall(null); setWin(null); setQDone(0);
     if (t % list.length === 0) newBoard(Math.floor(t / list.length));
     // Build Queue 252: a big "Ava's turn!" in the middle before the question, so whose turn it is is never a guess.
     setPhase('intro'); setNote(null);
@@ -117,6 +112,16 @@ export default function PlinkoDrop() {
     timers.current.push(window.setTimeout(() => afterIntro(p), 1700));
   };
   const afterIntro = (p: Player) => {
+    if (p.owed > 0 && p.kind === 'npc') {
+      activeRef.current = shuffle(POWER_IDS).slice(0, p.owed); setActive(activeRef.current);
+      setPlayersBoth((ps) => ps.map((x) => (x.key === p.key ? { ...x, owed: 0 } : x)));
+      setNote(`${p.name} picked ${activeRef.current.map((x) => POWERS[x].name).join(' and ')}.`);
+    } else if (p.owed > 0) {
+      setPhase('powers'); speak(`${p.name}, pick ${p.owed} power-up${p.owed === 1 ? '' : 's'} for this turn.`, student.ttsSettings); return;
+    }
+    goAsk(p);
+  };
+  const goAsk = (p: Player) => {
     if (p.kind === 'npc') {
       setPhase('npc'); setNote(`${p.name} is answering...`);
       timers.current.push(window.setTimeout(() => { setNote(`${p.name} got it right! Watch where they drop.`); setPhase('aim'); timers.current.push(window.setTimeout(() => dropAt(Math.floor(Math.random() * boardRef.current.zones), false), 1100)); }, 1800));
@@ -124,11 +129,8 @@ export default function PlinkoDrop() {
       setNote(null); setQ((old) => next(old.id)); setPhase('question');
     }
   };
-  const start = () => {
-    const list: Player[] = [
-      { key: 'me', name: student.name, kind: 'me', xp: 0, held: [] },
-      ...extra.slice(0, MAX_PLAYERS - 1).map((e) => ({ key: e.key, name: e.kind === 'npc' ? npcName(e.npcId) : e.name, kind: e.kind, npcId: e.npcId, xp: 0, held: [] as Power[] })),
-    ];
+  const start = (setup: SetupPlayer[]) => {
+    const list: Player[] = setup.map((x) => ({ ...x, name: x.kind === 'npc' ? npcName(x.npcId) : x.name, xp: 0, owed: 0 }));
     playersRef.current = list; setPlayers(list); setTurnNo(0); setWrap(null); setStarted(true);
     beginTurn(0, list);
   };
@@ -148,30 +150,30 @@ export default function PlinkoDrop() {
     if (cur.kind === 'me') { unpaid.current += 1; recordStreakCorrect(student.id); }
     countRight(q);
     if (qDone + 1 < rs.perRound) { setQDone((d) => d + 1); setQ((old) => next(old.id)); return; }
-    if (Math.random() < 0.34 && cur.held.length < 3) {
-      const p = POWER_IDS[Math.floor(Math.random() * POWER_IDS.length)];
-      setPlayersBoth((ps) => ps.map((x) => (x.key === cur.key ? { ...x, held: [...x.held, p] } : x))); setEarned(p);
-      speak(`${cur.name} got a power-up: ${POWERS[p].name}!`, student.ttsSettings);
-    }
-    setPhase('aim'); setNote(`${cur.name}, pick a drop zone at the top.`);
+    setPhase('aim'); setNote(null);
   };
-  const usePower = (i: number) => {
-    if (phase !== 'aim' || cur.kind === 'npc') return;
-    const p = cur.held[i]; if (active.includes(p)) return;
-    setPlayersBoth((ps) => ps.map((x) => (x.key === cur.key ? { ...x, held: x.held.filter((_, k) => k !== i) } : x))); activeRef.current = [...activeRef.current, p]; setActive(activeRef.current); sfx.pop();
+  // Picking power-ups at the start of a turn (Build Queue 257): up to the number of stars won last turn.
+  const togglePower = (pw: Power) => {
+    if (phase !== 'powers' || !cur) return;
+    const on = activeRef.current.includes(pw);
+    if (!on && activeRef.current.length >= cur.owed) return;
+    activeRef.current = on ? activeRef.current.filter((x) => x !== pw) : [...activeRef.current, pw]; setActive(activeRef.current); sfx.pop();
+  };
+  const powersDone = () => {
+    if (!cur) return;
+    setPlayersBoth((ps) => ps.map((x) => (x.key === cur.key ? { ...x, owed: 0 } : x)));
+    goAsk(cur);
   };
   const setPlayersBoth = (fn: (ps: Player[]) => Player[]) => { playersRef.current = fn(playersRef.current); setPlayers(playersRef.current); };
   const dropAt = (zone: number, second: boolean) => {
     const list = playersRef.current, t = turnRef.current, p = list[t % list.length];
     const { buckets: bk, stars: st, zones: z, nb } = boardRef.current;
     const act = activeRef.current;
-    setPhase('drop'); setEarned(null); setNote(null);
+    setPhase('drop'); setNote(null);
     const big = act.includes('big'), magnet = act.includes('magnet');
     const target = bk.indexOf(Math.max(...bk));
     const tx = ((target + 0.5) * z) / nb - 0.5;
-    const pos: { x: number; r: number }[] = [];
-    for (let r = 0; r < ROWS; r++) for (let px = r % 2 ? 0.5 : 0; px <= z - 1 + 0.001; px += 1) pos.push({ x: px, r });
-    let x = zone, bonus = 0;
+    let x = zone;
     const path: { x: number; y: number }[] = [{ x, y: -0.7 }];
     for (let r = 0; r < ROWS; r++) {
       if (!(big && Math.random() < 0.5)) {
@@ -180,20 +182,21 @@ export default function PlinkoDrop() {
         x = Math.max(0, Math.min(z - 1, x + dir));
       }
       path.push({ x, y: r + 0.5 });
-      if (st.some((si) => pos[si] && pos[si].r === r && Math.abs(pos[si].x - x) < 0.3)) bonus += 5;
     }
     const b = Math.min(nb - 1, Math.max(0, Math.floor(((x + 0.5) / z) * nb)));
     path.push({ x: ((b + 0.5) * z) / nb - 0.5, y: ROWS + 0.35 });
     const STEP = 190;
     path.forEach((pt, i) => timers.current.push(window.setTimeout(() => { setBall(pt); if (i > 0 && i < path.length - 1) sfx.tick(); }, i * STEP)));
     timers.current.push(window.setTimeout(() => {
-      const pts = (bk[b] + bonus) * (act.includes('double') ? 2 : 1);
-      setPlayersBoth((ps) => ps.map((x2) => (x2.key === p.key ? { ...x2, xp: x2.xp + pts } : x2)));
-      setWin(b); sfx.coin(); if (pts >= 40) playCheer();
-      setNote(`${p.name}: +${pts} XP${bonus ? ` (${bonus} from star pegs)` : ''}`);
+      const pts = bk[b] * (act.includes('double') ? 2 : 1);
+      const won = st[b] ?? 0;
+      setPlayersBoth((ps) => ps.map((x2) => (x2.key === p.key ? { ...x2, xp: x2.xp + pts, owed: Math.min(3, x2.owed + won) } : x2)));
+      setWin(b); sfx.coin(); if (pts >= 40 || won) playCheer();
+      const msg = `${p.name}: +${pts} XP${won ? ` and ${won} power-up${won === 1 ? '' : 's'} for next turn` : ''}`;
+      setNote(msg); if (won) speak(msg, student.ttsSettings);
     }, path.length * STEP + 80));
     timers.current.push(window.setTimeout(() => {
-      if (act.includes('again') && !second) { activeRef.current = act.filter((x3) => x3 !== 'again'); setActive(activeRef.current); setBall(null); setWin(null); setNote('Second Drop! Pick another zone.'); secondRef.current = true; setPhase('aim'); return; }
+      if (act.includes('again') && !second) { activeRef.current = act.filter((x3) => x3 !== 'again'); setActive(activeRef.current); setBall(null); setWin(null); setNote('Second Drop!'); secondRef.current = true; setPhase('aim'); return; }
       secondRef.current = false;
       endTurn(t, playersRef.current);
     }, path.length * STEP + 1500));
@@ -203,7 +206,7 @@ export default function PlinkoDrop() {
   const ranked = [...players].sort((a, b) => b.xp - a.xp);
   const me = players.find((p) => p.kind === 'me');
   const rivalPlayer = rivalId ? players.find((p) => p.npcId === rivalId) : undefined;
-  const canAdd = extra.length < MAX_PLAYERS - 1;
+  const ballBg = (p?: Player) => BALLS[p?.ball ?? 0].bg;
 
   return (
     <div className="pk2">
@@ -218,16 +221,16 @@ export default function PlinkoDrop() {
       <main className="pk2-main">
         <aside className="pk2-panel pk2-score" aria-label="Scoreboard">
           <h2>Scoreboard</h2>
-          {(players.length ? players : [{ key: 'me', name: student.name, kind: 'me' as const, xp: 0, held: [] }]).map((p, i) => (
+          {players.map((p) => (
             <div key={p.key} className={`pk2-player${cur && p.key === cur.key && phase !== 'over' ? ' on' : ''}`}>
-              <span className="pk2-ball-icon" style={{ background: COLORS[i % COLORS.length] }} aria-hidden />
-              <b>{p.name}{p.kind === 'npc' ? ' 🏡' : ''}</b><strong>{p.xp}</strong>
+              <span className="pk2-ball-icon" style={{ background: ballBg(p) }} aria-hidden />
+              <b>{p.name}</b><strong>{p.xp}</strong>
             </div>
           ))}
           <div className="pk2-round">Round {Math.min(round + 1, totalRounds)} of {totalRounds}</div>
         </aside>
 
-        <section className="pk2-board" aria-label="Plinko board" style={{ ['--pk-cur' as string]: COLORS[Math.max(0, players.indexOf(cur))] }}>
+        <section className="pk2-board" aria-label="Plinko board" style={{ ['--pk-cur' as string]: '#5a3d9e' }}>
           {cur && phase !== 'over' && <div className="pk2-turn">{cur.name}'s turn</div>}
           <div className="pk2-zones">
             {Array.from({ length: zones }, (_, z) => (
@@ -236,36 +239,45 @@ export default function PlinkoDrop() {
                 <span>▼</span>
               </button>
             ))}
-            {phase === 'aim' && <b className={`pk2-ball aim${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%` }} />}
+            {phase === 'aim' && <b className={`pk2-ball aim${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-field" style={{ aspectRatio: `${zones} / ${zones * 1.1}` }}>
-            {pegs.map((p, i) => <i key={i} className={stars.includes(i) ? 'star' : ''} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%` }} />)}
-            {ball && <b className={`pk2-ball${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(active.includes('big') ? 63 : 45) / zones}%` }} />}
+            {pegs.map((p, i) => <i key={i} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%` }} />)}
+            {ball && <b className={`pk2-ball${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(active.includes('big') ? 63 : 45) / zones}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, 1fr)` }}>
-            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} style={{ left: `${xPct(bucketX(i))}%` }}>{v}</span>)}
+            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{'★'.repeat(stars[i])}</em> : null}{v}</span>)}
           </div>
           <p className="pk2-msg" aria-live="polite">{note ?? ''}</p>
         </section>
 
         <aside className="pk2-panel pk2-powers" aria-label="Power-ups">
           <h2>Power-ups</h2>
-          {cur && <p className="pk2-small">{cur.name}'s power-ups</p>}
-          {earned && <div className="pk2-new">New! {POWERS[earned].icon} {POWERS[earned].name}</div>}
-          {cur && cur.held.length === 0 && active.length === 0 && <p className="pk2-small">Right answers sometimes give a power-up.</p>}
-          {active.map((p) => <div key={`a-${p}`} className="pk2-power on"><span>{POWERS[p].icon}</span><b>{POWERS[p].name}</b><small>On for this drop</small></div>)}
-          {cur?.held.map((p, i) => (
-            <button key={`${p}-${i}`} type="button" className="pk2-power" disabled={phase !== 'aim' || active.includes(p) || cur.kind === 'npc'} onClick={() => usePower(i)}>
-              <span>{POWERS[p].icon}</span><b>{POWERS[p].name}</b><small>{POWERS[p].does}</small><em>{phase === 'aim' ? 'Tap to use' : 'Use it after the questions'}</em>
-            </button>
-          ))}
+          {phase === 'powers' && cur ? (
+            <>
+              <p className="pk2-small"><b>{cur.name}</b>, pick {cur.owed} ({active.length} of {cur.owed})</p>
+              {POWER_IDS.map((pw) => (
+                <div key={pw} className={`pk2-power${active.includes(pw) ? ' on' : ''}`}>
+                  <span>{POWERS[pw].icon}</span><b>{POWERS[pw].name}</b><small>{POWERS[pw].does}</small>
+                  <button type="button" className="btn btn-sm pk2-select" onClick={() => togglePower(pw)} disabled={!active.includes(pw) && active.length >= cur.owed}>{active.includes(pw) ? 'Selected ✓' : 'Select'}</button>
+                </div>
+              ))}
+              <button type="button" className="btn btn-primary" onClick={powersDone}>{active.length ? 'Done' : 'Skip'}</button>
+            </>
+          ) : (
+            <>
+              {active.map((pw) => <div key={`a-${pw}`} className="pk2-power on"><span>{POWERS[pw].icon}</span><b>{POWERS[pw].name}</b><small>On for this drop</small></div>)}
+              {!active.length && <p className="pk2-small">Land in a bucket with ★ stars. Each star is a power-up to pick at the start of your next turn.</p>}
+              {players.filter((p) => p.owed > 0).map((p) => <p key={p.key} className="pk2-small">{p.name}: {'★'.repeat(p.owed)} next turn</p>)}
+            </>
+          )}
         </aside>
       </main>
 
       {started && phase === 'intro' && cur && (
         <div className="pk2-intro" role="status" aria-live="assertive">
-          <div style={{ ['--pk-cur' as string]: COLORS[Math.max(0, players.indexOf(cur))] }}>
-            <span className="pk2-ball-icon" style={{ background: COLORS[Math.max(0, players.indexOf(cur))] }} aria-hidden />
+          <div>
+            <span className="pk2-ball-icon" style={{ background: ballBg(cur) }} aria-hidden />
             <b>{players.length > 1 ? `${cur.name}'s turn!` : `Round ${round + 1}`}</b>
             <small>Round {round + 1} of {totalRounds}</small>
           </div>
@@ -285,32 +297,8 @@ export default function PlinkoDrop() {
       )}
 
       {!started && (
-        <GameStartCard title="Plinko" intro="Answer the questions, then pick where the ball drops. It bounces through the pegs into a bucket for XP. Every round the board gets a new drop zone and a new bucket." ttsSettings={student.ttsSettings} onStart={start}>
-          <RoundSettings ranges={RANGES} rounds={rs.rounds} perRound={rs.perRound} onRounds={rs.setRounds} onPerRound={rs.setPerRound} locked={rs.locked} roundsLabel="Rounds" perLabel="Questions each turn" />
-          <div className="pk2-setup">
-            <b>Players ({extra.length + 1} of {MAX_PLAYERS})</b>
-            <div className="pk2-setup-list">
-              <span className="pk2-chip" style={{ borderColor: COLORS[0] }}>{student.name} (you)</span>
-              {extra.map((e, i) => (
-                <span key={e.key} className="pk2-chip" style={{ borderColor: COLORS[(i + 1) % COLORS.length] }}>
-                  {e.kind === 'npc' ? `🏡 ${npcName(e.npcId)}` : e.name}
-                  <button type="button" aria-label="Remove" onClick={() => setExtra((x) => x.filter((y) => y.key !== e.key))}>✕</button>
-                </span>
-              ))}
-            </div>
-            {canAdd && (
-              <div className="pk2-setup-add">
-                <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="A classmate's name" aria-label="Add a classmate" maxLength={20}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && typed.trim()) { setExtra((x) => [...x, { key: `irl-${Date.now()}`, name: typed.trim(), kind: 'irl' }]); setTyped(''); } }} />
-                <button type="button" className="btn" disabled={!typed.trim()} onClick={() => { setExtra((x) => [...x, { key: `irl-${Date.now()}`, name: typed.trim(), kind: 'irl' }]); setTyped(''); }}>Add classmate</button>
-                <select value="" aria-label="Add a Neighbor" onChange={(e) => { const id = e.target.value; if (id) setExtra((x) => [...x, { key: `npc-${id}-${Date.now()}`, name: '', kind: 'npc', npcId: id }]); }}>
-                  <option value="">Add a Neighbor…</option>
-                  {Object.values(profiles).filter((p) => !extra.some((e) => e.npcId === p.id)).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-              </div>
-            )}
-          </div>
-        </GameStartCard>
+        <PlinkoSetup studentName={student.name} profiles={profiles} rounds={rs.rounds} perTurn={rs.perRound} ranges={RANGES} locked={rs.locked}
+          onRounds={rs.setRounds} onPerTurn={rs.setPerRound} preNpc={rivalId} tts={student.ttsSettings} onStart={start} onLeave={() => back.go()} />
       )}
 
       {started && phase === 'over' && !wrap && (

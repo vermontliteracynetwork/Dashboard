@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-plinko-stars",
+    date: "2026-10-20",
+    icon: "⭐",
+    title: "Plinko: pick your ball and aim for stars",
+    body: "Set up Plinko one step at a time, invite Neighbors and pick your own ball. Buckets with stars give you power-ups to pick at the start of your next turn.",
+  },
+  {
     id: "2026-10-20-symbol-sentences",
     date: "2026-10-20",
     icon: "🔣",
