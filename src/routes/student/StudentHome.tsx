@@ -441,6 +441,11 @@ export default function StudentHome() {
           <span className="widget-icon">⚗️</span>
           <span className="widget-label">Alchemy</span>
         </button>
+        {/* Diary (Build Queue 290, her words: "remove this from login. instead add a \"Diary\" in computer"). */}
+        <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/diary')} aria-label="Diary">
+          <span className="widget-icon">📔</span>
+          <span className="widget-label">Diary</span>
+        </button>
         {/* Supernature (item 96, teacher 2026-10-13: "lets get a model of this ready in computer app"). */}
         <button
           className="widget-card widget-icon-card widget-grammar-gus"

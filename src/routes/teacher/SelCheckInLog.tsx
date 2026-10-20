@@ -58,7 +58,11 @@ export default function SelCheckInLog() {
 
   if (report && repStudent) {
     const memories = (styleLooks.find((r) => r.ownerId === `selmem:${repStudent}`)?.look ?? {}) as Record<string, { caption?: string; photo?: string }>;
-    return <SelTeamReport studentName={nameFor(repStudent)} rows={reportRows} from={from} to={to} zones={zones} memories={memories} onClose={() => setReport(false)} />;
+    // Build Queue 290: diary pages (the memory of the day moved to the Diary app) in the report's dates.
+    const diary = Object.values((styleLooks.find((r) => r.ownerId === `diary:${repStudent}`)?.look ?? {}) as Record<string, { caption?: string; photo?: string; at?: string }>)
+      .filter((d): d is { caption?: string; photo?: string; at: string } => !!d?.at && (!from || d.at >= `${from}T00:00`) && (!to || new Date(d.at) <= new Date(`${to}T23:59:59.999`)))
+      .sort((x, y) => (x.at < y.at ? -1 : 1));
+    return <SelTeamReport studentName={nameFor(repStudent)} rows={reportRows} from={from} to={to} zones={zones} memories={memories} diary={diary} onClose={() => setReport(false)} />;
   }
   if (printing) {
     return (

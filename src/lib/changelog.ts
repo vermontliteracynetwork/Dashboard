@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-diary",
+    date: "2026-10-20",
+    icon: "📔",
+    title: "A Diary on your computer",
+    body: "Open Diary on the computer to add a picture and a caption about your day. Logging in goes straight to the Feelings Wheel again.",
+  },
+  {
     id: "2026-10-20-cupcake-art",
     date: "2026-10-20",
     icon: "🧁",

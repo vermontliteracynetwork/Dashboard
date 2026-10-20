@@ -131,10 +131,13 @@ function TimeOfDayChart({ rows }: { rows: SelCheckIn[] }) {
 
 const countBy = <T,>(list: T[], key: (x: T) => string) => { const m = new Map<string, number>(); list.forEach((x) => { const k = key(x); if (k) m.set(k, (m.get(k) ?? 0) + 1); }); return [...m.entries()].sort((a, b) => b[1] - a[1]); };
 
-export default function SelTeamReport({ studentName, rows, from, to, zones, memories = {}, onClose }: {
+export default function SelTeamReport({ studentName, rows, from, to, zones, memories = {}, diary = [], onClose }: {
   studentName: string; rows: SelCheckIn[]; from: string; to: string; zones: SelZone[];
   // Build Queue 269: the memory of the day saved before each check-in, by check-in id.
-  memories?: Record<string, { caption?: string; photo?: string }>; onClose: () => void;
+  memories?: Record<string, { caption?: string; photo?: string }>;
+  // Build Queue 290: pages from the student's Diary app in these dates.
+  diary?: { caption?: string; photo?: string; at: string }[];
+  onClose: () => void;
 }) {
   const sorted = useMemo(() => rows.slice().sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1)), [rows]);
   const n = sorted.length;
@@ -189,7 +192,7 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, memo
                   <tr><th>Neighbor re-checks</th><td>{rechecks.length} scheduled, {doneRe.length} done{doneRe.length ? `, ${toGreen} came back Green (${pct(toGreen, doneRe.length)})` : ''}</td></tr>
                   <tr><th>Time to re-check</th><td>{median !== null ? `about ${median} minutes (median)` : 'none done'}</td></tr>
                   <tr><th>Notes written</th><td>{notes.length}</td></tr>
-                  <tr><th>Memories of the day</th><td>{mems.length} of {n}</td></tr>
+                  <tr><th>Diary pages</th><td>{diary.length}{mems.length ? ` (plus ${mems.length} memories from earlier check-ins)` : ''}</td></tr>
                   <tr><th>Energy not given</th><td>{sorted.filter((c) => !c.energy).length}</td></tr>
                 </tbody>
               </table>
@@ -249,6 +252,19 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, memo
                 <thead><tr><th>Date and time</th><th>Zone and feeling</th><th>Note, word for word</th></tr></thead>
                 <tbody>{notes.map((c) => <tr key={c.id}><td>{fmtDate(new Date(c.timestamp))} {fmtTime(new Date(c.timestamp))}</td><td>{SEL_ZONE_LABELS[c.zone]}, {c.emotion}</td><td className="selr-note">{c.noteText}</td></tr>)}</tbody>
               </table>
+            </section>
+          )}
+
+          {diary.length > 0 && (
+            <section className="selr-block">
+              <h2>Diary pages ({diary.length})</h2>
+              <p className="selr-small">Pictures and captions the student added to the Diary app on the computer (memory recall of daily events).</p>
+              <div className="selr-mems">{diary.map((d, i) => (
+                <figure key={i}>
+                  {d.photo ? <img src={d.photo} alt="" /> : <span className="selr-nopic">No picture</span>}
+                  <figcaption><b>{fmtDate(new Date(d.at))} {fmtTime(new Date(d.at))}</b><br />"{d.caption || 'No caption'}"</figcaption>
+                </figure>
+              ))}</div>
             </section>
           )}
 

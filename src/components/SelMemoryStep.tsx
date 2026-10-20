@@ -6,12 +6,13 @@ import type { TTSSettings } from '../types';
 // A memory of the day before the feelings check-in (Build Queue 269, her words: "Memory of what happened in the
 // day, small caption (memory recall of daily events) Select or take picture, write cation, emotional check in
 // after"). The student takes or picks one picture and writes (or says) a short caption, then goes on to the
-// Feelings Wheel. The memory is saved with that check-in and shows in the team report.
+// Feelings Wheel. Since Build Queue 290 (her words: "remove this from login. instead add a \"Diary\" in computer") it is
+// the page writer of the Diary app on the computer (src/routes/student/Diary.tsx), not part of the login.
 export interface SelMemory { caption: string; file?: File }
 
 const SAY = 'What happened in your day? Take or pick a picture, then write a small caption.';
 
-export default function SelMemoryStep({ name, tts, onNext }: { name: string; tts?: TTSSettings; onNext: (m: SelMemory | null) => void }) {
+export default function SelMemoryStep({ name, tts, onNext, submitLabel = 'Next: how I feel →', skipLabel = 'Skip the memory' }: { name: string; tts?: TTSSettings; onNext: (m: SelMemory | null) => void; submitLabel?: string; skipLabel?: string }) {
   const [caption, setCaption] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [url, setUrl] = useState<string | null>(null);
@@ -45,8 +46,8 @@ export default function SelMemoryStep({ name, tts, onNext }: { name: string; tts
           {voice.supported && <button type="button" className={`fw-btn${voice.listening ? ' on' : ''}`} onClick={voice.toggle}>{voice.listening ? '⏹️ Stop' : '🎤 Say it'}</button>}
           {caption.trim() && <button type="button" className="fw-btn" onClick={() => speak(caption, tts)}>🔊 Hear it</button>}
         </div>
-        <button type="button" className="btn btn-primary btn-lg" disabled={!ready} onClick={() => { voice.stop(); onNext({ caption: caption.trim(), file: file ?? undefined }); }}>Next: how I feel →</button>
-        <button type="button" className="fw-btn selm-skip" onClick={() => { voice.stop(); onNext(null); }}>Skip the memory</button>
+        <button type="button" className="btn btn-primary btn-lg" disabled={!ready} onClick={() => { voice.stop(); onNext({ caption: caption.trim(), file: file ?? undefined }); }}>{submitLabel}</button>
+        <button type="button" className="fw-btn selm-skip" onClick={() => { voice.stop(); onNext(null); }}>{skipLabel}</button>
       </div>
     </div>
   );

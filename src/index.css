@@ -9855,3 +9855,16 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 @keyframes tyPop { from { transform: scale(.6); } to { transform: scale(1); } }
 .ty2-welcome { width: 120px; height: 120px; image-rendering: pixelated; }
 @media (prefers-reduced-motion: reduce) { .ty2-case-cake.got img { animation: none; } }
+
+/* Diary app (Diary.tsx, Build Queue 290). */
+.diary { min-height: 100dvh; box-sizing: border-box; padding: max(16px, env(safe-area-inset-top)) 16px 96px; background: #f6f1ff; }
+.diary-head { display: flex; align-items: center; gap: 12px; max-width: 960px; margin: 0 auto 16px; }
+.diary-head h1 { flex: 1; margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); }
+.diary-head .btn { min-height: 52px; }
+.diary-empty { max-width: 640px; margin: 40px auto; text-align: center; font-size: 1.2rem; }
+.diary-pages { max-width: 960px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+.diary-page { background: #fffdf7; border-radius: 18px; padding: 12px; box-shadow: 0 6px 16px rgba(60,40,100,.12); display: flex; flex-direction: column; gap: 6px; border: 2px solid #ece3fb; }
+.diary-page img, .diary-nopic { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 12px; background: #f1ecfb; }
+.diary-page time { font-weight: 800; color: #5a3d9e; }
+.diary-page p { margin: 0; font-size: 1.15rem; }
+.diary-page .btn { align-self: flex-start; min-height: 44px; }
