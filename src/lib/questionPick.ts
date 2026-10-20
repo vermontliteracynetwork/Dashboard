@@ -7,7 +7,7 @@ import type { MCQuestion, QuestionSet } from '../types';
 // come from the focus sets (each focus set equally likely) and 5 from the rest (each equally likely), however
 // many sets there are. With no focus sets, every set is equally likely.
 
-export const FOCUS_SHARE = 0.95;
+export const FOCUS_SHARE = 1; // was 0.95 (Build Queue 210); 1 since Build Queue 262: starred sets only
 const mcOf = (qs: QuestionSet) => qs.questions.filter((q): q is MCQuestion => q.kind === 'mc');
 
 export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand: () => number = Math.random): MCQuestion | null {
@@ -15,7 +15,9 @@ export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand
   if (!sets.length) return null;
   const focus = sets.filter((s) => s.focus), rest = sets.filter((s) => !s.focus);
   for (let tries = 0; tries < 6; tries++) {
-    const pool = !focus.length ? rest : !rest.length ? focus : rand() < FOCUS_SHARE ? focus : rest;
+    // Build Queue 262 (2026-10-20, her words: "only show students the stared question focus sets. dont shwo the others"):
+    // while any starred set has questions, every question comes from the starred sets.
+    const pool = focus.length ? focus : rest;
     const set = pool[Math.floor(rand() * pool.length)];
     const choices = set.qs.length > 1 && avoidId ? set.qs.filter((q) => q.id !== avoidId) : set.qs;
     const q = choices[Math.floor(rand() * choices.length)];
