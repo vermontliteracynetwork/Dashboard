@@ -99,3 +99,22 @@ export const fullSentence = (slots: SymbolSlot[], words?: Record<number, string>
   slots.map((s, i) => (words && !s.given ? words[i] ?? '' : s.word)).join(' ').replace(/\s+([.!?,])/g, '$1').trim();
 
 export const blankSymbolQuestion = (id: string, settings: SymbolSettings = DEFAULT_SYMBOL_SETTINGS): SymbolQuestion => ({ id, kind: 'symbol', prompt: 'Finish the symbol sentence.', slots: [], settings: { ...settings } });
+
+// ---------- typed-answer help (Build Queue 273) ----------
+export const isKnownWord = (word: string) => posesOf(word) !== null;
+const dist = (a: string, b: string) => {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 1; j <= b.length; j++) d[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return d[a.length][b.length];
+};
+// Close spellings of a word that are this part of speech (the level 3 correction list).
+export function suggestWords(word: string, pos: SymbolPos, n = 4): string[] {
+  const w = word.trim().toLowerCase(); if (!w) return [];
+  const max = w.length <= 4 ? 1 : 2;
+  const out: [string, number][] = [];
+  LEX.forEach((poses, k) => { if ((poses.has(pos) || (pos === 'noun' && poses.has('propernoun'))) && Math.abs(k.length - w.length) <= max) { const dd = dist(w, k); if (dd > 0 && dd <= max) out.push([k, dd]); } });
+  return out.sort((a, b) => a[1] - b[1]).slice(0, n).map(([k]) => (pos === 'propernoun' ? k[0].toUpperCase() + k.slice(1) : k));
+}
+// A few example words of a kind, for the Help hint (any fitting word counts, so this never gives the answer away).
+export const examplesFor = (pos: SymbolPos, n = 3) => [...POOL[pos]].sort(() => Math.random() - 0.5).slice(0, n);

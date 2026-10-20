@@ -9682,3 +9682,13 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .azf-title { font-size: 1.1rem; color: #b4561a; }
 .azf-log { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; max-height: 130px; overflow: auto; }
 .azf-log p { margin: 0; padding: 6px 12px; background: #e9f2ff; border-radius: 14px 14px 4px 14px; font-weight: 700; max-width: 90%; }
+
+/* Typed answer support levels (Build Queue 273). */
+.symq-level { font-size: .8rem; font-weight: 800; padding: 2px 10px; border-radius: 999px; background: #efe9ff; color: #4b3a8a; }
+.symq-word.ok { border-color: #22c55e; background: #e9f9ef; }
+.symq-ok { position: absolute; right: -6px; top: -8px; width: 22px; height: 22px; border-radius: 50%; background: #22c55e; color: #fff; font-weight: 900; display: grid; place-items: center; font-size: .85rem; }
+.symq-input-wrap { position: relative; }
+.symq-dice.live { background: #ffe0d6; }
+.symq-sugg { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; max-width: 220px; }
+.symq-sugg button { min-height: 36px; padding: 0 10px; border-radius: 999px; border: 2px solid #5b8bd6; background: #fff; font: 700 .95rem 'Nunito', system-ui, sans-serif; cursor: pointer; }
+.symq-hint { max-width: 220px; font-size: .85rem; background: #fff8d6; border-radius: 10px; padding: 4px 8px; text-align: center; }

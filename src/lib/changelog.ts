@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-typed-help-levels",
+    date: "2026-10-20",
+    icon: "✅",
+    title: "Help that fits you in symbol sentences",
+    body: "Each word box gets a green check when it is right. Your help level changes as you answer, and the Help button gives you a hint when you are stuck.",
+  },
+  {
     id: "2026-10-20-talk-azalea",
     date: "2026-10-20",
     icon: "🐱",
