@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-build-catalog-clean",
+    date: "2026-10-20",
+    icon: "🧹",
+    title: "Build Mode only has colorful pieces",
+    body: "The plain white pieces are gone from Build Mode, so everything you can place has its real colors.",
+  },
+  {
     id: "2026-10-20-typed-help-levels",
     date: "2026-10-20",
     icon: "✅",
