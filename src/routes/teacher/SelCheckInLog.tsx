@@ -4,7 +4,9 @@ import TeacherNav from '../../components/TeacherNav';
 import { StylePortrait } from '../../style/StylePortrait';
 import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
-import type { SelCheckIn } from '../../types';
+import type { SelCheckIn, SelZone } from '../../types';
+import SelTeamReport from './SelTeamReport';
+import { SEL_ZONES } from '../../lib/selZones';
 
 // Clinical-grade log of every Zones of Regulation check-in
 // (docs/ZONES_OF_REGULATION_CHECKIN.md §6) — a dedicated page rather than a
@@ -18,6 +20,26 @@ export default function SelCheckInLog() {
   const [studentFilter, setStudentFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [printing, setPrinting] = useState<SelCheckIn[] | null>(null);
+  // Build Queue 268: the team report, built from a student, a date range and the zones to show.
+  const [repStudent, setRepStudent] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const [zones, setZones] = useState<SelZone[]>([...SEL_ZONES]);
+  const [report, setReport] = useState(false);
+  const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const quick = (days: number | 'month' | 'all') => {
+    const now = new Date();
+    if (days === 'all') { setFrom(''); setTo(''); return; }
+    if (days === 'month') { setFrom(iso(new Date(now.getFullYear(), now.getMonth(), 1))); setTo(iso(now)); return; }
+    const f = new Date(now); f.setDate(f.getDate() - (days - 1)); setFrom(iso(f)); setTo(iso(now));
+  };
+  const inRange = (c: SelCheckIn) => {
+    const t = new Date(c.timestamp);
+    if (from && t < new Date(`${from}T00:00`)) return false;
+    if (to && t > new Date(`${to}T23:59:59.999`)) return false;
+    return zones.includes(c.zone);
+  };
+  const reportRows = selCheckIns.filter((c) => c.studentId === repStudent && inRange(c));
 
   const nameFor = (id: string) => students.find((st) => st.id === id)?.name ?? 'Unknown';
   const neighborNameFor = (id?: string) => QUEST1_NEIGHBORS.find((n) => n.id === id)?.name ?? '—';
@@ -33,6 +55,9 @@ export default function SelCheckInLog() {
   const toggleSelect = (id: string) =>
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
+  if (report && repStudent) {
+    return <SelTeamReport studentName={nameFor(repStudent)} rows={reportRows} from={from} to={to} zones={zones} onClose={() => setReport(false)} />;
+  }
   if (printing) {
     return (
       <div className="sel-print-area">
@@ -78,6 +103,39 @@ export default function SelCheckInLog() {
         <p style={{ opacity: 0.75, marginTop: -8 }}>
           Every zone/emotion check-in, including any automatic Neighbor re-check that followed it. Select records below to print or export as PDF.
         </p>
+
+        <div className="content-well stack selr-builder" style={{ gap: 10 }}>
+          <h2 style={{ margin: 0 }}>📈 Team report (PDF)</h2>
+          <p style={{ margin: 0, opacity: 0.8 }}>Line graphs on top, then the zone, time of day, energy, feeling and tool counts, every note word for word, and one row per check-in with every field. For the student's therapists, SLP, OT and BCBA.</p>
+          <div className="row-wrap" style={{ gap: 10, alignItems: 'flex-end' }}>
+            <label className="stack" style={{ gap: 4 }}>Student
+              <select value={repStudent} onChange={(e) => setRepStudent(e.target.value)}>
+                <option value="">Pick a student</option>
+                {students.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
+              </select>
+            </label>
+            <label className="stack" style={{ gap: 4 }}>From<input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></label>
+            <label className="stack" style={{ gap: 4 }}>To<input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></label>
+            <div className="row-wrap" style={{ gap: 6 }}>
+              <button type="button" className="btn btn-sm" onClick={() => quick(7)}>Last 7 days</button>
+              <button type="button" className="btn btn-sm" onClick={() => quick(30)}>Last 30 days</button>
+              <button type="button" className="btn btn-sm" onClick={() => quick('month')}>This month</button>
+              <button type="button" className="btn btn-sm" onClick={() => quick('all')}>All dates</button>
+            </div>
+          </div>
+          <div className="row-wrap" style={{ gap: 10, alignItems: 'center' }}>
+            <b>Zones:</b>
+            {SEL_ZONES.map((z) => (
+              <label key={z} className="row-wrap" style={{ gap: 4, alignItems: 'center' }}>
+                <input type="checkbox" checked={zones.includes(z)} onChange={(e) => setZones(e.target.checked ? [...zones, z] : zones.filter((x) => x !== z))} /> {SEL_ZONE_LABELS[z]}
+              </label>
+            ))}
+          </div>
+          <div className="row-wrap" style={{ gap: 10, alignItems: 'center' }}>
+            <button type="button" className="btn btn-primary" disabled={!repStudent || !zones.length} onClick={() => setReport(true)} style={{ minHeight: 44 }}>📈 Make the report</button>
+            {repStudent && <span style={{ opacity: 0.8 }}>{reportRows.length} check-in{reportRows.length === 1 ? '' : 's'} match</span>}
+          </div>
+        </div>
 
         <div className="row-wrap" style={{ alignItems: 'center' }}>
           <select value={studentFilter} onChange={(e) => setStudentFilter(e.target.value)}>

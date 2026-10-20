@@ -9634,3 +9634,29 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .pkt-pegs { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); place-items: center; } .pkt-pegs i { width: 10px; height: 10px; border-radius: 50%; }
 .pkt-buckets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; } .pkt-buckets span { height: 22px; border-radius: 6px; }
 .pkt-balls { display: flex; flex-wrap: wrap; gap: 8px; } .pkt-balls img { width: 48px; height: 48px; border-radius: 50%; }
+
+/* SEL team report (SelTeamReport.tsx, Build Queue 268): landscape letter pages, graphs first. */
+.selr.sel-print-area { max-width: 1060px; }
+.selr-head h1 { margin: 0 0 4px; font-size: 1.6rem; }
+.selr-head p { margin: 2px 0; }
+.selr-small { font-size: .78rem; opacity: .8; }
+.selr-block { margin: 14px 0; break-inside: avoid; }
+.selr-block h2 { font-size: 1.05rem; margin: 0 0 6px; }
+.selr-chart { width: 100%; height: auto; display: block; border: 1px solid #e6e2f0; border-radius: 8px; background: #fff; }
+.selr-legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: .85rem; margin-bottom: 6px; }
+.selr-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+.selr-legend i.hollow { border: 3px solid #6b5fa0; width: 8px; height: 8px; background: #fff; }
+.selr-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 16px; }
+.selr-grid3 { display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; gap: 16px; }
+.selr-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+.selr-table th, .selr-table td { border: 1px solid #ddd8ea; padding: 4px 6px; text-align: left; vertical-align: top; }
+.selr-table thead th { background: #f3f0fa; }
+.selr-table tbody th { background: #faf9fd; width: 40%; }
+.selr-full { font-size: .74rem; }
+.selr-full tr { break-inside: avoid; }
+.selr-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.selr-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: 0; }
+.selr-lines i { display: block; border-bottom: 1px solid #999; height: 26px; }
+.selr-lines p { margin: 10px 0 0; }
+@media (max-width: 760px) { .selr-grid, .selr-grid3 { grid-template-columns: 1fr; } }
+@media print { .selr-chart, .selr-dot, .selr-legend i { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .selr-table thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

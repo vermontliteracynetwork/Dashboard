@@ -1,0 +1,13 @@
+Plinko custom theme kit
+
+1. Upload plinko-theme-template.pdf to Canva (one project, 6 pages).
+2. Design only the white spaces. Never put design on the black areas.
+   Page 1 Background. Page 2 Balls (1 to 5 needed, 6 to 10 extra).
+   Page 3 Title (text only, the white turns see-through).
+   Page 4 Side panel. Page 5 Colors (one solid color in each square).
+   Page 6 Power-ups (a picture for each; they keep the same action).
+   Leave anything white to keep the usual look.
+3. In Canva: Share, Download, PDF Standard. Keep all 6 pages.
+4. In the teacher dashboard: menu, Plinko themes. Name the theme, pick a font,
+   type power-up names if you want (Magnet could be Super Smell), upload the PDF.
+5. Check the preview, then tap Approve for students.
