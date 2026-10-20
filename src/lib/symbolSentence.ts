@@ -21,7 +21,7 @@ export const SYMBOLS: Record<SymbolPos, { name: string; def: string; color: stri
   punctuation: { name: 'Punctuation', def: 'Ends the sentence (. ? !)', color: '#9CA3AF' },
 };
 export const SYMBOL_ORDER: SymbolPos[] = ['article', 'adjective', 'noun', 'propernoun', 'verb', 'adverb', 'pronoun', 'preposition', 'conjunction', 'interjection', 'punctuation'];
-export const DEFAULT_SYMBOL_SETTINGS: SymbolSettings = { dice: true, spellCheck: false, grammarCheck: true };
+export const DEFAULT_SYMBOL_SETTINGS: SymbolSettings = { dice: true, spellCheck: false, grammarCheck: true, capitalCheck: false, punctuationCheck: false };
 // Dark text on the light symbol colors, white on the rest.
 export const inkOn = (pos: SymbolPos) => (['article', 'adjective', 'pronoun', 'punctuation'].includes(pos) ? '#231b33' : '#ffffff');
 

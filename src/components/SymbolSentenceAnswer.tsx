@@ -29,10 +29,21 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
   const [focus, setFocus] = useState<number | null>(null);
   const inputs = useRef<Record<number, HTMLInputElement | null>>({});
   const icons = useRef<Record<number, HTMLButtonElement | null>>({});
-  const open = q.slots.map((s, i) => (s.given ? -1 : i)).filter((i) => i >= 0);
+  // Build Queue 294: with the Punctuation check on, the student picks the punctuation (no default); with the Capital
+  // letter check on, typed words must be capitalized correctly and the iPad does not do it for them.
+  const slots = q.slots.map((s) => (st.punctuationCheck && s.pos === 'punctuation' ? { ...s, given: false } : s));
+  const firstWord = slots.findIndex((s) => s.pos !== 'punctuation');
+  const capitalProblem = (i: number, w: string) => {
+    if (!st.capitalCheck || !w || slots[i].pos === 'punctuation') return null;
+    const cap = /^[A-Z]/.test(w);
+    if (i === firstWord && !cap) return 'Start the sentence with a capital letter.';
+    if (i !== firstWord && cap && slots[i].pos !== 'propernoun' && w !== 'I' && !/^I'/.test(w)) return 'Only the first word and names get a capital letter.';
+    return null;
+  };
+  const open = slots.map((s, i) => (s.given ? -1 : i)).filter((i) => i >= 0);
   const allFilled = open.every((i) => (vals[i] ?? '').trim());
   // Build Queue 291: no "Read my sentence" button; the question's own speaker reads the sentence as it is so far.
-  const spoken = q.slots.map((s, i) => (s.given ? s.word : vals[i] || SYMBOLS[s.pos].name)).filter((w) => w !== '.').join(' ');
+  const spoken = slots.map((s, i) => (s.given ? s.word : vals[i] || SYMBOLS[s.pos].name)).filter((w) => !/^[.!?]$/.test(w) && w !== 'Punctuation').join(' ');
   useEffect(() => { onSentence?.(spoken); }, [spoken]); // eslint-disable-line react-hooks/exhaustive-deps
   // Build Queue 292 (her words: "if a caption is shown on click, it should be closed on click elsewhere").
   useEffect(() => {
@@ -59,17 +70,19 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
     speak(w, tts);
   };
   const check = () => {
-    const said = fullSentence(q.slots, vals);
-    if (st.grammarCheck) {
+    const said = fullSentence(slots, vals);
+    if (st.grammarCheck || st.capitalCheck || st.punctuationCheck) {
       const bad: Record<number, string> = {};
       const good: Record<number, boolean> = { ...ok };
       const spell: Record<number, string> = { ...askedSpell };
       for (const i of open) {
         if (ok[i]) continue;
         const w = (vals[i] ?? '').trim();
-        const p = grammarProblem(w, q.slots[i]);
+        const isPunct = slots[i].pos === 'punctuation';
+        const p = isPunct ? (w === q.slots[i].word.trim() ? null : 'Check the punctuation. Is it telling, asking or a strong feeling?')
+          : (st.grammarCheck ? grammarProblem(w, q.slots[i]) : null) ?? capitalProblem(i, w);
         // Level 2 and 3 say when a word is not one we know, once, before it gets the benefit of the doubt.
-        const unknown = !p && level >= 2 && q.slots[i].pos !== 'propernoun' && q.slots[i].pos !== 'punctuation' && !isKnownWord(w) && askedSpell[i] !== w.toLowerCase();
+        const unknown = !p && st.grammarCheck && level >= 2 && q.slots[i].pos !== 'propernoun' && q.slots[i].pos !== 'punctuation' && !isKnownWord(w) && askedSpell[i] !== w.toLowerCase();
         if (p) bad[i] = level === 1 ? 'Not quite. Try again.' : p;
         else if (unknown) { bad[i] = 'Check the spelling of this word.'; spell[i] = w.toLowerCase(); }
         else good[i] = true;
@@ -97,7 +110,7 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
   return (
     <div className="symq stack" style={{ alignItems: 'center' }}>
       <div className="symq-row" role="group" aria-label="Symbol sentence">
-        {q.slots.map((s, i) => {
+        {slots.map((s, i) => {
           const info = SYMBOLS[s.pos];
           const sugg = level === 3 && notes[i] && !s.given ? suggestWords(vals[i] ?? '', s.pos) : [];
           return (
@@ -109,13 +122,20 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
                 </button>
               )}
               {tip === i && <SymbolTip anchor={icons.current[i] ?? null} name={info.name} def={info.def} />}
-              {s.given ? (
+              {st.punctuationCheck && s.pos === 'punctuation' ? (
+                <div className={`symq-punct${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} role="group" aria-label="Pick the punctuation">
+                  {['.', '?', '!'].map((m) => (
+                    <button key={m} type="button" disabled={disabled || !!ok[i]} aria-pressed={vals[i] === m} className={vals[i] === m ? 'on' : ''}
+                      onClick={() => { setVal(i, m); speak(m === '.' ? 'period' : m === '?' ? 'question mark' : 'exclamation point', tts); }}>{m}</button>
+                  ))}
+                </div>
+              ) : s.given ? (
                 <span className="symq-word given" style={{ ['--c' as string]: info.color, ['--ink' as string]: inkOn(s.pos) }}>{s.word}</span>
               ) : (
                 <div className="symq-input-wrap">
                   <input ref={(el) => { inputs.current[i] = el; }} className={`symq-word${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} style={{ ['--c' as string]: info.color, width: `${Math.max(7, (vals[i] ?? '').length + 4, info.name.length + 3)}ch` }}
                     value={vals[i] ?? ''} placeholder={info.name.toLowerCase()} disabled={disabled} readOnly={!!ok[i]}
-                    spellCheck={level === 3} autoCorrect={level === 3 ? 'on' : 'off'} autoCapitalize={s.pos === 'propernoun' ? 'words' : 'off'} autoComplete="off"
+                    spellCheck={level === 3} autoCorrect={level === 3 ? 'on' : 'off'} autoCapitalize={st.capitalCheck ? 'off' : s.pos === 'propernoun' ? 'words' : 'off'} autoComplete="off"
                     enterKeyHint={i === open[open.length - 1] ? 'done' : 'next'} aria-label={`Type ${/^[aeiou]/i.test(info.name) ? 'an' : 'a'} ${info.name.toLowerCase()}${ok[i] ? ', right' : ''}`}
                     onFocus={() => setFocus(i)}
                     onChange={(e) => setVal(i, e.target.value)}

@@ -9883,3 +9883,10 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .pk2-zone:disabled { opacity: .55; }
 .pk2-zone.on, .pk2-zone:not(:disabled):hover, .pk2-zone:not(:disabled):focus-visible { background: #FDC3EC; border-style: solid; }
 .pk2-ball.aim { top: 28px; z-index: 3; }
+
+/* Punctuation check (Build Queue 294): the student picks . ? or ! for every sentence. */
+.symq-punct { display: flex; gap: 6px; }
+.symq-punct button { min-width: 48px; min-height: 48px; border-radius: 14px; border: 3px solid #9aa0aa; background: #fff; font: 900 1.6rem 'Nunito', sans-serif; cursor: pointer; touch-action: manipulation; }
+.symq-punct button.on { background: #6b7280; color: #fff; border-color: #6b7280; }
+.symq-punct.fix button { border-color: #e5533c; }
+.symq-punct.ok button.on { background: #22c55e; border-color: #22c55e; }

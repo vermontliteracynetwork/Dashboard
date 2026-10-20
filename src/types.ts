@@ -393,7 +393,8 @@ export interface MadLibQuestion {
 // randomizer dice, the iPad spell check, and the grammar check (is the typed word that part of speech).
 export type SymbolPos = 'article' | 'adjective' | 'noun' | 'propernoun' | 'verb' | 'adverb' | 'pronoun' | 'preposition' | 'conjunction' | 'interjection' | 'punctuation';
 export interface SymbolSlot { pos: SymbolPos; word: string; given: boolean }
-export interface SymbolSettings { dice: boolean; spellCheck: boolean; grammarCheck: boolean }
+// capitalCheck and punctuationCheck: Build Queue 294 (optional so older sets read as off).
+export interface SymbolSettings { dice: boolean; spellCheck: boolean; grammarCheck: boolean; capitalCheck?: boolean; punctuationCheck?: boolean }
 export interface SymbolQuestion {
   id: string;
   kind: 'symbol';

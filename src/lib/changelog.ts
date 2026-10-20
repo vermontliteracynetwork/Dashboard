@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-caps-punct",
+    date: "2026-10-20",
+    icon: "🔠",
+    title: "Capital letters and punctuation checks",
+    body: "Some symbol sentences now ask you to pick the punctuation yourself and to check your capital letters.",
+  },
+  {
     id: "2026-10-20-question-tidy",
     date: "2026-10-20",
     icon: "✨",

@@ -16,7 +16,7 @@ import SymbolTip from '../../components/SymbolTip';
 export function SymbolSettingsBar({ settings, onChange }: { settings: SymbolSettings; onChange: (s: SymbolSettings) => void }) {
   const row = (k: keyof SymbolSettings, label: string, hint: string) => (
     <label className="sym-setting" title={hint}>
-      <input type="checkbox" checked={settings[k]} onChange={(e) => onChange({ ...settings, [k]: e.target.checked })} /> {label}
+      <input type="checkbox" checked={!!settings[k]} onChange={(e) => onChange({ ...settings, [k]: e.target.checked })} /> {label}
     </label>
   );
   return (
@@ -25,6 +25,9 @@ export function SymbolSettingsBar({ settings, onChange }: { settings: SymbolSett
       {row('dice', '🎲 Randomizer dice', 'A dice next to each box rolls a random word of that kind')}
       {row('spellCheck', 'Spell check', 'The iPad underlines misspelled words while they type')}
       {row('grammarCheck', 'Grammar check', 'Checks each typed word is the right kind, for example "That\'s not a verb, try again."')}
+      {/* Build Queue 294 (her words: "give me a setting for capitilzation an punctuation that would require students to check that they are capitilized correctly. puncutation should require the student selecting for every sentence without default"). */}
+      {row('capitalCheck', 'Capital letter check', 'The first word needs a capital letter, names keep theirs, other words start small. The iPad does not capitalize for them.')}
+      {row('punctuationCheck', 'Punctuation check', 'Students pick the punctuation (. ? !) for every sentence. Nothing is filled in for them.')}
     </div>
   );
 }
