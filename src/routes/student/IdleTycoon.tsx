@@ -20,13 +20,23 @@ import { MyBest, useVisitScore } from '../../components/MyBest';
 // earning while the student is away (up to 10 minutes' worth).
 
 interface Line { id: string; name: string; icon: string; open: number; base: number; income: number; time: number; baker: number }
+// Her pixel art (Build Queue 289, her words: "use for Cupcake Tycoon", eight packs in assets/held/cupcake-tycoon):
+// every counter shows its treat from her Dessert Icons and Bakery packs, and three more counters open the later game.
+const ART = '/games/cupcake-tycoon/';
 const LINES: Line[] = [
-  { id: 'cupcake', name: 'Cupcakes', icon: '🧁', open: 0, base: 5, income: 1, time: 2, baker: 40 },
-  { id: 'cookie', name: 'Cookies', icon: '🍪', open: 60, base: 60, income: 8, time: 4, baker: 400 },
-  { id: 'donut', name: 'Donuts', icon: '🍩', open: 600, base: 600, income: 60, time: 6, baker: 3000 },
-  { id: 'pie', name: 'Pies', icon: '🥧', open: 5000, base: 5000, income: 400, time: 9, baker: 25000 },
-  { id: 'cake', name: 'Cakes', icon: '🎂', open: 40000, base: 40000, income: 3000, time: 14, baker: 200000 },
+  { id: 'cupcake', name: 'Cupcakes', icon: `${ART}treats/cupcakes.png`, open: 0, base: 5, income: 1, time: 2, baker: 40 },
+  { id: 'cookie', name: 'Cookies', icon: `${ART}treats/cookies.png`, open: 60, base: 60, income: 8, time: 4, baker: 400 },
+  { id: 'donut', name: 'Donuts', icon: `${ART}treats/donuts.png`, open: 600, base: 600, income: 60, time: 6, baker: 3000 },
+  { id: 'pie', name: 'Pies', icon: `${ART}treats/pies.png`, open: 5000, base: 5000, income: 400, time: 9, baker: 25000 },
+  { id: 'cake', name: 'Cakes', icon: `${ART}treats/cakes.png`, open: 40000, base: 40000, income: 3000, time: 14, baker: 200000 },
+  { id: 'waffle', name: 'Waffles', icon: `${ART}treats/waffles.png`, open: 300000, base: 300000, income: 22000, time: 18, baker: 1500000 },
+  { id: 'pancake', name: 'Pancakes', icon: `${ART}treats/pancakes.png`, open: 2500000, base: 2500000, income: 160000, time: 22, baker: 12000000 },
+  { id: 'fancy', name: 'Rainbow Cakes', icon: `${ART}treats/fancy.png`, open: 20000000, base: 20000000, income: 1200000, time: 28, baker: 90000000 },
 ];
+// The display case: one of her big cakes for every milestone of shop coins earned in all.
+const SHOWCASE = ['01-birthday_cake', '02-strawberry_pudding_cake', '03-blueberry_cake', '04-chocolate_cake', '05-orange_cake', '06-bubblegum_cake', '07-brownie_cake', '08-maple-popcorn-cake', '09-chocolate_cake2', '10-jell-o_cake'];
+const SHOWCASE_AT = [50, 300, 1500, 8000, 40000, 200000, 1000000, 5000000, 25000000, 100000000];
+const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Cake', 'Chocolate Cake', 'Orange Cake', 'Bubblegum Cake', 'Brownie Cake', 'Maple Popcorn Cake', 'Double Chocolate Cake', 'Jelly Cake'];
 interface Own { ovens: number; baker: boolean }
 interface Shop { coins: number; total: number; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
@@ -124,12 +134,22 @@ export default function IdleTycoon() {
         <div className="ty-sign ty2-sign">{'⭐'.repeat(stars)}{'☆'.repeat(STAR_AT.length - stars)} <small>{nextStar ? `${fmt(shop.total)} / ${fmt(nextStar)} shop coins for the next star` : 'Five star bakery empire!'}</small></div>
         <div className="ty2-top">
           <button type="button" className="ty2-big" onClick={tapCupcake} aria-label="Tap to bake a cupcake by hand">
-            <span aria-hidden>🧁</span><small>Tap to bake</small>
+            <img src={`${ART}showcase/01-birthday_cake.png`} alt="" className="ty2-big-img" draggable={false} /><small>Tap to bake</small>
             {pops.filter((p) => p.line === 'tap').map((p) => <i key={p.id} className="ty2-pop" aria-hidden>{p.text}</i>)}
           </button>
           <button type="button" className={`btn btn-primary btn-lg fd-big ty-go${boost > 0 ? ' on' : ''}`} onClick={getBoost} disabled={boost > 0}>
             {boost > 0 ? `Golden Whisk: ${Math.ceil(boost)} seconds, three times as fast!` : 'Answer for a Golden Whisk'}
           </button>
+        </div>
+        <div className="ty2-case" aria-label="Display case">
+          <img className="ty2-case-sign" src={`${ART}shop/display.png`} alt="" />
+          {SHOWCASE.map((c, i) => {
+            const got = shop.total >= SHOWCASE_AT[i];
+            return <span key={c} className={`ty2-case-cake${got ? ' got' : ''}`} title={got ? SHOWCASE_NAME[i] : `${fmt(SHOWCASE_AT[i])} shop coins`}>
+              <img src={`${ART}showcase/${c}.png`} alt={got ? SHOWCASE_NAME[i] : 'A cake still to unlock'} />
+              {!got && <small>{fmt(SHOWCASE_AT[i])}</small>}
+            </span>;
+          })}
         </div>
         <div className="ty2-lines">
           {LINES.map((l) => {
@@ -137,7 +157,7 @@ export default function IdleTycoon() {
             if (!o) {
               return (
                 <div key={l.id} className="ty2-line locked">
-                  <span className="ty2-icon" aria-hidden>{l.icon}</span>
+                  <img className="ty2-icon" src={l.icon} alt="" />
                   <b>{l.name} counter</b>
                   <button type="button" className="btn ty2-buy" disabled={shop.coins < l.open} onClick={() => spend(l.open, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ovens: 1, baker: false } } }))}>Open for 🪙 {fmt(l.open)}</button>
                 </div>
@@ -147,7 +167,7 @@ export default function IdleTycoon() {
             return (
               <div key={l.id} className="ty2-line">
                 <button type="button" className={`ty2-run${p !== undefined ? ' on' : ''}`} onClick={() => run(l)} aria-label={`${l.name}: ${o.ovens} ovens, makes ${l.income * o.ovens} shop coins a batch. ${o.baker ? 'The baker runs it.' : 'Tap to bake a batch.'}`}>
-                  <span className="ty2-icon" aria-hidden>{l.icon}</span>
+                  <img className="ty2-icon" src={l.icon} alt="" />
                   <span className="ty2-info">
                     <b>{l.name} <small>× {o.ovens}</small></b>
                     <span className="ty2-bar"><i style={{ width: `${(p ?? 0) * 100}%` }} /></span>
@@ -155,8 +175,8 @@ export default function IdleTycoon() {
                   </span>
                   {pops.filter((x) => x.line === l.id).map((x) => <i key={x.id} className="ty2-pop" aria-hidden>{x.text}</i>)}
                 </button>
-                <button type="button" className="btn ty2-buy" disabled={shop.coins < c} onClick={() => spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))}>Oven 🪙 {fmt(c)}</button>
-                {!o.baker && <button type="button" className="btn ty2-buy" disabled={shop.coins < l.baker} onClick={() => { spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } })); playCheer(); }}>Hire a baker 🪙 {fmt(l.baker)}</button>}
+                <button type="button" className="btn ty2-buy" disabled={shop.coins < c} onClick={() => spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))}><img className="ty2-tool" src={`${ART}shop/oven.png`} alt="" />Oven 🪙 {fmt(c)}</button>
+                {!o.baker && <button type="button" className="btn ty2-buy" disabled={shop.coins < l.baker} onClick={() => { spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } })); playCheer(); }}><img className="ty2-tool" src={`${ART}shop/rolling-pin.png`} alt="" />Hire a baker 🪙 {fmt(l.baker)}</button>}
               </div>
             );
           })}
@@ -165,7 +185,7 @@ export default function IdleTycoon() {
       {away !== null && (
         <div className="pf-overlay">
           <div className="pf-panel fd-catch">
-            <div className="fd-fish" aria-hidden>🧁</div>
+            <img className="ty2-welcome" src={`${ART}showcase/01-birthday_cake.png`} alt="" />
             <h2>Welcome back!</h2>
             <p>While you were away, your bakers kept baking and earned <b>🪙 {fmt(away)}</b> shop coins.</p>
             <button type="button" className="btn btn-primary btn-lg" onClick={() => setAway(null)}>Open the bakery</button>

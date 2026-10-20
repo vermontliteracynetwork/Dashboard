@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-cupcake-art",
+    date: "2026-10-20",
+    icon: "🧁",
+    title: "Cupcake Tycoon gets pixel treats",
+    body: "New pixel art for every counter, three new counters (Waffles, Pancakes and Rainbow Cakes) and a display case that fills with ten big cakes as your bakery grows.",
+  },
+  {
     id: "2026-10-20-plinko-pastel",
     date: "2026-10-20",
     icon: "🎨",

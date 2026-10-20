@@ -9838,3 +9838,20 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .pk2-msg { color: #6C626E; text-shadow: none; }
 .pk2-zone { border-color: rgba(249,251,244,.8); }
 .pkx-card > .pkx-say { position: absolute; top: 24px; left: 24px; }
+
+/* Cupcake Tycoon with her pixel art (Build Queue 289). */
+@font-face { font-family: 'PixCon'; src: url('/games/cupcake-tycoon/shop/PixCon.ttf') format('truetype'); font-display: swap; }
+.ty .ty-head h1 { font-family: 'PixCon', 'Baloo 2', sans-serif; letter-spacing: 1px; }
+.ty2-icon { width: 56px; height: 56px; object-fit: contain; image-rendering: pixelated; font-size: 0; }
+.ty2-big-img { width: 96px; height: 96px; image-rendering: pixelated; pointer-events: none; }
+.ty2-tool { width: 26px; height: 26px; image-rendering: pixelated; vertical-align: middle; margin-right: 6px; }
+.ty2-case { width: min(760px, 100%); display: flex; align-items: flex-end; gap: 6px; overflow-x: auto; padding: 8px 10px; background: linear-gradient(#fff6ee, #f7e1cf); border: 4px solid #b5683a; border-radius: 16px; box-shadow: inset 0 -10px 0 #e2b48f; box-sizing: border-box; }
+.ty2-case-sign { width: 34px; height: 36px; image-rendering: pixelated; flex: none; }
+.ty2-case-cake { position: relative; flex: none; display: flex; flex-direction: column; align-items: center; }
+.ty2-case-cake img { width: 64px; height: 64px; image-rendering: pixelated; }
+.ty2-case-cake:not(.got) img { filter: brightness(0) opacity(.25); }
+.ty2-case-cake small { position: absolute; bottom: 2px; font-size: .7rem; font-weight: 800; color: #6b4a3a; background: #fff8; border-radius: 6px; padding: 0 4px; }
+.ty2-case-cake.got img { animation: tyPop .4s ease-out; }
+@keyframes tyPop { from { transform: scale(.6); } to { transform: scale(1); } }
+.ty2-welcome { width: 120px; height: 120px; image-rendering: pixelated; }
+@media (prefers-reduced-motion: reduce) { .ty2-case-cake.got img { animation: none; } }
