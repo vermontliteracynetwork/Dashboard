@@ -55,7 +55,7 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   // Word Search (Build Queue 43, her genres list: library or post office; answers reveal hidden words).
   { id: 'wordSearch', added: '2026-10-12', title: "Word Search", route: '/student/word-search', cover: '/games/covers/word-search.svg', blurb: "Answer to reveal each hidden word, then find it in the letter grid.", versus: false, cabinet: { marquee: '#2a5d8f', panel: '#5b8def', trim: '#ffd23f', icon: '🔤' } },
   // Plinko Drop (Build Queue 44, her genres list: a carnival or arcade building; answers choose where the ball drops).
-  { id: 'plinkoDrop', added: '2026-10-12', title: "Plinko Drop", route: '/student/plinko', cover: '/games/covers/plinko-drop.svg', blurb: "Drop the ball down the right answer's chute, win tickets, and pick a prize.", versus: false, cabinet: { marquee: '#d63a6a', panel: '#3a1f5c', trim: '#ffd23f', icon: '🎯' } },
+  { id: 'plinkoDrop', added: '2026-10-12', title: "Plinko", route: '/student/plinko', cover: '/games/covers/plinko-drop.svg', blurb: "Answer, then drop the ball for XP. Up to 5 players, Neighbors too.", versus: true, cabinet: { marquee: '#d63a6a', panel: '#3a1f5c', trim: '#ffd23f', icon: '🎯' } },
   // Crossy Road Hopper (Build Queue 45, her genres list: town roads; correct answers hop you across).
   { id: 'crossyHopper', added: '2026-10-12', title: "Crossy Road Hopper", route: '/student/crossy', cover: '/games/covers/crossy-hopper.svg', blurb: "Answer to earn hops, then cross the busy roads when the way is clear.", versus: false, cabinet: { marquee: '#2f6b12', panel: '#8fd16a', trim: '#ffd23f', icon: '🐔' } },
   // Idle Tycoon (Build Queue 46, her genres list: the farm or bakery shop; answers boost a running business).

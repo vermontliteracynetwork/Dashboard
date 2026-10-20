@@ -9432,7 +9432,7 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .pk2-field { position: relative; aspect-ratio: 6 / 6.6; }
 .pk2-field i { position: absolute; width: 4.2%; aspect-ratio: 1; border-radius: 50%; background: var(--pk-peg); transform: translate(-50%, -50%); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
 .pk2-field i.star { background: radial-gradient(circle, #fff6a8, #ffcc00); box-shadow: 0 0 10px #fff3a0; width: 5.4%; }
-.pk2-ball { position: absolute; width: 7.5%; aspect-ratio: 1; border-radius: 50%; background: var(--pk-ball); transform: translate(-50%, -50%); transition: left .19s linear, top .19s ease-in; box-shadow: 0 3px 6px rgba(0,0,0,.35); z-index: 2; }
+.pk2-ball { pointer-events: none; position: absolute; width: 7.5%; aspect-ratio: 1; border-radius: 50%; background: var(--pk-ball); transform: translate(-50%, -50%); transition: left .19s linear, top .19s ease-in; box-shadow: 0 3px 6px rgba(0,0,0,.35); z-index: 2; }
 .pk2-ball.big { width: 10.5%; }
 .pk2-ball.aim { top: 40px; transition: left .18s ease-out; width: 44px; animation: pk2Bob 1s ease-in-out infinite; }
 .pk2-ball.aim.big { width: 58px; }
@@ -9458,3 +9458,19 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
   .pk2-board { grid-column: 1 / -1; order: -1; max-width: 640px; width: 100%; justify-self: center; }
 }
 @media (prefers-reduced-motion: reduce) { .pk2-ball, .pk2-ball.aim { transition: none; animation: none; } }
+.pk2-turn { position: absolute; top: -18px; left: 50%; transform: translateX(-50%); background: var(--pk-cur, #ff7a1a); color: #fff; font-weight: 900; padding: 4px 14px; border-radius: 999px; white-space: nowrap; box-shadow: 0 3px 0 rgba(0,0,0,.2); z-index: 3; }
+.pk2-setup { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.pk2-setup-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.pk2-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 2px 6px 2px 12px; border-radius: 999px; border: 3px solid; background: #fff; font-weight: 800; }
+.pk2-chip button { min-width: 32px; min-height: 32px; border-radius: 50%; border: none; background: #f3effc; cursor: pointer; }
+.pk2-setup-add { display: flex; flex-wrap: wrap; gap: 6px; }
+.pk2-setup-add input, .pk2-setup-add select { min-height: 44px; font-size: 1rem; border-radius: 10px; }
+.pk2-podium { list-style: none; padding: 0; margin: 8px 0; display: grid; gap: 6px; text-align: left; }
+.pk2-podium li { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; background: #fff8e6; border-radius: 12px; padding: 8px 12px; font-size: 1.1rem; }
+.pk2-intro { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; background: rgba(36,28,61,.35); pointer-events: none; }
+.pk2-intro > div { display: flex; flex-direction: column; align-items: center; gap: 10px; background: #fff; border: 8px solid var(--pk-cur, #ff7a1a); border-radius: 32px; padding: 26px 48px; box-shadow: 0 18px 50px rgba(0,0,0,.3); animation: pk2Intro .45s cubic-bezier(.2,1.4,.4,1); }
+.pk2-intro b { font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 900; line-height: 1.05; text-align: center; }
+.pk2-intro small { font-size: 1.2rem; font-weight: 800; opacity: .75; }
+.pk2-intro .pk2-ball-icon { width: 64px; height: 64px; }
+@keyframes pk2Intro { from { transform: scale(.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pk2-intro > div { animation: none; } }

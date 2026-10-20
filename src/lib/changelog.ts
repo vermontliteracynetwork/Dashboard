@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-plinko-party",
+    date: "2026-10-20",
+    icon: "👥",
+    title: "Play Plinko with friends",
+    body: "Plinko now plays with up to 5 players: you, friends in the room and Neighbors. Earn XP with every drop, and watch the board grow a new drop zone and bucket every round.",
+  },
+  {
     id: "2026-10-20-alchemy-time",
     date: "2026-10-20",
     icon: "⏳",
