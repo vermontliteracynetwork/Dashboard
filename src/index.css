@@ -9407,3 +9407,6 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .madlib-settings legend { font-weight: 800; padding: 0 6px; }
 .madlib-settings label { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 0.9rem; }
 .madlib-settings label.row { flex-direction: row; align-items: center; }
+.madlib-picker { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.madlib-chip { min-height: 40px; padding: 4px 12px; border-radius: 999px; border: 2px solid var(--content-border, #d9d3ef); background: #fff; font-weight: 700; cursor: pointer; }
+.madlib-chip.on { background: #5a3d9e; border-color: #5a3d9e; color: #fff; }

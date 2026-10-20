@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { unzipSync } from 'fflate';
 import { useStore } from '../../store/store';
 import { parseCSV, downloadCSV } from '../../lib/csv';
-import { rowsToQuizQuestions, QUIZ_TEMPLATE_ROWS } from '../../lib/importQuestions';
+import { rowsToQuizQuestions, QUIZ_TEMPLATE_ROWS, MADLIB_TEMPLATE_ROWS, settingsToWords } from '../../lib/importQuestions';
 import { uploadImage } from '../../lib/upload';
 import QuizEditor, { getQuestionIssue } from './QuizEditor';
 import type { QuestionSet, QuizQuestion, Subject } from '../../types';
@@ -21,12 +21,16 @@ const natural = (a: string, b: string) => a.localeCompare(b, undefined, { numeri
 
 // One question set as rows in the same layout as the template.
 export function setToRows(set: QuestionSet): string[][] {
+  // A set of only Mad Libs downloads in the Mad Lib layout, so it opens in Google Sheets ready to edit.
+  if (set.questions.length && set.questions.every((q) => q.kind === 'madlib')) {
+    return [MADLIB_TEMPLATE_ROWS[0], ...set.questions.map((q) => (q.kind === 'madlib' ? [q.text, ...settingsToWords(q.settings), q.imageUrl ?? ''] : []))];
+  }
   const rows: string[][] = [QUIZ_TEMPLATE_ROWS[0]];
   for (const q of set.questions) {
     if (q.kind === 'mc') { const c = [...q.choices, '', '', '', ''].slice(0, 4); rows.push([q.prompt, ...c, String.fromCharCode(65 + q.correctIndex), q.imageUrl ?? '']); }
     else if (q.kind === 'fill') { const c = [...(q.wordBank ?? []), '', '', '', ''].slice(0, 4); rows.push([q.prompt, ...c, q.answer, q.imageUrl ?? '']); }
     else if (q.kind === 'speak') rows.push([q.prompt, '', '', '', '', q.targetWord, q.imageUrl ?? '']);
-    else if (q.kind === 'madlib') rows.push([q.prompt, q.text, '', '', '', 'Mad Lib', q.imageUrl ?? '']);
+    else if (q.kind === 'madlib') rows.push([q.text, '', '', '', '', '', q.imageUrl ?? '']);
     else rows.push([q.prompt, ...q.pairs.slice(0, 4).map((p) => `${p.left} = ${p.right}`), '', q.imageUrl ?? '']);
   }
   return rows;
@@ -90,6 +94,7 @@ export default function QuestionSetImport() {
       <strong>⬆️⬇️ CSV files</strong>
       <div className="row-wrap" style={{ gap: 8, alignItems: 'center' }}>
         <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => downloadCSV('question-set-template.csv', QUIZ_TEMPLATE_ROWS)}>⬇️ Download the template</button>
+        <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => downloadCSV('mad-lib-template.csv', MADLIB_TEMPLATE_ROWS)} title="One sentence per row. Put [brackets] around the words to fill in.">⬇️ Mad Lib template</button>
         <select value={exportId} onChange={(e) => setExportId(e.target.value)} style={{ minHeight: 44 }} aria-label="Pick a set to download">
           <option value="">Download a set as CSV…</option>
           {questionSets.filter((s) => s.kind === 'quiz').map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}

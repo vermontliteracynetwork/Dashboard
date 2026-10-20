@@ -100,7 +100,20 @@ function MadLibFields({ q, onUpdate, onApplyAll }: { q: MadLibQuestion; onUpdate
         <label>Sentence or story. Put [brackets] around words to fill in; add other right answers with | like [big|large].</label>
         <textarea value={q.text} rows={3} style={{ width: '100%', fontSize: '1rem' }} placeholder="The [dog] ran to the [park|playground] after [lunch]."
           onChange={(e) => onUpdate({ ...q, text: e.target.value })} />
-        {q.text.trim() && <p style={{ margin: '4px 0 0', fontSize: '0.85rem', opacity: 0.8 }}>{marks} marked word{marks === 1 ? '' : 's'}. Preview: {preview}</p>}
+        {q.text.trim() && (
+          <div className="madlib-picker">
+            <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Or tap words to make them blanks ({marks} marked):</span>
+            <div className="row-wrap" style={{ gap: 6 }}>
+              {tokenize(q.text).map((t, i, all) => t.word ? (
+                <button key={i} type="button" className={`madlib-chip${t.marked ? ' on' : ''}`}
+                  onClick={() => onUpdate({ ...q, text: all.map((x, k) => (k === i ? (x.marked ? x.answers[0] : `[${x.text}]`) : x.marked ? `[${x.answers.join('|')}]` : x.text)).join('') })}>
+                  {t.marked ? t.answers.join(' / ') : t.text}
+                </button>
+              ) : null)}
+            </div>
+            <span style={{ fontSize: '0.8rem', opacity: 0.75 }}>Preview: {preview}</span>
+          </div>
+        )}
       </div>
       <fieldset className="madlib-settings">
         <legend>Settings for this question</legend>
@@ -126,6 +139,25 @@ function MadLibFields({ q, onUpdate, onApplyAll }: { q: MadLibQuestion; onUpdate
         <label className="row" style={{ gap: 6 }}><input type="checkbox" checked={st.hints} onChange={(e) => set({ hints: e.target.checked })} /> Hints: first letter on the 2nd try, the word to copy on the 3rd</label>
         {onApplyAll && <button type="button" className="btn btn-sm" onClick={() => onApplyAll(st)}>Use these settings for every Mad Lib in this set</button>}
       </fieldset>
+    </div>
+  );
+}
+
+// Quick builder (Build Queue 242): paste or type many sentences, one per line, and each becomes a Mad Lib.
+function MadLibPaste({ onAdd }: { onAdd: (texts: string[]) => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+  if (!open) return <button type="button" className="btn btn-sm" style={{ alignSelf: 'flex-start', minHeight: 44 }} onClick={() => setOpen(true)}>📝 Add Mad Libs: one sentence per line</button>;
+  return (
+    <div className="stack madlib-settings" style={{ display: 'flex' }}>
+      <label style={{ fontWeight: 700 }}>One sentence per line. Put [brackets] around words to fill in, or leave them out and tap words after.</label>
+      <textarea rows={5} value={text} onChange={(e) => setText(e.target.value)} style={{ width: '100%', fontSize: '1rem' }}
+        placeholder={'The [dog] ran to the [park].\nMy cat likes to [sleep] in the [sun].'} />
+      <div className="row" style={{ gap: 8 }}>
+        <button type="button" className="btn btn-sm btn-primary" disabled={!lines.length} onClick={() => { onAdd(lines); setText(''); setOpen(false); }}>Add {lines.length || ''} Mad Lib{lines.length === 1 ? '' : 's'}</button>
+        <button type="button" className="btn btn-sm" onClick={() => setOpen(false)}>Cancel</button>
+      </div>
     </div>
   );
 }
@@ -336,6 +368,10 @@ export default function QuizEditor({ subject, questions, onChange, simplified }:
         <QuestionRow key={q.id} index={i} q={q} issue={getQuestionIssue(q) ?? undefined} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)}
           onApplyAll={(st) => onChange(questions.map((x) => (x.kind === 'madlib' ? { ...x, settings: { ...st } } : x)))} />
       ))}
+      <MadLibPaste onAdd={(texts) => {
+        const lastMad = [...questions].reverse().find((q): q is MadLibQuestion => q.kind === 'madlib');
+        onChange([...questions, ...texts.map((t) => ({ ...blankMadLib(lastMad?.settings), text: t }))]);
+      }} />
       {!simplified && (
         <div className="row">
           <select value={addingKind} onChange={(e) => setAddingKind(e.target.value as typeof addingKind)}>
