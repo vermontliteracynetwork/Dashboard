@@ -131,8 +131,10 @@ function TimeOfDayChart({ rows }: { rows: SelCheckIn[] }) {
 
 const countBy = <T,>(list: T[], key: (x: T) => string) => { const m = new Map<string, number>(); list.forEach((x) => { const k = key(x); if (k) m.set(k, (m.get(k) ?? 0) + 1); }); return [...m.entries()].sort((a, b) => b[1] - a[1]); };
 
-export default function SelTeamReport({ studentName, rows, from, to, zones, onClose }: {
-  studentName: string; rows: SelCheckIn[]; from: string; to: string; zones: SelZone[]; onClose: () => void;
+export default function SelTeamReport({ studentName, rows, from, to, zones, memories = {}, onClose }: {
+  studentName: string; rows: SelCheckIn[]; from: string; to: string; zones: SelZone[];
+  // Build Queue 269: the memory of the day saved before each check-in, by check-in id.
+  memories?: Record<string, { caption?: string; photo?: string }>; onClose: () => void;
 }) {
   const sorted = useMemo(() => rows.slice().sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1)), [rows]);
   const n = sorted.length;
@@ -144,6 +146,7 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, onCl
   const minsToRe = doneRe.filter((c) => c.recheckTimestamp).map((c) => (+new Date(c.recheckTimestamp!) - +new Date(c.timestamp)) / 60000).sort((a, b) => a - b);
   const median = minsToRe.length ? Math.round(minsToRe[Math.floor(minsToRe.length / 2)]) : null;
   const notes = sorted.filter((c) => c.noteText?.trim());
+  const mems = sorted.filter((c) => memories[c.id]?.caption || memories[c.id]?.photo);
   const tools = countBy(sorted.flatMap((c) => [...c.toolsUsedLabels, ...(c.recheckToolUsedLabel ? [c.recheckToolUsedLabel] : [])]), (t) => t);
   const feelings = countBy(sorted, (c) => c.emotion);
   const rangeText = `${from ? fmtDate(new Date(`${from}T00:00`)) : sorted[0] ? fmtDate(new Date(sorted[0].timestamp)) : ''} to ${to ? fmtDate(new Date(`${to}T00:00`)) : sorted[n - 1] ? fmtDate(new Date(sorted[n - 1].timestamp)) : ''}`;
@@ -186,6 +189,7 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, onCl
                   <tr><th>Neighbor re-checks</th><td>{rechecks.length} scheduled, {doneRe.length} done{doneRe.length ? `, ${toGreen} came back Green (${pct(toGreen, doneRe.length)})` : ''}</td></tr>
                   <tr><th>Time to re-check</th><td>{median !== null ? `about ${median} minutes (median)` : 'none done'}</td></tr>
                   <tr><th>Notes written</th><td>{notes.length}</td></tr>
+                  <tr><th>Memories of the day</th><td>{mems.length} of {n}</td></tr>
                   <tr><th>Energy not given</th><td>{sorted.filter((c) => !c.energy).length}</td></tr>
                 </tbody>
               </table>
@@ -248,16 +252,30 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, onCl
             </section>
           )}
 
+          {mems.length > 0 && (
+            <section className="selr-block">
+              <h2>Memories of the day ({mems.length})</h2>
+              <p className="selr-small">The picture and caption the student chose just before checking in (memory recall of daily events).</p>
+              <div className="selr-mems">{mems.map((c) => (
+                <figure key={c.id}>
+                  {memories[c.id].photo ? <img src={memories[c.id].photo} alt="" /> : <span className="selr-nopic">No picture</span>}
+                  <figcaption><b>{fmtDate(new Date(c.timestamp))} {fmtTime(new Date(c.timestamp))}</b> · {SEL_ZONE_LABELS[c.zone]}, {c.emotion}<br />"{memories[c.id].caption || 'No caption'}"</figcaption>
+                </figure>
+              ))}</div>
+            </section>
+          )}
+
           <section className="selr-block">
             <h2>Every check-in ({n})</h2>
             <table className="selr-table selr-full">
-              <thead><tr><th>#</th><th>Date</th><th>Day</th><th>Time</th><th>Zone</th><th>Feeling word (wheel path)</th><th>Energy</th><th>Tools tapped</th><th>Note</th><th>Neighbor re-check</th><th>Teacher seen</th></tr></thead>
+              <thead><tr><th>#</th><th>Date</th><th>Day</th><th>Time</th><th>Zone</th><th>Feeling word (wheel path)</th><th>Energy</th><th>Memory of the day</th><th>Tools tapped</th><th>Note</th><th>Neighbor re-check</th><th>Teacher seen</th></tr></thead>
               <tbody>{sorted.map((c, i) => { const d = new Date(c.timestamp); return (
                 <tr key={c.id}>
                   <td>{i + 1}</td><td>{fmtDate(d)}</td><td>{DAYS[d.getDay()].slice(0, 3)}</td><td>{fmtTime(d)}</td>
                   <td><i className="selr-dot" style={{ background: SEL_ZONE_COLORS[c.zone] }} />{SEL_ZONE_LABELS[c.zone]}</td>
                   <td>{c.emotion}{feelingFamily(c.emotion) && feelingFamily(c.emotion) !== c.emotion ? <div className="selr-small">{feelingFamily(c.emotion)}</div> : null}</td>
                   <td>{c.energy ?? 'not given'}</td>
+                  <td className="selr-note">{memories[c.id]?.caption ? `"${memories[c.id].caption}"` : memories[c.id]?.photo ? 'Picture only' : 'None'}{memories[c.id]?.photo ? ' (picture above)' : ''}</td>
                   <td>{c.toolsUsedLabels.length ? c.toolsUsedLabels.join('; ') : 'None'}</td>
                   <td className="selr-note">{c.noteText?.trim() || 'None'}</td>
                   <td>{!c.recheckDueAt ? 'Not needed (Green)' : c.recheckCompleted && c.recheckZone ? `${neighborName(c.neighborId)}, ${c.recheckTimestamp ? fmtTime(new Date(c.recheckTimestamp)) : ''}: ${SEL_ZONE_LABELS[c.recheckZone]}, ${c.recheckEmotion ?? ''}${c.recheckToolUsedLabel ? `; tool: ${c.recheckToolUsedLabel}` : ''}` : `${neighborName(c.neighborId)}, set for ${c.recheckDelayMin ?? '?'} min, not done`}</td>

@@ -9,6 +9,8 @@ import type { SelZone } from '../types';
 import SelSupportMenu from './SelSupportMenu';
 import FeelingsWheel from './FeelingsWheel';
 import { speak } from './ReadAloud';
+import SelMemoryStep, { type SelMemory } from './SelMemoryStep';
+import { uploadImage } from '../lib/upload';
 
 // The mandatory Zones of Regulation login check-in. Since Build Queue 234 the feeling comes from the
 // spinning Feelings Wheel (every word carries its zone), then the student picks their energy level
@@ -27,6 +29,9 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
   const addSelCheckInNote = useStore((s) => s.addSelCheckInNote);
   const scheduleSelRecheck = useStore((s) => s.scheduleSelRecheck);
   const markSelLoginCheckInDone = useStore((s) => s.markSelLoginCheckInDone);
+  const mergeStyleRow = useStore((s) => s.mergeStyleRow);
+  // Build Queue 269: a memory of the day (picture and caption) comes first, then the Feelings Wheel.
+  const [memory, setMemory] = useState<SelMemory | null | undefined>(undefined);
 
   const [feeling, setFeeling] = useState<FeelingNode | null>(null);
   const [energy, setEnergy] = useState<Energy | null>(null);
@@ -43,6 +48,12 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
     const zone = feeling.zone, emotion = feeling.w;
     window.setTimeout(() => {
       const checkInId = recordSelCheckIn(studentId, zone, emotion, e);
+      if (memory) {
+        // Saved with the check-in in the student's selmem row (no new database column); the picture follows when uploaded.
+        const owner = `selmem:${studentId}`, at = new Date().toISOString(), caption = memory.caption;
+        mergeStyleRow(owner, { [checkInId]: { caption, at } });
+        if (memory.file) uploadImage(memory.file).then((photo) => mergeStyleRow(owner, { [checkInId]: { caption, at, photo } })).catch(() => { /* the caption is still saved */ });
+      }
       if (zone === 'green') {
         markSelLoginCheckInDone(studentId);
         onDone();
@@ -62,6 +73,7 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
     onDone();
   };
 
+  if (memory === undefined) return <SelMemoryStep name={studentName.split(' ')[0]} tts={student?.ttsSettings} onNext={setMemory} />;
   if (!feeling) return <FeelingsWheel studentName={studentName} onChoose={chooseFeeling} />;
 
   if (!picked) {

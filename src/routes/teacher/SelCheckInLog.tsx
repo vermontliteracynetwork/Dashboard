@@ -17,6 +17,7 @@ import { SEL_ZONES } from '../../lib/selZones';
 export default function SelCheckInLog() {
   const students = useStore((s) => s.students);
   const selCheckIns = useStore((s) => s.selCheckIns);
+  const styleLooks = useStore((s) => s.styleLooks);
   const [studentFilter, setStudentFilter] = useState('all');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [printing, setPrinting] = useState<SelCheckIn[] | null>(null);
@@ -56,7 +57,8 @@ export default function SelCheckInLog() {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
   if (report && repStudent) {
-    return <SelTeamReport studentName={nameFor(repStudent)} rows={reportRows} from={from} to={to} zones={zones} onClose={() => setReport(false)} />;
+    const memories = (styleLooks.find((r) => r.ownerId === `selmem:${repStudent}`)?.look ?? {}) as Record<string, { caption?: string; photo?: string }>;
+    return <SelTeamReport studentName={nameFor(repStudent)} rows={reportRows} from={from} to={to} zones={zones} memories={memories} onClose={() => setReport(false)} />;
   }
   if (printing) {
     return (

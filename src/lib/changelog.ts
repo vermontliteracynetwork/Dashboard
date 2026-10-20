@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-day-memory",
+    date: "2026-10-20",
+    icon: "📸",
+    title: "A memory of your day",
+    body: "When you check in, first take or pick a picture of something from your day and write a small caption. Then tell us how you feel.",
+  },
+  {
     id: "2026-10-20-plinko-themes",
     date: "2026-10-20",
     icon: "🎨",
