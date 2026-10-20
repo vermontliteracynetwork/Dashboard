@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-alchemy-more",
+    date: "2026-10-20",
+    icon: "⚗️",
+    title: "Hundreds of new Alchemy discoveries",
+    body: "Alchemy now has more than 700 things to discover and over 3,000 ways to mix them. Try fish and human to make a fisherman!",
+  },
+  {
     id: "2026-10-20-feelings-wheel-everywhere",
     date: "2026-10-20",
     icon: "🎡",

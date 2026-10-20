@@ -34,7 +34,9 @@ const ELS: Record<string, El> = Object.fromEntries(ELEMENTS.map(([id, e, n]) => 
 // Two-picture elements (🔥🐦 Phoenix) draw a little smaller so they fit the tile.
 const TWO = /\p{Extended_Pictographic}.*\p{Extended_Pictographic}/u;
 const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
-const R: Record<string, string> = Object.fromEntries(RECIPES.map(([a, b, r]) => [key(a, b), r]));
+// A pair can make more than one thing (Build Queue 237); the first one not found yet comes out.
+const R: Record<string, string[]> = {};
+RECIPES.forEach(([a, b, r]) => { const k = key(a, b); (R[k] ??= []).includes(r) || R[k].push(r); });
 type Tile = { uid: number; id: string; x: number; y: number; fx?: 'pop' | 'shake' };
 
 let actx: AudioContext | null = null;
@@ -156,7 +158,8 @@ export default function Alchemy() {
   };
   const combine = (a: Tile, b: Tile) => {
     countPlay();
-    const r = R[key(a.id, b.id)];
+    const rs = R[key(a.id, b.id)];
+    const r = rs ? (rs.find((x) => !disc.includes(x)) ?? rs[0]) : undefined;
     if (r) {
       const p = clamp((a.x + b.x) / 2, (a.y + b.y) / 2);
       setTiles((ts) => [...ts.filter((t) => t.uid !== a.uid && t.uid !== b.uid), { uid: nextUid.current++, id: r, x: p.x, y: p.y, fx: 'pop' }]);

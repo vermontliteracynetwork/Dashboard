@@ -1,7 +1,8 @@
+import { LA2_ELEMENTS, LA2_RECIPES } from './data2';
 // Alchemy (teacher 2026-10-08: "lets get the alchemy game going. make an app in the computer").
 // Elements and recipes from her prototype, docs/games/alchemy-prototype.html: [id, emoji, name]
 // and [a, b, result]. Start with fire, water, earth and air.
-export const ELEMENTS: [string, string, string][] = [
+const BASE_ELEMENTS: [string, string, string][] = [
   ["fire","🔥","Fire"],["water","💧","Water"],["earth","🌍","Earth"],["air","💨","Air"],
   ["steam","♨️","Steam"],["mud","🟫","Mud"],["lava","🌋","Lava"],["cloud","☁️","Cloud"],["smoke","🌫️","Smoke"],
   ["stone","🪨","Stone"],["sand","🏖️","Sand"],["glass","🪟","Glass"],["rain","🌧️","Rain"],["lightning","⚡","Lightning"],
@@ -39,7 +40,7 @@ export const ELEMENTS: [string, string, string][] = [
   ["seaking","🔱👑","Sea King"],["atlantis","🏛️🌊","Atlantis"],["swordstone","🗡️🪨","Sword in the Stone"]
 ];
 export const START = ["fire","water","earth","air"];
-export const RECIPES: [string, string, string][] = [
+const BASE_RECIPES: [string, string, string][] = [
   ["fire","water","steam"],["earth","water","mud"],["fire","earth","lava"],["air","water","cloud"],["air","fire","smoke"],
   ["lava","water","stone"],["stone","air","sand"],["sand","fire","glass"],
   ["cloud","water","rain"],["cloud","fire","lightning"],["rain","lightning","storm"],
@@ -76,3 +77,8 @@ export const RECIPES: [string, string, string][] = [
   ["potion","fire","cauldron"],["book","magic","spellbook"],["hammer","lightning","thunderhammer"],["metal","ocean","trident"],
   ["trident","crown","seaking"],["castle","ocean","atlantis"],["sword","stone","swordstone"]
 ];
+
+// Build Queue 237 (2026-10-20, students asked for more): her Little Alchemy 2 list adds about 570
+// elements and 3,000 combinations on top of the originals above (src/games/alchemy/data2.ts).
+export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS];
+export const RECIPES: [string, string, string][] = [...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];
