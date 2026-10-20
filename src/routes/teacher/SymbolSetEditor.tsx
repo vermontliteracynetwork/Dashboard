@@ -31,6 +31,8 @@ export function SymbolSettingsBar({ settings, onChange }: { settings: SymbolSett
 function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete }: { q: SymbolQuestion; index: number; active: boolean; onFocus: () => void; onUpdate: (q: SymbolQuestion) => void; onDelete: () => void }) {
   const [quick, setQuick] = useState('');
   const [dragFrom, setDragFrom] = useState<number | null>(null);
+  const [sel, setSel] = useState<number | null>(null); // Build Queue 259: tools show only on the tapped symbol
+  const [pic, setPic] = useState(false);
   const setSlots = (slots: SymbolSlot[]) => onUpdate({ ...q, slots });
   const move = (from: number, to: number) => { const s = q.slots.slice(); const [x] = s.splice(from, 1); s.splice(to, 0, x); setSlots(s); };
   const dropAt = (e: React.DragEvent, at: number) => {
@@ -44,26 +46,29 @@ function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete }: { q: Symbo
     <div className={`sym-row${active ? ' on' : ''}`} onClick={onFocus}>
       <div className="sym-row-head">
         <b>{index + 1}</b>
+        <button type="button" className={`sym-picbtn${q.imageUrl ? ' has' : ''}`} onClick={() => setPic(!pic)} aria-label="Symbol sentence picture" title="Symbol sentence picture (optional)">
+          {q.imageUrl ? <img src={q.imageUrl} alt="" /> : '🖼️'}
+        </button>
         <div className="sym-quick">
-          <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="Type a sentence, for example: The small cat ran." aria-label="Type a sentence to place its symbols"
+          <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="Type a sentence: The small cat ran." aria-label="Type a sentence to place its symbols"
             onKeyDown={(e) => { if (e.key === 'Enter' && quick.trim()) { setSlots(sentenceToSlots(quick)); setQuick(''); } }} />
-          <button type="button" className="btn btn-sm" disabled={!quick.trim()} onClick={() => { setSlots(sentenceToSlots(quick)); setQuick(''); }}>Place symbols</button>
+          <button type="button" className="btn btn-sm" disabled={!quick.trim()} onClick={() => { setSlots(sentenceToSlots(quick)); setQuick(''); }}>Place</button>
           <select value="" aria-label="Start from a symbol sentence card" onChange={(e) => {
             const card = SYMBOL_SENTENCE_PAGES.flatMap((p) => p.sentences).find((c) => c.id === e.target.value);
             if (card) { const end = card.sentence.trim().slice(-1); setSlots([...card.words.map((w) => ({ pos: w.wordClass, word: w.word, given: true })), { pos: 'punctuation' as SymbolPos, word: /[.!?]/.test(end) ? end : '.', given: true }]); }
           }}>
-            <option value="">Or pick one of your cards…</option>
+            <option value="">Your cards…</option>
             {SYMBOL_SENTENCE_PAGES.map((p) => <optgroup key={p.id} label={p.label}>{p.sentences.map((c) => <option key={c.id} value={c.id}>{c.sentence}</option>)}</optgroup>)}
           </select>
         </div>
         <button type="button" className="btn btn-sm btn-danger" onClick={onDelete} aria-label={`Delete sentence ${index + 1}`}>✕</button>
       </div>
       <div className="sym-strip" onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropAt(e, q.slots.length)}>
-        {q.slots.length === 0 && <span className="sym-empty">Tap symbols in the tray above, drag them here, or type a sentence.</span>}
+        {q.slots.length === 0 && <span className="sym-empty">Tap symbols above or type a sentence.</span>}
         {q.slots.map((s, i) => {
           const info = SYMBOLS[s.pos];
           return (
-            <div key={i} className="sym-slot" draggable onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.stopPropagation(); dropAt(e, i); }}>
+            <div key={i} className={`sym-slot${sel === i ? ' sel' : ''}`} onClick={() => setSel(sel === i ? null : i)} draggable onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.stopPropagation(); dropAt(e, i); }}>
               <div className="sym-icon" title={`${info.name}: ${info.def}`}>
                 {info.img ? <img src={info.img} alt={info.name} draggable={false} /> : <span className="sym-dot">•</span>}
                 <small style={{ color: info.color }}>{info.name.toLowerCase()}</small>
@@ -72,20 +77,19 @@ function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete }: { q: Symbo
                 value={s.word} placeholder={s.given ? 'word' : info.name.toLowerCase()} aria-label={`${info.name} word. ${s.given ? 'Given' : 'Student types it'}. Double-tap to switch.`}
                 onChange={(e) => setSlots(q.slots.map((x, k) => (k === i ? { ...x, word: e.target.value } : x)))}
                 onDoubleClick={() => setSlots(q.slots.map((x, k) => (k === i ? { ...x, given: !x.given } : x)))} />
-              <div className="sym-slot-tools">
+              {sel === i && <div className="sym-slot-tools">
                 <button type="button" aria-label="Move left" disabled={i === 0} onClick={() => move(i, i - 1)}>◀</button>
                 <button type="button" aria-label={s.given ? 'Make the student type it' : 'Make it given'} onClick={() => setSlots(q.slots.map((x, k) => (k === i ? { ...x, given: !x.given } : x)))}>{s.given ? '◼' : '◻'}</button>
                 <button type="button" aria-label="Remove" onClick={() => setSlots(q.slots.filter((_, k) => k !== i))}>✕</button>
                 <button type="button" aria-label="Move right" disabled={i === q.slots.length - 1} onClick={() => move(i, i + 1)}>▶</button>
-              </div>
+              </div>}
             </div>
           );
         })}
       </div>
-      <details className="sym-pic">
-        <summary>{q.imageUrl ? '🖼️ Picture added' : '🖼️ Add the symbol sentence picture (optional)'}</summary>
+      {pic && <div className="sym-pic">
         <ImageUploadField label="Picture" value={q.imageUrl} onChange={(imageUrl) => onUpdate({ ...q, imageUrl: imageUrl || undefined })} altValue={q.imageAlt} onAltChange={(imageAlt) => onUpdate({ ...q, imageAlt: imageAlt || undefined })} />
-      </details>
+      </div>}
     </div>
   );
 }
@@ -114,7 +118,7 @@ export default function SymbolSetEditor({ questions, onChange }: { questions: Qu
           );
         })}
       </div>
-      <p className="sym-help">Outline box: the student types it. Solid box: your word, shown to the student. Double-tap a box to switch.</p>
+      <p className="sym-help">Solid = your word. Outline = the student types it. Double-tap a word to switch; tap a symbol for move and delete.</p>
       {qs.map((q, i) => (
         <SymbolRow key={q.id} q={q} index={i} active={i === active} onFocus={() => setActive(i)} onUpdate={(nq) => update(q.id, nq)} onDelete={() => { onChange(qs.filter((x) => x.id !== q.id)); setActive(0); }} />
       ))}
