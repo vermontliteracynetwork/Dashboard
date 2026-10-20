@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-plinko-themes",
+    date: "2026-10-20",
+    icon: "🎨",
+    title: "Plinko themes",
+    body: "Design your own Plinko look with your teacher: the background, balls, colors and even the power-ups. Once your teacher says yes, pick it at the start of the game.",
+  },
+  {
     id: "2026-10-20-lm-finger",
     date: "2026-10-20",
     icon: "👉",

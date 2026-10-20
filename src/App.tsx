@@ -45,6 +45,7 @@ import TeacherStudentBank from './routes/teacher/TeacherStudentBank';
 import ScoreHistory from './routes/teacher/ScoreHistory';
 import QuestionReports from './routes/teacher/QuestionReports';
 import SupernatureLocks from './routes/teacher/SupernatureLocks';
+import PlinkoThemes from './routes/teacher/PlinkoThemes';
 import SelCheckInLog from './routes/teacher/SelCheckInLog';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
@@ -266,6 +267,7 @@ export default function App() {
             <Route path="/teacher/scores" element={<ScoreHistory />} />
             <Route path="/teacher/question-reports" element={<QuestionReports />} />
             <Route path="/teacher/supernature" element={<SupernatureLocks />} />
+            <Route path="/teacher/plinko-themes" element={<PlinkoThemes />} />
             <Route path="/teacher/sel-checkins" element={<SelCheckInLog />} />
             <Route path="/teacher/grammar-gus" element={<TeacherGusRoute />} />
             {/* A teacher's Grammar Gus board on its own page (teacher 2026-10-09): no back button,

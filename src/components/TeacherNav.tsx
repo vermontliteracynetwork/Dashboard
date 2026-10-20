@@ -56,6 +56,7 @@ export default function TeacherNav() {
             <NavLink to="/teacher/question-reports" className={({ isActive }) => (isActive ? 'active' : '')}>📝 Question reports</NavLink>
             <NavLink to="/teacher/sel-checkins" className={({ isActive }) => (isActive ? 'active' : '')}>🌈 SEL Check-Ins</NavLink>
             <NavLink to="/teacher/supernature" className={({ isActive }) => (isActive ? 'active' : '')}>🔮 Supernature creatures</NavLink>
+            <NavLink to="/teacher/plinko-themes" className={({ isActive }) => (isActive ? 'active' : '')}>🎯 Plinko themes</NavLink>
           </div>
         </details>
       </div>

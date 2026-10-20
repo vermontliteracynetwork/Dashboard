@@ -9608,3 +9608,29 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .sym-settings { padding: 6px 10px; gap: 4px 14px; font-size: .9rem; }
 .sym-help { font-size: .78rem; }
 .mct-acts { white-space: nowrap; }
+
+/* Plinko themes (Build Queue 246 and 258): a theme only swaps these looks, never the board's layout. */
+.pk2.themed .pk-head h1 { color: var(--pk-cur, #fff); }
+.pk2-title-img { margin: 0; line-height: 0; } .pk2-title-img img { height: 52px; max-width: 34vw; object-fit: contain; }
+.pk2.themed .pk2-power { background: var(--pk-power-bg, #fff); border-color: var(--pk-panel-edge); }
+.pk2.themed .pk2-power.on { box-shadow: 0 0 0 3px #22c55e; }
+.pk2.themed .pk2-select, .pk2.themed .pk2-powers > .btn-primary { background: var(--pk-power-btn, var(--pk-btn, #5a3d9e)); border-color: var(--pk-power-btn, var(--pk-btn, #5a3d9e)); color: #fff; }
+.pk2.themed .pk2-player.on { box-shadow: 0 0 0 3px var(--pk-cur, #ff7a1a); }
+.pk2-power-img { width: 38px; height: 38px; object-fit: contain; }
+.pks-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.pks-theme { display: flex; flex-direction: column; gap: 6px; align-items: center; padding: 8px; border-radius: 18px; border: 4px solid #e0d9f2; background: #fff; font: 800 1.05rem 'Nunito', system-ui, sans-serif; cursor: pointer; min-height: 44px; }
+.pks-theme.on { border-color: #5a3d9e; box-shadow: 0 0 0 3px #b9a8e6; }
+.pks-theme-pic { width: 100%; aspect-ratio: 4 / 3; border-radius: 12px; display: grid; place-items: center; font-size: 2.4rem; overflow: hidden; }
+.pks-theme-pic img { width: 90%; max-height: 60%; object-fit: contain; }
+.pkt-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; align-items: end; }
+.pkt-form label, .pkt-file { display: flex; flex-direction: column; gap: 4px; font-weight: 700; }
+.pkt-form input, .pkt-form select { min-height: 40px; font-size: 1rem; }
+.pkt-font-sample { font-size: 1.4rem; font-weight: 800; }
+.pkt-preview { display: grid; grid-template-columns: 1fr 2.2fr 1fr; gap: 10px; padding: 14px; border-radius: 14px; aspect-ratio: 4 / 3; max-width: 560px; box-sizing: border-box; background-size: cover; }
+.pkt-side { border: 4px solid; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: .8rem; background-size: cover !important; }
+.pkt-side small { display: flex; align-items: center; gap: 4px; } .pkt-side small img { width: 22px; height: 22px; object-fit: contain; }
+.pkt-board { border: 6px solid; border-radius: 14px; padding: 6px; display: flex; flex-direction: column; gap: 6px; }
+.pkt-title { max-width: 100%; height: 34px; object-fit: contain; align-self: center; } .pkt-title-text { text-align: center; color: #fff; }
+.pkt-pegs { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); place-items: center; } .pkt-pegs i { width: 10px; height: 10px; border-radius: 50%; }
+.pkt-buckets { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; } .pkt-buckets span { height: 22px; border-radius: 6px; }
+.pkt-balls { display: flex; flex-wrap: wrap; gap: 8px; } .pkt-balls img { width: 48px; height: 48px; border-radius: 50%; }

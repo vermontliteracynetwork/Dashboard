@@ -4,6 +4,7 @@ import { speak } from '../../components/ReadAloud';
 import type { NpcProfile } from '../../style/npcs';
 import type { TTSSettings } from '../../types';
 import { sfx } from '../../lib/miniSfx';
+import type { PlinkoTheme } from '../../lib/plinkoThemes';
 
 const NpcPortrait3D = lazyFresh(() => import('../../components/NpcPortrait3D'));
 
@@ -27,11 +28,13 @@ export const BALLS = [
 
 export interface SetupPlayer { key: string; name: string; kind: 'me' | 'irl' | 'npc'; npcId?: string; ball: number }
 
-export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ranges, locked, onRounds, onPerTurn, preNpc, tts, onStart, onLeave }: {
+export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ranges, locked, onRounds, onPerTurn, preNpc, tts, onStart, onLeave, themes = [], theme = null, onTheme }: {
   studentName: string; profiles: Record<string, NpcProfile>; rounds: number; perTurn: number;
   ranges: { rounds: { min: number; max: number }; per: { min: number; max: number } }; locked: boolean;
   onRounds: (n: number) => void; onPerTurn: (n: number) => void; preNpc?: string | null; tts?: TTSSettings;
   onStart: (players: SetupPlayer[]) => void; onLeave: () => void;
+  // Build Queue 246: approved themes are picked first; a theme brings its own balls.
+  themes?: PlinkoTheme[]; theme?: PlinkoTheme | null; onTheme?: (id: string | null) => void;
 }) {
   const [page, setPage] = useState(0);
   const [count, setCount] = useState(preNpc ? 2 : 1);
@@ -40,10 +43,12 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
   const [inviting, setInviting] = useState<string | null>(null);
   const [balls, setBalls] = useState<number[]>([0, 1, 2, 3, 4]);
   const [ballFor, setBallFor] = useState(0);
-  const pages = ['rounds', 'players', ...(count > 1 ? ['who'] : []), 'balls'] as const;
+  const pages = [...(themes.length ? ['theme'] : []), 'rounds', 'players', ...(count > 1 ? ['who'] : []), 'balls'] as const;
+  const ballList = theme ? theme.balls.map((src, i) => ({ id: `t${i}`, name: `Ball ${i + 1}`, bg: `center / cover no-repeat url("${src}")` })) : BALLS;
   const cur = pages[Math.min(page, pages.length - 1)];
   const say = (t: string) => speak(t, tts);
   const SAY: Record<string, string> = {
+    theme: 'Pick a theme.',
     rounds: 'How many rounds, and how many questions each turn?',
     players: 'How many players?',
     who: 'Who is playing with you? Add a classmate or invite a Neighbor.',
@@ -85,6 +90,21 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
           <div className="pks-dots" aria-label={`Step ${page + 1} of ${pages.length}`}>{pages.map((p, i) => <i key={p} className={i === page ? 'on' : i < page ? 'done' : ''} />)}</div>
           <button type="button" className="btn pks-say" onClick={() => say(SAY[cur])} aria-label="Listen">🔊</button>
         </div>
+        {cur === 'theme' && (
+          <>
+            <h2>Pick a theme</h2>
+            <div className="pks-themes">
+              <button type="button" className={`pks-theme${!theme ? ' on' : ''}`} onClick={() => { onTheme?.(null); sfx.pop(); }}>
+                <span className="pks-theme-pic" style={{ background: 'radial-gradient(circle at 50% 35%, #ffd34d, #f39a12)' }}>🎯</span><b>Classic</b>
+              </button>
+              {themes.map((t) => (
+                <button key={t.id} type="button" className={`pks-theme${theme?.id === t.id ? ' on' : ''}`} onClick={() => { onTheme?.(t.id); sfx.pop(); say(t.name); }}>
+                  <span className="pks-theme-pic" style={{ background: t.background ? `center / cover url("${t.background}")` : t.colors.primary ?? '#5a3d9e' }}>{t.title ? <img src={t.title} alt="" /> : null}</span><b>{t.name}</b>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
         {cur === 'rounds' && (
           <>
             <h2>Rounds</h2>
@@ -142,13 +162,13 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
             <div className="pks-slots">
               {names.map((n, i) => (
                 <button key={i} type="button" className={`pks-chip${ballFor === i ? ' on' : ''}`} onClick={() => setBallFor(i)}>
-                  <i className="pks-ball sm" style={{ background: BALLS[balls[i]].bg }} />{n}
+                  <i className="pks-ball sm" style={{ background: (ballList[balls[i]] ?? ballList[0]).bg }} />{n}
                 </button>
               ))}
             </div>
             <p className="pks-note">{names[ballFor]}, tap your ball.</p>
             <div className="pks-balls">
-              {BALLS.map((b, k) => {
+              {ballList.map((b, k) => {
                 const takenBy = balls.slice(0, count).findIndex((x, i) => x === k && i !== ballFor);
                 return (
                   <button key={b.id} type="button" className={`pks-ballbtn${balls[ballFor] === k ? ' on' : ''}`} disabled={takenBy >= 0} onClick={() => { setBalls((bs) => bs.map((x, i) => (i === ballFor ? k : x))); sfx.pop(); if (ballFor < count - 1) setBallFor(ballFor + 1); }}>

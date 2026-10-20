@@ -7,202 +7,263 @@
    "y": 168,
    "w": 1600,
    "h": 1200,
-   "circle": false
+   "circle": false,
+   "page": 1
   },
   "ball1": {
    "x": 91,
    "y": 230,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball2": {
    "x": 482,
    "y": 230,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball3": {
    "x": 873,
    "y": 230,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball4": {
    "x": 1264,
    "y": 230,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball5": {
    "x": 1655,
    "y": 230,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball6": {
    "x": 91,
    "y": 700,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball7": {
    "x": 482,
    "y": 700,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball8": {
    "x": 873,
    "y": 700,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball9": {
    "x": 1264,
    "y": 700,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "ball10": {
    "x": 1655,
    "y": 700,
    "w": 300,
    "h": 300,
-   "circle": true
+   "circle": true,
+   "page": 2
   },
   "title": {
    "x": 124,
    "y": 400,
    "w": 1800,
    "h": 540,
-   "circle": false
+   "circle": false,
+   "page": 3
   },
   "panel": {
    "x": 724,
    "y": 190,
    "w": 600,
    "h": 900,
-   "circle": false
+   "circle": false,
+   "page": 4
   },
   "primary": {
    "x": 67,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "secondary": {
    "x": 314,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "text": {
    "x": 561,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "boardBorder": {
    "x": 808,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "boardBg": {
    "x": 1055,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "peg": {
    "x": 1302,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "powerBg": {
    "x": 1549,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "powerBtn": {
    "x": 1796,
    "y": 260,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket1": {
    "x": 67,
    "y": 770,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket2": {
    "x": 314,
    "y": 770,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket3": {
    "x": 561,
    "y": 770,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket4": {
    "x": 808,
    "y": 770,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket5": {
    "x": 1055,
    "y": 770,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket6": {
    "x": 1302,
    "y": 770,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket7": {
    "x": 1549,
    "y": 770,
    "w": 180,
    "h": 180,
-   "circle": false
+   "circle": false,
+   "page": 5
   },
   "bucket8": {
    "x": 1796,
    "y": 770,
    "w": 180,
    "h": 180,
+   "circle": false,
+   "page": 5
+  },
+  "power_magnet": {
+   "page": 6,
+   "x": 94,
+   "y": 420,
+   "w": 380,
+   "h": 380,
+   "circle": false
+  },
+  "power_double": {
+   "page": 6,
+   "x": 579,
+   "y": 420,
+   "w": 380,
+   "h": 380,
+   "circle": false
+  },
+  "power_big": {
+   "page": 6,
+   "x": 1064,
+   "y": 420,
+   "w": 380,
+   "h": 380,
+   "circle": false
+  },
+  "power_again": {
+   "page": 6,
+   "x": 1549,
+   "y": 420,
+   "w": 380,
+   "h": 380,
    "circle": false
   }
  }

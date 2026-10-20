@@ -17,6 +17,7 @@ import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
+import { themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
 
 // Plinko after Baamboozle's Plink-oh (Build Queue 244 and 250, plan in docs/PLINKO_PLAN.pdf).
 // Her rules (2026-10-20): up to 5 players on one iPad, the student plus classmates in the room and
@@ -68,6 +69,10 @@ export default function PlinkoDrop() {
   const [note, setNote] = useState<string | null>(null);
   const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | null>(null);
   const visit = useVisitScore('plinkoDrop');
+  // Build Queue 246 and 258: the theme picked on the first setup page (only themes she approved).
+  const { approved: themes } = usePlinkoThemes();
+  const [themeId, setThemeId] = useState<string | null>(null);
+  const theme = themes.find((t) => t.id === themeId) ?? null;
   const unpaid = useRef(0);
   const timers = useRef<number[]>([]);
   const secondRef = useRef(false);
@@ -115,7 +120,7 @@ export default function PlinkoDrop() {
     if (p.owed > 0 && p.kind === 'npc') {
       activeRef.current = shuffle(POWER_IDS).slice(0, p.owed); setActive(activeRef.current);
       setPlayersBoth((ps) => ps.map((x) => (x.key === p.key ? { ...x, owed: 0 } : x)));
-      setNote(`${p.name} picked ${activeRef.current.map((x) => POWERS[x].name).join(' and ')}.`);
+      setNote(`${p.name} picked ${activeRef.current.map((x) => pName(x)).join(' and ')}.`);
     } else if (p.owed > 0) {
       setPhase('powers'); speak(`${p.name}, pick ${p.owed} power-up${p.owed === 1 ? '' : 's'} for this turn.`, student.ttsSettings); return;
     }
@@ -206,13 +211,16 @@ export default function PlinkoDrop() {
   const ranked = [...players].sort((a, b) => b.xp - a.xp);
   const me = players.find((p) => p.kind === 'me');
   const rivalPlayer = rivalId ? players.find((p) => p.npcId === rivalId) : undefined;
-  const ballBg = (p?: Player) => BALLS[p?.ball ?? 0].bg;
+  const ballBg = (p?: Player) => (theme?.balls[p?.ball ?? 0] ? `center / cover no-repeat url("${theme.balls[p?.ball ?? 0]}")` : BALLS[p?.ball ?? 0].bg);
+  // A theme renames a power-up and gives it a picture; the action never changes (258).
+  const pName = (pw: Power) => theme?.powers[pw]?.name || POWERS[pw].name;
+  const pIcon = (pw: Power) => (theme?.powers[pw]?.img ? <img src={theme.powers[pw]!.img} alt="" className="pk2-power-img" /> : POWERS[pw].icon);
 
   return (
-    <div className="pk2">
+    <div className={`pk2${theme ? ' themed' : ''}`} style={themeVars(theme) as React.CSSProperties}>
       <header className="fd-head pk-head">
         <LeaveButton onLeave={() => { pay(); back.go(); }} />
-        <h1>Plinko</h1>
+        {theme?.title ? <h1 className="pk2-title-img"><img src={theme.title} alt={`Plinko: ${theme.name}`} /></h1> : <h1>Plinko</h1>}
         <SfxToggle />
         <MyBest game="plinkoDrop" unit="XP" />
         <span className="btn" aria-label={`${saved.xp ?? 0} Plinko XP in all`}>⭐ {saved.xp ?? 0} XP</span>
@@ -246,7 +254,7 @@ export default function PlinkoDrop() {
             {ball && <b className={`pk2-ball${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(active.includes('big') ? 63 : 45) / zones}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, 1fr)` }}>
-            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{'★'.repeat(stars[i])}</em> : null}{v}</span>)}
+            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{'★'.repeat(stars[i])}</em> : null}{v}</span>)}
           </div>
           <p className="pk2-msg" aria-live="polite">{note ?? ''}</p>
         </section>
@@ -258,7 +266,7 @@ export default function PlinkoDrop() {
               <p className="pk2-small"><b>{cur.name}</b>, pick {cur.owed} ({active.length} of {cur.owed})</p>
               {POWER_IDS.map((pw) => (
                 <div key={pw} className={`pk2-power${active.includes(pw) ? ' on' : ''}`}>
-                  <span>{POWERS[pw].icon}</span><b>{POWERS[pw].name}</b><small>{POWERS[pw].does}</small>
+                  <span>{pIcon(pw)}</span><b>{pName(pw)}</b><small>{POWERS[pw].does}</small>
                   <button type="button" className="btn btn-sm pk2-select" onClick={() => togglePower(pw)} disabled={!active.includes(pw) && active.length >= cur.owed}>{active.includes(pw) ? 'Selected ✓' : 'Select'}</button>
                 </div>
               ))}
@@ -266,7 +274,7 @@ export default function PlinkoDrop() {
             </>
           ) : (
             <>
-              {active.map((pw) => <div key={`a-${pw}`} className="pk2-power on"><span>{POWERS[pw].icon}</span><b>{POWERS[pw].name}</b><small>On for this drop</small></div>)}
+              {active.map((pw) => <div key={`a-${pw}`} className="pk2-power on"><span>{pIcon(pw)}</span><b>{pName(pw)}</b><small>On for this drop</small></div>)}
               {!active.length && <p className="pk2-small">Land in a bucket with ★ stars. Each star is a power-up to pick at the start of your next turn.</p>}
               {players.filter((p) => p.owed > 0).map((p) => <p key={p.key} className="pk2-small">{p.name}: {'★'.repeat(p.owed)} next turn</p>)}
             </>
@@ -298,7 +306,8 @@ export default function PlinkoDrop() {
 
       {!started && (
         <PlinkoSetup studentName={student.name} profiles={profiles} rounds={rs.rounds} perTurn={rs.perRound} ranges={RANGES} locked={rs.locked}
-          onRounds={rs.setRounds} onPerTurn={rs.setPerRound} preNpc={rivalId} tts={student.ttsSettings} onStart={start} onLeave={() => back.go()} />
+          onRounds={rs.setRounds} onPerTurn={rs.setPerRound} preNpc={rivalId} tts={student.ttsSettings} onStart={start} onLeave={() => back.go()}
+          themes={themes} theme={theme} onTheme={setThemeId} />
       )}
 
       {started && phase === 'over' && !wrap && (
