@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-wrong-next",
+    date: "2026-10-20",
+    icon: "➡️",
+    title: "Missed one? On to the next",
+    body: "When an answer is not quite right, the question is marked and the next one comes up by itself.",
+  },
+  {
     id: "2026-10-20-plinko-stars",
     date: "2026-10-20",
     icon: "⭐",

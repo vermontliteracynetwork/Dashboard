@@ -6,7 +6,7 @@ import { speak } from './ReadAloud';
 // The student side of a Mad Lib question (Build Queue 238): the sentence with boxes in it. Help comes
 // from the question's own settings: a word bank to tap (with or without extra words), boxes with the
 // first letter shown, or boxes to type on their own; spell check on or off. With hints on, a wrong
-// first try marks the boxes to fix and shows their first letter, a second one shows the word to copy.
+// first try marks the boxes to fix and shows their first letter, a second miss is marked wrong (the word is never shown, Build Queue 263).
 // iPad first: big boxes and big word tiles, the keyboard never covers the sentence (it sits at the top).
 export default function MadLibAnswer({ q, disabled, tts, onResult }: { q: MadLibQuestion; disabled: boolean; tts?: TTSSettings; onResult: (correct: boolean, said: string) => void }) {
   const s = { ...DEFAULT_MADLIB, ...q.settings };
@@ -25,7 +25,7 @@ export default function MadLibAnswer({ q, disabled, tts, onResult }: { q: MadLib
 
   const answer = (i: number) => tokens[i].answers[0];
   const showLetter = (i: number) => s.support === 'first-letter' || (s.hints && tries >= 1 && wrong.includes(i));
-  const showWord = (i: number) => s.hints && tries >= 2 && wrong.includes(i);
+  const showWord = (_i: number) => false; // Build Queue 263: the right word is never shown
   const allFilled = blanks.every((i) => (vals[i] ?? '').trim());
 
   const tapWord = (w: string) => {
@@ -43,11 +43,11 @@ export default function MadLibAnswer({ q, disabled, tts, onResult }: { q: MadLib
     const bad = blanks.filter((i) => !isBlankRight(vals[i] ?? '', tokens[i], s));
     const said = blanks.map((i) => vals[i] ?? '').join(', ');
     if (!bad.length) { onResult(tries < 2 || !s.hints, said); return; }
-    if (!s.hints || tries >= 2) { onResult(false, said); return; }
+    if (!s.hints || tries >= 1) { onResult(false, said); return; }
     setTries((t) => t + 1);
     setWrong(bad);
     if (usesBank) setVals((v) => { const n = { ...v }; bad.forEach((i) => { delete n[i]; }); return n; });
-    speak(tries === 0 ? 'Almost. Look at the boxes that need fixing.' : 'Here are the words. Copy them into the boxes.', tts);
+    speak('Almost. Look at the boxes that need fixing.', tts);
     window.setTimeout(() => inputs.current[bad[0]]?.focus(), 50);
   };
 
@@ -87,7 +87,7 @@ export default function MadLibAnswer({ q, disabled, tts, onResult }: { q: MadLib
           ))}
         </div>
       )}
-      {tries > 0 && !disabled && <p className="madlib-note">{tries === 1 ? 'Almost! Fix the boxes that are outlined.' : 'Copy the words shown under the boxes.'}</p>}
+      {tries > 0 && !disabled && <p className="madlib-note">Almost! Fix the boxes that are outlined.</p>}
       <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !allFilled} onClick={check}>Check</button>
     </div>
   );

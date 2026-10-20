@@ -239,6 +239,8 @@ export default function QuestionScreen({
       }
       shownAt.current = now;
       onWrongAnswer?.();
+      // Build Queue 263: mark it wrong and move on to the next question by itself.
+      if (onSkip) advanceTimer.current = window.setTimeout(() => onSkip(), 1400);
     }
   };
 
@@ -476,7 +478,8 @@ export default function QuestionScreen({
               const isWrong = wrongIndices.has(origIdx);
               const isCorrectPick = answeredCorrectly && origIdx === correctIndex;
               // After a wrong pick the right answer is shown (outlined, locked), so the student still learns it.
-              const showRight = feedback === 'wrong' && origIdx === correctIndex;
+              // Build Queue 263: the right answer is never shown after a miss (no outline, no message).
+              const showRight = false;
               const bg = reading ? '#F5EFE3' : isCorrectPick ? '#E7F7EE' : isWrong ? '#FDEBEA' : '#fff';
               const border = reading ? '#F5EFE3' : isCorrectPick || showRight ? '#8FD3AE' : isWrong ? '#F3B7B0' : '#F2E8D6';
               return (
@@ -535,7 +538,7 @@ export default function QuestionScreen({
                 color: feedback === 'correct' ? '#1F6B45' : '#9C3A35',
               }}
             >
-              {feedback === 'correct' ? '✅ Correct! Nice work.' : `❌ Not quite. The answer was ${choices[correctIndex] ?? ''}. Let's move on to the next one.`}
+              {feedback === 'correct' ? '✅ Correct! Nice work.' : "❌ Not quite. On to the next one."}
             </div>
           )}
 
