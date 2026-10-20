@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-talk-azalea",
+    date: "2026-10-20",
+    icon: "🐱",
+    title: "Talk to Azalea about your feelings",
+    body: "After you check in, tap Talk to Azalea. She listens like a friend, and you can talk or type.",
+  },
+  {
     id: "2026-10-20-day-memory",
     date: "2026-10-20",
     icon: "📸",

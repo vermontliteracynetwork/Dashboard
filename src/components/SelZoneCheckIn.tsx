@@ -109,6 +109,7 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
         <SelSupportMenu
           zone={picked.zone}
           tools={student?.selZoneTools?.[picked.zone] ?? SEL_STARTER_TOOLS[picked.zone]}
+          feeling={picked.emotion}
           onToolTap={(label) => addSelCheckInTool(picked.checkInId, label)}
           onNoteSave={(text) => addSelCheckInNote(picked.checkInId, text)}
         />

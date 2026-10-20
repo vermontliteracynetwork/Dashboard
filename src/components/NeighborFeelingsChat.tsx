@@ -82,7 +82,7 @@ export default function NeighborFeelingsChat({ neighbor, onClose }: { neighbor: 
               zone={pick.zone}
               tools={student?.selZoneTools?.[pick.zone] ?? SEL_STARTER_TOOLS[pick.zone]}
               onToolTap={(label) => { addSelCheckInTool(pick.recordId, label); say(`I'll try: ${label}.`); }}
-              onNoteSave={(text) => { addSelCheckInNote(pick.recordId, text); say(`Note for my teacher: ${text}`); }}
+              onNoteSave={(text) => { addSelCheckInNote(pick.recordId, text); say('I talked with Azalea.'); }}
             />
           )}
           <div className="sel-convo-choices">

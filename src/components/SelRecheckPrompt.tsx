@@ -181,7 +181,7 @@ export default function SelRecheckPrompt() {
               zone={repickResult.zone}
               tools={student?.selZoneTools?.[repickResult.zone] ?? SEL_STARTER_TOOLS[repickResult.zone]}
               onToolTap={(label) => { setToolUsed(label); addSelCheckInTool(due.id, label); say(`I'll try: ${label}.`); }}
-              onNoteSave={(text) => { addSelCheckInNote(due.id, text); say(`Note for my teacher: ${text}`); }}
+              onNoteSave={(text) => { addSelCheckInNote(due.id, [due.noteText, text].filter(Boolean).join('\n\n')); }}
             />
           )}
           <div className="sel-convo-choices">
