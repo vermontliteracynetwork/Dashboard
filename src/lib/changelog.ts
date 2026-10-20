@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-plinko-menus",
+    date: "2026-10-20",
+    icon: "🎚️",
+    title: "New Plinko start menu",
+    body: "Slide to pick players, rounds and questions, then everyone picks a ball from a big grid of 16 balls.",
+  },
+  {
     id: "2026-10-20-no-hair",
     date: "2026-10-20",
     icon: "🧢",
