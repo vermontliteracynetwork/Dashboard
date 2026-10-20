@@ -9474,3 +9474,66 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .pk2-intro .pk2-ball-icon { width: 64px; height: 64px; }
 @keyframes pk2Intro { from { transform: scale(.4); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .pk2-intro > div { animation: none; } }
+
+/* Question set creator: type choice and compact multiple choice table (Build Queue 253). */
+.qs-type { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
+.qs-type-btn { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 3px solid var(--content-border, #d9d3ef); background: #fff; cursor: pointer; min-height: 72px; font: inherit; }
+.qs-type-btn b { font-size: 1.05rem; } .qs-type-btn small { opacity: .75; }
+.qs-type-btn.on { border-color: #5a3d9e; background: #f3effc; box-shadow: 0 0 0 3px rgba(90,61,158,.18); }
+.mct-wrap { overflow-x: auto; border: 2px solid var(--content-border, #e3ddf2); border-radius: 12px; }
+.mct { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.mct th { background: #f3effc; text-align: left; padding: 6px 8px; font-size: .78rem; white-space: nowrap; }
+.mct td { padding: 4px 6px; border-top: 1px solid #eee8f7; vertical-align: middle; }
+.mct td input { width: 100%; min-width: 90px; min-height: 36px; padding: 4px 8px; border-radius: 8px; border: 1.5px solid #ddd6ee; font-size: .9rem; box-sizing: border-box; }
+.mct td:nth-child(2) input { min-width: 200px; }
+.mct tr.bad td { background: #fff6f5; }
+.mct-n { font-weight: 800; width: 28px; text-align: center; }
+.mct-choice { display: flex; gap: 4px; align-items: center; }
+.mct-mark { flex: none; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #ccc4e0; background: #fff; font-weight: 800; cursor: pointer; }
+.mct td.right .mct-mark { background: #22c55e; border-color: #16a34a; color: #fff; }
+.mct td.right input { border-color: #22c55e; }
+.mct-pic details { position: relative; } .mct-pic summary { list-style: none; cursor: pointer; width: 40px; height: 36px; display: grid; place-items: center; border: 1.5px dashed #ccc4e0; border-radius: 8px; }
+.mct-pic summary img { width: 36px; height: 32px; object-fit: cover; border-radius: 6px; }
+.mct-pop { position: absolute; right: 0; z-index: 20; width: 300px; background: #fff; border: 2px solid #ddd6ee; border-radius: 12px; padding: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.15); }
+
+/* Symbol sentence builder (teacher) and answer (student), Build Queue 253. */
+.sym-settings { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 8px 12px; background: #f3effc; border-radius: 12px; }
+.sym-setting { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; min-height: 36px; cursor: pointer; }
+.sym-setting input { width: 20px; height: 20px; }
+.sym-tray { display: flex; flex-wrap: wrap; gap: 6px; position: sticky; top: 0; z-index: 4; background: #fff; padding: 6px 0; }
+.sym-tray-btn { display: flex; flex-direction: column; align-items: center; gap: 2px; width: 74px; padding: 4px; border-radius: 10px; border: 2px solid #eee8f7; background: #fff; cursor: grab; font: inherit; font-size: .7rem; font-weight: 800; }
+.sym-tray-btn img { width: 40px; height: 40px; object-fit: contain; }
+.sym-dot { display: grid; place-items: center; width: 40px; height: 40px; font-size: 1.2rem; font-weight: 900; color: #6b7280; }
+.sym-help { margin: 0; font-size: .82rem; opacity: .8; }
+.sym-row { border: 2px solid #eee8f7; border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.sym-row.on { border-color: #5a3d9e; }
+.sym-row-head { display: flex; gap: 8px; align-items: center; }
+.sym-row-head > b { width: 24px; text-align: center; }
+.sym-quick { display: flex; flex-wrap: wrap; gap: 6px; flex: 1; min-width: 0; }
+.sym-quick input { flex: 1 1 240px; min-height: 36px; border-radius: 8px; border: 1.5px solid #ddd6ee; padding: 4px 8px; }
+.sym-quick select { min-height: 36px; max-width: 260px; border-radius: 8px; }
+.sym-strip { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; min-height: 110px; padding: 6px; border-radius: 10px; background: #fafaff; border: 1.5px dashed #ddd6ee; }
+.sym-empty { align-self: center; opacity: .6; font-size: .9rem; padding: 8px; }
+.sym-slot { display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: grab; }
+.sym-icon { display: flex; flex-direction: column; align-items: center; }
+.sym-icon img { width: 48px; height: 48px; object-fit: contain; pointer-events: none; }
+.sym-icon small { font-size: .65rem; font-weight: 800; }
+.sym-word { width: 96px; min-height: 36px; text-align: center; border-radius: 999px; border: 3px solid var(--c); background: #fff; font-weight: 800; font-size: .95rem; }
+.sym-word.given { background: var(--c); color: var(--ink); }
+.sym-slot-tools { display: flex; gap: 1px; }
+.sym-slot-tools button { width: 24px; height: 24px; border: none; border-radius: 6px; background: #f1edfb; cursor: pointer; font-size: .7rem; padding: 0; }
+.sym-slot-tools button:disabled { opacity: .3; }
+.sym-pic summary { cursor: pointer; font-size: .85rem; font-weight: 700; }
+.symq { width: 100%; }
+.symq-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px 8px; align-items: flex-start; }
+.symq-slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.symq-icon { display: flex; flex-direction: column; align-items: center; border: none; background: none; cursor: pointer; padding: 0; }
+.symq-icon img { width: clamp(52px, 8vw, 84px); height: clamp(52px, 8vw, 84px); object-fit: contain; }
+.symq-icon small { font-weight: 900; font-size: .85rem; }
+.symq-tip { position: absolute; top: -8px; transform: translateY(-100%); z-index: 5; background: #241c3d; color: #fff; border-radius: 10px; padding: 6px 10px; font-size: .9rem; white-space: nowrap; }
+.symq-word { min-width: 6ch; min-height: 48px; padding: 4px 16px; border-radius: 999px; border: 4px solid var(--c); background: #fff; font: 800 1.15rem 'Nunito', system-ui, sans-serif; text-align: center; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.symq-word.given { background: var(--c); color: var(--ink); }
+.symq-word.fix { box-shadow: 0 0 0 4px rgba(246,168,91,.6); }
+.symq-input-wrap { display: flex; align-items: center; gap: 4px; }
+.symq-dice { min-width: 44px; min-height: 44px; border-radius: 12px; border: 2px solid #ddd6ee; background: #fff; font-size: 1.3rem; cursor: pointer; }
+.symq-note { max-width: 220px; text-align: center; font-size: .85rem; font-weight: 700; color: #b5470e; }

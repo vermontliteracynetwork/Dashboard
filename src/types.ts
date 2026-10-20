@@ -385,7 +385,23 @@ export interface MadLibQuestion {
   settings: MadLibSettings;
 }
 
-export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion | SpeakQuestion | MadLibQuestion;
+// Symbol sentence typed answers (Build Queue 253): a row of her grammar symbols, each with a word box.
+// A solid box is a word she set (given); an outline box is one the student types. Set settings: the
+// randomizer dice, the iPad spell check, and the grammar check (is the typed word that part of speech).
+export type SymbolPos = 'article' | 'adjective' | 'noun' | 'propernoun' | 'verb' | 'adverb' | 'pronoun' | 'preposition' | 'conjunction' | 'interjection' | 'punctuation';
+export interface SymbolSlot { pos: SymbolPos; word: string; given: boolean }
+export interface SymbolSettings { dice: boolean; spellCheck: boolean; grammarCheck: boolean }
+export interface SymbolQuestion {
+  id: string;
+  kind: 'symbol';
+  prompt: string;
+  slots: SymbolSlot[];
+  imageUrl?: string;
+  imageAlt?: string;
+  settings: SymbolSettings;
+}
+
+export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion | SpeakQuestion | MadLibQuestion | SymbolQuestion;
 
 export interface QuizContent {
   questions: QuizQuestion[];

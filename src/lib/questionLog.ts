@@ -68,8 +68,9 @@ export function useQLog(game?: string) {
   };
 }
 // The right answer of any question kind, as words for the report.
-export function answerText(q: { kind?: string; choices?: string[]; correctIndex?: number; answer?: string; text?: string } | undefined): string {
+export function answerText(q: { kind?: string; choices?: string[]; correctIndex?: number; answer?: string; text?: string; slots?: { word: string }[] } | undefined): string {
   if (!q) return '';
+  if (q.kind === 'symbol' && q.slots) return q.slots.map((s) => s.word).join(' ').replace(/\s+([.!?])/g, '$1');
   if (q.kind === 'madlib' && typeof q.text === 'string') return q.text.replace(/\[([^\]|]+)[^\]]*\]/g, '$1');
   if (q.choices && typeof q.correctIndex === 'number') return q.choices[q.correctIndex] ?? '';
   if (typeof q.answer === 'string') return q.answer;

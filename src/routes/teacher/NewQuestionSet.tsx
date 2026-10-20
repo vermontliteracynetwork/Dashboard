@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
-import QuizEditor, { blankMC, sanitizeQuizQuestions, validateQuizQuestions } from './QuizEditor';
+import { blankMC, sanitizeQuizQuestions, validateQuizQuestions } from './QuizEditor';
+import McTableEditor from './McTableEditor';
+import SymbolSetEditor from './SymbolSetEditor';
+import { blankSymbolQuestion } from '../../lib/symbolSentence';
+import { makeId } from '../../lib/id';
 import type { QuizQuestion, Subject } from '../../types';
 
 // A brand new question set, built one question at a time (Build Queue 173, teacher 2026-10-14: "give me a
@@ -19,11 +23,20 @@ export default function NewQuestionSet() {
   const [isFocus, setIsFocus] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
-  const [questions, setQuestions] = useState<QuizQuestion[]>(() => [blankMC()]);
+  // Build Queue 253: pick the kind of set first, then only that kind's fields show.
+  const [setType, setSetType] = useState<'mc' | 'text' | null>(null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const chooseType = (t: 'mc' | 'text') => {
+    if (t === setType) return;
+    const hasWork = questions.some((q) => (q.kind === 'mc' ? q.prompt.trim() : q.kind === 'symbol' ? q.slots.length : true));
+    if (hasWork && !window.confirm('Switching the kind of set clears the questions written so far. Switch?')) return;
+    setSetType(t); setSubject(t === 'text' ? 'literacy' : subject);
+    setQuestions(t === 'mc' ? [blankMC()] : [blankSymbolQuestion(makeId())]);
+  };
   const [tried, setTried] = useState(false);
 
   const issues = validateQuizQuestions(questions);
-  const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
+  const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(setType ? [] : ['Pick Multiple choice or Text input.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
   const started = !!name.trim() || questions.some((q) => q.kind === 'mc' ? q.prompt.trim() || q.choices.some((c) => c.trim()) : true);
   useEffect(() => {
     if (!started) return;
@@ -81,11 +94,24 @@ export default function NewQuestionSet() {
           </div>
         </div>
 
-        <div className="content-well stack">
-          <strong>🧠 Questions</strong>
-          <p style={{ margin: 0, fontSize: '0.85rem', opacity: 0.8 }}>Write one question at a time. Tap ✓ to mark the correct answer, then ➕ Add question for the next one.</p>
-          <QuizEditor subject={subject} questions={questions} onChange={setQuestions} />
+        <div className="content-well stack" style={{ gap: 10 }}>
+          <strong>1. What kind of questions?</strong>
+          <div className="qs-type" role="radiogroup" aria-label="Kind of question set">
+            <button type="button" role="radio" aria-checked={setType === 'mc'} className={`qs-type-btn${setType === 'mc' ? ' on' : ''}`} onClick={() => chooseType('mc')}>
+              <b>☑️ Multiple choice</b><small>A question and up to four answers. Plays in every game.</small>
+            </button>
+            <button type="button" role="radio" aria-checked={setType === 'text'} className={`qs-type-btn${setType === 'text' ? ' on' : ''}`} onClick={() => chooseType('text')}>
+              <b>✍️ Text input (symbol sentences)</b><small>Students type the missing words under your grammar symbols. Plays in assignments and Quiz Mode.</small>
+            </button>
+          </div>
         </div>
+
+        {setType && (
+          <div className="content-well stack">
+            <strong>2. {setType === 'mc' ? 'Questions' : 'Sentences'}</strong>
+            {setType === 'mc' ? <McTableEditor subject={subject} questions={questions} onChange={setQuestions} /> : <SymbolSetEditor questions={questions} onChange={setQuestions} />}
+          </div>
+        )}
 
         <div
           className="chrome-frame row-wrap"

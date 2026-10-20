@@ -4,6 +4,7 @@ import SetLibraryControls from './SetLibraryControls';
 import ImageUploadField from '../../components/ImageUploadField';
 import type { QuizQuestion, MCQuestion, MatchingQuestion, FillBlankQuestion, SpeakQuestion, MadLibQuestion, MadLibSettings, Subject } from '../../types';
 import { DEFAULT_MADLIB, markedCount, tokenize } from '../../lib/madlib';
+import SymbolSetEditor from './SymbolSetEditor';
 
 interface Props {
   subject: Subject;
@@ -41,6 +42,12 @@ export function getQuestionIssue(q: QuizQuestion): string | null {
     return completePairs < 2 ? 'Needs at least 2 complete pairs (both sides filled in).' : null;
   }
   if (q.kind === 'speak') return q.targetWord.trim() ? null : 'Needs the word the student should say.';
+  if (q.kind === 'symbol') {
+    if (!q.slots.length) return 'Add the symbols for this sentence.';
+    if (!q.slots.some((x) => !x.given)) return 'Double-tap at least one word box so the student fills it in (outline).';
+    if (q.slots.some((x) => x.given && !x.word.trim())) return 'Every solid word box needs its word.';
+    return null;
+  }
   if (q.kind === 'madlib') {
     if (!tokenize(q.text).some((t) => t.word)) return 'Needs the sentence typed in.';
     if (q.settings.pick === 'marked' && !markedCount(q.text)) return 'Put [brackets] around the words to fill in, or choose "Random words".';
@@ -352,6 +359,8 @@ function QuestionRow({
 
 export default function QuizEditor({ subject, questions, onChange, simplified }: Props) {
   const [addingKind, setAddingKind] = useState<'mc' | 'matching' | 'fill' | 'speak' | 'madlib'>('mc');
+  // A text input (symbol sentence) set opens in its own builder (Build Queue 253).
+  if (questions.length && questions.every((q) => q.kind === 'symbol')) return <SymbolSetEditor questions={questions} onChange={onChange} />;
 
   const update = (id: string, q: QuizQuestion) => onChange(questions.map((existing) => (existing.id === id ? q : existing)));
   const remove = (id: string) => onChange(questions.filter((q) => q.id !== id));

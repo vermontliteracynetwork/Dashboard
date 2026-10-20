@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { answerText, useQLog } from '../../lib/questionLog';
 import SpeakAnswer from '../../components/SpeakAnswer';
 import MadLibAnswer from '../../components/MadLibAnswer';
+import SymbolSentenceAnswer from '../../components/SymbolSentenceAnswer';
 import { useStore } from '../../store/store';
 import ReadAloud, { speak } from '../../components/ReadAloud';
 import { isCloseEnoughAnswer } from '../../lib/answerMatch';
@@ -1104,6 +1105,9 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
 
               {activeQ.kind === 'speak' && (
                 <SpeakAnswer key={activeQ.id} q={activeQ} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />
+              )}
+              {activeQ.kind === 'symbol' && (
+                <SymbolSentenceAnswer key={activeQ.id} q={activeQ} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />
               )}
               {activeQ.kind === 'madlib' && (
                 <MadLibAnswer key={activeQ.id} q={activeQ} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />

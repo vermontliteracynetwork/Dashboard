@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-symbol-sentences",
+    date: "2026-10-20",
+    icon: "🔣",
+    title: "Symbol sentences",
+    body: "Some questions show grammar symbols with word boxes. Type a word in each open box to finish the sentence. Tap a symbol to hear what it means, or roll the dice for a random word.",
+  },
+  {
     id: "2026-10-20-plinko-party",
     date: "2026-10-20",
     icon: "👥",
