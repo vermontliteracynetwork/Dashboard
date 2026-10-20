@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { QuizQuestion, SymbolPos, SymbolQuestion, SymbolSettings, SymbolSlot } from '../../types';
 import { makeId } from '../../lib/id';
 import ImageUploadField from '../../components/ImageUploadField';
@@ -28,11 +28,19 @@ export function SymbolSettingsBar({ settings, onChange }: { settings: SymbolSett
   );
 }
 
-function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete }: { q: SymbolQuestion; index: number; active: boolean; onFocus: () => void; onUpdate: (q: SymbolQuestion) => void; onDelete: () => void }) {
+function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete, onDuplicate }: { q: SymbolQuestion; index: number; active: boolean; onFocus: () => void; onUpdate: (q: SymbolQuestion) => void; onDelete: () => void; onDuplicate: () => void }) {
   const [quick, setQuick] = useState('');
   const [dragFrom, setDragFrom] = useState<number | null>(null);
   const [sel, setSel] = useState<number | null>(null); // Build Queue 259: tools show only on the tapped symbol
   const [pic, setPic] = useState(false);
+  // Build Queue 261: a tap anywhere outside the chosen symbol closes its little toolbar.
+  const selRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (sel === null) return;
+    const close = (e: PointerEvent) => { if (selRef.current && !selRef.current.contains(e.target as Node)) setSel(null); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [sel]);
   const setSlots = (slots: SymbolSlot[]) => onUpdate({ ...q, slots });
   const move = (from: number, to: number) => { const s = q.slots.slice(); const [x] = s.splice(from, 1); s.splice(to, 0, x); setSlots(s); };
   const dropAt = (e: React.DragEvent, at: number) => {
@@ -61,6 +69,7 @@ function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete }: { q: Symbo
             {SYMBOL_SENTENCE_PAGES.map((p) => <optgroup key={p.id} label={p.label}>{p.sentences.map((c) => <option key={c.id} value={c.id}>{c.sentence}</option>)}</optgroup>)}
           </select>
         </div>
+        <button type="button" className="btn btn-sm" onClick={onDuplicate} aria-label={`Duplicate sentence ${index + 1}`} title="Duplicate">⧉</button>
         <button type="button" className="btn btn-sm btn-danger" onClick={onDelete} aria-label={`Delete sentence ${index + 1}`}>✕</button>
       </div>
       <div className="sym-strip" onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropAt(e, q.slots.length)}>
@@ -68,7 +77,7 @@ function SymbolRow({ q, index, active, onFocus, onUpdate, onDelete }: { q: Symbo
         {q.slots.map((s, i) => {
           const info = SYMBOLS[s.pos];
           return (
-            <div key={i} className={`sym-slot${sel === i ? ' sel' : ''}`} onClick={() => setSel(sel === i ? null : i)} draggable onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.stopPropagation(); dropAt(e, i); }}>
+            <div key={i} ref={sel === i ? selRef : undefined} className={`sym-slot${sel === i ? ' sel' : ''}`} onClick={() => setSel(sel === i ? null : i)} draggable onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.stopPropagation(); dropAt(e, i); }}>
               <div className="sym-icon" title={`${info.name}: ${info.def}`}>
                 {info.img ? <img src={info.img} alt={info.name} draggable={false} /> : <span className="sym-dot">•</span>}
                 <small style={{ color: info.color }}>{info.name.toLowerCase()}</small>
@@ -120,7 +129,8 @@ export default function SymbolSetEditor({ questions, onChange }: { questions: Qu
       </div>
       <p className="sym-help">Solid = your word. Outline = the student types it. Double-tap a word to switch; tap a symbol for move and delete.</p>
       {qs.map((q, i) => (
-        <SymbolRow key={q.id} q={q} index={i} active={i === active} onFocus={() => setActive(i)} onUpdate={(nq) => update(q.id, nq)} onDelete={() => { onChange(qs.filter((x) => x.id !== q.id)); setActive(0); }} />
+        <SymbolRow key={q.id} q={q} index={i} active={i === active} onFocus={() => setActive(i)} onUpdate={(nq) => update(q.id, nq)} onDelete={() => { onChange(qs.filter((x) => x.id !== q.id)); setActive(0); }}
+          onDuplicate={() => { const copy: SymbolQuestion = { ...q, id: makeId(), slots: q.slots.map((x) => ({ ...x })) }; onChange([...qs.slice(0, i + 1), copy, ...qs.slice(i + 1)]); setActive(i + 1); }} />
       ))}
       <button type="button" className="btn btn-primary" style={{ alignSelf: 'flex-start', minHeight: 44 }} onClick={() => { onChange([...qs, blankSymbolQuestion(makeId(), settings)]); setActive(qs.length); }}>➕ Add a sentence</button>
     </div>

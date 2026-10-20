@@ -1,6 +1,7 @@
 import type { MCQuestion, QuizQuestion, Subject } from '../../types';
 import ImageUploadField from '../../components/ImageUploadField';
 import SetLibraryControls from './SetLibraryControls';
+import { makeId } from '../../lib/id';
 import { blankMC, getQuestionIssue } from './QuizEditor';
 
 // Multiple choice as a compact table (Build Queue 253, her words: "making things smaller, making it more of a
@@ -38,7 +39,7 @@ export default function McTableEditor({ subject, questions, onChange }: { subjec
                       <div className="mct-pop"><ImageUploadField label="Picture" value={q.imageUrl} onChange={(imageUrl) => upd(q.id, { imageUrl: imageUrl || undefined })} altValue={q.imageAlt} onAltChange={(imageAlt) => upd(q.id, { imageAlt: imageAlt || undefined })} /></div>
                     </details>
                   </td>
-                  <td><button type="button" className="btn btn-sm btn-danger" aria-label={`Delete question ${i + 1}`} onClick={() => onChange(mcs.filter((x) => x.id !== q.id))}>✕</button></td>
+                  <td className="mct-acts"><button type="button" className="btn btn-sm" aria-label={`Duplicate question ${i + 1}`} title="Duplicate" onClick={() => onChange([...mcs.slice(0, i + 1), { ...q, id: makeId(), choices: [...q.choices] }, ...mcs.slice(i + 1)])}>⧉</button> <button type="button" className="btn btn-sm btn-danger" aria-label={`Delete question ${i + 1}`} onClick={() => onChange(mcs.filter((x) => x.id !== q.id))}>✕</button></td>
                 </tr>
               );
             })}
