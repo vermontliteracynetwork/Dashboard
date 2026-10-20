@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { frogEyes, headShape } from './organic';
 import { ellipsoid, meshSDF, roundCone, smin, type SDF, type Vec3 } from './sdf';
 import type { SpeciesId, StyleLook } from './types';
+import { HAIR_ON } from './species';
 
 // Hair and wigs (Build Queue 195, MOCK-UP ONLY, her words 2026-10-15: "I want to also add a regular person
 // figure. And with that, we'll have to add hair... We'll have to have a wigs feature. And the wigs can also be
@@ -58,7 +59,7 @@ export const HAIR_STYLE_OF: Record<string, HairStyle> = {
 };
 export function hairLift(look: StyleLook | undefined): number {
   const id = look?.outfit.hair?.itemId;
-  return id && HAIR_STYLE_OF[id] ? LIFT[HAIR_STYLE_OF[id]] : 0;
+  return HAIR_ON && id && HAIR_STYLE_OF[id] ? LIFT[HAIR_STYLE_OF[id]] : 0;
 }
 
 const cache = new Map<string, THREE.BufferGeometry>();

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-20-no-hair",
+    date: "2026-10-20",
+    icon: "🧢",
+    title: "Hair is taking a break",
+    body: "Hairstyles are off for now. Hats, glasses and outfits still work on every character, the Person too.",
+  },
+  {
     id: "2026-10-20-pet-coats",
     date: "2026-10-20",
     icon: "🐾",

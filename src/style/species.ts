@@ -137,7 +137,10 @@ export const SKIN_TONE_LIST: { hex: string; name: string }[] = [
 export const SKIN_TONES = SKIN_TONE_LIST.map((t) => t.hex);
 // Build Queue 213 (her words 2026-10-15: "remove wigs for all characters except "Person""): only the Person wears
 // hair; any other character drops it, even from an old saved look.
-export const canWearHair = (species: SpeciesId) => species === 'person';
+// Build Queue 282 (her words 2026-10-20: "no hair for now"): hair is switched off for everyone, the Person included.
+// Saved hair stays in old looks but is not drawn or offered; set this back to true to bring every hairstyle back.
+export const HAIR_ON = false;
+export const canWearHair = (species: SpeciesId) => HAIR_ON && species === 'person';
 export function withoutForeignHair(look: StyleLook): StyleLook {
   if (!look.outfit.hair || canWearHair(look.species)) return look;
   const { hair: _hair, ...outfit } = look.outfit;

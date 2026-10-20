@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
-import { BODY } from './species';
+import { BODY, HAIR_ON } from './species';
 import { backZ } from './body';
 import { SPACE_ALIEN, type CostumeDef } from './costumes';
 import { beanieGeo, bucketGeo, capGeo, crownGeo, glassesFit, perch, topHatGeo } from './hats';
@@ -599,7 +599,8 @@ export const HAIR_MOCKUP: WardrobeItem[] = [
 ];
 
 // Released with the Person (Build Queue 217): hair is part of the catalog, free, and only offered while the Person is picked.
-WARDROBE.push(...HAIR_MOCKUP);
+// Off while HAIR_ON is false (Build Queue 282, "no hair for now"): no hair tab, nothing drawn, even from old looks.
+if (HAIR_ON) WARDROBE.push(...HAIR_MOCKUP);
 export const itemById = (id: string) => WARDROBE.find((i) => i.id === id);
 
 export const SLOT_ORDER: WardrobeSlot[] = ['hair', 'hat', 'face', 'gear', 'top', 'bottom', 'shoes', 'back', 'costume'];
