@@ -9874,3 +9874,12 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .symq-icon-blank { display: block; height: clamp(40px, 9vh, 84px); }
 .symq-icon img { width: clamp(40px, 9vh, 84px); height: clamp(40px, 9vh, 84px); }
 .symq-dice { min-width: 44px; min-height: 40px; }
+
+/* Build Queue 293: a wider board and numbered drop zones in equal columns (never overlapping). */
+.pk2-main { grid-template-columns: minmax(150px, 0.8fr) minmax(0, 3fr) minmax(150px, 0.8fr); max-width: 1400px; }
+.pk2-zones { position: relative; height: auto; display: grid; gap: 4px; padding: 8px 0 6px; }
+.pk2-zone { position: relative; top: 0; left: auto; transform: none; width: auto !important; height: clamp(46px, 7vh, 64px); min-width: 0; border-radius: 10px; border: 3px solid #6C626E; background: #93BFE6; color: #6C626E;
+  font: 400 clamp(1.2rem, 2.6vw, 2rem) 'Inclusive Sans', 'Nunito', sans-serif; display: grid; place-items: center; padding: 0; touch-action: manipulation; }
+.pk2-zone:disabled { opacity: .55; }
+.pk2-zone.on, .pk2-zone:not(:disabled):hover, .pk2-zone:not(:disabled):focus-visible { background: #FDC3EC; border-style: solid; }
+.pk2-ball.aim { top: 28px; z-index: 3; }

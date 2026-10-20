@@ -242,16 +242,18 @@ export default function PlinkoDrop() {
 
         <section className="pk2-board" aria-label="Plinko board" style={{ ['--pk-cur' as string]: '#5a3d9e' }}>
           {cur && phase !== 'over' && <div className="pk2-turn">{cur.name}'s turn</div>}
-          <div className="pk2-zones">
+          {/* Build Queue 293 (her words: "widen main plinko board. never overlap drop zones. show numbers for drop zones"):
+              numbered drop zones in equal columns across the top, like Plink-oh, so they can never overlap. */}
+          <div className="pk2-zones" style={{ gridTemplateColumns: `repeat(${zones}, 1fr)` }}>
             {Array.from({ length: zones }, (_, z) => (
-              <button key={z} type="button" className="pk2-zone" style={{ left: `${xPct(z)}%`, width: `${Math.min(72, 560 / zones)}px` }} disabled={phase !== 'aim' || cur?.kind === 'npc'}
+              <button key={z} type="button" className={`pk2-zone${phase === 'aim' && aimX === z ? ' on' : ''}`} disabled={phase !== 'aim' || cur?.kind === 'npc'}
                 onPointerEnter={() => setAimX(z)} onFocus={() => setAimX(z)} onClick={() => dropAt(z, secondRef.current)} aria-label={`Drop zone ${z + 1}`}>
-                <span>▼</span>
+                <span>{z + 1}</span>
               </button>
             ))}
             {phase === 'aim' && <b className={`pk2-ball aim${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
           </div>
-          <div className="pk2-field" style={{ aspectRatio: `${zones} / ${zones * 1.1}` }}>
+          <div className="pk2-field" style={{ aspectRatio: `${zones} / ${Math.max(4.6, zones * 0.82)}` }}>
             {pegs.map((p, i) => <i key={i} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%` }} />)}
             {ball && <b className={`pk2-ball${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(active.includes('big') ? 63 : 45) / zones}%`, background: ballBg(cur) }} />}
           </div>
