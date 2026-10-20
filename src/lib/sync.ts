@@ -435,8 +435,7 @@ const rowToMarketplaceItem = (r: Row): MarketplaceItem => ({
   voicePitch: r.voice_pitch ?? undefined,
   voiceRate: r.voice_rate ?? undefined,
   voiceHints: r.voice_hints ?? undefined,
-  // No model_path column yet: Home items seeded from the interior pack
-  // (src/lib/marketplaceExtras.ts) carry their model in their id.
+  // Home items seeded from the interior pack (src/lib/marketplaceExtras.ts) also carry their model in their id.
   modelPath: r.model_path ?? (r.kind === 'furniture' && String(r.id).startsWith('home-') ? `/world/models/interior/${String(r.id).slice(5)}.glb` : undefined),
 });
 const marketplaceItemToRow = (it: MarketplaceItem): Row => ({
@@ -457,6 +456,7 @@ const marketplaceItemToRow = (it: MarketplaceItem): Row => ({
   voice_pitch: it.voicePitch ?? null,
   voice_rate: it.voiceRate ?? null,
   voice_hints: it.voiceHints ?? null,
+  model_path: it.modelPath ?? null,
 });
 
 // Direct teacher request: every assignment should default to popping a
@@ -802,16 +802,9 @@ const activityToRow = (a: ActivityLibraryItem): Row => ({
   custom_steps: a.customSteps ?? null,
   reference_link_url: a.referenceLinkUrl ?? null,
   reference_link_label: a.referenceLinkLabel ?? null,
-  // student_title/student_description are temporarily NOT sent — the live
-  // Supabase activity_library table is missing these columns even though
-  // schema.sql already defines them (alter table ... add column if not
-  // exists, right below this comment's own line), which was breaking
-  // every activity save with "Could not find the 'student_description'
-  // column" (production outage, 2026-10-01). Re-add both fields here the
-  // moment the migration is confirmed run against the live database —
-  // until then, a student's own title/description typed in on this
-  // screen is silently not persisted, same "degrade gracefully, don't
-  // break the whole save" choice as every other optional field here.
+  // Back since Build Queue 276 (she ran the SQL 2026-10-20); see upsertOptional.
+  student_title: a.studentTitle ?? null,
+  student_description: a.studentDescription ?? null,
   is_daily: a.isDaily ?? false,
   created_at: a.createdAt,
   reward_cents: a.rewardCents ?? null,
@@ -1229,6 +1222,20 @@ const upsert = (table: string, row: Row) => {
   void pushWithRetry(() => supabase.from(table).upsert(row), `upsert ${table}`);
 };
 
+// Build Queue 276: columns added by RUN_THIS_IN_SQL_EDITOR.sql. She ran it (2026-10-20), so they are sent again;
+// if a database is still missing one, the save goes through without it instead of failing.
+const upsertOptional = (table: string, row: Row, optional: string[]) => {
+  if (!isSupabaseConfigured) return;
+  void pushWithRetry(async () => {
+    const res = await supabase.from(table).upsert(row);
+    if (res.error && optional.some((c) => res.error!.message?.includes(c))) {
+      const slim = { ...row }; optional.forEach((c) => delete slim[c]);
+      return supabase.from(table).upsert(slim);
+    }
+    return res;
+  }, `upsert ${table}`);
+};
+
 const remove = (table: string, match: Row) => {
   if (!isSupabaseConfigured) return;
   void pushWithRetry(() => supabase.from(table).delete().match(match), `delete ${table}`);
@@ -1400,7 +1407,7 @@ export const pushNote = (n: Note) => upsert('notes', noteToRow(n));
 export const deleteNoteRemote = (id: string) => remove('notes', { id });
 export const pushSavedWhiteboard = (w: SavedWhiteboard) => upsert('saved_whiteboards', savedWhiteboardToRow(w));
 export const deleteSavedWhiteboardRemote = (id: string) => remove('saved_whiteboards', { id });
-export const pushMarketplaceItem = (it: MarketplaceItem) => upsert('marketplace_items', marketplaceItemToRow(it));
+export const pushMarketplaceItem = (it: MarketplaceItem) => upsertOptional('marketplace_items', marketplaceItemToRow(it), ['model_path']);
 export const deleteMarketplaceItemRemote = (id: string) => remove('marketplace_items', { id });
 
 export const pushAppSettings = (reward: AssignmentCompletionReward | null) =>
@@ -1533,7 +1540,7 @@ export async function acceptFarmerMarketOfferRemote(id: string, acceptedByStuden
 export const pushRotationMode = (studentId: string, subject: Subject, mode: RotationMode) =>
   upsert('rotation_modes', { student_id: studentId, subject, mode });
 
-export const pushActivity = (a: ActivityLibraryItem) => upsert('activity_library', activityToRow(a));
+export const pushActivity = (a: ActivityLibraryItem) => upsertOptional('activity_library', activityToRow(a), ['student_title', 'student_description']);
 export const deleteActivityRemote = (id: string) => remove('activity_library', { id });
 
 export const pushTemplate = (t: PlanTemplate) =>
