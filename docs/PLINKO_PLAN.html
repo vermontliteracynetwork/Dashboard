@@ -47,24 +47,25 @@ table{border-collapse:collapse;width:100%;font-size:10pt;margin:6px 0}td,th{bord
 <tr><td><b>3 (246)</b></td><td>Custom themes: the Canva theme kit, a Theme manager for the teacher (upload pieces, preview, release), theme picker on the menu, Winter and Dogs starter themes. Student-made themes come through the teacher (she uploads them after looking).</td></tr>
 <tr><td>Later</td><td>Online multiplayer across iPads with a 4-digit join code (like the Gus live share), seasonal themes that switch on by date, a theme contest.</td></tr></table>
 
-<h2>Custom themes: how it works</h2>
-<h3>Making a theme (teacher or students)</h3>
-<ul><li>Download the <b>Plinko theme kit</b> (Question Sets → Plinko themes, or <i>docs/plinko-theme-kit</i>): one PDF with a page per piece at its exact size, plus the same pages as PNGs.</li>
-<li>In Canva: Create a design → Import file → pick the PDF. Each page opens at its right size with guide boxes. Design over the guides, then delete the guide layer.</li>
-<li>Download each page as PNG (tick "Transparent background" for the peg, balls and title; that box needs Canva Pro or Canva for Education, which is free for teachers).</li></ul>
-<table><tr><th>Piece</th><th>Size (pixels)</th><th>Needed?</th></tr>
-<tr><td>Background</td><td>2048 x 1536</td><td>Yes</td></tr>
-<tr><td>Board (backboard behind the pegs)</td><td>900 x 1250</td><td>Yes</td></tr>
-<tr><td>Peg</td><td>128 x 128, transparent</td><td>Optional (plain pegs in the theme color)</td></tr>
-<tr><td>Balls 1 to 4 (one per player)</td><td>256 x 256, transparent</td><td>Ball 1 yes, others optional</td></tr>
-<tr><td>Bucket</td><td>300 x 220</td><td>Optional (colored buckets)</td></tr>
-<tr><td>Title</td><td>1600 x 480, transparent</td><td>Optional (the name in big letters)</td></tr>
-<tr><td>Side panel</td><td>600 x 900</td><td>Optional</td></tr>
-<tr><td>Cover (theme picker card)</td><td>1600 x 900</td><td>Yes</td></tr></table>
-<h3>Adding it to the game (teacher)</h3>
-<ul><li>Teacher → Plinko themes → New theme: name it, drop in the PNGs (or one zip of them), pick 4 bucket colors and a text color, see a live preview of the real board.</li>
-<li>Save keeps it as a draft; <b>Release</b> puts it on every student's theme picker. Hide or delete any time. Themes are saved in the app (no SQL for her to run).</li></ul>
-
+<h2>Custom themes: how it works (updated with her rules, Build Queue 251)</h2>
+<h3>What a theme can change</h3>
+<table><tr><th>Part</th><th>What you design</th></tr>
+<tr><td>Background</td><td>Fully your design.</td></tr>
+<tr><td>Board and pegs</td><td>Colors only: border, background, pegs. Peg placement never changes.</td></tr>
+<tr><td>Balls</td><td>Your ball designs: at least 5 (one per player), up to 10.</td></tr>
+<tr><td>Buckets</td><td>Colors only (up to 8).</td></tr>
+<tr><td>Title</td><td>The game name in your lettering, text only (see-through background).</td></tr>
+<tr><td>Side panels</td><td>Background design, plus the theme font.</td></tr>
+<tr><td>Power-ups</td><td>Button and background colors.</td></tr>
+<tr><td>Palette and font</td><td>Primary (main color), secondary (buttons), text color; the font is picked from a list when uploading.</td></tr></table>
+<h3>Making it (one Canva project)</h3>
+<ul><li>Download <b>plinko-theme-template.pdf</b>: 5 pages, all the same size, so it opens in Canva as one project (Create a design, Import file).</li>
+<li>Everything solid black is off limits; white words on the black say what each white space is for. There are no words inside the white spaces.</li>
+<li>Page 1 Background (white box). Page 2 Balls (10 white circles, 1 to 5 needed). Page 3 Title (letters only; the white around them turns see-through). Page 4 Side panel. Page 5 Colors (fill each white square with one solid color: primary, secondary, text, board border, board background, pegs, power-up background, power-up buttons, buckets 1 to 8).</li>
+<li>Download the whole project as one PDF (Share, Download, PDF Standard) and upload that one file.</li></ul>
+<h3>Adding it (teacher)</h3>
+<ul><li>Teacher → Plinko themes → Upload: pick the PDF, name the theme, choose the font. The app cuts out every piece, reads the colors and shows the real board as a preview.</li>
+<li>New themes start hidden; only <b>Approve</b> puts a theme on the students' theme picker. Until then everyone plays the plain default look. Students who design a theme hand her the PDF.</li></ul>
 <h2>Claudia's checks (high support learners)</h2>
 <ul><li>Read first: questions come before any aiming, so a student cannot win by tapping fast. The 3-second pause applies.</li>
 <li>Aiming is easy for every motor level: tap a drop zone (no precise drag needed), Big Ball helps.</li>
