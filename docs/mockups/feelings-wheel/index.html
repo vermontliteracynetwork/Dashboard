@@ -1,0 +1,637 @@
+<title>Feelings Wheel Check-In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap">
+<style>
+/* Layout: a full-screen check-in. Greeting top left, half a prize wheel rising from the bottom edge, the chosen feeling opens as a card above it. */
+:root{
+  --bg:#efecfb; --ink:#241c3d; --muted:#5d5579; --card:#fffdf8; --line:#d9d3ef;
+  --accent:#5a3d9e; --accent-ink:#ffffff; --tag:#ffe14d; --tag-ink:#231b33; --soft:#f3effc;
+  --font:'Nunito', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  color-scheme: light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);margin:0;overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#app{position:fixed;inset:0;overflow:hidden}
+#wheel{position:absolute;inset:0;touch-action:none;transition:filter .3s}
+#wheel.dim{filter:saturate(.8) brightness(.9)}
+#top{position:absolute;top:0;left:0;right:0;z-index:5;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding-top:max(14px, env(safe-area-inset-top, 0px));padding-bottom:8px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));pointer-events:none}
+#top > *{pointer-events:auto}
+.greet{min-width:0}
+.hi{margin:0;font-weight:800;color:var(--muted);font-size:18px}
+h1{margin:2px 0 4px;font-size:clamp(22px,3.2vw,32px);font-weight:900;line-height:1.15;text-wrap:balance}
+#hint{margin:0;color:var(--muted);font-size:clamp(15px,1.9vw,19px);font-weight:700;max-width:46ch}
+#trail{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+#trail:empty{display:none}
+.chip{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:999px;font-weight:800;font-size:16px;color:#fff}
+.sep{color:var(--muted);font-weight:900}
+.tools{display:flex;gap:8px;flex:none}
+.ibtn{min-width:52px;min-height:52px;border-radius:16px;border:2px solid var(--line);background:var(--card);color:var(--ink);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;font:800 16px var(--font);cursor:pointer}
+.ibtn svg{width:24px;height:24px}
+.ibtn:focus-visible,.btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.ibtn.off{opacity:.55}
+#back{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+#morph{position:absolute;z-index:7;pointer-events:none;background-size:cover;background-position:50% 50%;background-repeat:no-repeat;display:none;
+  box-shadow:0 0 0 rgba(0,0,0,0)}
+#morph.anim{transition:left .55s cubic-bezier(.2,.8,.2,1),top .55s cubic-bezier(.2,.8,.2,1),width .55s cubic-bezier(.2,.8,.2,1),height .55s cubic-bezier(.2,.8,.2,1),clip-path .55s cubic-bezier(.2,.8,.2,1),opacity .25s}
+
+#card{position:absolute;z-index:6;background:var(--card);border-radius:26px;box-shadow:0 22px 60px rgba(36,28,61,.28);padding:18px;
+  display:flex;gap:20px;opacity:0;transform:translateY(10px);transition:opacity .25s,transform .25s;pointer-events:none;visibility:hidden}
+#card.show{opacity:1;transform:none;pointer-events:auto;visibility:visible}
+#card.measure{visibility:hidden}
+#card.col{flex-direction:column;align-items:stretch}
+#card .slot{flex:none;border-radius:20px;background:var(--soft)}
+#card .info{display:flex;flex-direction:column;gap:12px;min-width:0;justify-content:center}
+#card h2{margin:0;font-size:clamp(30px,4vw,42px);font-weight:900;line-height:1.05;display:flex;align-items:center;gap:10px}
+#card .path{margin:0;color:var(--muted);font-weight:800;font-size:16px}
+.btn{min-height:60px;border-radius:18px;font:900 20px var(--font);border:none;padding:0 20px;cursor:pointer;position:relative;overflow:hidden;text-align:left}
+.primary{background:var(--accent);color:var(--accent-ink)}
+.more{background:var(--soft);color:var(--ink);border:2px solid var(--line);display:flex;align-items:center;gap:12px}
+.more canvas{width:58px;height:58px;flex:none}
+.more .fill{position:absolute;left:0;bottom:0;height:7px;width:0;background:var(--accent)}
+.more.counting .fill{animation:fill 5s linear forwards}
+@keyframes fill{to{width:100%}}
+.note{margin:0;color:var(--muted);font-weight:700;font-size:15px}
+.say{width:48px;height:48px;min-width:48px;border-radius:14px;border:2px solid var(--line);background:var(--soft);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink)}
+.say svg{width:24px;height:24px}
+
+#done{position:absolute;inset:0;z-index:9;background:rgba(36,28,61,.4);display:grid;place-items:center;
+  padding-block:16px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.done-card{background:var(--card);border-radius:28px;padding:24px;width:min(520px,100%);text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;box-shadow:0 22px 60px rgba(36,28,61,.3)}
+.done-card img{width:min(280px,60vw);aspect-ratio:1;object-fit:cover;border-radius:22px;max-width:100%}
+.done-card h2{margin:0;font-size:clamp(26px,4vw,36px);font-weight:900}
+.done-card p{margin:0;font-weight:700;color:var(--muted);font-size:18px;max-width:36ch}
+.row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:100%}
+.row .btn{text-align:center;flex:1 1 180px}
+.ghost{background:var(--soft);color:var(--ink);border:2px solid var(--line)}
+
+#about{position:absolute;z-index:8;top:calc(max(14px, env(safe-area-inset-top, 0px)) + 62px);right:max(16px, env(safe-area-inset-right, 0px));
+  width:min(380px,calc(100% - 32px));background:var(--card);border-radius:20px;padding:16px 18px;box-shadow:0 16px 40px rgba(36,28,61,.22);font-size:15px;font-weight:700;color:var(--ink)}
+#about h3{margin:0 0 6px;font-size:17px;font-weight:900}
+#about ul{margin:0;padding-left:18px;display:grid;gap:5px}
+@media (prefers-reduced-motion: reduce){#morph.anim,#card,#wheel{transition:none}.more.counting .fill{animation-duration:5s}}
+@media (max-width:640px){.hi{font-size:16px}#mockBtn span{display:none}}
+</style>
+
+<div id="app">
+  <canvas id="wheel" aria-label="Feelings wheel. Drag to spin."></canvas>
+
+  <header id="top">
+    <div class="greet">
+      <p class="hi">Hi Azalea!</p>
+      <h1 id="q">How are you feeling right now?</h1>
+      <p id="hint">Spin the wheel. Stop on the feeling that fits you.</p>
+      <nav id="trail" aria-label="Your path"></nav>
+    </div>
+    <div class="tools">
+      <button class="ibtn" id="listenQ" aria-label="Listen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg></button>
+      <button class="ibtn" id="soundBtn" aria-label="Sound on" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg></button>
+      <button class="ibtn" id="mockBtn" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor"/></svg><span>Mock-up</span></button>
+    </div>
+  </header>
+
+  <div id="about" hidden>
+    <h3>Mock-up: how it works</h3>
+    <ul>
+      <li>Drag or flick the wheel to spin it. Each section ticks past the pointer.</li>
+      <li>Tap a slice to turn it to the pointer.</li>
+      <li>When the wheel stops, the picture opens out of its slice into a card.</li>
+      <li>Stay on a feeling for 5 seconds (or tap See more) and its next ring opens.</li>
+      <li>The center bands show the path. Tap one, or Back, to step back in.</li>
+      <li>Pictures are the ones you sent. Words read aloud with the device voice here; the app uses the human voice.</li>
+    </ul>
+  </div>
+
+  <div id="morph"></div>
+
+  <section id="card" aria-live="polite">
+    <div class="slot"></div>
+    <div class="info">
+      <h2><span id="cWord">Happy</span><button class="say" id="cSay" aria-label="Listen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button></h2>
+      <p class="path" id="cPath"></p>
+      <button class="btn primary" id="pick">This is how I feel</button>
+      <button class="btn more" id="more"><canvas id="mini" width="116" height="116"></canvas><span>See more like this</span><span class="fill"></span></button>
+      <p class="note" id="cNote">Or spin the wheel to look at other feelings.</p>
+    </div>
+  </section>
+
+  <div id="done" hidden>
+    <div class="done-card" role="dialog" aria-labelledby="dWord">
+      <img id="dImg" alt="">
+      <h2 id="dWord">You feel happy.</h2>
+      <p id="dPath"></p>
+      <p>Thank you for checking in with yourself. Every feeling is okay.</p>
+      <div class="row">
+        <button class="btn ghost" id="change">Change my answer</button>
+        <button class="btn primary" id="again">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const TAU = Math.PI * 2;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// Her feelings wheel, with her 8 words removed (Build Queue 233).
+const TREE = [
+  ['Fearful', [['Scared',['Helpless','Frightened']],['Anxious',['Distraught','Worried']],['Insecure',['Inadequate','Inferior']],['Weak',['Worthless','Insignificant']],['Rejected',['Excluded']],['Threatened',['Nervous','Exposed']]]],
+  ['Angry', [['Let down',['Betrayed','Resentful']],['Humiliated',['Disrespected','Ridiculed']],['Bitter',['Violated']],['Mad',['Furious','Jealous']],['Aggressive',['Provoked','Hostile']],['Frustrated',['Infuriated','Annoyed']],['Distant',['Withdrawn','Numb']],['Critical',['Skeptical','Dismissive']]]],
+  ['Disgusted', [['Disapproving',['Judgmental','Appalled']],['Awful',['Nauseated','Detestable']],['Repelled',['Horrified','Hesitant','Revolted']]]],
+  ['Sad', [['Hurt',['Embarrassed','Disappointed']],['Depressed',['Empty','Unimportant']],['Guilty',['Ashamed','Remorseful']],['Despair',['Grief','Powerless']],['Vulnerable',['Fragile']],['Lonely',['Isolated','Abandoned']]]],
+  ['Happy', [['Playful',['Cheeky']],['Content',['Free','Joyful']],['Interested',['Curious','Inquisitive']],['Proud',['Successful','Confident']],['Accepted',['Respected','Valued']],['Powerful',['Courageous','Creative']],['Peaceful',['Loving','Thankful']],['Trusting',['Sensitive']],['Optimistic',['Hopeful','Inspired']]]],
+  ['Surprised', [['Excited',['Eager','Energetic']],['Amazed',['Astonished','Awe']],['Confused',['Perplexed']],['Startled',['Shocked','Dismayed']]]],
+  ['Bad', [['Bored',['Indifferent','Apathetic']],['Busy',['Pressured','Rushed']],['Stressed',['Overwhelmed','Out of control']],['Tired',['Sleepy','Unfocused']]]],
+];
+const FAM = {
+  Fearful:   ['#f2a531','#f6bd5e','#d98c1c'],
+  Angry:     ['#e5533c','#ee7a64','#c93f29'],
+  Disgusted: ['#1fa39a','#4bbdb4','#15847c'],
+  Sad:       ['#3f7fd4','#6a9fe2','#2d67b6'],
+  Happy:     ['#8a63d2','#a184e6','#6f4cba'],
+  Surprised: ['#e0609b','#ea86b5','#c84a83'],
+  Bad:       ['#3fa86b','#62bf87','#2e8f57'],
+};
+const ROOTS = TREE.map(([core, mids]) => {
+  const n = { w: core, fam: core, kids: [], p: null };
+  n.kids = mids.map(([m, outs]) => {
+    const mn = { w: m, fam: core, kids: [], p: n };
+    mn.kids = outs.map((o) => ({ w: o, fam: core, kids: [], p: mn }));
+    return mn;
+  });
+  return n;
+});
+
+// Pictures (hers), one per feeling.
+const slug = (w) => w.toLowerCase().replace(/ /g, '-');
+const imgs = {};
+function img(w) {
+  if (!imgs[w]) { const i = new Image(); i.src = 'img/' + slug(w) + '.jpg'; i.onload = () => { dirty = true; }; imgs[w] = i; }
+  return imgs[w];
+}
+ROOTS.forEach((r) => { img(r.w); r.kids.forEach((k) => img(k.w)); });
+
+// ---------- sound ----------
+let soundOn = true, ac = null, lastTick = 0;
+function audio() {
+  if (!ac) { try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { ac = null; } }
+  if (ac && ac.state === 'suspended') ac.resume();
+  return ac;
+}
+function tone(freq, dur, type, vol, when = 0, slideTo) {
+  const a = soundOn && audio(); if (!a) return;
+  const t = a.currentTime + when, o = a.createOscillator(), gn = a.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t + dur);
+  gn.gain.setValueAtTime(0.0001, t); gn.gain.exponentialRampToValueAtTime(vol, t + 0.004);
+  gn.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(gn).connect(a.destination); o.start(t); o.stop(t + dur + 0.02);
+}
+function tick() {
+  const now = performance.now(); if (now - lastTick < 28) return; lastTick = now;
+  tone(2300, 0.03, 'triangle', 0.16); tone(700, 0.025, 'square', 0.035);
+}
+const pop = () => tone(520, 0.14, 'sine', 0.16, 0, 900);
+const rise = () => { tone(523, 0.12, 'sine', 0.14); tone(659, 0.12, 'sine', 0.14, 0.09); tone(784, 0.18, 'sine', 0.14, 0.18); };
+const chime = () => { tone(784, 0.9, 'sine', 0.12); tone(1175, 1.1, 'sine', 0.07, 0.05); };
+
+let voice = null;
+function pickVoice() {
+  const vs = (window.speechSynthesis && speechSynthesis.getVoices()) || [];
+  const en = vs.filter((v) => /^en/i.test(v.lang) && !/albert|bad news|bahh|bells|boing|bubbles|cellos|deranged|good news|hysterical|jester|organ|superstar|trinoids|whisper|wobble|zarvox|junior|ralph|fred|kathy|princess|grandma|grandpa|rocko|shelley|eddy|flo|reed|sandy/i.test(v.name));
+  for (const re of [/natural|neural|premium|enhanced/i, /samantha|ava|allison|susan|serena|karen|moira|tessa|daniel|aria|jenny|guy/i, /google us english|google uk english female/i]) {
+    const v = en.find((x) => re.test(x.name)); if (v) return v;
+  }
+  return en[0] || null;
+}
+if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => { voice = pickVoice(); };
+function speak(text) {
+  if (!soundOn || !window.speechSynthesis) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    voice = voice || pickVoice(); if (voice) u.voice = voice;
+    u.rate = 0.95; speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+// ---------- geometry ----------
+const cv = $('#wheel'), g = cv.getContext('2d');
+let W, H, dpr, cx, cy, R, rimW, h0, bw;
+function layout() {
+  dpr = Math.min(2, window.devicePixelRatio || 1);
+  const box = $('#app').getBoundingClientRect(); W = box.width; H = box.height;
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  const hb = $('#top').getBoundingClientRect().bottom - box.top;
+  R = Math.max(130, Math.min(W * 0.455, (H - hb - 18) / 1.2, H * 0.7));
+  rimW = R * 0.075; cx = W / 2; cy = H; h0 = R * 0.14; bw = R * 0.095;
+  dirty = true;
+}
+
+// ---------- state ----------
+let path = [];             // chosen nodes, root first
+let slices = [];           // nodes on the current ring (repeated so the wheel has 4+ sections)
+let rot = 0, vel = 0, phase = 'idle', target = 0, flap = 0, dirty = true;
+let tickIdx = 0, trans = null, cardNode = null, cardTimer = null, countTimer = null, savedRot = [];
+
+function ringFor(parent) {
+  let arr = parent ? parent.kids.slice() : ROOTS.slice();
+  if (parent && arr.length === 1) arr = [parent, ...arr];
+  const base = arr.slice();
+  while (arr.length < 4) arr = arr.concat(base);
+  return arr;
+}
+const step = () => TAU / slices.length;
+const r0 = () => h0 + path.length * bw;
+function sliceColor(i, n, node) {
+  const f = FAM[node.fam];
+  if (!path.length) return f[0];
+  return n % 2 ? f[i % 3] : f[i % 2];
+}
+const norm = (a) => { a = (a + Math.PI) % TAU; if (a < 0) a += TAU; return a - Math.PI; };
+const atPointer = () => { const n = slices.length; return ((Math.round(-rot / step()) % n) + n) % n; };
+
+// ---------- drawing ----------
+function wedge(c, rIn, rOut, a0, a1) {
+  g.beginPath();
+  g.arc(c.x, c.y, rOut, a0 - Math.PI / 2, a1 - Math.PI / 2);
+  g.arc(c.x, c.y, Math.max(0, rIn), a1 - Math.PI / 2, a0 - Math.PI / 2, true);
+  g.closePath();
+}
+function roundRect(x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+
+function drawRing(sl, rotA, rIn, rOut, alpha) {
+  if (rOut <= rIn + 2) return;
+  const n = sl.length, st = TAU / n, a = st / 2, C = { x: cx, y: cy };
+  g.save(); g.globalAlpha = alpha;
+  for (let i = 0; i < n; i++) {
+    const th = rotA + i * st;
+    if (Math.cos(th) < -Math.cos(a) - 0.05) continue; // fully below the screen edge
+    const node = sl[i];
+    wedge(C, rIn, rOut, th - a, th + a);
+    g.fillStyle = sliceColor(i, n, node); g.fill();
+    g.save(); g.clip();
+    g.translate(cx, cy); g.rotate(th);
+    const im = img(node.w);
+    const Bw = 2 * rOut * Math.sin(a), Bh = rOut - rIn * Math.cos(a), D = Math.max(Bw, Bh);
+    if (im.complete && im.naturalWidth) g.drawImage(im, -Bw / 2 + (Bw - D) / 2, -rOut + (Bh - D) / 2, D, D);
+    // soft family wash at the rim so the tags read
+    const grd = g.createLinearGradient(0, -rOut, 0, -rOut + Bh * 0.35);
+    grd.addColorStop(0, hexA(sliceColor(i, n, node), 0.55)); grd.addColorStop(1, hexA(sliceColor(i, n, node), 0));
+    g.fillStyle = grd; g.fillRect(-Bw, -rOut - 2, Bw * 2, Bh * 0.4);
+    g.restore();
+  }
+  // separators
+  g.strokeStyle = '#ffffff'; g.lineWidth = Math.max(2.5, R * 0.009); g.lineCap = 'round';
+  for (let i = 0; i < n; i++) {
+    const th = rotA + i * st - a - Math.PI / 2;
+    g.beginPath(); g.moveTo(cx + Math.cos(th) * rIn, cy + Math.sin(th) * rIn); g.lineTo(cx + Math.cos(th) * rOut, cy + Math.sin(th) * rOut); g.stroke();
+  }
+  // tags
+  const fs = Math.max(13, Math.min(23, R * 0.045)), th2 = fs * 1.75;
+  g.font = `900 ${fs}px Nunito, ui-rounded, system-ui, sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle';
+  for (let i = 0; i < n; i++) {
+    const th = rotA + i * st;
+    if (Math.cos(th) < -0.2) continue;
+    const tr = rOut - th2 * 0.95;
+    g.save(); g.translate(cx, cy); g.rotate(th); g.translate(0, -tr);
+    const word = sl[i].w, tw = Math.min(g.measureText(word).width + fs * 1.3, 2 * tr * Math.sin(a) * 0.92);
+    g.shadowColor = 'rgba(30,20,50,.35)'; g.shadowBlur = 6; g.shadowOffsetY = 2;
+    roundRect(-tw / 2, -th2 / 2, tw, th2, th2 * 0.32); g.fillStyle = '#ffe14d'; g.fill();
+    g.shadowColor = 'transparent';
+    g.fillStyle = '#231b33'; g.fillText(word, 0, 1, tw - fs * 0.6);
+    g.restore();
+  }
+  g.restore();
+}
+function hexA(hex, a) { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; }
+
+function star(x, y, r) {
+  g.beginPath();
+  for (let k = 0; k < 10; k++) { const rr = k % 2 ? r * 0.45 : r, an = -Math.PI / 2 + k * Math.PI / 5; g.lineTo(x + Math.cos(an) * rr, y + Math.sin(an) * rr); }
+  g.closePath();
+}
+
+function draw(t) {
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, W, H);
+  // rim
+  g.save(); g.shadowColor = 'rgba(60,40,110,.28)'; g.shadowBlur = 30; g.shadowOffsetY = -4;
+  g.beginPath(); g.arc(cx, cy, R + rimW, 0, TAU); g.fillStyle = '#f6be2c'; g.fill(); g.restore();
+  g.beginPath(); g.arc(cx, cy, R + rimW, 0, TAU); g.lineWidth = 3; g.strokeStyle = '#d99a12'; g.stroke();
+  g.beginPath(); g.arc(cx, cy, R + 1.5, 0, TAU); g.lineWidth = 4; g.strokeStyle = '#c7880c'; g.stroke();
+  // bulbs
+  const spinning = Math.abs(vel) > 0.4 || phase === 'drag';
+  const nb = 30, chase = Math.floor(t * 14);
+  for (let j = 0; j < nb; j++) {
+    const an = j * TAU / nb - Math.PI / 2, x = cx + Math.cos(an) * (R + rimW / 2), y = cy + Math.sin(an) * (R + rimW / 2);
+    if (y > H + 10) continue;
+    const lit = spinning ? (j + chase) % 3 === 0 : 0.5 + 0.5 * Math.sin(t * 2 + j * 0.6) > 0.25;
+    g.beginPath(); g.arc(x, y, rimW * 0.27, 0, TAU);
+    g.fillStyle = lit ? '#fffbe6' : '#f0cf6a';
+    if (lit) { g.shadowColor = '#fff3b0'; g.shadowBlur = 10; }
+    g.fill(); g.shadowBlur = 0;
+  }
+
+  // rings
+  const rIn = r0();
+  if (trans) {
+    const p = trans.p, e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+    if (trans.dir > 0) {
+      drawRing(trans.old, trans.oldRot, trans.oldR0, R + (rIn - R) * e, 1 - e * 0.6);
+      drawRing(slices, rot, rIn, rIn + (R - rIn) * e, Math.min(1, e * 1.4));
+    } else {
+      drawRing(slices, rot, rIn, trans.oldR0 + (R - trans.oldR0) * e, 1);
+    }
+  } else {
+    drawRing(slices, rot, rIn, R, 1);
+  }
+
+  // pegs at section edges
+  if (!trans) {
+    const st = step(), pr = Math.max(4, R * 0.017);
+    for (let i = 0; i < slices.length; i++) {
+      const an = rot + i * st - st / 2 - Math.PI / 2, rr = R - pr * 1.8;
+      const x = cx + Math.cos(an) * rr, y = cy + Math.sin(an) * rr;
+      if (y > H + 10) continue;
+      g.beginPath(); g.arc(x, y, pr, 0, TAU); g.fillStyle = '#ffffff'; g.shadowColor = 'rgba(0,0,0,.3)'; g.shadowBlur = 4; g.fill(); g.shadowBlur = 0;
+    }
+  }
+
+  // path bands (the decision tree so far)
+  for (let k = path.length - 1; k >= 0; k--) {
+    const a = h0 + k * bw, b = a + bw, f = FAM[path[k].fam];
+    g.beginPath(); g.arc(cx, cy, b, 0, TAU); g.fillStyle = k === 0 ? f[2] : f[0]; g.fill();
+    g.lineWidth = 3; g.strokeStyle = '#ffffff'; g.stroke();
+    g.font = `900 ${Math.max(12, bw * 0.4)}px Nunito, ui-rounded, system-ui, sans-serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#ffffff';
+    g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 4;
+    g.fillText(path[k].w, cx, cy - (a + b) / 2, 2 * b * 0.9); g.shadowBlur = 0;
+  }
+  // hub
+  g.beginPath(); g.arc(cx, cy, h0, 0, TAU); g.fillStyle = '#f6be2c'; g.fill();
+  g.lineWidth = 4; g.strokeStyle = '#d99a12'; g.stroke();
+  g.beginPath(); g.arc(cx, cy, h0 * 0.72, 0, TAU); g.fillStyle = '#ffe58a'; g.fill();
+  star(cx, cy - h0 * 0.36, h0 * 0.3); g.fillStyle = '#f6be2c'; g.fill();
+
+  // pointer (flaps at each tick)
+  const top = cy - R - rimW - R * 0.06, tipY = cy - R + R * 0.07, pw = R * 0.07;
+  g.save(); g.translate(cx, top + pw * 0.6); g.rotate(flap); g.translate(-cx, -(top + pw * 0.6));
+  g.beginPath(); g.moveTo(cx - pw, top + pw * 0.6); g.quadraticCurveTo(cx, top - pw * 0.7, cx + pw, top + pw * 0.6); g.lineTo(cx, tipY); g.closePath();
+  g.fillStyle = '#2a2147'; g.shadowColor = 'rgba(0,0,0,.35)'; g.shadowBlur = 8; g.shadowOffsetY = 3; g.fill();
+  g.shadowColor = 'transparent'; g.lineWidth = 3; g.strokeStyle = '#ffffff'; g.stroke();
+  g.beginPath(); g.arc(cx, top + pw * 0.55, pw * 0.32, 0, TAU); g.fillStyle = '#f6be2c'; g.fill();
+  g.restore();
+}
+
+// ---------- motion ----------
+let last = 0;
+function frame(ts) {
+  const t = ts / 1000, dt = Math.min(0.05, last ? t - last : 0.016); last = t;
+  if (trans) {
+    trans.p = Math.min(1, trans.p + dt / (reduce ? 0.01 : 0.7));
+    if (trans.p >= 1) { trans = null; afterTrans(); }
+  }
+  if (phase === 'spin') {
+    rot += vel * dt; vel *= Math.exp(-1.25 * dt);
+    if (Math.abs(vel) < 0.55) { phase = 'snap'; target = -Math.round(-rot / step()) * step(); }
+  } else if (phase === 'snap') {
+    const d = target - rot; rot += d * (1 - Math.exp(-9 * dt));
+    if (Math.abs(d) < 0.0015) { rot = target; phase = 'idle'; vel = 0; openCard(atPointer()); }
+  }
+  const ti = Math.round(-rot / step());
+  if (ti !== tickIdx && !trans) { tick(); flap = Math.max(-0.5, Math.min(0.5, flap + (ti > tickIdx ? 0.38 : -0.38))); tickIdx = ti; }
+  flap *= Math.exp(-11 * dt);
+  draw(t);
+  requestAnimationFrame(frame);
+}
+
+// ---------- input ----------
+let drag = null;
+const angAt = (x, y) => Math.atan2(x - cx, -(y - cy));
+cv.addEventListener('pointerdown', (e) => {
+  if (trans || !$('#done').hidden) return;
+  audio();
+  const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top, dist = Math.hypot(x - cx, y - cy);
+  if (dist > R + rimW + 10) { if (cardNode) closeCard(); return; }
+  if (dist < r0() && path.length) { // tapped the path bands: step back to that ring
+    const k = Math.max(0, Math.floor((dist - h0) / bw));
+    closeCard(true); backTo(dist < h0 ? 0 : k); return;
+  }
+  if (cardNode) closeCard(true);
+  cv.setPointerCapture(e.pointerId);
+  drag = { a: angAt(x, y), x0: x, y0: y, t0: performance.now(), moved: 0, hist: [{ t: performance.now(), r: rot }] };
+  phase = 'drag'; vel = 0;
+});
+cv.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+  const a = angAt(x, y), d = norm(a - drag.a);
+  rot += d; drag.a = a; drag.moved += Math.abs(d) * Math.hypot(x - cx, y - cy);
+  const now = performance.now(); drag.hist.push({ t: now, r: rot });
+  while (drag.hist.length > 2 && now - drag.hist[0].t > 110) drag.hist.shift();
+});
+function endDrag(e) {
+  if (!drag) return;
+  const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+  const h = drag.hist, now = performance.now();
+  if (drag.moved < 10 && now - drag.t0 < 450) { // a tap: bring that slice to the pointer
+    const st = step(), i = Math.round(norm(angAt(x, y) - rot) / st);
+    target = rot + norm(-(rot + i * st)); phase = 'snap';
+  } else {
+    const f = h[0], l = h[h.length - 1], dt = (l.t - f.t) / 1000;
+    vel = dt > 0.008 && now - l.t < 90 ? (l.r - f.r) / dt : 0;
+    vel = Math.max(-22, Math.min(22, vel));
+    phase = 'spin';
+  }
+  drag = null;
+}
+cv.addEventListener('pointerup', endDrag);
+cv.addEventListener('pointercancel', endDrag);
+
+// ---------- card: the slice opens into a square ----------
+const morph = $('#morph'), card = $('#card');
+let morphHide = null;
+function wedgePoly(a, rIn, rOut, Bw, Bh) {
+  const pts = [], N = 12;
+  for (let j = 0; j < N; j++) { const th = -a + (2 * a * j) / (N - 1); pts.push([(rOut * Math.sin(th) + Bw / 2) / Bw * 100, (rOut - rOut * Math.cos(th)) / Bh * 100]); }
+  for (let j = 0; j < N; j++) { const th = a - (2 * a * j) / (N - 1); pts.push([(rIn * Math.sin(th) + Bw / 2) / Bw * 100, (rOut - rIn * Math.cos(th)) / Bh * 100]); }
+  return 'polygon(' + pts.map((p) => p[0].toFixed(2) + '% ' + p[1].toFixed(2) + '%').join(',') + ')';
+}
+function squarePoly() {
+  const pts = [], N = 12;
+  for (let j = 0; j < N; j++) pts.push([j / (N - 1) * 100, 0]);
+  for (let j = 0; j < N; j++) pts.push([100 - j / (N - 1) * 100, 100]);
+  return 'polygon(' + pts.map((p) => p[0].toFixed(2) + '% ' + p[1].toFixed(2) + '%').join(',') + ')';
+}
+function sliceBox() {
+  const a = step() / 2, rIn = r0(), Bw = 2 * R * Math.sin(a), Bh = R - rIn * Math.cos(a);
+  return { left: cx - Bw / 2, top: cy - R, width: Bw, height: Bh, clip: wedgePoly(a, rIn, R, Bw, Bh) };
+}
+function placeMorph(b) { morph.style.left = b.left + 'px'; morph.style.top = b.top + 'px'; morph.style.width = b.width + 'px'; morph.style.height = b.height + 'px'; }
+
+function layoutCard() {
+  const hb = $('#top').getBoundingClientRect().bottom - $('#app').getBoundingClientRect().top;
+  const wide = W > H * 1.05 && W > 700;
+  card.classList.toggle('col', !wide);
+  const slot = card.querySelector('.slot');
+  let s;
+  if (wide) { s = Math.max(170, Math.min(330, H - hb - 70)); card.style.width = (s + 36 + 20 + Math.min(330, W * 0.34)) + 'px'; }
+  else { s = Math.max(150, Math.min(320, W - 72, (H - hb) * 0.38)); card.style.width = Math.min(W - 32, Math.max(s + 36, 340)) + 'px'; }
+  slot.style.width = slot.style.height = s + 'px';
+  if (!wide) slot.style.alignSelf = 'center';
+  const cw = card.getBoundingClientRect().width;
+  card.style.left = Math.max(16, (W - cw) / 2) + 'px';
+  card.style.top = (hb + 10) + 'px';
+}
+
+function openCard(i) {
+  const node = slices[i]; if (!node) return;
+  cardNode = node; pop();
+  const kidsHere = node.kids.length > 0 && node !== path[path.length - 1];
+  $('#cWord').textContent = node.w;
+  $('#cPath').textContent = path.length ? path.map((p) => p.w).concat(node.w).join('  >  ') : 'One of the seven main feelings';
+  const more = $('#more');
+  more.hidden = !kidsHere;
+  $('#cNote').textContent = kidsHere ? 'Stay here and more feelings open in 5 seconds.' : 'Or spin the wheel to look at other feelings.';
+  if (kidsHere) drawMini(node.kids);
+  card.classList.add('measure'); card.classList.remove('show');
+  layoutCard();
+  const slot = card.querySelector('.slot').getBoundingClientRect(), app = $('#app').getBoundingClientRect();
+  const T = { left: slot.left - app.left, top: slot.top - app.top, width: slot.width, height: slot.height };
+  const B = sliceBox();
+  clearTimeout(morphHide);
+  morph.classList.remove('anim');
+  morph.style.backgroundImage = `url("img/${slug(node.w)}.jpg")`;
+  morph.style.backgroundColor = sliceColor(i, slices.length, node);
+  morph.style.opacity = '1'; morph.style.display = 'block'; morph.style.borderRadius = '0';
+  placeMorph(B); morph.style.clipPath = B.clip;
+  void morph.offsetWidth;
+  morph.classList.add('anim');
+  placeMorph(T); morph.style.clipPath = squarePoly();
+  cv.classList.add('dim');
+  setTimeout(() => {
+    if (cardNode !== node) return;
+    card.classList.remove('measure'); card.classList.add('show');
+    speak(node.w);
+  }, reduce ? 0 : 380);
+  setTimeout(() => { if (cardNode === node) { morph.classList.remove('anim'); morph.style.clipPath = 'inset(0 round 20px)'; } }, reduce ? 10 : 600);
+  if (kidsHere) startCountdown(node);
+}
+function startCountdown(node) {
+  const more = $('#more'); more.classList.remove('counting'); void more.offsetWidth; more.classList.add('counting');
+  let left = 5;
+  clearInterval(countTimer);
+  countTimer = setInterval(() => {
+    left--; if (cardNode !== node) return clearInterval(countTimer);
+    if (left > 0) $('#cNote').textContent = `Stay here and more feelings open in ${left} second${left === 1 ? '' : 's'}.`;
+  }, 1000);
+  clearTimeout(cardTimer);
+  cardTimer = setTimeout(() => { if (cardNode === node) deepen(node); }, 5000);
+}
+function closeCard(fast) {
+  clearTimeout(cardTimer); clearInterval(countTimer); $('#more').classList.remove('counting');
+  if (!cardNode) return;
+  cardNode = null; card.classList.remove('show'); cv.classList.remove('dim');
+  if (fast || reduce) { morph.style.display = 'none'; return; }
+  const B = sliceBox();
+  morph.classList.remove('anim'); morph.style.clipPath = squarePoly(); void morph.offsetWidth;
+  morph.classList.add('anim'); placeMorph(B); morph.style.clipPath = B.clip;
+  morphHide = setTimeout(() => { morph.style.display = 'none'; }, 560);
+}
+function drawMini(kids) {
+  const c = $('#mini'), m = c.getContext('2d'), s = c.width, r = s / 2 - 3, n = Math.max(kids.length, 1), st = TAU / n;
+  m.clearRect(0, 0, s, s);
+  kids.forEach((k, i) => {
+    const a0 = -Math.PI / 2 + i * st - st / 2, a1 = a0 + st;
+    m.save(); m.beginPath(); m.moveTo(s / 2, s / 2); m.arc(s / 2, s / 2, r, a0, a1); m.closePath();
+    m.fillStyle = FAM[k.fam][i % 2]; m.fill(); m.clip();
+    const im = img(k.w), mid = (a0 + a1) / 2, px = s / 2 + Math.cos(mid) * r * 0.5, py = s / 2 + Math.sin(mid) * r * 0.5, D = r * 1.25;
+    if (im.complete && im.naturalWidth) m.drawImage(im, px - D / 2, py - D / 2, D, D);
+    m.restore();
+    m.beginPath(); m.moveTo(s / 2, s / 2); m.arc(s / 2, s / 2, r, a0, a1); m.closePath(); m.lineWidth = 3; m.strokeStyle = '#fff'; m.stroke();
+  });
+  kids.forEach((k) => { const im = img(k.w); if (!im.complete) im.addEventListener('load', () => drawMini(kids), { once: true }); });
+}
+
+// ---------- moving through the tree ----------
+function setHint() {
+  const leaf = path.length && path[path.length - 1];
+  $('#hint').textContent = leaf
+    ? `You picked ${leaf.w}. Spin to find the feeling that fits you best.`
+    : 'Spin the wheel. Stop on the feeling that fits you.';
+  const tr = $('#trail'); tr.innerHTML = '';
+  if (path.length) {
+    const back = document.createElement('button'); back.className = 'ibtn'; back.id = 'back';
+    back.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>Back';
+    back.onclick = () => { closeCard(true); backTo(path.length - 1); };
+    tr.appendChild(back);
+    path.forEach((p, k) => {
+      if (k) { const s = document.createElement('span'); s.className = 'sep'; s.textContent = '>'; tr.appendChild(s); }
+      const c = document.createElement('span'); c.className = 'chip'; c.textContent = p.w; c.style.background = FAM[p.fam][k ? 0 : 2]; tr.appendChild(c);
+    });
+  }
+}
+function deepen(node) {
+  closeCard(true);
+  savedRot.push(rot);
+  trans = { dir: 1, p: 0, old: slices, oldRot: rot, oldR0: r0() };
+  path.push(node); slices = ringFor(node);
+  rot = step() / 2; tickIdx = Math.round(-rot / step()); phase = 'idle'; vel = 0;
+  slices.forEach((s) => img(s.w)); s2();
+  rise(); setHint();
+  layout();
+}
+function s2() { slices.forEach((s) => s.kids.forEach((k) => img(k.w))); }
+function backTo(k) {
+  if (k >= path.length) return;
+  const oldR0 = r0();
+  while (path.length > k) { path.pop(); rot = savedRot.pop() ?? 0; }
+  slices = ringFor(path[path.length - 1] || null);
+  trans = { dir: -1, p: 0, oldR0 };
+  tickIdx = Math.round(-rot / step()); phase = 'idle'; vel = 0;
+  setHint(); layout();
+}
+function afterTrans() { if (path.length) speak($('#hint').textContent); }
+
+// ---------- buttons ----------
+$('#more').onclick = () => { if (cardNode) deepen(cardNode); };
+$('#pick').onclick = () => {
+  const node = cardNode; if (!node) return;
+  closeCard(true); chime();
+  const trail = path.concat(node === path[path.length - 1] ? [] : [node]);
+  $('#dImg').src = `img/${slug(node.w)}.jpg`; $('#dImg').alt = node.w;
+  $('#dWord').textContent = `You feel ${node.w.toLowerCase()}.`;
+  $('#dPath').textContent = trail.map((p) => p.w).join('  >  ');
+  $('#done').hidden = false;
+  speak(`You feel ${node.w.toLowerCase()}. Thank you for checking in with yourself. Every feeling is okay.`);
+};
+$('#change').onclick = () => { $('#done').hidden = true; };
+$('#again').onclick = () => { $('#done').hidden = true; path = []; savedRot = []; slices = ringFor(null); rot = step() / 2; tickIdx = Math.round(-rot / step()); setHint(); layout(); };
+$('#cSay').onclick = () => { if (cardNode) speak(cardNode.w); };
+$('#listenQ').onclick = () => { audio(); speak($('#q').textContent + ' ' + $('#hint').textContent); };
+$('#soundBtn').onclick = (e) => {
+  soundOn = !soundOn; const b = e.currentTarget;
+  b.classList.toggle('off', !soundOn); b.setAttribute('aria-pressed', String(soundOn)); b.setAttribute('aria-label', soundOn ? 'Sound on' : 'Sound off');
+  if (!soundOn && window.speechSynthesis) speechSynthesis.cancel();
+};
+$('#mockBtn').onclick = (e) => { const a = $('#about'); a.hidden = !a.hidden; e.currentTarget.setAttribute('aria-expanded', String(!a.hidden)); };
+$('#about').onclick = () => { $('#about').hidden = true; };
+
+addEventListener('resize', () => { closeCard(true); layout(); });
+
+// start between two sections, so the first move is a spin
+slices = ringFor(null); rot = step() / 2; tickIdx = Math.round(-rot / step());
+setHint(); layout();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { dirty = true; });
+requestAnimationFrame(frame);
+})();
+</script>
