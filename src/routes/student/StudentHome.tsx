@@ -450,6 +450,12 @@ export default function StudentHome() {
           <span className="widget-label">Music</span>
         </button>
         {showMusic && <MusicPicker onClose={() => setShowMusic(false)} />}
+        {/* Feelings (Build Queue 355, her words: "add a feelings wheel check in as computer app"): the same spinning
+            Feelings Wheel check-in as login, any time, saved to the same SEL check-in report. */}
+        <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/feelings')} aria-label="Feelings">
+          <span className="widget-icon">🎡</span>
+          <span className="widget-label">Feelings</span>
+        </button>
         {/* Diary (Build Queue 290, her words: "remove this from login. instead add a \"Diary\" in computer"). */}
         <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/diary')} aria-label="Diary">
           <span className="widget-icon">📔</span>

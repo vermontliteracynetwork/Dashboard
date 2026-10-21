@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-feelings-app",
+    date: "2026-10-21",
+    icon: "🎡",
+    title: "Feelings on the computer",
+    body: "Tap Feelings on the computer any time to spin the feelings wheel and check in.",
+  },
+  {
+    id: "2026-10-21-plinko-pegs",
+    date: "2026-10-21",
+    icon: "🎯",
+    title: "Plinko pegs pop",
+    body: "In Plinko every peg your ball hits pops away and gives you XP. The ball and pegs are smaller, and each peg plays its sound as the ball bounces down. Answer your question first, then pick your power-up, then drop.",
+  },
+  {
     id: "2026-10-21-music-app",
     date: "2026-10-21",
     icon: "🎵",

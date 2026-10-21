@@ -19,7 +19,8 @@ import { speak } from './ReadAloud';
 // straight to Town Square). Picking Green ends the check-in immediately,
 // no further screen (spec §1); any other zone opens the support menu, and
 // leaving it schedules the automatic Neighbor re-check (spec §3-4).
-export default function SelZoneCheckIn({ studentId, studentName, onDone }: { studentId: string; studentName: string; onDone: () => void }) {
+// Build Queue 355: also the Feelings app on the student computer, which passes onClose so the wheel has a Close button.
+export default function SelZoneCheckIn({ studentId, studentName, onDone, onClose }: { studentId: string; studentName: string; onDone: () => void; onClose?: () => void }) {
   const student = useStore((s) => s.students.find((st) => st.id === studentId));
   const recordSelCheckIn = useStore((s) => s.recordSelCheckIn);
   const styleLooks = useStore((s) => s.styleLooks);
@@ -62,7 +63,7 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone }: { stu
     onDone();
   };
 
-  if (!feeling) return <FeelingsWheel studentName={studentName} onChoose={chooseFeeling} />;
+  if (!feeling) return <FeelingsWheel studentName={studentName} onChoose={chooseFeeling} onClose={onClose} />;
 
   if (!picked) {
     return (
