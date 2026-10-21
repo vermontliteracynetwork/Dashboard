@@ -73,9 +73,11 @@ export default function PlinkoDrop() {
   const [ball, setBall] = useState<{ x: number; y: number } | null>(null);
   const [aimX, setAimX] = useState(2);
   const [active, setActive] = useState<Power[]>([]);
-  const [win, setWin] = useState<number | null>(null);
+  const [win, setWin] = useState<number[] | null>(null);
+  const [ball2, setBall2] = useState<{ x: number; y: number } | null>(null);
+  const [popping, setPopping] = useState(false);
   const [pegCol, setPegCol] = useState<(number | null)[]>([]);
-  const [hit, setHit] = useState<number | null>(null);
+  const [hit, setHit] = useState<number[]>([]);
   const [musicOn, setMusicOn] = useState(musicPref);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -143,7 +145,7 @@ export default function PlinkoDrop() {
   const beginTurn = (t: number, list: Player[]) => {
     const p = list[t % list.length];
     turnRef.current = t; activeRef.current = [];
-    setActive([]); setBall(null); setWin(null); setQDone(0);
+    setActive([]); setBall(null); setBall2(null); setWin(null); setQDone(0);
     if (t % list.length === 0) newBoard(Math.floor(t / list.length));
     // Build Queue 252: a big "Ava's turn!" in the middle before the question, so whose turn it is is never a guess.
     setPhase('intro'); setNote(null);
@@ -227,47 +229,62 @@ export default function PlinkoDrop() {
     const bonus = defs.filter((d) => d.kind === 'bonus').reduce((m, d) => m + (d.n ?? 20), 0);
     if (!second) extraLeft.current = defs.filter((d) => d.kind === 'extra').reduce((m, d) => m + (d.n ?? 1), 0);
     setPhase('drop'); setNote(null);
-    const big = has('big'), magnet = has('magnet');
+    const big = has('big'), magnet = has('magnet'), heavy = has('heavy'), bouncy = has('bouncy'), grow = has('grow'), pop = has('pop'), twin = has('twin');
     const target = bk.indexOf(Math.max(...bk));
     const tx = ((target + 0.5) * z) / nb - 0.5;
-    let x = zone;
-    const path: { x: number; y: number }[] = [{ x, y: -0.7 }];
-    const hits: (number | null)[] = [null];
-    for (let r = 0; r < ROWS; r++) {
-      // The peg the ball bounces off on this row: the one in the row nearest to where the ball is.
-      let best: number | null = null;
-      field.forEach((pg, k) => { if (pg.r === r && (best === null || Math.abs(pg.x - x) < Math.abs(field[best].x - x))) best = k; });
-      hits.push(best);
-      if (!(big && Math.random() < 0.5)) {
-        let dir = Math.random() < 0.5 ? -0.5 : 0.5;
-        if (magnet && Math.random() < 0.75) dir = tx > x ? 0.5 : -0.5;
-        x = Math.max(0, Math.min(z - 1, x + dir));
+    // One ball's fall (Build Queue 307, the four rules of each power-up in plinkoThemes.ts). On every row a heavy (3 in 4),
+    // big (1 in 2) or growing ball (more each row) may fall straight; otherwise it bounces half a space, a full space
+    // when extra bouncy, and a magnet picks the side 3 in 4 times. At the bottom Pop picks the best of the three
+    // closest buckets, then Lucky skips the lowest one.
+    const fall = () => {
+      let x = zone;
+      const path: { x: number; y: number }[] = [{ x, y: -0.7 }];
+      const hits: (number | null)[] = [null];
+      for (let r = 0; r < ROWS; r++) {
+        // The peg the ball bounces off on this row: the one in the row nearest to where the ball is.
+        let best: number | null = null;
+        field.forEach((pg, k) => { if (pg.r === r && (best === null || Math.abs(pg.x - x) < Math.abs(field[best].x - x))) best = k; });
+        hits.push(best);
+        const straight = (heavy && Math.random() < 0.75) || (big && Math.random() < 0.5) || (grow && Math.random() < (r / (ROWS - 1)) * 0.5);
+        if (!straight) {
+          const step = bouncy ? 1 : 0.5;
+          let dir = Math.random() < 0.5 ? -step : step;
+          if (magnet && Math.random() < 0.75) dir = tx > x ? step : -step;
+          x = Math.max(0, Math.min(z - 1, x + dir));
+        }
+        path.push({ x, y: r + 0.5 });
       }
-      path.push({ x, y: r + 0.5 });
-    }
-    let b = Math.min(nb - 1, Math.max(0, Math.floor(((x + 0.5) / z) * nb)));
-    // Lucky: never the lowest bucket; the ball rolls to the better neighbor.
-    if (has('lucky') && bk[b] === Math.min(...bk.slice(0, nb))) { const l = b > 0 ? bk[b - 1] : -1, r = b < nb - 1 ? bk[b + 1] : -1; b = r >= l ? b + 1 : b - 1; }
-    path.push({ x: ((b + 0.5) * z) / nb - 0.5, y: ROWS + 0.35 });
-    const STEP = 190;
-    path.forEach((pt, i) => timers.current.push(window.setTimeout(() => {
-      setBall(pt);
-      if (i > 0 && i < path.length - 1) {
-        const k = hits[i], c = k !== null && k !== undefined ? pc[k] : null;
-        setHit(k ?? null);
-        if (c !== null && c !== undefined && theme?.pegColors?.[c]) playPegSound(theme.pegColors[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick();
-      } else setHit(null);
-    }, i * STEP)));
+      let b = Math.min(nb - 1, Math.max(0, Math.floor(((x + 0.5) / z) * nb)));
+      if (pop) b = [b - 1, b + 1].filter((i) => i >= 0 && i < nb).reduce((m, i) => (bk[i] > bk[m] ? i : m), b);
+      // Lucky: never the lowest bucket; the ball rolls to the better neighbor.
+      if (has('lucky') && bk[b] === Math.min(...bk.slice(0, nb))) { const l = b > 0 ? bk[b - 1] : -1, r = b < nb - 1 ? bk[b + 1] : -1; b = r >= l ? b + 1 : b - 1; }
+      path.push({ x: ((b + 0.5) * z) / nb - 0.5, y: ROWS + 0.35 });
+      return { path, hits, b };
+    };
+    const falls = twin ? [fall(), fall()] : [fall()];
+    const n = falls[0].path.length;
+    const STEP = heavy ? 150 : 190;
+    const soundOf = (k: number | null | undefined) => { const c = k !== null && k !== undefined ? pc[k] : null; if (c !== null && c !== undefined && theme?.pegColors?.[c]) playPegSound(theme.pegColors[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick(); };
+    for (let i = 0; i < n; i++) timers.current.push(window.setTimeout(() => {
+      setBall(falls[0].path[i]); setBall2(falls[1]?.path[i] ?? null);
+      const popNow = pop && i === n - 2;
+      setPopping(popNow); if (popNow) sfx.pop();
+      if (i > 0 && i < n - 1) {
+        const ks = falls.map((f) => f.hits[i]).filter((k): k is number => k !== null && k !== undefined);
+        setHit(ks); [...new Set(ks)].forEach(soundOf);
+      } else setHit([]);
+    }, i * STEP));
     timers.current.push(window.setTimeout(() => {
-      const pts = bk[b] * mult + bonus;
-      const won = st[b] ?? 0;
+      const pts = falls.reduce((m, f) => m + bk[f.b] * mult + bonus, 0);
+      const won = falls.reduce((m, f) => m + (st[f.b] ?? 0), 0);
       setPlayersBoth((ps) => ps.map((x2) => (x2.key === p.key ? { ...x2, xp: x2.xp + pts, owed: Math.min(3, x2.owed + won) } : x2)));
-      setWin(b); sfx.coin(); if (pts >= 40 || won) playCheer();
-      const msg = `${p.name}: +${pts} XP${won ? ` and ${won} power-up${won === 1 ? '' : 's'} for next turn` : ''}`;
+      setWin(falls.map((f) => f.b)); sfx.coin(); if (pts >= 40 || won) playCheer();
+      const msg = `${p.name}: +${pts} XP${won ? ` and ${Math.min(3, won)} power-up${won === 1 ? '' : 's'} for next turn` : ''}`;
       setNote(msg); if (won) speak(msg, student.ttsSettings);
-    }, path.length * STEP + 80));
+    }, n * STEP + 80));
+    const path = falls[0].path;
     timers.current.push(window.setTimeout(() => {
-      if (extraLeft.current > 0) { extraLeft.current -= 1; if (!extraLeft.current) { activeRef.current = act.filter((id) => !defs.some((d) => d.id === id && d.kind === 'extra')); setActive(activeRef.current); } setBall(null); setWin(null); setNote('Extra drop!'); secondRef.current = true; setPhase('aim'); return; }
+      if (extraLeft.current > 0) { extraLeft.current -= 1; if (!extraLeft.current) { activeRef.current = act.filter((id) => !defs.some((d) => d.id === id && d.kind === 'extra')); setActive(activeRef.current); } setBall(null); setBall2(null); setWin(null); setNote('Extra drop!'); secondRef.current = true; setPhase('aim'); return; }
       secondRef.current = false;
       endTurn(t, playersRef.current);
     }, path.length * STEP + 1500));
@@ -282,7 +299,14 @@ export default function PlinkoDrop() {
   const pDef = (pw: Power) => plist.find((x) => x.id === pw);
   const pName = (pw: Power) => pDef(pw)?.name ?? pw;
   const pIcon = (pw: Power) => { const d = pDef(pw); return d?.img ? <img src={d.img} alt="" className="pk2-power-img" /> : DEFAULT_ICON[pw] ?? null; };
-  const bigOn = active.some((id) => pDef(id)?.kind === 'big');
+  const kindOn = (k: string) => active.some((id) => pDef(id)?.kind === k);
+  const bigOn = kindOn('big');
+  // How a ball looks with this turn's power-ups: big, growing (bigger every row), heavy (darker, falls fast), extra bouncy (squashes).
+  const ballEl = (bl: { x: number; y: number }, key: string) => {
+    const grow = kindOn('grow') ? 0.75 + 0.75 * Math.max(0, Math.min(1, bl.y / ROWS)) : 1;
+    const cls = `pk2-ball${bigOn ? ' big' : ''}${kindOn('heavy') ? ' heavy' : ''}${kindOn('bouncy') ? ' bouncy' : ''}${popping ? ' popping' : ''}`;
+    return <b key={key} className={cls} style={{ left: `${xPct(bl.x)}%`, top: `${yPct(bl.y)}%`, width: `${((bigOn ? 63 : 45) * grow) / zones}%`, background: ballBg(cur) }} />;
+  };
 
   return (
     <div className={`pk2${theme ? ' themed' : ''}`} style={themeVars(theme) as React.CSSProperties}>
@@ -325,11 +349,12 @@ export default function PlinkoDrop() {
             {phase === 'aim' && <b className={`pk2-ball aim${bigOn ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-field" style={{ aspectRatio: `${zones} / ${Math.max(4.6, zones * 0.82)}` }}>
-            {pegs.map((p, i) => { const c = pegCol[i]; const col = c !== null && c !== undefined ? theme?.pegColors?.[c]?.color : undefined; return <i key={i} className={hit === i ? 'hit' : undefined} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%`, ...(col ? { background: col } : {}) }} />; })}
-            {ball && <b className={`pk2-ball${bigOn ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(bigOn ? 63 : 45) / zones}%`, background: ballBg(cur) }} />}
+            {pegs.map((p, i) => { const c = pegCol[i]; const col = c !== null && c !== undefined ? theme?.pegColors?.[c]?.color : undefined; return <i key={i} className={hit.includes(i) ? 'hit' : undefined} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%`, ...(col ? { background: col } : {}) }} />; })}
+            {ball && ballEl(ball, 'b1')}
+            {ball2 && ballEl(ball2, 'b2')}
           </div>
           <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, 1fr)` }}>
-            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{Array.from({ length: stars[i] }, (_, k) => <img key={k} src={`${UI}star_full.png`} alt="" />)}</em> : null}{v}</span>)}
+            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win?.includes(i) ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{Array.from({ length: stars[i] }, (_, k) => <img key={k} src={`${UI}star_full.png`} alt="" />)}</em> : null}{v}</span>)}
           </div>
           <p className="pk2-msg" aria-live="polite">{note ?? ''}</p>
         </section>

@@ -153,6 +153,11 @@
 <p>A theme can add its own power-ups. Each new one picks an action from this list (with its amount), or, if none fits, describes something new.</p>
 <table>
   <tr><th style="width:24%">Action</th><th style="width:14%">Amount</th><th>The four rules in short</th></tr>
+  <tr><td>Growing ball</td><td>none</td><td>Starts small and grows every row. The bigger it gets, the more it falls straight (up to 1 in 2 on the bottom rows). Every drop this turn.</td></tr>
+  <tr><td>Pop</td><td>none</td><td>Just above the buckets it pops in a burst and lands in the best of the three closest buckets. Every drop this turn.</td></tr>
+  <tr><td>Heavy ball</td><td>none</td><td>Falls fast and mostly straight: 3 in 4 chance to fall straight on each row. Every drop this turn.</td></tr>
+  <tr><td>Extra bouncy ball</td><td>none</td><td>Bounces a full space on every peg instead of half a space. Anything can happen. Every drop this turn.</td></tr>
+  <tr><td>Two balls</td><td>none</td><td>Two balls drop from the same zone, each on its own path. Both score, and every other power-up works on both.</td></tr>
   <tr><td>Multiply the points</td><td>times 2 to 5</td><td>Bucket counts that many times. Every drop this turn. Ball moves as usual. Multipliers multiply each other.</td></tr>
   <tr><td>Bonus XP</td><td>5 to 100 XP</td><td>Adds XP wherever it lands. Every drop this turn. Ball moves as usual. Added after multipliers; bonuses add together.</td></tr>
   <tr><td>Big ball</td><td>none</td><td>1 in 2 chance to fall straight on each row. Every drop this turn.</td></tr>
@@ -165,10 +170,11 @@
 <h2>When power-ups mix</h2>
 <p>When several power-ups are on, the game always uses them in this order:</p>
 <ol class="steps">
-  <li><div><b>The fall.</b> On each row, Big Ball checks first (fall straight?). If the ball bounces, Magnet decides the direction.</div></li>
-  <li><div><b>The landing.</b> Never the lowest bucket moves the ball over, if it is on.</div></li>
+  <li><div><b>The fall.</b> On each row, Heavy, Big and Growing balls check first (fall straight?). If the ball bounces, it moves half a space (a full space if Extra bouncy), and Magnet decides the direction.</div></li>
+  <li><div><b>The landing.</b> Pop picks the best of the three closest buckets. Then Never the lowest bucket moves the ball over, if it is on.</div></li>
   <li><div><b>Multipliers.</b> All of them multiply the bucket.</div></li>
   <li><div><b>Bonuses.</b> All of them are added last.</div></li>
+  <li><div><b>Two balls.</b> Each ball does steps 1 to 4 on its own, and both scores add up.</div></li>
   <li><div><b>Extra drops.</b> Start again from step 1, with the same power-ups on.</div></li>
 </ol>
 

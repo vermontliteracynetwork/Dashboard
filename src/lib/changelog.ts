@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-new-powers",
+    date: "2026-10-21",
+    icon: "⚡",
+    title: "New kinds of Plinko power-ups",
+    body: "Plinko themes can now have a growing ball, a ball that pops before the buckets, a heavy ball, an extra bouncy ball and two balls at once.",
+  },
+  {
     id: "2026-10-21-plinko-more-rounds",
     date: "2026-10-21",
     icon: "🔁",

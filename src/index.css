@@ -10084,3 +10084,13 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ptb-ib:disabled { opacity: .6; }
 .ptb-ib:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 2px; }
 .ptb-clear { align-self: center; font-size: .8rem; }
+/* Build Queue 307: how each preset power-up ball looks while it falls. */
+.pk2-ball { transition: left .19s linear, top .19s ease-in, width .19s ease-out; }
+.pk2-ball.heavy { filter: brightness(.78) saturate(1.15); box-shadow: 0 5px 0 rgba(0,0,0,.3), 0 3px 8px rgba(0,0,0,.35); transition: left .15s linear, top .15s ease-in, width .15s; }
+.pk2-ball.bouncy { animation: pk2Squash .19s ease-in-out infinite alternate; }
+@keyframes pk2Squash { from { transform: translate(-50%, -50%) scale(1.18, .82); } to { transform: translate(-50%, -62%) scale(.9, 1.1); } }
+.pk2-ball.popping { animation: pk2Pop .19s ease-out forwards; }
+.pk2-ball.popping::after { content: ''; position: absolute; inset: -60%; border-radius: 50%; border: 4px dashed #ffd23f; animation: pk2Burst .3s ease-out forwards; }
+@keyframes pk2Pop { 0% { transform: translate(-50%, -50%) scale(1); } 60% { transform: translate(-50%, -50%) scale(1.6); } 100% { transform: translate(-50%, -50%) scale(1.1); } }
+@keyframes pk2Burst { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.5) rotate(40deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pk2-ball.bouncy, .pk2-ball.popping, .pk2-ball.popping::after { animation: none; } }

@@ -58,7 +58,7 @@ export interface FontChoice { preset?: string; url?: string; name?: string }
 
 // Power-ups: the four defaults plus any a theme adds. Each one does one built-in action; "none" means the teacher
 // described something new in its logic notes, so it is saved but not offered to students until that action is built.
-export type PowerKind = 'multiply' | 'bonus' | 'big' | 'magnet' | 'extra' | 'lucky' | 'none';
+export type PowerKind = 'multiply' | 'bonus' | 'big' | 'magnet' | 'extra' | 'lucky' | 'grow' | 'pop' | 'heavy' | 'bouncy' | 'twin' | 'none';
 export interface PowerDef { id: string; name: string; does: string; img?: string; kind: PowerKind; n?: number; logic?: string; spec?: PowerSpec }
 // Build Queue 301: every power-up is defined by the same four rules, so what it does is never a guess.
 // For a built action they are fixed (below); for "Something new" the teacher or student writes all four.
@@ -71,18 +71,29 @@ export const SPEC_FIELDS: { key: keyof PowerSpec; label: string; ask: string }[]
 ];
 const ALWAYS = 'Picked at the start of your turn with a star from your last drop. On for this turn only, then it is gone.';
 export const POWER_KINDS: { kind: PowerKind; label: string; nLabel?: string; nMin?: number; nMax?: number; nDef?: number; spec?: Required<PowerSpec> }[] = [
-  { kind: 'multiply', label: 'Multiply the points of the drop', nLabel: 'Times', nMin: 2, nMax: 5, nDef: 2,
-    spec: { does: 'The bucket the ball lands in counts that many times (Double: a 30 bucket gives 60).', when: `${ALWAYS} It counts for every drop this turn, the extra drops too.`, moves: 'No change. The ball bounces the usual way.', mixes: 'Two multipliers multiply each other (times 2 and times 3 make times 6). Bonus XP is added after multiplying.' } },
-  { kind: 'bonus', label: 'Add bonus XP to the drop', nLabel: 'XP', nMin: 5, nMax: 100, nDef: 20,
-    spec: { does: 'Adds that much XP on top of the bucket, wherever the ball lands.', when: `${ALWAYS} It adds to every drop this turn.`, moves: 'No change. The ball bounces the usual way.', mixes: 'Added after multipliers, so it is never doubled. Two bonuses add together.' } },
+  // Build Queue 307: her preset list first (double points, magnet, growing, pop, heavy, extra bouncy, two balls).
+  { kind: 'multiply', label: 'Double points (multiply the points)', nLabel: 'Times', nMin: 2, nMax: 5, nDef: 2,
+    spec: { does: 'The bucket the ball lands in counts that many times (Double: a 30 bucket gives 60).', when: `${ALWAYS} It counts for every drop this turn, the extra drops too.`, moves: 'No change. The ball bounces the usual way.', mixes: 'Two multipliers multiply each other (times 2 and times 3 make times 6). Bonus XP is added after multiplying. With Two balls, both balls are multiplied.' } },
+  { kind: 'magnet', label: 'Magnet (pull to the top bucket)',
+    spec: { does: 'Pulls the ball toward the bucket worth the most points.', when: `${ALWAYS} It pulls on every drop this turn.`, moves: 'On each row there is a 3 in 4 chance the ball bounces toward the top bucket instead of a random way. It can still miss.', mixes: 'Heavy, Big and Growing balls fall straight on some rows; the magnet pulls on the rows where they bounce. With Extra bouncy, it pulls a full space.' } },
+  { kind: 'grow', label: 'Growing ball (gets bigger as it falls)',
+    spec: { does: 'The ball starts small and grows bigger with every row it falls.', when: `${ALWAYS} It grows on every drop this turn.`, moves: 'The bigger it gets, the more it falls straight: no chance on the top row, up to about a 1 in 2 chance on the bottom rows.', mixes: 'With Magnet, the magnet pulls on the rows where it still bounces. With Heavy, it falls straight even more.' } },
+  { kind: 'pop', label: 'Pop (bursts before the buckets)',
+    spec: { does: 'Just above the buckets the ball pops in a burst, then lands in the best of the three closest buckets.', when: `${ALWAYS} It pops on every drop this turn.`, moves: 'The ball falls the usual way. Only the very end changes: the pop picks the best bucket under it or beside it.', mixes: 'Works with every other power-up. The bucket it picks is then multiplied and gets bonuses. With Two balls, both balls pop.' } },
+  { kind: 'heavy', label: 'Heavy ball (falls mostly straight down)',
+    spec: { does: 'The ball is heavy and falls fast, so it mostly goes straight down from where you drop it.', when: `${ALWAYS} It is heavy for every drop this turn.`, moves: 'On each row there is a 3 in 4 chance it falls straight down. It falls faster than a usual ball.', mixes: 'With Magnet, the magnet pulls on the rows where it bounces. With Extra bouncy, the heavy rows fall straight and the other rows bounce a full space.' } },
+  { kind: 'bouncy', label: 'Extra bouncy ball (bounces twice as far)',
+    spec: { does: 'The ball is extra bouncy and jumps a whole space on every peg, so anything can happen.', when: `${ALWAYS} It is bouncy for every drop this turn.`, moves: 'On each row it bounces a full space left or right instead of half a space.', mixes: 'With Magnet, every bounce toward the top bucket is a full space, so it gets there faster. Heavy, Big and Growing balls still fall straight on some rows.' } },
+  { kind: 'twin', label: 'Two balls (drop two at once)',
+    spec: { does: 'Two balls drop from the same zone at once and each one bounces its own way. Both score.', when: `${ALWAYS} Every drop this turn is two balls.`, moves: 'Each ball moves the usual way, on its own path.', mixes: 'Every other power-up works on both balls (Double doubles both). Stars from both buckets count for your next turn, up to 3.' } },
   { kind: 'big', label: 'Big ball (bounces less, easier to aim)',
     spec: { does: 'The ball is bigger and heavier, so where you drop it matters more.', when: `${ALWAYS} The ball is big for every drop this turn.`, moves: 'On each row of pegs there is a 1 in 2 chance it falls straight down instead of bouncing left or right.', mixes: 'With a magnet: on the rows where the big ball does bounce, the magnet can still pull it.' } },
-  { kind: 'magnet', label: 'Pull the ball toward the top bucket',
-    spec: { does: 'Pulls the ball toward the bucket worth the most points.', when: `${ALWAYS} It pulls on every drop this turn.`, moves: 'On each row there is a 3 in 4 chance the ball bounces toward the top bucket instead of a random way. It can still miss.', mixes: 'With a big ball: the big ball falls straight on some rows, the magnet pulls on the others. Works with multipliers and bonuses.' } },
   { kind: 'extra', label: 'Extra drops this turn', nLabel: 'Drops', nMin: 1, nMax: 3, nDef: 1,
     spec: { does: 'After your ball lands, you aim and drop again. Each drop scores on its own.', when: `${ALWAYS} The extra drops come right after the first one, with no new question.`, moves: 'No change. You pick a new drop zone each time.', mixes: 'Every other power-up stays on for the extra drops. Two extra-drop power-ups add up. Stars won on any drop count for your next turn.' } },
+  { kind: 'bonus', label: 'Add bonus XP to the drop', nLabel: 'XP', nMin: 5, nMax: 100, nDef: 20,
+    spec: { does: 'Adds that much XP on top of the bucket, wherever the ball lands.', when: `${ALWAYS} It adds to every drop this turn.`, moves: 'No change. The ball bounces the usual way.', mixes: 'Added after multipliers, so it is never doubled. Two bonuses add together.' } },
   { kind: 'lucky', label: 'Never land in the lowest bucket',
-    spec: { does: 'If the ball would land in the bucket worth the fewest points, it rolls over to the better bucket beside it.', when: `${ALWAYS} It protects every drop this turn.`, moves: 'The ball bounces the usual way. Only the very last roll into a bucket can change.', mixes: 'Works with all the others. The bucket it rolls to is then multiplied and gets bonuses as usual.' } },
+    spec: { does: 'If the ball would land in the bucket worth the fewest points, it rolls over to the better bucket beside it.', when: `${ALWAYS} It protects every drop this turn.`, moves: 'The ball bounces the usual way. Only the very last roll into a bucket can change.', mixes: 'Works with all the others (after Pop). The bucket it rolls to is then multiplied and gets bonuses as usual.' } },
   { kind: 'none', label: 'Something new (describe the logic)' },
 ];
 // The four rules for a power-up: fixed for a built action, written by hand for something new.
