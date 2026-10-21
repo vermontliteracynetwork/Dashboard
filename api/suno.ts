@@ -28,6 +28,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   let link: URL;
   try { link = new URL(raw); } catch { res.status(400).json({ error: 'Send a Suno link as ?u=' }); return; }
   if (!/(^|\.)suno\.(com|ai)$/i.test(link.hostname)) { res.status(400).json({ error: 'Only Suno links.' }); return; }
+  if (req.query.debug) {
+    const page = await fetch(link.toString(), { redirect: 'follow', headers: { 'User-Agent': UA } });
+    const html = await page.text();
+    res.status(200).json({ status: page.status, url: page.url, len: html.length, uuids: [...new Set(html.match(new RegExp(UUID.source, 'gi')) ?? [])].slice(0, 30), mp3: [...new Set(html.match(/https?:[^"'\s\\]+\.(mp3|m4a)/gi) ?? [])].slice(0, 10), meta: (html.match(/<meta[^>]+(og:audio|og:url|og:title|twitter:player)[^>]*>/gi) ?? []).slice(0, 8) });
+    return;
+  }
   try {
     const { id, html } = await findId(link);
     if (!id) { res.status(404).json({ error: 'That Suno song could not be found.' }); return; }
@@ -42,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const report: { url: string; status: number }[] = [];
     for (const url of tries) {
       let up: Response;
-      try { up = await fetch(url, { headers: { 'User-Agent': UA, Range: `bytes=${from}-${to}` }, redirect: 'follow' }); } catch { report.push({ url, status: 0 }); continue; }
+      try { up = await fetch(url, { headers: { 'User-Agent': UA, Referer: 'https://suno.com/', Origin: 'https://suno.com', Range: `bytes=${from}-${to}` }, redirect: 'follow' }); } catch { report.push({ url, status: 0 }); continue; }
       report.push({ url, status: up.status });
       if (up.status !== 200 && up.status !== 206) continue;
       if (req.query.info) { res.status(200).json({ id, audio: url, tried: report }); return; }
