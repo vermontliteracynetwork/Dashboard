@@ -5,13 +5,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // link on the server and finds the song's id. Only suno.com links are accepted.
 // Build Queue 351 ("dog nose magic song doesnt play"): the browser was sent straight to Suno's MP3, which some school
 // networks and iPads refuse. Now this function plays the song itself: it fetches the MP3 from Suno's servers (trying
-// each of Suno's audio hosts until one answers) and passes it on in pieces of up to 3 MB, so the audio player can seek
+// the audio file the share page names, then each of Suno's audio hosts until one answers) and passes it on in pieces of up to 3 MB, so the audio player can seek
 // and stays under Vercel's size limit. `?info=1` reports which host answered.
 
 const UUID = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36';
 const CHUNK = 3 * 1024 * 1024;
-const hosts = (id: string) => [`https://cdn1.suno.ai/${id}.mp3`, `https://cdn2.suno.ai/${id}.mp3`, `https://audiopipe.suno.ai/?item_id=${id}`];
+const hosts = (id: string) => [`https://d2lwuy8qc234o3.cloudfront.net/1/clip/${id}.m4a`, `https://cdn1.suno.ai/${id}.mp3`, `https://cdn2.suno.ai/${id}.mp3`, `https://audiopipe.suno.ai/?item_id=${id}`];
 
 async function findId(link: URL): Promise<{ id?: string; html?: string }> {
   const fromPath = link.pathname.match(UUID)?.[1];
@@ -38,7 +38,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { id, html } = await findId(link);
     if (!id) { res.status(404).json({ error: 'That Suno song could not be found.' }); return; }
     // Any audio link the share page itself names comes first.
-    const named = html ? [...new Set(html.match(/https:\/\/[a-z0-9.-]*suno\.ai\/[^"'\s\\]+\.mp3/gi) ?? [])] : [];
+    // Build Queue 351: Suno now keeps the song as an .m4a on its CloudFront host, named on the share page.
+    const named = html ? [...new Set(html.match(/https:\/\/[a-z0-9.-]+\/[^"'\s\\]+\.(mp3|m4a)/gi) ?? [])].filter((u) => u.includes(id)) : [];
     const tries = [...named, ...hosts(id)];
 
     // The byte range the player asked for, capped at 3 MB.
@@ -55,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const buf = Buffer.from(await up.arrayBuffer());
       const total = Number(up.headers.get('content-range')?.split('/')[1] ?? '') || (up.status === 200 ? buf.length : 0);
       const body = up.status === 200 ? buf.subarray(from, to + 1) : buf;
-      res.setHeader('Content-Type', 'audio/mpeg');
+      res.setHeader('Content-Type', up.headers.get('content-type')?.startsWith('audio/') ? up.headers.get('content-type')! : url.endsWith('.m4a') ? 'audio/mp4' : 'audio/mpeg');
       res.setHeader('Accept-Ranges', 'bytes');
       res.setHeader('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
       if (total) res.setHeader('Content-Range', `bytes ${from}-${from + body.length - 1}/${total}`);
