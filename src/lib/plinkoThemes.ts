@@ -25,7 +25,8 @@ export interface PlinkoTheme {
   balls: string[];
   colors: Partial<Record<PlinkoColorKey, string>>;
   buckets: (string | null)[];
-  powers: Partial<Record<PlinkoPower, { name?: string; img?: string; does?: string }>>;
+  // Build Queue 314: Double Ball Drop (the "again" power-up) also has its two balls' pictures.
+  powers: Partial<Record<PlinkoPower, { name?: string; img?: string; does?: string; balls?: string[] }>>;
   // Build Queue 296 (the teacher's theme builder): a 1x1 cover for the student picker, a board picture, three fonts
   // (a preset or an uploaded font file each) and power-ups of the theme's own.
   cover?: string;
@@ -113,7 +114,8 @@ export const DEFAULT_POWERS: PowerDef[] = [
   { id: 'double', name: 'Double', does: 'Counts twice.', kind: 'multiply', n: 2 },
   { id: 'big', name: 'Big Ball', does: 'Bounces less.', kind: 'big' },
   { id: 'magnet', name: 'Magnet', does: 'Pulls to the top bucket.', kind: 'magnet' },
-  { id: 'again', name: 'Second Drop', does: 'One more ball.', kind: 'extra', n: 1 },
+  // Build Queue 314: Second Drop became Double Ball Drop: two balls drop at once (the theme can draw both).
+  { id: 'again', name: 'Double Ball Drop', does: 'Two balls drop at once.', kind: 'twin' },
 ];
 // The power-ups a game offers: the defaults (with a theme's own name, picture and description) and the theme's
 // added ones that have a built action.
@@ -168,7 +170,7 @@ const MARK = (REGIONS as unknown as { markers: Record<'tl' | 'tr' | 'bl' | 'br',
 export const TEMPLATE_PAGES = (REGIONS as unknown as { pages: number }).pages;
 const CODE = (REGIONS as unknown as { code: { x: number; y: number; size: number; gap: number; bits: number } }).code;
 // The first template page each builder card reads.
-export const PAGE_OF = { cover: R.cover.page, background: R.background.page, title: R.title.page, board: R.board.page, panel: R.panel.page, balls: R.ball1.page, powers: R.power_magnet.page, colors: R.primary.page } as const;
+export const PAGE_OF = { cover: R.cover.page, background: R.background.page, title: R.title.page, board: R.board.page, panel: R.panel.page, balls: R.ball1.page, powers: R.power_magnet.page, again: R.power_again.page } as const;
 // Reads a straightened page's number from its five squares (null if it has none, like an older template).
 function readPageNo(c: HTMLCanvasElement): number | null {
   const ctx = c.getContext('2d', { willReadFrequently: true })!;
@@ -311,7 +313,7 @@ async function toPages(files: File[], onStep?: (msg: string) => void): Promise<H
 export interface CutResult {
   cover?: Blob; background?: Blob; board?: Blob; panel?: Blob; title?: Blob; balls: Blob[]; ballSlots: number[];
   colors: Partial<Record<PlinkoColorKey, string>>; buckets: (string | null)[];
-  powers: Partial<Record<PlinkoPower, Blob>>; pages: number;
+  powers: Partial<Record<PlinkoPower, Blob>>; twinBalls: Blob[]; pages: number;
 }
 
 // Cuts every design space out of straightened pages. `pageNos` says which template page each one is (all pages in
@@ -326,7 +328,7 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
     return { c, ctx, data: ctx.getImageData(0, 0, w, h), r, w, h };
   };
   const run = async (): Promise<CutResult> => {
-    const out: CutResult = { balls: [], ballSlots: [], colors: {}, buckets: [], powers: {}, pages: pages.length };
+    const out: CutResult = { balls: [], ballSlots: [], colors: {}, buckets: [], powers: {}, twinBalls: [], pages: pages.length };
     for (const [k, type] of [['cover', 'image/jpeg'], ['background', 'image/jpeg'], ['board', 'image/jpeg'], ['panel', 'image/jpeg']] as const) {
       const s = crop(k, 12); if (s && whiteShare(s.data.data) < 0.97) out[k] = await toBlob(s.c, type, 0.88);
     }
@@ -351,13 +353,18 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
       r /= n; g /= n; b /= n;
       return r > 232 && g > 232 && b > 232 ? null : hex(r, g, b); // left white: keep the usual color
     };
-    if (byNo.has(PAGE_OF.colors)) {
-      for (const k of ['primary', 'secondary', 'text', 'boardBorder', 'boardBg', 'peg', 'powerBg', 'powerBtn'] as PlinkoColorKey[]) { const v = avg(k); if (v) out.colors[k] = v; }
-      for (let i = 1; i <= 8; i++) out.buckets.push(avg(`bucket${i}`));
-    }
+    // Colors and fonts are picked in the theme builder now (Build Queue 314), not drawn on paper.
+    void avg;
     for (const k of ['magnet', 'double', 'big', 'again'] as PlinkoPower[]) {
       const s = crop(`power_${k}`, 12); if (!s || whiteShare(s.data.data) > 0.97) continue;
       out.powers[k] = await toBlob(s.c, 'image/png');
+    }
+    // Double Ball Drop's two balls, drawn on its page beside its cover image.
+    for (const k of ['again_ball1', 'again_ball2']) {
+      const b = crop(k); if (!b || whiteShare(b.data.data, b.w, true) > 0.97) continue;
+      const c = canvas(b.w, b.h), ctx = c.getContext('2d')!;
+      ctx.beginPath(); ctx.arc(b.w / 2, b.h / 2, b.w / 2 - 9, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(b.c, 0, 0);
+      out.twinBalls.push(await toBlob(c, 'image/png'));
     }
     return out;
   };
@@ -388,6 +395,7 @@ export async function buildTheme(cut: CutResult, info: { id: string; name: strin
     const img = await up(cut.powers[k]); const name = info.powerNames[k]?.trim();
     if (img || name) powers[k] = { ...(img ? { img } : {}), ...(name ? { name } : {}) };
   }
+  if (cut.twinBalls.length) { const balls = await Promise.all(cut.twinBalls.map((b) => uploadImage(b))); powers.again = { ...powers.again, balls }; }
   return { id: info.id, name: info.name.trim() || 'My theme', madeBy: info.madeBy?.trim() || undefined, font: info.font, approved: false, createdAt: new Date().toISOString(), cover, background, board, panel, title, balls, colors: cut.colors, buckets: cut.buckets, powers };
 }
 

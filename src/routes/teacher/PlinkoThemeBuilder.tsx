@@ -62,6 +62,7 @@ function PegRow({ label, color, sound, busy, onColor, onSound, onUpload, onRemov
         <option value="upload">Upload a sound...</option>
       </select>
       <button type="button" className="btn btn-sm" onClick={() => playPegSound(sound)} aria-label={`Play the ${label} sound`}>{busy ? '...' : 'Play'}</button>
+      <button type="button" className="ptb-ib" onClick={onUpload} aria-label={`Upload a sound for ${label}`} data-tip="Upload a sound">{UP}</button>
       {onRemove && <button type="button" className="ptb-link" onClick={onRemove}>Remove</button>}
     </div>
   );
@@ -124,16 +125,16 @@ function Preview({ t }: { t: PlinkoTheme }) {
             <span key={i} style={{ background: t.buckets[i] ?? BUCKET_DEF[i], borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{i === 1 && <img src={`${UI}star_full.png`} alt="" />}{n}</span>
           ))}</div>
         </section>
-        <aside className="ptb-panel" style={panel()}>
-          <h4 style={{ fontFamily: head }}>Power-ups</h4>
-          {powers.slice(0, 5).map((p) => (
-            <div key={p.id} className="ptb-power" style={{ background: c('powerBg', DEF.powerBg), borderColor: c('boardBorder', DEF.edge) }}>
-              {p.img ? <img src={p.img} alt="" /> : DEFAULT_ICON[p.id] ? <img src={DEFAULT_ICON[p.id]!} alt="" /> : p.id === 'magnet' ? <Magnet size={22} /> : <span className="ptb-noimg" />}
-              <span>{p.name || 'New power-up'}</span>
+        {/* Build Queue 315: power-ups as cards, one per row, with no panel behind them. */}
+        <aside className="ptb-pcards" style={{ color: c('text', DEF.text) }}>
+          {powers.slice(0, 3).map((p) => (
+            <div key={p.id} className="ptb-pcard" style={{ background: c('powerBg', DEF.secondary), borderColor: c('boardBorder', DEF.edge) }}>
+              <b style={{ fontFamily: head }}>{p.name || 'New power-up'}</b>
+              {p.img ? <img src={p.img} alt="" /> : DEFAULT_ICON[p.id] ? <img src={DEFAULT_ICON[p.id]!} alt="" /> : p.id === 'magnet' ? <Magnet size={28} /> : <span className="ptb-noimg" />}
               <em style={{ background: c('powerBtn', DEF.powerBtn) }}>Select</em>
             </div>
           ))}
-          {powers.length > 5 && <small>and {powers.length - 5} more</small>}
+          {powers.length > 3 && <small>and {powers.length - 3} more</small>}
         </aside>
       </div>
     </div>
@@ -169,9 +170,9 @@ function ImageCard({ label, hint, required, value, busy, onFile, onClear, multip
       </div>
       <button type="button" className="ptb-thumb" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`}>{children ?? (value ? <img src={value} alt="" /> : <span>Tap or drop a picture</span>)}</button>
       <div className="ptb-icons">
-        <button type="button" className="ptb-ib primary" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`}>{UP}<span>{busy ? 'Uploading' : value || (multiple && done && count && !count.startsWith('0')) ? (multiple ? 'Add' : 'Replace') : 'Upload'}</span></button>
-        {page && onScan && <button type="button" className="ptb-ib" onClick={() => scanRef.current?.click()} aria-label={multiple ? 'Scan the ball pages' : `Scan template page ${page}`}>{SCAN}<span>Scan</span></button>}
-        {download && <a className="ptb-ib" href={download} download aria-label={`Download the ${label} template page`}>{DOWN}<span>Download</span></a>}
+        <button type="button" className="ptb-ib primary" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`} data-tip={busy ? 'Uploading...' : value || (multiple && done && count && !count.startsWith('0')) ? (multiple ? 'Add more' : 'Replace') : 'Upload'}>{UP}</button>
+        {page && onScan && <button type="button" className="ptb-ib" onClick={() => scanRef.current?.click()} aria-label={multiple ? 'Scan the ball pages' : `Scan template page ${page}`} data-tip="Scan">{SCAN}</button>}
+        {download && <a className="ptb-ib" href={download} download aria-label={`Download the ${label} template page`} data-tip="Download">{DOWN}</a>}
       </div>
       {(value || (multiple && count && !count.startsWith('0'))) && onClear && <button type="button" className="ptb-link ptb-clear" onClick={onClear}>Remove{multiple ? ' all' : ''}</button>}
       {onScan && <input ref={scanRef} type="file" accept="image/*,application/pdf" multiple={multiple} hidden onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) onScan(f); e.target.value = ''; }} />}
@@ -249,7 +250,7 @@ export default function PlinkoThemeBuilder() {
     save(themes.some((x) => x.id === t.id) ? themes.map((x) => (x.id === t.id ? t : x)) : [t, ...themes]);
     setDraft(t); setDirty(false); setSaved(isDefault ? 'Saved. Every game uses this as the default look.' : t.approved ? 'Published. Students can pick this theme.' : 'Saved as a draft. Students do not see it yet.');
   };
-  const setPower = (id: PlinkoPower, p: Partial<{ name: string; img: string; does: string }>) => set({ powers: { ...draft.powers, [id]: { ...draft.powers[id], ...p } } });
+  const setPower = (id: PlinkoPower, p: Partial<{ name: string; img: string; does: string; balls: string[] }>) => set({ powers: { ...draft.powers, [id]: { ...draft.powers[id], ...p } } });
   const setCustom = (i: number, p: Partial<PowerDef>) => set({ customPowers: (draft.customPowers ?? []).map((x, k) => (k === i ? { ...x, ...p } : x)) });
   // Build Queue 297: bring designs in from the template, as the Canva PDF or as pictures or phone photos of the
   // printed pages (straightened by the corner squares). The whole template, or one page from a card.
@@ -257,7 +258,7 @@ export default function PlinkoThemeBuilder() {
     const t = await buildTheme(cutRes, { id: draft.id, name: draft.name, font: draft.font, powerNames: {} }, setPdfStep);
     set({ cover: t.cover ?? draft.cover, background: t.background ?? draft.background, board: t.board ?? draft.board, panel: t.panel ?? draft.panel, title: t.title ?? draft.title,
       balls: mergeBalls(t.balls, cutRes.ballSlots), colors: { ...draft.colors, ...t.colors }, buckets: t.buckets.some(Boolean) ? t.buckets : draft.buckets,
-      powers: Object.fromEntries((['magnet', 'double', 'big', 'again'] as PlinkoPower[]).map((k) => [k, { ...draft.powers[k], ...(t.powers[k]?.img ? { img: t.powers[k]!.img } : {}) }])) });
+      powers: Object.fromEntries((['magnet', 'double', 'big', 'again'] as PlinkoPower[]).map((k) => [k, { ...draft.powers[k], ...(t.powers[k]?.img ? { img: t.powers[k]!.img } : {}), ...(t.powers[k]?.balls ? { balls: t.powers[k]!.balls } : {}) }])) });
   };
   // Each scanned ball keeps its slot (ball 3 replaces ball 3); a slot past the end is added at the end.
   const mergeBalls = (urls: string[], slots: number[]) => {
@@ -364,7 +365,7 @@ export default function PlinkoThemeBuilder() {
           <div className="ptb-folds">
             <Fold title="Images" open meta={`${imagesSet} of 6`} info="Tap a card or drop a picture on it. Scan reads that part from a photo of its template page. Anything empty keeps the default look.">
               <div className="ptb-cards">
-                <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Cover" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
+                <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Theme cover image" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
                   {draft.cover ? <img src={draft.cover} alt="" className="sq" /> : <span>Tap or drop a picture</span>}
                 </ImageCard>
                 <ImageCard download={`${PG}balls.pdf`} page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5. Tap a ball to remove it." count={`${draft.balls.length} of ${maxBalls}`} busy={busy === 'balls'}
@@ -375,8 +376,8 @@ export default function PlinkoThemeBuilder() {
                 </ImageCard>
                 <ImageCard download={`${PG}page-${PAGE_OF.background}.pdf`} page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
                 <ImageCard download={`${PG}page-${PAGE_OF.title}.pdf`} page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.board}.pdf`} page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Board" hint="Behind the pegs. Portrait or square." value={draft.board} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.panel}.pdf`} page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Side panels" hint="Behind the scoreboard and power-ups. Keep the middle calm so the text stays easy to read." value={draft.panel} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.board}.pdf`} page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Game board" hint="Behind the pegs. Portrait or square." value={draft.board} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.panel}.pdf`} page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Score board background" hint="Behind the players and their scores. Keep the middle calm so the names stay easy to read." value={draft.panel} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
               </div>
             </Fold>
 
@@ -453,6 +454,16 @@ export default function PlinkoThemeBuilder() {
                       <label className="ptb-field">Name<input value={o.name ?? ''} placeholder={d.name} onChange={(e) => setPower(d.id as PlinkoPower, { name: e.target.value })} /></label>
                       <label className="ptb-field">Description<input value={o.does ?? ''} placeholder={d.does} onChange={(e) => setPower(d.id as PlinkoPower, { does: e.target.value })} /></label>
                       <div className="ptb-action"><small>Action</small><b>{kindText(d)}</b><Rules p={d} /></div>
+                      {/* Build Queue 314: Double Ball Drop's two balls (drawn on its template page, or uploaded here). */}
+                      {d.kind === 'twin' && (
+                        <div className="ptb-twin wide">
+                          <small>Its two balls</small>
+                          {[0, 1].map((bi) => (
+                            <PowerPic key={bi} round img={o.balls?.[bi]} busy={busy === `tb-${bi}`} onFile={(f) => up(`tb-${bi}`, f, (u) => { const b = [...(o.balls ?? [])]; b[bi] = u; setPower('again', { balls: b }); })}
+                              onClear={o.balls?.[bi] ? () => { const b = [...(o.balls ?? [])]; b[bi] = ''; setPower('again', { balls: b.filter(Boolean).length ? b : [] }); } : undefined} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -501,10 +512,10 @@ export default function PlinkoThemeBuilder() {
   );
 }
 
-function PowerPic({ img, fallback, magnet, busy, onFile, onClear }: { img?: string; fallback?: string | null; magnet?: boolean; busy: boolean; onFile: (f: File) => void; onClear?: () => void }) {
+function PowerPic({ img, fallback, magnet, busy, onFile, onClear, round }: { img?: string; fallback?: string | null; magnet?: boolean; busy: boolean; onFile: (f: File) => void; onClear?: () => void; round?: boolean }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
-    <div className="ptb-pic">
+    <div className={`ptb-pic${round ? ' round' : ''}`}>
       <button type="button" className="ptb-pic-btn" onClick={() => ref.current?.click()} aria-label={img ? 'Replace picture' : 'Upload picture'}>
         {img ? <img src={img} alt="" /> : fallback ? <img src={fallback} alt="" className="dim" /> : magnet ? <Magnet /> : <span>Picture</span>}
         {img && <span className="ptb-check"><Check /></span>}

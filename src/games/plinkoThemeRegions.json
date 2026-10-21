@@ -1,7 +1,7 @@
 {
  "width": 2200,
  "height": 1700,
- "pages": 20,
+ "pages": 19,
  "code": {
   "x": 1650,
   "y": 1559,
@@ -174,139 +174,27 @@
   },
   "power_again": {
    "page": 19,
-   "x": 510,
+   "x": 230,
+   "y": 330,
+   "w": 1000,
+   "h": 1000,
+   "circle": false
+  },
+  "again_ball1": {
+   "page": 19,
+   "x": 1380,
    "y": 300,
-   "w": 1180,
-   "h": 1180,
-   "circle": false
+   "w": 520,
+   "h": 520,
+   "circle": true
   },
-  "primary": {
-   "page": 20,
-   "x": 250,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "secondary": {
-   "page": 20,
-   "x": 475,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "text": {
-   "page": 20,
-   "x": 700,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "boardBorder": {
-   "page": 20,
-   "x": 925,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "boardBg": {
-   "page": 20,
-   "x": 1150,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "peg": {
-   "page": 20,
-   "x": 1375,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "powerBg": {
-   "page": 20,
-   "x": 1600,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "powerBtn": {
-   "page": 20,
-   "x": 1825,
-   "y": 400,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket1": {
-   "page": 20,
-   "x": 250,
+  "again_ball2": {
+   "page": 19,
+   "x": 1380,
    "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket2": {
-   "page": 20,
-   "x": 475,
-   "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket3": {
-   "page": 20,
-   "x": 700,
-   "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket4": {
-   "page": 20,
-   "x": 925,
-   "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket5": {
-   "page": 20,
-   "x": 1150,
-   "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket6": {
-   "page": 20,
-   "x": 1375,
-   "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket7": {
-   "page": 20,
-   "x": 1600,
-   "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
-  },
-  "bucket8": {
-   "page": 20,
-   "x": 1825,
-   "y": 900,
-   "w": 170,
-   "h": 170,
-   "circle": false
+   "w": 520,
+   "h": 520,
+   "circle": true
   }
  }
 }

@@ -18,7 +18,7 @@ BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 REG = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 INK, MUTED, HATCH, PAPER = (40, 40, 48), (110, 110, 120), (205, 205, 212), (244, 244, 247)
 M, MS = 60, 110  # marker offset from the page edge, marker size
-NPAGES = 20
+NPAGES = 19
 # Build Queue 300: each page prints its own number as five small squares (filled = 1) at the bottom right, so the
 # app knows which page a photo is even when pages come in any order.
 CODE = {'x': W - M - MS - 30 - 5 * 66 - 20, 'y': H - 141, 'size': 46, 'gap': 20, 'bits': 5}
@@ -38,9 +38,11 @@ def page(n, title, line):
             d.rectangle([x + 32, y + 32, x + MS - 32, y + MS - 32], fill=(255, 255, 255))
     band = [(M + MS + 30, 70), (W - M - MS - 30, 200)]
     d.rounded_rectangle(band, radius=24, fill=(255, 255, 255), outline=MUTED, width=3)
-    d.text((band[0][0] + 30, 88), f'PLINKO THEME  ·  PAGE {n} OF {NPAGES}  ·  {title}', font=f(BOLD, 44), fill=INK)
+    head, size = f'PLINKO THEME  ·  PAGE {n} OF {NPAGES}  ·  {title}', 44
+    while size > 26 and d.textlength(head, font=f(BOLD, size)) > band[1][0] - band[0][0] - 60: size -= 2  # long titles shrink to fit
+    d.text((band[0][0] + 30, 88 + (44 - size) // 2), head, font=f(BOLD, size), fill=INK)
     d.text((band[0][0] + 30, 148), line, font=f(REG, 30), fill=MUTED)
-    foot = 'Draw only inside the dashed lines. Keep all four corner squares in the photo.'
+    foot = 'Draw only inside the outlined shape. Keep all four corner squares in the photo.'
     d.rounded_rectangle([(M + MS + 30, H - 150), (W - M - MS - 30, H - 80)], radius=20, fill=(255, 255, 255))
     d.text((M + MS + 60, H - 133), foot, font=f(REG, 30), fill=MUTED)
     for b in range(CODE['bits']):  # the page number, biggest bit first
@@ -52,11 +54,9 @@ def page(n, title, line):
 def area(d, key, regions, n, x, y, w, h, label, circle=False):
     box = [x, y, x + w, y + h]
     if circle:
-        d.ellipse(box, fill=(255, 255, 255))
-        dashed_ellipse(d, box)
+        d.ellipse(box, fill=(255, 255, 255), outline=INK, width=7)  # Build Queue 314: solid outlines
     else:
-        d.rectangle(box, fill=(255, 255, 255))
-        dashed_rect(d, box)
+        d.rectangle(box, fill=(255, 255, 255), outline=INK, width=7)
     if label:
         fnt = f(BOLD, 30)
         tw = d.textlength(label, font=fnt)
@@ -64,19 +64,6 @@ def area(d, key, regions, n, x, y, w, h, label, circle=False):
         d.rounded_rectangle([lx - 14, ly - 6, lx + tw + 14, ly + 42], radius=12, fill=(255, 255, 255))
         d.text((lx, ly), label, font=fnt, fill=INK)
     regions[key] = {'page': n, 'x': x, 'y': y, 'w': w, 'h': h, 'circle': circle}
-
-def dashed_rect(d, box, dash=28, gap=16, width=7):
-    x0, y0, x1, y1 = box
-    for a, b, fixed, horiz in [(x0, x1, y0, True), (x0, x1, y1, True), (y0, y1, x0, False), (y0, y1, x1, False)]:
-        t = a
-        while t < b:
-            e = min(t + dash, b)
-            d.line([(t, fixed), (e, fixed)] if horiz else [(fixed, t), (fixed, e)], fill=INK, width=width)
-            t += dash + gap
-
-def dashed_ellipse(d, box, width=7):
-    for a in range(0, 360, 12):
-        d.arc(box, a, a + 7, fill=INK, width=width)
 
 def build():
     regions, pages = {}, []
@@ -86,24 +73,24 @@ def build():
         im, d = page(n, title, line)
         area(d, key, regions, n, (W - w) // 2, TOP + (BOT - TOP - h) // 2, w, h, '', circle=circle)
         pages.append(im)
-    one('COVER', 'A square picture students see when they pick a theme.', 'cover', 1180, 1180)
-    one('BACKGROUND', 'The scene behind the whole game. The board and panels sit on top of it.', 'background', 1600, 1200)
+    # Build Queue 314: her names for every page; colors and fonts are picked in the theme builder, not on paper.
+    one('THEME COVER IMAGE', 'A square picture students see when they pick a theme.', 'cover', 1180, 1180)
+    one('BACKGROUND', 'The scene behind the whole game. The board and score board sit on top of it.', 'background', 1600, 1200)
     one('TITLE', 'The game name in your letters. The white around the letters turns see-through.', 'title', 1800, 600)
-    one('BOARD', 'The picture behind the pegs. Keep it calm so the pegs and ball stay easy to see.', 'board', 990, 1230)
-    one('SIDE PANEL', 'The picture behind the scores and power-ups. Keep the middle calm.', 'panel', 620, 1230)
+    one('GAME BOARD', 'The picture behind the pegs. Keep it calm so the pegs and ball stay easy to see.', 'board', 990, 1230)
+    one('SCORE BOARD BACKGROUND', 'The picture behind the players and their scores. Keep the middle calm.', 'panel', 620, 1230)
     for i in range(10):
         one(f'BALL {i + 1}', 'One ball in the circle.' + (' Balls 1 to 5 are needed.' if i < 5 else ' Extra, leave it white to skip it.'), f'ball{i + 1}', 1150, 1150, circle=True)
-    for k, nm in [('power_magnet', 'MAGNET'), ('power_double', 'DOUBLE'), ('power_big', 'BIG BALL'), ('power_again', 'SECOND DROP')]:
-        one(f'POWER-UP: {nm}', 'A picture for this power-up. It keeps the same action. Leave it white to keep the usual picture.', k, 1180, 1180)
-    # Colors: one page for the palette (color squares are not drawings).
+    for k, nm, role in [('power_magnet', 'MAGNET', 'Magnet pulls the ball toward the bucket worth the most points.'),
+                        ('power_double', 'DOUBLE', 'Double makes the bucket the ball lands in count twice.'),
+                        ('power_big', 'BIG BALL', 'Big Ball is bigger and heavier, so it bounces less and is easier to aim.')]:
+        one(f'POWER-UP COVER IMAGE: {nm}', role, k, 1180, 1180)
+    # Double Ball Drop: its cover image and the two balls that drop, all on one page.
     n = len(pages) + 1
-    im, d = page(n, 'COLORS', 'Fill each square with one solid color. Leave a square white to keep the usual color.')
-    top = ['primary', 'secondary', 'text', 'boardBorder', 'boardBg', 'peg', 'powerBg', 'powerBtn']
-    names = ['PRIMARY', 'SECONDARY', 'TEXT', 'BORDER', 'BOARD', 'PEGS', 'POWER-UP', 'BUTTONS']
-    for i, k in enumerate(top):
-        area(d, k, regions, n, 250 + i * 225, 400, 170, 170, names[i])
-    for i in range(8):
-        area(d, f'bucket{i + 1}', regions, n, 250 + i * 225, 900, 170, 170, f'BUCKET {i + 1}')
+    im, d = page(n, 'POWER-UP COVER IMAGE: DOUBLE BALL DROP', 'Double Ball Drop drops two balls at once. Draw its cover image and both balls.')
+    area(d, 'power_again', regions, n, 230, 330, 1000, 1000, 'COVER IMAGE')
+    area(d, 'again_ball1', regions, n, 1380, 300, 520, 520, 'BALL 1', circle=True)
+    area(d, 'again_ball2', regions, n, 1380, 900, 520, 520, 'BALL 2', circle=True)
     pages.append(im)
     assert len(pages) == NPAGES
     return regions, pages

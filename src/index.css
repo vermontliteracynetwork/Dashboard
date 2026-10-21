@@ -10117,3 +10117,38 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ptb-pegrow-p:nth-child(even) { padding: 0 14%; }
 .ptb-pegrow-p i { animation: pk2PegDrift 3s ease-in-out infinite alternate; }
 @media (prefers-reduced-motion: reduce) { .ptb-pegrow-p i { animation: none; } }
+/* Build Queue 316: the ball lands in the bucket and the bucket bounces; points fly to the score, which pops. */
+.pk2-buckets span.win { animation: pk2BucketBounce .5s ease-out; }
+@keyframes pk2BucketBounce { 0% { translate: 0 0; } 30% { translate: 0 6px; scale: 1.06 .92; } 60% { translate: 0 -4px; scale: .97 1.05; } 100% { translate: 0 0; scale: 1; } }
+.pk2-flyer { position: fixed; z-index: 60; pointer-events: none; transform: translate(-50%, -50%); font: 900 2rem/1 'Baloo 2', 'Nunito', sans-serif; color: #fff; -webkit-text-stroke: 2px #6c626e; paint-order: stroke fill; text-shadow: 0 3px 0 rgba(108,98,110,.35); animation-name: pk2Fly; animation-timing-function: ease-in-out; animation-fill-mode: forwards; }
+@keyframes pk2Fly { 0% { translate: 0 0; scale: .6; opacity: 0; } 15% { translate: 0 -24px; scale: 1.35; opacity: 1; } 55% { translate: calc(var(--dx) * .5) calc(var(--dy) * .5 - 90px); scale: 1.1; } 100% { translate: var(--dx) var(--dy); scale: .7; opacity: .9; } }
+.pk2-player.bump strong { animation: pk2ScoreBump .45s ease-out; display: inline-block; }
+@keyframes pk2ScoreBump { 0% { scale: 1; } 40% { scale: 1.45; color: #ff8ac4; } 100% { scale: 1; } }
+@media (prefers-reduced-motion: reduce) { .pk2-buckets span.win, .pk2-player.bump strong { animation: none; } .pk2-flyer { display: none; } }
+/* Build Queue 315: power-up cards (name, big picture, select or check), one per row, no panel behind them. */
+.pk2 .pk2-panel.pk2-powers, .pk2.themed .pk2-panel.pk2-powers { background: none !important; border-color: transparent !important; box-shadow: none !important; overflow-y: auto; }
+.pk2-pcard { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; padding: 10px 10px 8px; border-radius: 18px; border: 3px solid #6c626e; background: var(--pk-power-bg, #93bfe6); color: var(--pk-text, #6c626e); font: inherit; cursor: pointer; box-shadow: 0 5px 0 rgba(108,98,110,.35); text-align: center; touch-action: manipulation; }
+.pk2-pcard > b { font: 900 1.05rem/1.1 var(--pk-head-font, inherit); }
+.pk2-pcard-pic { display: grid; place-items: center; height: 64px; }
+.pk2-pcard-pic img, .pk2-pcard-pic svg { width: 60px !important; height: 60px !important; object-fit: contain; }
+.pk2-pcard > small { font-size: .78rem; opacity: .85; line-height: 1.2; }
+.pk2-pcard-btn { display: grid; place-items: center; width: 100%; min-height: 40px; margin-top: 4px; border-radius: 12px; background: var(--pk-power-btn, #127fb5); color: #fff; font: 800 .95rem/1 inherit; font-style: normal; box-shadow: inset 0 -3px 0 rgba(0,0,0,.18); }
+.pk2-pcard.on { border-color: #16a34a; }
+.pk2-pcard.on .pk2-pcard-btn { background: #34c46a; }
+.pk2-pcard:disabled { opacity: .55; cursor: default; }
+.pk2-pcard:not(:disabled):active { translate: 0 3px; box-shadow: 0 2px 0 rgba(108,98,110,.35); }
+/* Build Queue 314, 315, 317, 318 (theme builder). */
+.ptb-ib { position: relative; min-height: 44px; }
+.ptb-ib[data-tip]:hover::after, .ptb-ib[data-tip]:focus-visible::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%); white-space: nowrap; background: #111827; color: #fff; font: 600 .78rem/1 inherit; padding: 6px 9px; border-radius: 8px; z-index: 20; pointer-events: none; }
+.ptb-ib span { display: none; }
+.ptb-pegrow .ptb-ib { width: 44px; min-height: 40px; }
+.ptb-twin { display: flex; align-items: center; gap: 10px; grid-column: 2 / -1; }
+.ptb-twin > small { color: var(--ptb-muted); font-size: .8rem; }
+.ptb-pic.round .ptb-pic-btn { border-radius: 50%; width: 56px; height: 56px; }
+.ptb-pic.round .ptb-pic-btn img { width: 48px; height: 48px; border-radius: 50%; }
+.ptb-pcards { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+.ptb-pcard { display: flex; flex-direction: column; align-items: center; gap: 3px; border: 2px solid; border-radius: 12px; padding: 6px; box-shadow: 0 3px 0 rgba(0,0,0,.15); }
+.ptb-pcard b { font-size: .78rem; }
+.ptb-pcard img, .ptb-pcard svg { width: 30px; height: 30px; object-fit: contain; }
+.ptb-pcard em { font-style: normal; color: #fff; border-radius: 6px; padding: 2px 0; width: 100%; text-align: center; font-weight: 700; font-size: .7rem; }
+.ptb-pcards small { text-align: center; font-weight: 700; font-size: .72rem; }

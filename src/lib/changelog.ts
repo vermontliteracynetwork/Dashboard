@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-bounce",
+    date: "2026-10-21",
+    icon: "🏀",
+    title: "Bouncier Plinko",
+    body: "The Plinko ball now bounces off every peg and into the bucket, and your points fly up to your score. Power-ups are big cards, and Double Ball Drop drops two balls at once.",
+  },
+  {
     id: "2026-10-21-plinko-peg-xp",
     date: "2026-10-21",
     icon: "🎯",
