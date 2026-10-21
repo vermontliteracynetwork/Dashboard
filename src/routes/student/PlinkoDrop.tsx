@@ -35,7 +35,7 @@ const rowsFor = (round: number) => Math.min(12, 7 + round);
 const pegsFor = (zones: number, rows: number) => { const out: { x: number; r: number }[] = []; for (let r = 0; r < rows; r++) for (let x = r % 2 ? 0.5 : 0; x <= zones - 1 + 0.001; x += 1) out.push({ x, r }); return out; };
 const MUSIC_KEY = 'plinko-music';
 // One step of a ball's fall (Build Queue 316): where it goes, how long it takes (ms), its easing, the peg it touches.
-type BallPt = { x: number; y: number; d: number; e?: string; hit?: number | null; tag?: 'pop' | 'land' };
+type BallPt = { x: number; y: number; d: number; e?: string; hit?: number | null; tag?: 'pop' | 'land'; rot?: number; sq?: boolean };
 const FLY_MS = 850;
 const musicPref = () => { try { return localStorage.getItem(MUSIC_KEY) !== '0'; } catch { return true; } };
 // Drawn icons, not emojis (Build Queue 288, her words: "no emojis in plinko").
@@ -276,7 +276,8 @@ export default function PlinkoDrop() {
     // drops into the bucket, bounces once and settles. `d` is each move's share of a row's time, `e` its easing.
     const fall = () => {
       let x = zone;
-      const path: BallPt[] = [{ x, y: -0.7, d: 0 }];
+      let rot = 0;
+      const path: BallPt[] = [{ x, y: -0.7, d: 0, rot: 0 }];
       for (let r = 0; r < ROWS; r++) {
         // The peg the ball bounces off on this row: the one in the row nearest to where the ball is.
         let best: number | null = null;
@@ -289,18 +290,45 @@ export default function PlinkoDrop() {
           if (magnet && Math.random() < 0.75) dir = tx > x ? step : -step;
           x = Math.max(0, Math.min(z - 1, x + dir));
         }
-        path.push({ x: x0, y: r - 0.28, d: 0.36, e: 'ease-in', hit: best });
-        if (x !== x0) path.push({ x: (x0 + x) / 2, y: r - (bouncy ? 0.75 : 0.5), d: 0.26, e: 'ease-out' });
-        path.push({ x, y: r + 0.42, d: x !== x0 ? 0.38 : 0.64, e: 'ease-in', tag: pop && r === ROWS - 1 ? 'pop' : undefined });
+        // Build Queue 336: a lively, less predictable bounce. The ball squashes on the peg and spins, sometimes bounces on it
+        // twice, hops a random height, wobbles a little sideways, and now and then knocks off the side wall. Where it ends
+        // up on each row (and so the score) is still the rule above; only the motion in between is random.
+        const rnd = (a: number, b: number) => a + Math.random() * (b - a);
+        const wob = (k = 0.25) => (Math.random() - 0.5) * k;
+        const lo = -0.32, hi = z - 0.68, clampX = (v: number) => Math.max(lo, Math.min(hi, v));
+        const side = Math.sign(x - x0) || (Math.random() < 0.5 ? -1 : 1);
+        rot += side * rnd(70, 260);
+        path.push({ x: x0 + wob(0.12), y: r - 0.3, d: rnd(0.26, 0.36), e: 'ease-in', hit: best, sq: true, rot });
+        if (Math.random() < (bouncy ? 0.55 : 0.25)) {
+          path.push({ x: clampX(x0 + wob(0.3)), y: r - rnd(0.55, bouncy ? 1.2 : 0.85), d: rnd(0.16, 0.22), e: 'ease-out', rot: rot + side * 60 });
+          rot += side * 120;
+          path.push({ x: x0 + wob(0.1), y: r - 0.3, d: rnd(0.14, 0.2), e: 'ease-in', hit: best, sq: true, rot });
+        }
+        if (x !== x0) {
+          const wall = (x === 0 && side < 0) || (x === z - 1 && side > 0);
+          if (wall && Math.random() < 0.5) {
+            path.push({ x: side < 0 ? lo : hi, y: r - rnd(0.2, 0.5), d: rnd(0.2, 0.26), e: 'ease-out', rot: rot + side * 90, sq: true });
+            rot -= side * 140;
+          } else {
+            path.push({ x: clampX(x0 + (x - x0) * rnd(0.35, 0.9) + wob()), y: r - rnd(0.35, 0.95) * (bouncy ? 1.5 : 1), d: rnd(0.2, 0.32), e: 'ease-out', rot: rot + side * 80 });
+          }
+        } else {
+          path.push({ x: clampX(x0 + wob(0.35)), y: r - rnd(0.12, 0.4), d: rnd(0.16, 0.24), e: 'ease-out', rot: rot + side * 40 });
+        }
+        rot += side * rnd(60, 160);
+        path.push({ x: clampX(x + wob(0.18)), y: r + 0.42, d: rnd(0.3, 0.44), e: 'ease-in', rot, tag: pop && r === ROWS - 1 ? 'pop' : undefined });
       }
       let b = Math.min(nb - 1, Math.max(0, Math.floor(((x + 0.5) / z) * nb)));
       if (pop) b = [b - 1, b + 1].filter((i) => i >= 0 && i < nb).reduce((m, i) => (bk[i] > bk[m] ? i : m), b);
       // Lucky: never the lowest bucket; the ball rolls to the better neighbor.
       if (has('lucky') && bk[b] === Math.min(...bk.slice(0, nb))) { const l = b > 0 ? bk[b - 1] : -1, r = b < nb - 1 ? bk[b + 1] : -1; b = r >= l ? b + 1 : b - 1; }
       const bx = ((b + 0.5) * z) / nb - 0.5;
-      path.push({ x: bx, y: ROWS + 0.35, d: 0.5, e: 'ease-in', tag: 'land' });
-      path.push({ x: bx, y: ROWS - 0.15, d: 0.24, e: 'ease-out' });
-      path.push({ x: bx, y: ROWS + 0.35, d: 0.28, e: 'ease-in' });
+      const spin = Math.random() < 0.5 ? -1 : 1;
+      path.push({ x: bx, y: ROWS + 0.35, d: 0.5, e: 'ease-in', tag: 'land', sq: true, rot: rot += spin * 120 });
+      path.push({ x: bx + (Math.random() - 0.5) * 0.25, y: ROWS - 0.05 - Math.random() * 0.35, d: 0.24, e: 'ease-out', rot: rot += spin * 90 });
+      path.push({ x: bx, y: ROWS + 0.35, d: 0.26, e: 'ease-in', sq: true, rot: rot += spin * 60 });
+      path.push({ x: bx, y: ROWS + 0.2, d: 0.12, e: 'ease-out', rot });
+      path.push({ x: bx, y: ROWS + 0.35, d: 0.12, e: 'ease-in', rot });
       return { path, b };
     };
     const falls = twin ? [fall(), fall()] : [fall()];
@@ -374,7 +402,7 @@ export default function PlinkoDrop() {
     const grow = kindOn('grow') ? 0.75 + 0.75 * Math.max(0, Math.min(1, bl.y / rows)) : 1;
     const cls = `pk2-ball${bigOn ? ' big' : ''}${kindOn('heavy') ? ' heavy' : ''}${kindOn('bouncy') ? ' bouncy' : ''}${popping ? ' popping' : ''}`;
     const img = twinImgs?.[key === 'b2' ? 1 : 0];
-    return <b key={key} className={cls} style={{ left: `${xPct(bl.x)}%`, top: `${yPct(bl.y)}%`, width: `${((bigOn ? 63 : 45) * grow) / zones}%`, background: img ? `center / cover no-repeat url("${img}")` : ballBg(cur), transition: bl.d ? `left ${bl.d}ms linear, top ${bl.d}ms ${bl.e ?? 'ease-in'}, width .2s ease-out` : undefined }} />;
+    return <b key={key} className={cls} style={{ left: `${xPct(bl.x)}%`, top: `${yPct(bl.y)}%`, width: `${((bigOn ? 63 : 45) * grow) / zones}%`, background: img ? `center / cover no-repeat url("${img}")` : ballBg(cur), rotate: `${bl.rot ?? 0}deg`, scale: bl.sq ? '1.2 0.82' : '1', transition: bl.d ? `left ${bl.d}ms linear, top ${bl.d}ms ${bl.e ?? 'ease-in'}, rotate ${bl.d}ms ease-out, scale ${Math.min(bl.d, 120)}ms ease-out, width .2s ease-out` : undefined }} />;
   };
 
   return (
