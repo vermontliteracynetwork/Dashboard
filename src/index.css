@@ -10094,3 +10094,11 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 @keyframes pk2Pop { 0% { transform: translate(-50%, -50%) scale(1); } 60% { transform: translate(-50%, -50%) scale(1.6); } 100% { transform: translate(-50%, -50%) scale(1.1); } }
 @keyframes pk2Burst { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.5) rotate(40deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .pk2-ball.bouncy, .pk2-ball.popping, .pk2-ball.popping::after { animation: none; } }
+/* Build Queue 309: the peg color fills the whole circle; card button labels never run together. */
+.ptb-pegrow input[type=color] { -webkit-appearance: none; appearance: none; width: 42px; height: 42px; padding: 0; border: 2px solid #d1d5db; border-radius: 50%; }
+.ptb-pegrow input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.ptb-pegrow input[type=color]::-webkit-color-swatch { border: none; border-radius: 50%; }
+.ptb-pegrow input[type=color]::-moz-color-swatch { border: none; border-radius: 50%; }
+.ptb-cards { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
+.ptb-ib span { font-size: .66rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ptb-ib { min-width: 0; padding: 4px 3px; }
