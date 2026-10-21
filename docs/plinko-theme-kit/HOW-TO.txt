@@ -1,16 +1,31 @@
 Plinko custom theme kit
 
-1. Upload plinko-theme-template.pdf to Canva (one project, 6 pages).
-2. Design only the white spaces. Never put design on the black areas.
-   Page 1 Background. Page 2 Balls (1 to 5 needed, 6 to 10 extra).
-   Page 3 Title (text only, the white turns see-through).
-   Page 4 Side panel. Page 5 Colors (one solid color in each square).
-   Page 6 Power-ups (a picture for each; they keep the same action).
-   Leave anything white to keep the usual look.
-3. In Canva: Share, Download, PDF Standard. Keep all 6 pages.
-4. In the teacher dashboard: menu, Plinko themes. Name the theme, pick a font,
-   type power-up names if you want (Magnet could be Super Smell), upload the PDF.
-5. Check the preview, then tap Approve for students.
+The template is 7 pages, each 11 x 8.5 in (landscape letter).
+Draw or design only inside the dashed lines. The gray striped area is outside.
+Keep the four black corner squares clear. They tell the app which way is up.
+
+Pages
+1 Cover (needed)       2 Background        3 Balls (1 to 5 needed, 6 to 10 extra)
+4 Title (the white around the letters turns see-through)
+5 Board and side panel 6 Colors (one solid color per square)
+7 Power-ups (a picture for each, they keep the same action)
+Leave anything white to keep the usual look.
+
+On paper
+1. Print plinko-theme-template.pdf (or the page PNGs) at actual size.
+2. Draw and color inside the dashed shapes.
+
+In Canva
+1. Make an 11 x 8.5 in design with 7 pages.
+2. Upload page-1.png to page-7.png, put each one on its page full size,
+   then right click it, Lock, so it cannot move.
+3. Design on top inside the shapes. Download as PDF Standard, all 7 pages.
+
+Upload (teacher dashboard: Games, Themes, Plinko)
+- Upload the PDF, or pictures of the pages, or Take photos with the iPad.
+  Pictures go in page order. Get the whole page and all four corners in the photo.
+- To redo one part, tap Scan page N on that card and upload just that page.
+- Check the preview, then turn on Show to students.
 
 Main theme reference: main-theme-reference/Plinko-main-theme.pdf
 (Inclusive Sans and the ten pastel colors used by the built-in Plinko look.)

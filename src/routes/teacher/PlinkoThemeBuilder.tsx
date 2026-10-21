@@ -6,8 +6,8 @@ import { makeId } from '../../lib/id';
 import { uploadImage } from '../../lib/upload';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_POWERS, PLINKO_FONTS, POWER_KINDS, buildTheme, cutThemePdf, fontFamilyFor, themeVars, usePlinkoThemes,
-  type FontChoice, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
+  DEFAULT_POWERS, PAGE_OF, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
+  type CutResult, type FontChoice, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
 // The Plinko theme builder (Build Queue 296, her request: a Themes sub-tab in the teacher Game section, then a page
@@ -104,10 +104,13 @@ function Preview({ t }: { t: PlinkoTheme }) {
   );
 }
 
-function ImageCard({ label, hint, required, value, busy, onFile, onClear, multiple, count, children }: {
+function ImageCard({ label, hint, required, value, busy, onFile, onClear, multiple, count, children, page, onScan }: {
   label: string; hint: string; required?: boolean; value?: string; busy: boolean; onFile: (f: FileList) => void; onClear?: () => void; multiple?: boolean; count?: string; children?: React.ReactNode;
+  // Build Queue 297: read this card's template page from a photo, a picture or a PDF page.
+  page?: number; onScan?: (f: File) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
+  const scanRef = useRef<HTMLInputElement>(null);
   const done = !!value || (count !== undefined && !required) || (!!count && !count.startsWith('0'));
   return (
     <div className={`ptb-card${value ? ' filled' : ''}`}>
@@ -120,8 +123,10 @@ function ImageCard({ label, hint, required, value, busy, onFile, onClear, multip
       <p className="ptb-hint">{hint}{count ? ` ${count}` : ''}</p>
       <div className="ptb-card-actions">
         <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => ref.current?.click()}>{busy ? 'Uploading...' : value || (multiple && done && count && !count.startsWith('0')) ? (multiple ? 'Add more' : 'Replace') : 'Upload'}</button>
+        {page && onScan && <button type="button" className="btn btn-sm" title={`Photo or scan of template page ${page}`} onClick={() => scanRef.current?.click()}>Scan page {page}</button>}
         {(value || (multiple && count && !count.startsWith('0'))) && onClear && <button type="button" className="btn btn-sm" onClick={onClear}>Remove{multiple ? ' all' : ''}</button>}
       </div>
+      {onScan && <input ref={scanRef} type="file" accept="image/*,application/pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onScan(f); e.target.value = ''; }} />}
       <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" multiple={multiple} hidden onChange={(e) => { if (e.target.files?.length) onFile(e.target.files); e.target.value = ''; }} />
     </div>
   );
@@ -166,14 +171,25 @@ export default function PlinkoThemeBuilder() {
   };
   const setPower = (id: PlinkoPower, p: Partial<{ name: string; img: string; does: string }>) => set({ powers: { ...draft.powers, [id]: { ...draft.powers[id], ...p } } });
   const setCustom = (i: number, p: Partial<PowerDef>) => set({ customPowers: (draft.customPowers ?? []).map((x, k) => (k === i ? { ...x, ...p } : x)) });
-  const importPdf = async (file?: File) => {
+  // Build Queue 297: bring designs in from the template, as the Canva PDF or as pictures or phone photos of the
+  // printed pages (straightened by the corner squares). The whole template, or one page from a card.
+  const merge = async (cutRes: CutResult) => {
+    const t = await buildTheme(cutRes, { id: draft.id, name: draft.name, font: draft.font, powerNames: {} }, setPdfStep);
+    set({ cover: t.cover ?? draft.cover, background: t.background ?? draft.background, board: t.board ?? draft.board, panel: t.panel ?? draft.panel, title: t.title ?? draft.title,
+      balls: t.balls.length ? t.balls.slice(0, 10) : draft.balls, colors: { ...draft.colors, ...t.colors }, buckets: t.buckets.some(Boolean) ? t.buckets : draft.buckets,
+      powers: Object.fromEntries((['magnet', 'double', 'big', 'again'] as PlinkoPower[]).map((k) => [k, { ...draft.powers[k], ...(t.powers[k]?.img ? { img: t.powers[k]!.img } : {}) }])) });
+  };
+  const importFiles = async (files: File[]) => {
+    if (!files.length) return;
+    try { await merge(await cutTemplate(files, setPdfStep)); setPdfStep('Imported. Check the preview, then Save.'); }
+    catch (e) { setPdfStep(e instanceof Error ? e.message : 'The files could not be read.'); }
+  };
+  const scanPage = async (key: string, pageNo: number, file?: File) => {
     if (!file) return;
-    try {
-      const cut = await cutThemePdf(file, setPdfStep);
-      const t = await buildTheme(cut, { id: draft.id, name: draft.name, font: draft.font, powerNames: {} }, setPdfStep);
-      set({ background: t.background ?? draft.background, panel: t.panel ?? draft.panel, title: t.title ?? draft.title, balls: t.balls.length ? t.balls : draft.balls, colors: { ...draft.colors, ...t.colors }, buckets: t.buckets.some(Boolean) ? t.buckets : draft.buckets, powers: { ...draft.powers, ...t.powers } });
-      setPdfStep('Imported. Check the preview, then Save.');
-    } catch (e) { setPdfStep(e instanceof Error ? e.message : 'The PDF could not be read.'); }
+    setPdfStep(null);
+    try { await merge(await cutTemplatePage(file, pageNo, setPdfStep)); setPdfStep(`Page ${pageNo} scanned.`); }
+    catch (e) { setPdfStep(e instanceof Error ? e.message : 'That page could not be read.'); }
+    void key;
   };
   const fonts = draft.fonts ?? {};
   const setFont = (k: 'title' | 'header' | 'body', f?: FontChoice) => set({ fonts: { ...fonts, [k]: f } });
@@ -225,14 +241,14 @@ export default function PlinkoThemeBuilder() {
         <section className="ptb-section">
           <h2>Images</h2>
           <div className="ptb-cards">
-            <ImageCard label="Cover" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
+            <ImageCard page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Cover" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
               {draft.cover ? <img src={draft.cover} alt="" className="sq" /> : <span>Empty</span>}
             </ImageCard>
-            <ImageCard label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
-            <ImageCard label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
-            <ImageCard label="Board" hint="Behind the pegs. Portrait or square." value={draft.board} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
-            <ImageCard label="Side panels" hint="Behind the scoreboard and power-ups. Keep the middle calm." value={draft.panel} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
-            <ImageCard label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5, up to 10." count={`${draft.balls.length} of 10`} busy={busy === 'balls'}
+            <ImageCard page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
+            <ImageCard page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
+            <ImageCard page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Board" hint="Behind the pegs. Portrait or square." value={draft.board} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
+            <ImageCard page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Side panels" hint="Behind the scoreboard and power-ups. Keep the middle calm." value={draft.panel} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
+            <ImageCard page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5, up to 10." count={`${draft.balls.length} of 10`} busy={busy === 'balls'}
               onFile={async (fl) => { const files = Array.from(fl).slice(0, 10 - draft.balls.length); const urls: string[] = []; for (const f of files) await up('balls', f, (u) => urls.push(u)); if (urls.length) set({ balls: [...draft.balls, ...urls].slice(0, 10) }); }}
               onClear={() => set({ balls: [] })}>
               {draft.balls.length ? <div className="ptb-balls">{draft.balls.map((b, i) => <button key={i} type="button" title="Remove this ball" onClick={() => set({ balls: draft.balls.filter((_, k) => k !== i) })}><img src={b} alt={`Ball ${i + 1}`} /></button>)}</div> : <span>Default balls</span>}
@@ -318,12 +334,13 @@ export default function PlinkoThemeBuilder() {
           </div>
         </section>
 
-        <details className="ptb-section ptb-import">
-          <summary>Import from the Canva template</summary>
-          <p className="ptb-hint">Fill the theme from the 6 page Canva template in one step. Everything it brings in can still be changed above.</p>
+        <details className="ptb-section ptb-import" open>
+          <summary>Import from the template</summary>
+          <p className="ptb-hint">Print it for drawing by hand, or upload it to Canva (each page is one flattened picture; lock it in Canva so nothing moves). Bring it back as the Canva PDF, as pictures, or as phone photos of the {TEMPLATE_PAGES} pages in order. The corner squares straighten each photo.</p>
           <div className="row-wrap" style={{ gap: 10, alignItems: 'center' }}>
-            <a className="btn btn-sm" href="/plinko/plinko-theme-template.pdf" download>Download the template</a>
-            <label className="btn btn-sm">Choose the Canva PDF<input type="file" accept="application/pdf,.pdf" hidden onChange={(e) => { importPdf(e.target.files?.[0]); e.target.value = ''; }} /></label>
+            <a className="btn btn-sm" href="/plinko/plinko-theme-template.pdf" download>Download the template (PDF, 11 x 8.5 in)</a>
+            <label className="btn btn-sm btn-primary">Upload PDF or pictures<input type="file" accept="application/pdf,image/*" multiple hidden onChange={(e) => { importFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} /></label>
+            <label className="btn btn-sm">Take photos<input type="file" accept="image/*" capture="environment" multiple hidden onChange={(e) => { importFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} /></label>
             {pdfStep && <span className="ptb-hint">{pdfStep}</span>}
           </div>
         </details>
