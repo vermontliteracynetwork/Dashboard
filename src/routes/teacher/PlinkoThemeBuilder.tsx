@@ -7,7 +7,7 @@ import { uploadAudio, uploadImage } from '../../lib/upload';
 import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_POWERS, PAGE_OF, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
+  DEFAULT_POWERS, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
   type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
@@ -44,6 +44,8 @@ const HEX = /^#[0-9a-f]{6}$/i;
 const PEG_START: PegColor[] = [{ color: '#ff8ac4', sound: 'bark' }, { color: '#ff9f43', sound: 'fart' }, { color: '#7bd389', sound: 'boing' }, { color: '#9b8cff', sound: 'meow' }, { color: '#ffd93d', sound: 'ding' }, { color: '#4dc3ff', sound: 'splash' }];
 const Check = () => <svg viewBox="0 0 20 20" width="20" height="20" aria-label="Done"><circle cx="10" cy="10" r="10" fill="#16a34a" /><path d="M5.5 10.5l3 3 6-7" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 const Magnet = ({ size = 30 }: { size?: number }) => <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden><path d="M8 5v11a8 8 0 0 0 16 0V5h-6v11a2 2 0 0 1-4 0V5z" fill="#127FB5" stroke="#6C626E" strokeWidth="1.2" /></svg>;
+// Build Queue 301: a power-up's four rules (what it does, when, how the ball moves, with others) in one bubble.
+const Rules = ({ p }: { p: PowerDef }) => { const sp = specOf(p); return SPEC_FIELDS.some((f) => sp[f.key]) ? <Info label={`Rules for ${p.name || 'this power-up'}`}>{SPEC_FIELDS.map((f) => sp[f.key] && <span key={f.key} className="ptb-pop-row"><b>{f.label}:</b> {sp[f.key]}</span>)}</Info> : null; };
 const kindText = (p: PowerDef) => { const k = POWER_KINDS.find((x) => x.kind === p.kind); return k ? `${k.label}${k.nLabel ? ` (${k.nLabel.toLowerCase()} ${p.n ?? k.nDef})` : ''}` : ''; };
 
 function useUpload() {
@@ -397,7 +399,7 @@ export default function PlinkoThemeBuilder() {
                       <PowerPic img={o.img} fallback={DEFAULT_ICON[d.id]} magnet={d.id === 'magnet'} busy={busy === `p-${d.id}`} onFile={(f) => up(`p-${d.id}`, f, (u) => setPower(d.id as PlinkoPower, { img: u }))} onClear={o.img ? () => setPower(d.id as PlinkoPower, { img: '' }) : undefined} />
                       <label className="ptb-field">Name<input value={o.name ?? ''} placeholder={d.name} onChange={(e) => setPower(d.id as PlinkoPower, { name: e.target.value })} /></label>
                       <label className="ptb-field">Description<input value={o.does ?? ''} placeholder={d.does} onChange={(e) => setPower(d.id as PlinkoPower, { does: e.target.value })} /></label>
-                      <div className="ptb-action"><small>Action</small><b>{kindText(d)}</b></div>
+                      <div className="ptb-action"><small>Action</small><b>{kindText(d)}</b><Rules p={d} /></div>
                     </div>
                   );
                 })}
@@ -413,11 +415,19 @@ export default function PlinkoThemeBuilder() {
                           {POWER_KINDS.map((x) => <option key={x.kind} value={x.kind}>{x.label}</option>)}
                         </select>
                       </label>
+                      {p.kind !== 'none' && <div className="ptb-action"><small>Rules</small><Rules p={p} /></div>}
                       {k?.nLabel && <label className="ptb-field small">{k.nLabel}<input type="number" min={k.nMin} max={k.nMax} value={p.n ?? k.nDef} onChange={(e) => setCustom(i, { n: Math.max(k.nMin ?? 1, Math.min(k.nMax ?? 99, Number(e.target.value) || k.nDef || 1)) })} /></label>}
-                      <label className="ptb-field wide"><span>Logic {p.kind === 'none' && <span className="ptb-req">Required</span>}</span>
-                        <textarea rows={2} value={p.logic ?? ''} onChange={(e) => setCustom(i, { logic: e.target.value })}
-                          placeholder={p.kind === 'none' ? 'Exactly what it does, for example: the ball rolls toward the star bucket.' : 'Optional notes'} />
-                      </label>
+                      {p.kind === 'none' ? (
+                        <div className="ptb-spec wide">
+                          {SPEC_FIELDS.map((f) => (
+                            <label key={f.key} className="ptb-field"><span>{f.label} {f.key === 'does' && <span className="ptb-req">Required</span>}</span>
+                              <textarea rows={2} value={p.spec?.[f.key] ?? (f.key === 'does' ? p.logic ?? '' : '')} placeholder={f.ask} onChange={(e) => setCustom(i, { spec: { ...p.spec, [f.key]: e.target.value } })} />
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <label className="ptb-field wide">Notes<textarea rows={1} value={p.logic ?? ''} onChange={(e) => setCustom(i, { logic: e.target.value })} placeholder="Optional" /></label>
+                      )}
                       {p.kind === 'none' && <p className="ptb-note warn wide">Needs building. Students see it once it is built; mention it in chat.</p>}
                       <button type="button" className="btn btn-sm btn-danger ptb-remove" onClick={() => set({ customPowers: (draft.customPowers ?? []).filter((_, k2) => k2 !== i) })}>Remove</button>
                     </div>

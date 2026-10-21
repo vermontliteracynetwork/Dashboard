@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Plinko Game Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inclusive+Sans:ital@0;1&family=Nunito:wght@600;800;900&display=swap">
+<style>
+  @page { size: letter; margin: 0.6in 0.65in; }
+  :root { --ink: #4e4651; --muted: #7a717d; --pink: #ff8ac4; --pink-soft: #ffe3f1; --blue: #93bfe6; --blue-soft: #e4f0fb; --board: #127fb5; --mint: #c3fcb6; --paper: #fbfcf8; --line: #e6e1e8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 11.5pt/1.5 'Inclusive Sans', 'Nunito', system-ui, sans-serif; color: var(--ink); background: #fff; }
+  h1, h2, h3 { font-family: 'Nunito', 'Inclusive Sans', sans-serif; color: #3d3640; line-height: 1.15; text-wrap: balance; }
+  h1 { font-size: 34pt; font-weight: 900; margin: 0; letter-spacing: -.5px; }
+  h2 { font-size: 17pt; font-weight: 900; margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 3px solid var(--pink); display: inline-block; }
+  h3 { font-size: 12.5pt; font-weight: 800; margin: 0 0 4px; }
+  p { margin: 0 0 8px; }
+  .lead { font-size: 13pt; color: var(--muted); max-width: 40em; }
+  .cover { display: flex; gap: 22px; align-items: center; padding: 22px 24px; border-radius: 18px; background: linear-gradient(135deg, #9aeff6 0%, #e9e4f7 50%, #fdc3ec 100%); margin-bottom: 12px; }
+  .cover img { width: 54px; height: 54px; }
+  .balls { display: flex; gap: 6px; margin-top: 10px; }
+  .eyebrow { text-transform: uppercase; letter-spacing: 1.5px; font-size: 9pt; font-weight: 800; color: #5a4f5e; }
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 6px 0 0; display: grid; gap: 6px; }
+  ol.steps li { counter-increment: s; display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+  ol.steps li::before { content: counter(s); width: 26px; height: 26px; border-radius: 50%; background: var(--board); color: #fff; font: 800 11pt/26px 'Nunito', sans-serif; text-align: center; }
+  ol.steps b { color: #3d3640; }
+  table { border-collapse: collapse; width: 100%; font-size: 10.5pt; margin: 6px 0 10px; font-variant-numeric: tabular-nums; }
+  th, td { border: 1px solid var(--line); padding: 5px 8px; text-align: left; vertical-align: top; }
+  th { background: var(--blue-soft); font-family: 'Nunito', sans-serif; font-weight: 800; }
+  td.n, th.n { text-align: center; }
+  .box { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 14px; background: var(--paper); margin: 8px 0; break-inside: avoid; }
+  .box.pink { background: var(--pink-soft); border-color: #ffc2e0; }
+  .box.blue { background: var(--blue-soft); border-color: #c7def3; }
+  h2 { break-after: avoid; } .formula { font: 800 14pt 'Nunito', sans-serif; text-align: center; padding: 6px; color: #3d3640; }
+  .power { display: grid; grid-template-columns: 64px 1fr; gap: 14px; border: 1.5px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 10px 0; break-inside: avoid; background: #fff; }
+  .power .pic { width: 60px; height: 60px; border-radius: 14px; background: var(--paper); border: 1.5px solid var(--line); display: grid; place-items: center; }
+  .power .pic img, .power .pic svg { width: 46px; height: 46px; object-fit: contain; }
+  .power .tag { display: inline-block; font-size: 8.5pt; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--board); background: var(--blue-soft); border-radius: 999px; padding: 1px 8px; margin-left: 6px; vertical-align: 2px; }
+  dl.rules { display: grid; grid-template-columns: 128px 1fr; gap: 3px 10px; margin: 6px 0 0; font-size: 10.5pt; }
+  dl.rules dt { font-weight: 800; color: #3d3640; }
+  dl.rules dd { margin: 0; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .page { break-before: page; }
+  .write { border-bottom: 1.5px solid #cfc8d2; height: 30px; }
+  .sheet dt { padding-top: 10px; }
+  .muted { color: var(--muted); font-size: 10pt; }
+  .chip { display: inline-block; border-radius: 6px; padding: 0 7px; font-weight: 800; border: 1.5px solid rgba(0,0,0,.12); }
+  ul { margin: 4px 0 8px; padding-left: 20px; } li { margin: 2px 0; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div>
+    <div class="eyebrow">For students designing a Plinko theme</div>
+    <h1>Plinko Game Guide</h1>
+    <p class="lead">How a game goes, how the board works, what every power-up does, and how to plan your own power-ups so they fit the game.</p>
+    <div class="balls">
+      <img src="../../public/games/plinko/balls/basket-ball.png" alt=""><img src="../../public/games/plinko/balls/beach-ball.png" alt=""><img src="../../public/games/plinko/balls/earth-africa.png" alt=""><img src="../../public/games/plinko/balls/8-billiard-ball.png" alt=""><img src="../../public/games/plinko/balls/coin.png" alt="">
+    </div>
+  </div>
+</div>
+
+<h2>The game at a glance</h2>
+<table>
+  <tr><th>Part</th><th>How it works</th></tr>
+  <tr><td>Players</td><td>1 to 5 on one iPad: you, classmates in the room, and Neighbors. Everyone takes turns.</td></tr>
+  <tr><td>Rounds</td><td>3 to 10 (5 is the usual). One round means every player has had one turn.</td></tr>
+  <tr><td>Questions</td><td>1 to 5 questions before each drop. A wrong answer brings a new question until one is right. Then you drop.</td></tr>
+  <tr><td>Score</td><td>XP. The bucket your ball lands in is the XP you get. Most XP at the end wins.</td></tr>
+  <tr><td>Money</td><td>Every right answer still earns your usual class money.</td></tr>
+</table>
+
+<h2>One turn, step by step</h2>
+<ol class="steps">
+  <li><div><b>Whose turn.</b> A big card shows the player and the round.</div></li>
+  <li><div><b>Pick power-ups.</b> Only if you won stars on your last drop. One star means you pick one power-up. You can save up to 3.</div></li>
+  <li><div><b>Answer.</b> Get the question right to earn your drop.</div></li>
+  <li><div><b>Aim.</b> Tap a numbered drop zone across the top of the board.</div></li>
+  <li><div><b>Drop.</b> The ball falls through 7 rows of pegs. On each row it bounces half a space left or right, by chance.</div></li>
+  <li><div><b>Land.</b> The bucket gives you XP. Stars on that bucket are power-ups for your next turn.</div></li>
+  <li><div><b>Extra drops.</b> If a power-up gave you one, you aim and drop again right away, with no new question.</div></li>
+  <li><div><b>Next player.</b> When everyone has gone, a new round starts and the board grows.</div></li>
+</ol>
+
+<h2>The board grows every round</h2>
+<table>
+  <tr><th>Round</th><th class="n">Drop zones</th><th class="n">Buckets</th><th class="n">Bucket points</th><th class="n">Peg colors (if the theme has them)</th></tr>
+  <tr><td>1</td><td class="n">5</td><td class="n">3</td><td class="n">10 to 30</td><td class="n">1</td></tr>
+  <tr><td>2</td><td class="n">6</td><td class="n">4</td><td class="n">10 to 40</td><td class="n">2</td></tr>
+  <tr><td>3</td><td class="n">7</td><td class="n">5</td><td class="n">10 to 50</td><td class="n">3</td></tr>
+  <tr><td>4</td><td class="n">8</td><td class="n">6</td><td class="n">10 to 60</td><td class="n">4</td></tr>
+  <tr><td>5</td><td class="n">9</td><td class="n">7</td><td class="n">10 to 70</td><td class="n">5</td></tr>
+  <tr><td>6 and up</td><td class="n">10</td><td class="n">8</td><td class="n">10 to 80</td><td class="n">one more each round</td></tr>
+</table>
+<ul>
+  <li>Bucket points are mixed into a new order at the start of every round, so the best bucket moves.</li>
+  <li><b>Stars:</b> the top bucket never has stars. Smaller buckets are more likely to have stars (1 to 3). There is always at least one bucket with stars.</li>
+  <li>That makes aiming a choice: big points now, or power-ups for your next turn.</li>
+</ul>
+
+<h2>How points are counted</h2>
+<div class="box blue">
+  <div class="formula">XP for a drop = bucket points &times; every multiplier, then + every bonus</div>
+  <p class="muted" style="text-align:center;margin:0">Example: the ball lands in 30 with Double on and a +20 bonus: 30 &times; 2 = 60, then 60 + 20 = 80 XP.</p>
+</div>
+
+<h2>The four main power-ups</h2>
+<p>Every power-up in every theme follows the same four rules: <b>what it does</b>, <b>when it works</b>, <b>how the ball moves</b>, and <b>how it works with other power-ups</b>. A theme can rename a main power-up and give it a new picture, but it always keeps its action.</p>
+<p class="muted">All power-ups: picked at the start of your turn with a star from your last drop, on for this whole turn (extra drops included), then gone.</p>
+
+<div class="power">
+  <div class="pic"><img src="../../public/games/plinko/ui/power-double.png" alt=""></div>
+  <div><h3>Double <span class="tag">Multiply, times 2</span></h3>
+    <dl class="rules">
+      <dt>What it does</dt><dd>The bucket counts twice. A 30 bucket gives 60.</dd>
+      <dt>When it works</dt><dd>Every drop this turn, extra drops too.</dd>
+      <dt>How the ball moves</dt><dd>No change.</dd>
+      <dt>With others</dt><dd>Multipliers multiply each other (times 2 and times 3 make times 6). Bonuses are added after, so they are never doubled.</dd>
+    </dl></div>
+</div>
+<div class="power">
+  <div class="pic"><img src="../../public/games/plinko/ui/power-big.png" alt=""></div>
+  <div><h3>Big Ball <span class="tag">Big ball</span></h3>
+    <dl class="rules">
+      <dt>What it does</dt><dd>The ball is bigger and heavier, so where you drop it matters more.</dd>
+      <dt>When it works</dt><dd>Every drop this turn.</dd>
+      <dt>How the ball moves</dt><dd>On each row there is a 1 in 2 chance it falls straight down instead of bouncing.</dd>
+      <dt>With others</dt><dd>On the rows where it does bounce, a Magnet can still pull it.</dd>
+    </dl></div>
+</div>
+<div class="power">
+  <div class="pic"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M8 5v11a8 8 0 0 0 16 0V5h-6v11a2 2 0 0 1-4 0V5z" fill="#127FB5" stroke="#6C626E" stroke-width="1.2"/></svg></div>
+  <div><h3>Magnet <span class="tag">Pull to the top bucket</span></h3>
+    <dl class="rules">
+      <dt>What it does</dt><dd>Pulls the ball toward the bucket worth the most points.</dd>
+      <dt>When it works</dt><dd>Every drop this turn.</dd>
+      <dt>How the ball moves</dt><dd>On each row there is a 3 in 4 chance it bounces toward the top bucket. It can still miss.</dd>
+      <dt>With others</dt><dd>With Big Ball, some rows fall straight and the magnet pulls on the others. Works with multipliers and bonuses.</dd>
+    </dl></div>
+</div>
+<div class="power">
+  <div class="pic"><img src="../../public/games/plinko/ui/power-again.png" alt=""></div>
+  <div><h3>Second Drop <span class="tag">Extra drops, 1</span></h3>
+    <dl class="rules">
+      <dt>What it does</dt><dd>After your ball lands, you aim and drop again. Each drop scores on its own.</dd>
+      <dt>When it works</dt><dd>Right after your first drop, with no new question.</dd>
+      <dt>How the ball moves</dt><dd>No change. You pick a new drop zone.</dd>
+      <dt>With others</dt><dd>Every other power-up stays on for the extra drop. Stars from any drop count for your next turn.</dd>
+    </dl></div>
+</div>
+
+<h2>More actions a theme can use</h2>
+<p>A theme can add its own power-ups. Each new one picks an action from this list (with its amount), or, if none fits, describes something new.</p>
+<table>
+  <tr><th style="width:24%">Action</th><th style="width:14%">Amount</th><th>The four rules in short</th></tr>
+  <tr><td>Multiply the points</td><td>times 2 to 5</td><td>Bucket counts that many times. Every drop this turn. Ball moves as usual. Multipliers multiply each other.</td></tr>
+  <tr><td>Bonus XP</td><td>5 to 100 XP</td><td>Adds XP wherever it lands. Every drop this turn. Ball moves as usual. Added after multipliers; bonuses add together.</td></tr>
+  <tr><td>Big ball</td><td>none</td><td>1 in 2 chance to fall straight on each row. Every drop this turn.</td></tr>
+  <tr><td>Magnet</td><td>none</td><td>3 in 4 chance to bounce toward the top bucket on each row. Every drop this turn.</td></tr>
+  <tr><td>Extra drops</td><td>1 to 3 drops</td><td>Drop again right away. Other power-ups stay on. Two extra-drop power-ups add up.</td></tr>
+  <tr><td>Never the lowest bucket</td><td>none</td><td>If the ball would land in the lowest bucket, it rolls to the better bucket beside it, then multipliers and bonuses count as usual.</td></tr>
+  <tr><td>Something new</td><td>you decide</td><td>You write all four rules. It is saved, but students only see it after it is built into the game.</td></tr>
+</table>
+
+<h2>When power-ups mix</h2>
+<p>When several power-ups are on, the game always uses them in this order:</p>
+<ol class="steps">
+  <li><div><b>The fall.</b> On each row, Big Ball checks first (fall straight?). If the ball bounces, Magnet decides the direction.</div></li>
+  <li><div><b>The landing.</b> Never the lowest bucket moves the ball over, if it is on.</div></li>
+  <li><div><b>Multipliers.</b> All of them multiply the bucket.</div></li>
+  <li><div><b>Bonuses.</b> All of them are added last.</div></li>
+  <li><div><b>Extra drops.</b> Start again from step 1, with the same power-ups on.</div></li>
+</ol>
+
+<div class="two">
+  <div class="box">
+    <h3>Neighbors</h3>
+    <p>Neighbors answer by themselves, pick their power-ups at random, and drop in a random zone. They follow every other rule the same way you do.</p>
+  </div>
+  <div class="box">
+    <h3>Peg colors and music</h3>
+    <p>A theme can give pegs colors, each with its own sound (a bark, a boing). One more color joins each round. Sounds and music are just for fun: they never change the points.</p>
+  </div>
+</div>
+
+<div class="page"></div>
+<h2>Plan your theme</h2>
+<div class="two">
+  <div class="box pink">
+    <h3>What every theme needs</h3>
+    <ul>
+      <li>A name and a square cover</li>
+      <li>At least 5 balls (up to 10)</li>
+    </ul>
+    <h3>What it can also have</h3>
+    <ul>
+      <li>Background, title, board and side panel pictures</li>
+      <li>Colors for buttons, text, pegs and buckets</li>
+      <li>New names and pictures for the 4 main power-ups</li>
+      <li>New power-ups of its own</li>
+      <li>Peg colors with sounds, and one background song</li>
+    </ul>
+  </div>
+  <div class="box blue">
+    <h3>Good power-up rules</h3>
+    <ul>
+      <li>Say what it does in one short sentence.</li>
+      <li>It lasts one turn, then it is gone.</li>
+      <li>It helps, but nobody wins every time.</li>
+      <li>It fits the theme (a dog theme: Super Smell).</li>
+      <li>Nothing ever gets hurt. Things can bounce, wobble, poof or float.</li>
+      <li>Think about what happens when it is on with Double or Magnet.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="box">
+  <h3>Example: Super Smell (a dog theme)</h3>
+  <dl class="rules">
+    <dt>Action</dt><dd>Magnet (pull to the top bucket), with a new name and a dog nose picture.</dd>
+    <dt>What it does</dt><dd>The dog sniffs out the best treat bucket and the ball follows its nose.</dd>
+    <dt>When it works</dt><dd>Every drop this turn.</dd>
+    <dt>How the ball moves</dt><dd>3 in 4 chance on each row to bounce toward the top bucket.</dd>
+    <dt>With others</dt><dd>Same as Magnet: works with Big Ball on the rows where it bounces.</dd>
+  </dl>
+</div>
+
+<div class="page"></div>
+<h2>Design your own power-up</h2>
+<p class="muted">Fill this in before you draw. If one of the actions in "More actions a theme can use" fits, write it down. If not, write "Something new" and answer every question carefully.</p>
+<dl class="rules sheet" style="grid-template-columns: 170px 1fr; gap: 6px 14px;">
+  <dt>Theme</dt><dd class="write"></dd>
+  <dt>Power-up name</dt><dd class="write"></dd>
+  <dt>Action</dt><dd class="write"></dd>
+  <dt>Amount (if it has one)</dt><dd class="write"></dd>
+  <dt>What it does</dt><dd><div class="write"></div><div class="write"></div></dd>
+  <dt>When it works</dt><dd><div class="write"></div><div class="write"></div></dd>
+  <dt>How the ball moves</dt><dd><div class="write"></div><div class="write"></div></dd>
+  <dt>With other power-ups</dt><dd><div class="write"></div><div class="write"></div></dd>
+  <dt>Card text (short)</dt><dd class="write"></dd>
+</dl>
+<div class="box" style="margin-top:16px">
+  <h3>Picture</h3>
+  <p class="muted">Draw it on its power-up page of the theme template, inside the dashed square.</p>
+  <div style="height:170px; border:2px dashed #cfc8d2; border-radius:12px; width:170px"></div>
+</div>
+
+</body>
+</html>

@@ -57,16 +57,34 @@ export interface FontChoice { preset?: string; url?: string; name?: string }
 // Power-ups: the four defaults plus any a theme adds. Each one does one built-in action; "none" means the teacher
 // described something new in its logic notes, so it is saved but not offered to students until that action is built.
 export type PowerKind = 'multiply' | 'bonus' | 'big' | 'magnet' | 'extra' | 'lucky' | 'none';
-export interface PowerDef { id: string; name: string; does: string; img?: string; kind: PowerKind; n?: number; logic?: string }
-export const POWER_KINDS: { kind: PowerKind; label: string; nLabel?: string; nMin?: number; nMax?: number; nDef?: number }[] = [
-  { kind: 'multiply', label: 'Multiply the points of the drop', nLabel: 'Times', nMin: 2, nMax: 5, nDef: 2 },
-  { kind: 'bonus', label: 'Add bonus XP to the drop', nLabel: 'XP', nMin: 5, nMax: 100, nDef: 20 },
-  { kind: 'big', label: 'Big ball (bounces less, easier to aim)' },
-  { kind: 'magnet', label: 'Pull the ball toward the top bucket' },
-  { kind: 'extra', label: 'Extra drops this turn', nLabel: 'Drops', nMin: 1, nMax: 3, nDef: 1 },
-  { kind: 'lucky', label: 'Never land in the lowest bucket' },
+export interface PowerDef { id: string; name: string; does: string; img?: string; kind: PowerKind; n?: number; logic?: string; spec?: PowerSpec }
+// Build Queue 301: every power-up is defined by the same four rules, so what it does is never a guess.
+// For a built action they are fixed (below); for "Something new" the teacher or student writes all four.
+export interface PowerSpec { does?: string; when?: string; moves?: string; mixes?: string }
+export const SPEC_FIELDS: { key: keyof PowerSpec; label: string; ask: string }[] = [
+  { key: 'does', label: 'What it does', ask: 'What changes? Points, the ball, the buckets, the drops?' },
+  { key: 'when', label: 'When it works', ask: 'Which drop, and how long does it last?' },
+  { key: 'moves', label: 'How the ball moves', ask: 'Does the ball move differently? Which way, how much?' },
+  { key: 'mixes', label: 'With other power-ups', ask: 'What happens when it is on at the same time as another one?' },
+];
+const ALWAYS = 'Picked at the start of your turn with a star from your last drop. On for this turn only, then it is gone.';
+export const POWER_KINDS: { kind: PowerKind; label: string; nLabel?: string; nMin?: number; nMax?: number; nDef?: number; spec?: Required<PowerSpec> }[] = [
+  { kind: 'multiply', label: 'Multiply the points of the drop', nLabel: 'Times', nMin: 2, nMax: 5, nDef: 2,
+    spec: { does: 'The bucket the ball lands in counts that many times (Double: a 30 bucket gives 60).', when: `${ALWAYS} It counts for every drop this turn, the extra drops too.`, moves: 'No change. The ball bounces the usual way.', mixes: 'Two multipliers multiply each other (times 2 and times 3 make times 6). Bonus XP is added after multiplying.' } },
+  { kind: 'bonus', label: 'Add bonus XP to the drop', nLabel: 'XP', nMin: 5, nMax: 100, nDef: 20,
+    spec: { does: 'Adds that much XP on top of the bucket, wherever the ball lands.', when: `${ALWAYS} It adds to every drop this turn.`, moves: 'No change. The ball bounces the usual way.', mixes: 'Added after multipliers, so it is never doubled. Two bonuses add together.' } },
+  { kind: 'big', label: 'Big ball (bounces less, easier to aim)',
+    spec: { does: 'The ball is bigger and heavier, so where you drop it matters more.', when: `${ALWAYS} The ball is big for every drop this turn.`, moves: 'On each row of pegs there is a 1 in 2 chance it falls straight down instead of bouncing left or right.', mixes: 'With a magnet: on the rows where the big ball does bounce, the magnet can still pull it.' } },
+  { kind: 'magnet', label: 'Pull the ball toward the top bucket',
+    spec: { does: 'Pulls the ball toward the bucket worth the most points.', when: `${ALWAYS} It pulls on every drop this turn.`, moves: 'On each row there is a 3 in 4 chance the ball bounces toward the top bucket instead of a random way. It can still miss.', mixes: 'With a big ball: the big ball falls straight on some rows, the magnet pulls on the others. Works with multipliers and bonuses.' } },
+  { kind: 'extra', label: 'Extra drops this turn', nLabel: 'Drops', nMin: 1, nMax: 3, nDef: 1,
+    spec: { does: 'After your ball lands, you aim and drop again. Each drop scores on its own.', when: `${ALWAYS} The extra drops come right after the first one, with no new question.`, moves: 'No change. You pick a new drop zone each time.', mixes: 'Every other power-up stays on for the extra drops. Two extra-drop power-ups add up. Stars won on any drop count for your next turn.' } },
+  { kind: 'lucky', label: 'Never land in the lowest bucket',
+    spec: { does: 'If the ball would land in the bucket worth the fewest points, it rolls over to the better bucket beside it.', when: `${ALWAYS} It protects every drop this turn.`, moves: 'The ball bounces the usual way. Only the very last roll into a bucket can change.', mixes: 'Works with all the others. The bucket it rolls to is then multiplied and gets bonuses as usual.' } },
   { kind: 'none', label: 'Something new (describe the logic)' },
 ];
+// The four rules for a power-up: fixed for a built action, written by hand for something new.
+export const specOf = (p: PowerDef): PowerSpec => POWER_KINDS.find((k) => k.kind === p.kind)?.spec ?? p.spec ?? {};
 export const DEFAULT_POWERS: PowerDef[] = [
   { id: 'double', name: 'Double', does: 'Counts twice.', kind: 'multiply', n: 2 },
   { id: 'big', name: 'Big Ball', does: 'Bounces less.', kind: 'big' },
