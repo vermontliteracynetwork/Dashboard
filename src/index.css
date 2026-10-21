@@ -10152,3 +10152,24 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ptb-pcard img, .ptb-pcard svg { width: 30px; height: 30px; object-fit: contain; }
 .ptb-pcard em { font-style: normal; color: #fff; border-radius: 6px; padding: 2px 0; width: 100%; text-align: center; font-weight: 700; font-size: .7rem; }
 .ptb-pcards small { text-align: center; font-weight: 700; font-size: .72rem; }
+/* Build Queue 320: every color picker in the theme builder is filled edge to edge, no inner square. */
+.ptb input[type=color] { -webkit-appearance: none; appearance: none; padding: 0; border: none; overflow: hidden; cursor: pointer; }
+.ptb input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.ptb input[type=color]::-webkit-color-swatch { border: none; border-radius: inherit; }
+.ptb input[type=color]::-moz-color-swatch { border: none; border-radius: inherit; }
+.ptb-color > input[type=color] { width: 48px; height: 48px; border-radius: 10px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+.ptb-pegrow input[type=color] { border-radius: 50%; }
+/* Build Queue 321 and 323: add-a-peg chip, the peg sound chips. */
+.ptb-addchip { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 62px; border: 2px dashed #c7cbd4; border-radius: 10px; background: #fff; font: 700 .85rem inherit; color: #4f46e5; cursor: pointer; }
+.ptb-addchip small { color: var(--ptb-muted); font-weight: 600; font-size: .72rem; }
+.ptb-sfx { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.ptb-sfx-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 4px; border-radius: 999px; border: 1.5px solid #d6d9e0; background: #f8fafc; opacity: .6; }
+.ptb-sfx-chip.on { opacity: 1; background: #eef2ff; border-color: #c7d2fe; }
+.ptb-sfx-chip.mine { background: #ecfdf5; border-color: #a7f3d0; }
+.ptb-sfx-play { border: none; background: #fff; border-radius: 999px; padding: 6px 12px; font: 700 .82rem inherit; cursor: pointer; min-height: 34px; }
+.ptb-sfx-chip input { width: 20px; height: 20px; }
+.ptb-sfx .ptb-ib { width: 44px; }
+/* Build Queue 324: the preview mirrors the game: score board on the left, the board in the middle, power-up cards on the right with no panel. */
+.ptb-pcards h4 { margin: 0; text-align: center; font-size: 1rem; }
+.ptb-main { grid-template-columns: 1fr 2.6fr .9fr; align-items: stretch; }
+.ptb-zones span { font-size: 1rem; padding: 4px 0; }

@@ -9,7 +9,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
-import { playPegSound, sfx, SfxToggle } from '../../lib/miniSfx';
+import { PEG_SOUNDS, playPegSound, sfx, SfxToggle } from '../../lib/miniSfx';
 import { useVisitScore } from '../../components/MyBest';
 import PlinkoSetup, { BALLS, Slider, type SetupPlayer } from './PlinkoSetup';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -91,6 +91,7 @@ export default function PlinkoDrop() {
   const [musicOn, setMusicOn] = useState(musicPref);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const pegOrderRef = useRef<number[]>([]);
+  const pegSoundRef = useRef<string[]>([]);
   const [note, setNote] = useState<string | null>(null);
   const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | null>(null);
   // Build Queue 304: rounds added on the game over card (keep playing with the same players and scores).
@@ -152,7 +153,14 @@ export default function PlinkoDrop() {
     const st = bk.map((v) => (v === Math.max(...bk) ? 0 : Math.random() < (v <= 20 ? 0.7 : 0.4) ? 1 : 0));
     if (!st.some(Boolean)) st[bk.indexOf(Math.min(...bk))] = 1;
     // Build Queue 299: one more peg color (and its sound) joins at the start of every round.
-    if (rnd === 0) pegOrderRef.current = pegOrder(pegTypes);
+    if (rnd === 0) {
+      pegOrderRef.current = pegOrder(pegTypes);
+      // Build Queue 322: every game pairs each peg color with a random sound from the theme's sounds (or all of them).
+      const pool = theme?.sfx?.length ? theme.sfx : PEG_SOUNDS.filter((x) => x.id !== 'tick').map((x) => x.id);
+      const mix = () => { const m = pool.slice(); for (let i = m.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [m[i], m[j]] = [m[j], m[i]]; } return m; };
+      const list: string[] = []; while (list.length < pegTypes.length) list.push(...mix());
+      pegSoundRef.current = list;
+    }
     const pc = colorPegs(pegsFor(z).length, pegTypes, rnd, pegOrderRef.current);
     boardRef.current = { buckets: bk, stars: st, zones: z, nb, pegCol: pc, gone: new Set() };
     setBuckets(bk); setStars(st); setPegCol(pc); setGone([]); setFloats([]);
@@ -305,7 +313,7 @@ export default function PlinkoDrop() {
       .forEach(({ at, k }) => { const c = pc[k]; if (c === null || c === undefined || after.has(k)) return; after.add(k); events.push({ at, k, v: pegOrderRef.current.indexOf(c) + 1 }); });
     boardRef.current.gone = after;
     const pegXp = events.reduce((m, e) => m + e.v, 0);
-    const soundOf = (k: number) => { const c = pc[k]; if (c !== null && c !== undefined && pegTypes[c]) playPegSound(pegTypes[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick(); };
+    const soundOf = (k: number) => { const c = pc[k]; if (c !== null && c !== undefined && pegTypes[c]) playPegSound(pegSoundRef.current[c] ?? pegTypes[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick(); };
     timed.forEach((tp, bi) => tp.forEach((pt) => timers.current.push(window.setTimeout(() => {
       (bi === 0 ? setBall : setBall2)(pt);
       if (bi === 0) setPopping(pt.tag === 'pop');

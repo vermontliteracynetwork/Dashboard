@@ -50,12 +50,12 @@ const defaultDraft = (): PlinkoTheme => ({
   buckets: [...BUCKET_DEF], powers: {}, customPowers: [], fonts: {}, pegColors: DEFAULT_PEG_COLORS.map((x) => ({ ...x })),
 });
 // One peg in the Game elements section: its color and its sound together.
-function PegRow({ label, color, sound, busy, onColor, onSound, onUpload, onRemove }: { label: string; color: string; sound: string; busy: boolean; onColor: (v: string) => void; onSound: (v: string) => void; onUpload: () => void; onRemove?: () => void }) {
+function PegRow({ label, color, sound, busy, onColor, onSound, onUpload, onRemove, noColor }: { label: string; color: string; sound: string; busy: boolean; onColor: (v: string) => void; onSound: (v: string) => void; onUpload: () => void; onRemove?: () => void; noColor?: boolean }) {
   const known = PEG_SOUNDS.some((x) => x.id === sound);
   return (
     <div className="ptb-pegrow">
       <span className="ptb-round">{label}</span>
-      <input type="color" value={color} onChange={(e) => onColor(e.target.value)} aria-label={`${label} color`} />
+      {!noColor && <input type="color" value={color} onChange={(e) => onColor(e.target.value)} aria-label={`${label} color`} />}
       <select value={known ? sound : 'file'} aria-label={`${label} sound`} onChange={(e) => { if (e.target.value === 'upload') { onUpload(); return; } onSound(e.target.value); playPegSound(e.target.value); }}>
         {PEG_SOUNDS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
         {!known && <option value="file">My sound file</option>}
@@ -127,6 +127,7 @@ function Preview({ t }: { t: PlinkoTheme }) {
         </section>
         {/* Build Queue 315: power-ups as cards, one per row, with no panel behind them. */}
         <aside className="ptb-pcards" style={{ color: c('text', DEF.text) }}>
+          <h4 style={{ fontFamily: head }}>Power-ups</h4>
           {powers.slice(0, 3).map((p) => (
             <div key={p.id} className="ptb-pcard" style={{ background: c('powerBg', DEF.secondary), borderColor: c('boardBorder', DEF.edge) }}>
               <b style={{ fontFamily: head }}>{p.name || 'New power-up'}</b>
@@ -211,7 +212,7 @@ function Fold({ title, meta, info, open, children }: { title: string; meta?: Rea
   );
 }
 
-function ColorField({ label, value, def, onChange }: { label: string; value?: string; def: string; onChange: (v?: string) => void }) {
+function ColorField({ label, value, def, onChange, onRemove }: { label: string; value?: string; def: string; onChange: (v?: string) => void; onRemove?: () => void }) {
   const [text, setText] = useState(value ?? '');
   useEffect(() => setText(value ?? ''), [value]);
   return (
@@ -221,7 +222,7 @@ function ColorField({ label, value, def, onChange }: { label: string; value?: st
         <b>{label}</b>
         <div className="ptb-hex">
           <input value={text} placeholder={def} maxLength={7} aria-label={`${label} hex code`} onChange={(e) => { const x = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`; setText(e.target.value); if (HEX.test(x)) onChange(x.toLowerCase()); }} />
-          {value && <button type="button" className="ptb-link" onClick={() => onChange(undefined)}>Default</button>}
+          {onRemove ? <button type="button" className="ptb-link" onClick={onRemove}>Remove</button> : value && <button type="button" className="ptb-link" onClick={() => onChange(undefined)}>Default</button>}
         </div>
       </div>
     </div>
@@ -284,6 +285,9 @@ export default function PlinkoThemeBuilder() {
   const colorsSet = [...Object.values(draft.colors), ...draft.buckets].filter((c): c is string => !!c);
   const fontsMeta = FONT_ROLES.map((r) => { const f = fonts[r.key]; return f?.url ? f.name : PLINKO_FONTS.find((x) => x.id === f?.preset)?.label; }).filter(Boolean).join(', ') || 'Default';
   const pegColors = draft.pegColors ?? [];
+  // Build Queue 322 and 323: the peg sounds a game can pair with peg colors (all the built-in ones unless she picked).
+  const pool = draft.sfx ?? PEG_SOUNDS.filter((x) => x.id !== 'tick').map((x) => x.id);
+  const setPool = (v: string[]) => set({ sfx: v });
   const setPeg = (i: number, p: Partial<PegColor>) => set({ pegColors: pegColors.map((x, k) => (k === i ? { ...x, ...p } : x)) });
   const pegInput = useRef<HTMLInputElement>(null);
   const pegFile = useRef<number | null>(null);
@@ -382,7 +386,7 @@ export default function PlinkoThemeBuilder() {
             </Fold>
 
             <Fold title="Colors" meta={<span className="ptb-swatches">{colorsSet.length ? colorsSet.map((c, i) => <i key={i} style={{ background: c }} />) : 'Default'}</span>}
-              info={<>Pick a color or type a hex code.{COLORS.map((c) => <span key={c.key} className="ptb-pop-row"><b>{c.label}:</b> {c.hint}</span>)}<span className="ptb-pop-row"><b>Buckets:</b> 1 to 3 show from round 1, then one more each round.</span></>}>
+              info={<>Pick a color or type a hex code.{COLORS.map((c) => <span key={c.key} className="ptb-pop-row"><b>{c.label}:</b> {c.hint}</span>)}<span className="ptb-pop-row"><b>Buckets:</b> 1 to 3 show from round 1, then one more each round.</span><span className="ptb-pop-row"><b>Pegs:</b> plain pegs are on the board from the start. Add up to 20 peg colors; each round one more joins at random and pops for XP when hit.</span></>}>
               <div className="ptb-colors">
                 {COLORS.map((c) => <ColorField key={c.key} label={c.label} def={c.def} value={draft.colors[c.key]} onChange={(v) => set({ colors: { ...draft.colors, [c.key]: v } })} />)}
               </div>
@@ -391,33 +395,49 @@ export default function PlinkoThemeBuilder() {
                 {BUCKET_DEF.map((d, i) => <ColorField key={i} label={`Bucket ${i + 1}`} def={d} value={draft.buckets[i] ?? undefined}
                   onChange={(v) => { const b = [...draft.buckets]; while (b.length < 8) b.push(null); b[i] = v ?? null; set({ buckets: b }); }} />)}
               </div>
-            </Fold>
-
-            {/* Build Queue 306 (her words: "no colors for pegs in colors section. but rather have a section for "Game elements" that has a
-                second for pegs where i can define the color and sound for each peg in one"). */}
-            <Fold title="Game elements" meta={`${pegColors.length + 1} peg${pegColors.length ? 's' : ''}`}
-              info="Pegs: the plain pegs are on the board from the start. Add up to 20 peg types. Each round one more type joins the board, picked at random, so every game mixes them differently. Each one makes its sound when the ball bounces off it. Sounds never change the points.">
+              {/* Build Queue 321: peg colors live with the other colors; their sounds are paired at random in each game (322). */}
               <h3>Pegs</h3>
-              <div className="ptb-pegrows">
-                <PegRow label="Plain pegs" color={draft.colors.peg ?? DEF.peg} sound={draft.pegSound ?? 'tick'} busy={busy === 'peg-plain'}
-                  onColor={(v) => set({ colors: { ...draft.colors, peg: v } })} onSound={(v) => set({ pegSound: v })} onUpload={() => { pegFile.current = -1; pegInput.current?.click(); }} />
-                {pegColors.map((pc, i) => (
-                  <PegRow key={i} label={`Peg ${i + 1}`} color={pc.color} sound={pc.sound} busy={busy === `peg-${i}`}
-                    onColor={(v) => setPeg(i, { color: v })} onSound={(v) => setPeg(i, { sound: v })} onUpload={() => { pegFile.current = i; pegInput.current?.click(); }}
-                    onRemove={() => set({ pegColors: pegColors.filter((_, k) => k !== i) })} />
-                ))}
-                {pegColors.length < MAX_PEG_TYPES && <button type="button" className="btn btn-sm" onClick={() => set({ pegColors: [...pegColors, nextPeg(pegColors.length)] })}>Add a peg type ({pegColors.length} of {MAX_PEG_TYPES})</button>}
-                <input ref={pegInput} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { const i = pegFile.current; const f = e.target.files?.[0]; if (i === -1) up('peg-plain', f, (u) => set({ pegSound: u }), true); else if (i !== null) up(`peg-${i}`, f, (u) => setPeg(i, { sound: u }), true); e.target.value = ''; }} />
+              <div className="ptb-colors">
+                <ColorField label="Plain pegs" def={DEF.peg} value={draft.colors.peg} onChange={(v) => set({ colors: { ...draft.colors, peg: v } })} />
+                {pegColors.map((pc, i) => <ColorField key={i} label={`Peg ${i + 1}`} def={pc.color} value={pc.color} onChange={(v) => v && setPeg(i, { color: v })} onRemove={() => set({ pegColors: pegColors.filter((_, k) => k !== i) })} />)}
+                {pegColors.length < MAX_PEG_TYPES && <button type="button" className="ptb-addchip" onClick={() => set({ pegColors: [...pegColors, nextPeg(pegColors.length)] })}>+ Add a peg color<small>{pegColors.length} of {MAX_PEG_TYPES}</small></button>}
               </div>
             </Fold>
 
-            <Fold title="Music" meta={draft.music ? 'Song added' : 'None'} info="One song plays quietly in the background for the whole game. MP3 or M4A works best.">
+            {/* Build Queue 323 (her words: "change music to "Sounds" and allow me to add sound effect files"). */}
+            <Fold title="Sounds" meta={`${draft.music ? 'Music, ' : ''}${pool.length} peg sound${pool.length === 1 ? '' : 's'}`}
+              info="Background music plays quietly for the whole game. Peg sounds: every game pairs each peg color with one of the sounds turned on here, at random, so pink is not always the same sound. Tap a sound to hear it; turn it on or off with its check. Add your own sound effect files too (MP3, M4A, WAV).">
+              <h3>Background music</h3>
               <div className="ptb-music">
                 {draft.music ? <audio src={draft.music} controls preload="none" /> : <span className="ptb-hint">No song yet</span>}
                 <label className="btn btn-sm btn-primary">{busy === 'music' ? 'Uploading...' : draft.music ? 'Replace' : 'Upload song'}
                   <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { up('music', e.target.files?.[0], (u) => set({ music: u }), true); e.target.value = ''; }} />
                 </label>
                 {draft.music && <button type="button" className="btn btn-sm" onClick={() => set({ music: undefined })}>Remove</button>}
+              </div>
+              <h3>Peg sounds</h3>
+              <div className="ptb-sfx">
+                {PEG_SOUNDS.filter((x) => x.id !== 'tick').map((x) => { const on = pool.includes(x.id); return (
+                  <span key={x.id} className={`ptb-sfx-chip${on ? ' on' : ''}`}>
+                    <button type="button" className="ptb-sfx-play" onClick={() => playPegSound(x.id)} aria-label={`Play ${x.label}`}>{x.label}</button>
+                    <input type="checkbox" checked={on} onChange={() => setPool(on ? pool.filter((y) => y !== x.id) : [...pool, x.id])} aria-label={`Use ${x.label}`} />
+                  </span>
+                ); })}
+                {(draft.sfx ?? []).filter((u) => !PEG_SOUNDS.some((x) => x.id === u)).map((u, i) => (
+                  <span key={u} className="ptb-sfx-chip on mine">
+                    <button type="button" className="ptb-sfx-play" onClick={() => playPegSound(u)} aria-label={`Play my sound ${i + 1}`}>My sound {i + 1}</button>
+                    <button type="button" className="ptb-link" onClick={() => setPool(pool.filter((y) => y !== u))} aria-label={`Remove my sound ${i + 1}`}>Remove</button>
+                  </span>
+                ))}
+                <label className="ptb-ib" data-tip="Add sound effect files" aria-label="Add sound effect files">{UP}
+                  <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" multiple hidden onChange={async (e) => { const files = Array.from(e.target.files ?? []); e.target.value = ''; const urls: string[] = []; for (const f of files) await up('sfx', f, (u) => urls.push(u), true); if (urls.length) setPool([...pool, ...urls]); }} />
+                </label>
+                {busy === 'sfx' && <span className="ptb-hint">Uploading...</span>}
+              </div>
+              <div className="ptb-pegrows">
+                <PegRow label="Plain pegs" color={draft.colors.peg ?? DEF.peg} sound={draft.pegSound ?? 'tick'} busy={busy === 'peg-plain'} noColor
+                  onColor={() => {}} onSound={(v) => set({ pegSound: v })} onUpload={() => { pegFile.current = -1; pegInput.current?.click(); }} />
+                <input ref={pegInput} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { const f = e.target.files?.[0]; up('peg-plain', f, (u) => set({ pegSound: u }), true); e.target.value = ''; }} />
               </div>
             </Fold>
 

@@ -40,6 +40,8 @@ export interface PlinkoTheme {
   pegColors?: PegColor[];
   // Build Queue 306: the plain pegs' sound (a PEG_SOUNDS id or a file), a soft tick by default.
   pegSound?: string;
+  // Build Queue 322 and 323: the sounds a game pairs with the peg colors at random (built-in ids or her sound files).
+  sfx?: string[];
 }
 export interface PegColor { color: string; sound: string }
 // Which pegs wear a color in a round (index into pegColors, or null for a plain peg): one more color each round,
