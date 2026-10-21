@@ -95,6 +95,21 @@ def build():
     assert len(pages) == NPAGES
     return regions, pages
 
+def build_zip():
+    # Build Queue 319: docs/plinko-theme-kit.zip. One PDF for printing and for Canva (every page a single flat picture:
+    # no text, shapes or layers to pull apart; Canva will not open a locked PDF, so the page is locked in Canva with
+    # "Set image as background", see HOW-TO.pdf), the single pages as pictures, the how-to and the main theme reference.
+    import zipfile
+    out = os.path.join(ROOT, 'docs', 'plinko-theme-kit.zip')
+    with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
+        z.write(os.path.join(KIT, 'plinko-theme-template.pdf'), 'Plinko-Theme-Kit/Plinko-Theme-Template.pdf')
+        z.write(os.path.join(KIT, 'HOW-TO.pdf'), 'Plinko-Theme-Kit/HOW-TO.pdf')
+        for i in range(1, NPAGES + 1):
+            z.write(os.path.join(KIT, f'page-{i}.png'), f'Plinko-Theme-Kit/single-pages/page-{i}.png')
+        ref = os.path.join(KIT, 'main-theme-reference')
+        for fn in sorted(os.listdir(ref)):
+            z.write(os.path.join(ref, fn), f'Plinko-Theme-Kit/main-theme-reference/{fn}')
+
 def main():
     regions, pages = build()
     os.makedirs(KIT, exist_ok=True)
@@ -110,6 +125,7 @@ def main():
     powers = sorted({r['page'] for k, r in regions.items() if k.startswith('power_')})
     import subprocess
     subprocess.run(['node', os.path.join(ROOT, 'scripts', 'plinko-template-pdf.cjs'), str(len(pages)), ','.join(map(str, balls)), ','.join(map(str, powers))], check=True)
+    build_zip()
     data = {'width': W, 'height': H, 'pages': NPAGES, 'code': CODE, 'markers': {k: [x + MS / 2, y + MS / 2] for k, (x, y) in MARKERS.items()}, 'regions': regions}
     for p in [os.path.join(KIT, 'regions.json'), os.path.join(ROOT, 'src', 'games', 'plinkoThemeRegions.json')]:
         with open(p, 'w') as fh:

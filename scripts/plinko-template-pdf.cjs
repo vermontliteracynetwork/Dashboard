@@ -26,5 +26,8 @@ const html = (pages) => `<!doctype html><style>@page{size:11in 8.5in;margin:0}bo
   for (const p of all) await out([p], path.join(PUB, 'pages', `page-${p}.pdf`));
   await out(balls, path.join(PUB, 'pages', 'balls.pdf'));
   await out(powers, path.join(PUB, 'pages', 'power-ups.pdf'));
+  // Build Queue 319: the kit's how-to as a PDF.
+  await pg.goto(`file://${path.join(KIT, 'HOW-TO.html')}`, { waitUntil: 'load' });
+  await pg.pdf({ path: path.join(KIT, 'HOW-TO.pdf'), format: 'Letter', printBackground: true });
   await b.close();
 })();
