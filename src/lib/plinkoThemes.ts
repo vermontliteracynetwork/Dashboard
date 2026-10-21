@@ -34,7 +34,7 @@ export interface PlinkoTheme {
   customPowers?: PowerDef[];
   // Build Queue 299: one background song for the theme, and colored pegs that each make a sound when the ball
   // bounces off them (a built-in sound id from PEG_SOUNDS or an uploaded sound file). Round 1 uses the first color,
-  // and one more color joins at the start of every round.
+  // and one more peg type joins at the start of every round, picked at random (Build Queue 308: up to 20 types).
   music?: string;
   pegColors?: PegColor[];
   // Build Queue 306: the plain pegs' sound (a PEG_SOUNDS id or a file), a soft tick by default.
@@ -43,15 +43,23 @@ export interface PlinkoTheme {
 export interface PegColor { color: string; sound: string }
 // Which pegs wear a color in a round (index into pegColors, or null for a plain peg): one more color each round,
 // each on about an eighth of the pegs (at least 2), at random, with at least 30 percent of pegs left plain.
-export function colorPegs(nPegs: number, colors: PegColor[] | undefined, round: number): (number | null)[] {
+// `order` is this game's random order of the peg types, so each round adds a random new one (Build Queue 308).
+export const MAX_PEG_TYPES = 20;
+export function pegOrder(colors: PegColor[] | undefined): number[] {
+  const o = Array.from({ length: Math.min(MAX_PEG_TYPES, colors?.length ?? 0) }, (_, i) => i);
+  for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
+  return o;
+}
+export function colorPegs(nPegs: number, colors: PegColor[] | undefined, round: number, order?: number[]): (number | null)[] {
   const out: (number | null)[] = Array(nPegs).fill(null);
-  const k = Math.min(colors?.length ?? 0, round + 1);
+  const ord = order ?? pegOrder(colors);
+  const k = Math.min(ord.length, round + 1);
   if (!k || !nPegs) return out;
   const idx = Array.from({ length: nPegs }, (_, i) => i);
   for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
   const per = Math.max(2, Math.min(Math.round(nPegs / 8), Math.floor((nPegs * 0.7) / k)));
   let p = 0;
-  for (let c = 0; c < k; c++) for (let j = 0; j < per && p < idx.length; j++) out[idx[p++]] = c;
+  for (let c = 0; c < k; c++) for (let j = 0; j < per && p < idx.length; j++) out[idx[p++]] = ord[c];
   return out;
 }
 export interface FontChoice { preset?: string; url?: string; name?: string }

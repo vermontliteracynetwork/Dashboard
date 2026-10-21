@@ -17,7 +17,7 @@ import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
-import { colorPegs, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
+import { colorPegs, pegOrder, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
 
 // Plinko after Baamboozle's Plink-oh (Build Queue 244 and 250, plan in docs/PLINKO_PLAN.pdf).
 // Her rules (2026-10-20): up to 5 players on one iPad, the student plus classmates in the room and
@@ -80,6 +80,7 @@ export default function PlinkoDrop() {
   const [hit, setHit] = useState<number[]>([]);
   const [musicOn, setMusicOn] = useState(musicPref);
   const musicRef = useRef<HTMLAudioElement | null>(null);
+  const pegOrderRef = useRef<number[]>([]);
   const [note, setNote] = useState<string | null>(null);
   const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | null>(null);
   // Build Queue 304: rounds added on the game over card (keep playing with the same players and scores).
@@ -137,10 +138,11 @@ export default function PlinkoDrop() {
     const st = bk.map((v) => (v === Math.max(...bk) ? 0 : Math.random() < 0.6 ? Math.max(1, Math.min(3, Math.round((40 - Math.min(v, 40)) / 12 + Math.random()))) : 0));
     if (!st.some(Boolean)) st[bk.indexOf(Math.min(...bk))] = 2;
     // Build Queue 299: one more peg color (and its sound) joins at the start of every round.
-    const pc = colorPegs(pegsFor(z).length, theme?.pegColors, rnd);
+    if (rnd === 0) pegOrderRef.current = pegOrder(theme?.pegColors);
+    const pc = colorPegs(pegsFor(z).length, theme?.pegColors, rnd, pegOrderRef.current);
     boardRef.current = { buckets: bk, stars: st, zones: z, nb, pegCol: pc };
     setBuckets(bk); setStars(st); setPegCol(pc);
-    if (rnd > 0 && theme?.pegColors && rnd < theme.pegColors.length) timers.current.push(window.setTimeout(() => setNote('A new peg color joined the board!'), 1800));
+    if (rnd > 0 && rnd < pegOrderRef.current.length) timers.current.push(window.setTimeout(() => setNote('A new peg color joined the board!'), 1800));
   };
   const beginTurn = (t: number, list: Player[]) => {
     const p = list[t % list.length];

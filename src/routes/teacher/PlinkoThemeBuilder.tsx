@@ -7,7 +7,7 @@ import { uploadAudio, uploadImage } from '../../lib/upload';
 import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_POWERS, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
+  DEFAULT_POWERS, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
   type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
@@ -57,6 +57,12 @@ function PegRow({ label, color, sound, busy, onColor, onSound, onUpload, onRemov
     </div>
   );
 }
+// A new peg type: her first examples, then a fresh color and a different sound for each one after that.
+const nextPeg = (n: number): PegColor => {
+  if (n < PEG_START.length) return PEG_START[n];
+  const h = (n * 47) % 360, f = (k: number) => { const a = 0.6 * Math.min(0.62, 1 - 0.62); const kk = (k + h / 30) % 12; return Math.round(255 * (0.62 - a * Math.max(-1, Math.min(kk - 3, 9 - kk, 1)))).toString(16).padStart(2, '0'); };
+  return { color: `#${f(0)}${f(8)}${f(4)}`, sound: PEG_SOUNDS[(n * 3 + 1) % PEG_SOUNDS.length].id };
+};
 // The first peg colors offered (her examples: a pink peg barks, an orange peg farts).
 const PEG_START: PegColor[] = [{ color: '#ff8ac4', sound: 'bark' }, { color: '#ff9f43', sound: 'fart' }, { color: '#7bd389', sound: 'boing' }, { color: '#9b8cff', sound: 'meow' }, { color: '#ffd93d', sound: 'ding' }, { color: '#4dc3ff', sound: 'splash' }];
 const Check = () => <svg viewBox="0 0 20 20" width="20" height="20" aria-label="Done"><circle cx="10" cy="10" r="10" fill="#16a34a" /><path d="M5.5 10.5l3 3 6-7" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -364,17 +370,17 @@ export default function PlinkoThemeBuilder() {
             {/* Build Queue 306 (her words: "no colors for pegs in colors section. but rather have a section for "Game elements" that has a
                 second for pegs where i can define the color and sound for each peg in one"). */}
             <Fold title="Game elements" meta={`${pegColors.length + 1} peg${pegColors.length ? 's' : ''}`}
-              info="Pegs: the plain pegs are on the board from the start. Each added peg color joins in its round (round 1 has the first one) and makes its sound when the ball bounces off it. Sounds never change the points.">
+              info="Pegs: the plain pegs are on the board from the start. Add up to 20 peg types. Each round one more type joins the board, picked at random, so every game mixes them differently. Each one makes its sound when the ball bounces off it. Sounds never change the points.">
               <h3>Pegs</h3>
               <div className="ptb-pegrows">
                 <PegRow label="Plain pegs" color={draft.colors.peg ?? DEF.peg} sound={draft.pegSound ?? 'tick'} busy={busy === 'peg-plain'}
                   onColor={(v) => set({ colors: { ...draft.colors, peg: v } })} onSound={(v) => set({ pegSound: v })} onUpload={() => { pegFile.current = -1; pegInput.current?.click(); }} />
                 {pegColors.map((pc, i) => (
-                  <PegRow key={i} label={`Round ${i + 1}`} color={pc.color} sound={pc.sound} busy={busy === `peg-${i}`}
+                  <PegRow key={i} label={`Peg ${i + 1}`} color={pc.color} sound={pc.sound} busy={busy === `peg-${i}`}
                     onColor={(v) => setPeg(i, { color: v })} onSound={(v) => setPeg(i, { sound: v })} onUpload={() => { pegFile.current = i; pegInput.current?.click(); }}
                     onRemove={() => set({ pegColors: pegColors.filter((_, k) => k !== i) })} />
                 ))}
-                {pegColors.length < 10 && <button type="button" className="btn btn-sm" onClick={() => set({ pegColors: [...pegColors, PEG_START[pegColors.length % PEG_START.length]] })}>Add a peg color</button>}
+                {pegColors.length < MAX_PEG_TYPES && <button type="button" className="btn btn-sm" onClick={() => set({ pegColors: [...pegColors, nextPeg(pegColors.length)] })}>Add a peg type ({pegColors.length} of {MAX_PEG_TYPES})</button>}
                 <input ref={pegInput} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { const i = pegFile.current; const f = e.target.files?.[0]; if (i === -1) up('peg-plain', f, (u) => set({ pegSound: u }), true); else if (i !== null) up(`peg-${i}`, f, (u) => setPeg(i, { sound: u }), true); e.target.value = ''; }} />
               </div>
             </Fold>
