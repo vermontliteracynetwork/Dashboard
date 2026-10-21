@@ -54,6 +54,7 @@ export const sfx = {
 // farts). All short, so a ball bouncing peg to peg never piles them up. A peg sound can also be her own uploaded file.
 function bark(delay = 0) { tone(520, 0.11, 'sawtooth', 0.07, 260, delay); noise(0.08, 0.05, 'bandpass', 900, delay); }
 export const PEG_SOUNDS: { id: string; label: string; play: () => void }[] = [
+  { id: 'tick', label: 'Soft tick', play: () => sfx.tick() },
   { id: 'bark', label: 'Bark', play: () => { bark(); bark(0.16); } },
   { id: 'meow', label: 'Meow', play: () => { tone(700, 0.12, 'triangle', 0.06, 1000); tone(1000, 0.22, 'triangle', 0.06, 560, 0.11); } },
   { id: 'fart', label: 'Fart', play: () => { tone(95, 0.38, 'sawtooth', 0.09, 60); tone(120, 0.3, 'square', 0.03, 70, 0.03); noise(0.35, 0.05, 'lowpass', 260); } },

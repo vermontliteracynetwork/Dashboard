@@ -117,7 +117,12 @@ def main():
     for i, im in enumerate(pages):
         im.save(os.path.join(KIT, f'page-{i + 1}.png'))
     # 200 dpi makes each page exactly 11 x 8.5 in; every page is one flattened picture.
-    pages[0].save(os.path.join(KIT, 'plinko-theme-template.pdf'), save_all=True, append_images=pages[1:], resolution=200)
+    # The PDFs (the whole template, one per page for each builder card's Download button, the ball pages and the
+    # power-up pages) are printed from these PNGs by Chromium, which keeps them small: scripts/plinko-template-pdf.cjs.
+    balls = sorted({r['page'] for k, r in regions.items() if k.startswith('ball')})
+    powers = sorted({r['page'] for k, r in regions.items() if k.startswith('power_')})
+    import subprocess
+    subprocess.run(['node', os.path.join(ROOT, 'scripts', 'plinko-template-pdf.cjs'), str(len(pages)), ','.join(map(str, balls)), ','.join(map(str, powers))], check=True)
     data = {'width': W, 'height': H, 'pages': NPAGES, 'code': CODE, 'markers': {k: [x + MS / 2, y + MS / 2] for k, (x, y) in MARKERS.items()}, 'regions': regions}
     for p in [os.path.join(KIT, 'regions.json'), os.path.join(ROOT, 'src', 'games', 'plinkoThemeRegions.json')]:
         with open(p, 'w') as fh:

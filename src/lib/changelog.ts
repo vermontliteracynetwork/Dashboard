@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-more-rounds",
+    date: "2026-10-21",
+    icon: "🔁",
+    title: "Keep playing Plinko",
+    body: "At the end of a Plinko game, slide to add more rounds and keep playing with the same players and scores. The top of the screen now shows which round you are on.",
+  },
+  {
     id: "2026-10-21-plinko-peg-sounds",
     date: "2026-10-21",
     icon: "🎵",

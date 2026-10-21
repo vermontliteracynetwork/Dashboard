@@ -37,6 +37,8 @@ export interface PlinkoTheme {
   // and one more color joins at the start of every round.
   music?: string;
   pegColors?: PegColor[];
+  // Build Queue 306: the plain pegs' sound (a PEG_SOUNDS id or a file), a soft tick by default.
+  pegSound?: string;
 }
 export interface PegColor { color: string; sound: string }
 // Which pegs wear a color in a round (index into pegColors, or null for a plain peg): one more color each round,

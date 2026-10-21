@@ -18,6 +18,7 @@ import {
 // default Plinko look. Teacher-facing only, so plain and professional.
 
 const UI = '/games/plinko/ui/';
+const PG = '/plinko/pages/';
 const DEFAULT_ICON: Record<string, string | null> = { double: `${UI}power-double.png`, big: `${UI}power-big.png`, magnet: null, again: `${UI}power-again.png` };
 const DEF = { bg: 'linear-gradient(135deg, #9AEFF6 0%, #E9E4F7 45%, #FDC3EC 100%)', board: '#127FB5', edge: '#6C626E', peg: '#F9FBF4', panel: '#F9FBF4', text: '#6C626E', primary: '#FF8AC4', secondary: '#93BFE6', zone: '#93BFE6', powerBg: '#FFFFFF', powerBtn: '#127FB5' };
 const BUCKET_DEF = ['#C3FCB6', '#FFDCD6', '#FDC3EC', '#9AEFF6', '#E3FCC3', '#93BFE6', '#FF8AC4', '#F9FBF4'];
@@ -28,7 +29,6 @@ const COLORS: { key: PlinkoColorKey; label: string; hint: string; def: string }[
   { key: 'panelBg', label: 'Side panels', hint: 'Used when there is no side panel picture', def: DEF.panel },
   { key: 'boardBg', label: 'Board', hint: 'Used when there is no board picture', def: DEF.board },
   { key: 'boardBorder', label: 'Board border', hint: 'Edge around the board', def: DEF.edge },
-  { key: 'peg', label: 'Pegs', hint: 'The pegs the ball bounces off', def: DEF.peg },
   { key: 'zone', label: 'Drop zones', hint: 'The numbered tiles across the top', def: DEF.zone },
   { key: 'powerBg', label: 'Power-up cards', hint: 'Behind each power-up', def: DEF.powerBg },
   { key: 'powerBtn', label: 'Power-up buttons', hint: 'The Select buttons', def: DEF.powerBtn },
@@ -40,6 +40,23 @@ const FONT_ROLES: { key: 'title' | 'header' | 'body'; label: string; sample: str
 ];
 const blank = (): PlinkoTheme => ({ id: makeId(), name: '', font: 'default', approved: false, createdAt: new Date().toISOString(), balls: [], colors: {}, buckets: [], powers: {}, customPowers: [], fonts: {} });
 const HEX = /^#[0-9a-f]{6}$/i;
+// One peg in the Game elements section: its color and its sound together.
+function PegRow({ label, color, sound, busy, onColor, onSound, onUpload, onRemove }: { label: string; color: string; sound: string; busy: boolean; onColor: (v: string) => void; onSound: (v: string) => void; onUpload: () => void; onRemove?: () => void }) {
+  const known = PEG_SOUNDS.some((x) => x.id === sound);
+  return (
+    <div className="ptb-pegrow">
+      <span className="ptb-round">{label}</span>
+      <input type="color" value={color} onChange={(e) => onColor(e.target.value)} aria-label={`${label} color`} />
+      <select value={known ? sound : 'file'} aria-label={`${label} sound`} onChange={(e) => { if (e.target.value === 'upload') { onUpload(); return; } onSound(e.target.value); playPegSound(e.target.value); }}>
+        {PEG_SOUNDS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+        {!known && <option value="file">My sound file</option>}
+        <option value="upload">Upload a sound...</option>
+      </select>
+      <button type="button" className="btn btn-sm" onClick={() => playPegSound(sound)} aria-label={`Play the ${label} sound`}>{busy ? '...' : 'Play'}</button>
+      {onRemove && <button type="button" className="ptb-link" onClick={onRemove}>Remove</button>}
+    </div>
+  );
+}
 // The first peg colors offered (her examples: a pink peg barks, an orange peg farts).
 const PEG_START: PegColor[] = [{ color: '#ff8ac4', sound: 'bark' }, { color: '#ff9f43', sound: 'fart' }, { color: '#7bd389', sound: 'boing' }, { color: '#9b8cff', sound: 'meow' }, { color: '#ffd93d', sound: 'ding' }, { color: '#4dc3ff', sound: 'splash' }];
 const Check = () => <svg viewBox="0 0 20 20" width="20" height="20" aria-label="Done"><circle cx="10" cy="10" r="10" fill="#16a34a" /><path d="M5.5 10.5l3 3 6-7" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
@@ -72,7 +89,7 @@ function Preview({ t }: { t: PlinkoTheme }) {
     <div className="ptb-preview" style={{ background: t.background ? `center / cover no-repeat url("${t.background}")` : DEF.bg, fontFamily: body, color: c('text', DEF.text) }} aria-label="Theme preview">
       <div className="ptb-head">
         {t.title ? <img src={t.title} alt={t.name || 'Title'} /> : <b style={{ fontFamily: title }}>Plinko</b>}
-        <span className="ptb-chip" style={{ background: c('secondary', DEF.secondary) }}>My best</span>
+        <span className="ptb-chip" style={{ background: c('secondary', DEF.secondary) }}>Round 2/5</span>
         <span className="ptb-chip" style={{ background: c('secondary', DEF.secondary) }}>120 XP</span>
       </div>
       <div className="ptb-main">
@@ -83,7 +100,6 @@ function Preview({ t }: { t: PlinkoTheme }) {
               <i style={{ background: ball(i) }} /><span>{n}</span><b>{i === 0 ? 40 : 20}</b>
             </div>
           ))}
-          <small>Round 2 of 5</small>
         </aside>
         <section className="ptb-board" style={{ background: t.board ? `center / cover url("${t.board}")` : c('boardBg', DEF.board), borderColor: c('boardBorder', DEF.edge) }}>
           <span className="ptb-turn" style={{ background: c('primary', DEF.primary) }}>Ava's turn</span>
@@ -109,10 +125,16 @@ function Preview({ t }: { t: PlinkoTheme }) {
   );
 }
 
-function ImageCard({ label, hint, required, value, busy, onFile, onClear, multiple, count, children, page, onScan }: {
+// Build Queue 305: three side-by-side icon buttons on every image card.
+const Ico = ({ d }: { d: React.ReactNode }) => <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>{d}</svg>;
+const UP = <Ico d={<><path d="M12 15V4" /><path d="M7 9l5-5 5 5" /><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /></>} />;
+const SCAN = <Ico d={<><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" /><circle cx="12" cy="12" r="3.2" /></>} />;
+const DOWN = <Ico d={<><path d="M12 4v11" /><path d="M7 10l5 5 5-5" /><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /></>} />;
+
+function ImageCard({ label, hint, required, value, busy, onFile, onClear, multiple, count, children, page, onScan, download }: {
   label: string; hint: string; required?: boolean; value?: string; busy: boolean; onFile: (f: FileList) => void; onClear?: () => void; multiple?: boolean; count?: string; children?: React.ReactNode;
   // Build Queue 297: read this card's template page from a photo, a picture or a PDF page.
-  page?: number; onScan?: (f: File[]) => void;
+  page?: number; onScan?: (f: File[]) => void; download?: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const scanRef = useRef<HTMLInputElement>(null);
@@ -131,11 +153,12 @@ function ImageCard({ label, hint, required, value, busy, onFile, onClear, multip
         {full && <span className="ptb-check"><Check /></span>}
       </div>
       <button type="button" className="ptb-thumb" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`}>{children ?? (value ? <img src={value} alt="" /> : <span>Tap or drop a picture</span>)}</button>
-      <div className="ptb-card-actions">
-        <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => ref.current?.click()}>{busy ? 'Uploading...' : value || (multiple && done && count && !count.startsWith('0')) ? (multiple ? 'Add more' : 'Replace') : 'Upload'}</button>
-        {page && onScan && <button type="button" className="btn btn-sm" title={multiple ? 'Photos or scans of the ball pages' : `Photo or scan of template page ${page}`} onClick={() => scanRef.current?.click()}>{multiple ? 'Scan pages' : `Scan page ${page}`}</button>}
-        {(value || (multiple && count && !count.startsWith('0'))) && onClear && <button type="button" className="btn btn-sm" onClick={onClear}>Remove{multiple ? ' all' : ''}</button>}
+      <div className="ptb-icons">
+        <button type="button" className="ptb-ib primary" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`}>{UP}<span>{busy ? 'Uploading' : value || (multiple && done && count && !count.startsWith('0')) ? (multiple ? 'Add' : 'Replace') : 'Upload'}</span></button>
+        {page && onScan && <button type="button" className="ptb-ib" onClick={() => scanRef.current?.click()} aria-label={multiple ? 'Scan the ball pages' : `Scan template page ${page}`}>{SCAN}<span>Scan</span></button>}
+        {download && <a className="ptb-ib" href={download} download aria-label={`Download the ${label} template page`}>{DOWN}<span>Download</span></a>}
       </div>
+      {(value || (multiple && count && !count.startsWith('0'))) && onClear && <button type="button" className="ptb-link ptb-clear" onClick={onClear}>Remove{multiple ? ' all' : ''}</button>}
       {onScan && <input ref={scanRef} type="file" accept="image/*,application/pdf" multiple={multiple} hidden onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) onScan(f); e.target.value = ''; }} />}
       <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" multiple={multiple} hidden onChange={(e) => { if (e.target.files?.length) onFile(e.target.files); e.target.value = ''; }} />
     </div>
@@ -207,7 +230,7 @@ export default function PlinkoThemeBuilder() {
     if (!draft.name.trim()) { setSaved('Give the theme a name first.'); return; }
     const t = { ...draft, approved: approved && missing.length === 0 };
     save(themes.some((x) => x.id === t.id) ? themes.map((x) => (x.id === t.id ? t : x)) : [t, ...themes]);
-    setDraft(t); setDirty(false); setSaved(t.approved ? 'Saved. Students can pick this theme.' : 'Saved as a draft. Students do not see it yet.');
+    setDraft(t); setDirty(false); setSaved(t.approved ? 'Published. Students can pick this theme.' : 'Saved as a draft. Students do not see it yet.');
   };
   const setPower = (id: PlinkoPower, p: Partial<{ name: string; img: string; does: string }>) => set({ powers: { ...draft.powers, [id]: { ...draft.powers[id], ...p } } });
   const setCustom = (i: number, p: Partial<PowerDef>) => set({ customPowers: (draft.customPowers ?? []).map((x, k) => (k === i ? { ...x, ...p } : x)) });
@@ -273,16 +296,18 @@ export default function PlinkoThemeBuilder() {
             <input value={draft.madeBy ?? ''} onChange={(e) => set({ madeBy: e.target.value || undefined })} placeholder="Optional" />
           </label>
           <div className="ptb-actions">
-            <label className="ptb-toggle">
-              <input type="checkbox" checked={draft.approved} disabled={missing.length > 0} onChange={(e) => set({ approved: e.target.checked })} /> Show to students
-            </label>
-            <Info label="About showing to students">Students see a theme once it has a name, a cover and at least 5 balls, and Show to students is on. You can save a draft at any time.</Info>
-            <button type="button" className="btn btn-primary" onClick={() => doSave()}>Save</button>
+            {/* Build Queue 302 (her words: "instead of share with students, show publish button"). */}
+            {draft.approved && <span className="ptb-live">Published</span>}
+            <button type="button" className="btn" onClick={() => doSave()}>{draft.approved ? 'Save' : 'Save draft'}</button>
+            {draft.approved
+              ? <button type="button" className="btn" onClick={() => doSave(false)}>Unpublish</button>
+              : <button type="button" className="btn btn-primary" disabled={missing.length > 0} onClick={() => doSave(true)}>Publish</button>}
+            <Info label="About publishing">Publish shows the theme to students. It needs a name, a cover and at least 5 balls. Unpublish hides it again. A draft can be saved any time.</Info>
             {themes.some((x) => x.id === draft.id) && <button type="button" className="btn btn-danger" onClick={() => { if (window.confirm(`Delete the ${draft.name} theme?`)) { save(themes.filter((x) => x.id !== draft.id)); setDraft(blank()); setDirty(false); } }}>Delete</button>}
           </div>
           {(missing.length > 0 || dirty || saved || err) && (
             <div className="ptb-notes">
-              {missing.length > 0 && <span className="ptb-note">Needed to show students: {missing.join(', ')}</span>}
+              {missing.length > 0 && <span className="ptb-note">Needed to publish: {missing.join(', ')}</span>}
               {dirty && <span className="ptb-note warn">Not saved</span>}
               {saved && <span className="ptb-note ok" role="status">{saved}</span>}
               {err && <span className="ptb-note bad" role="alert">{err}</span>}
@@ -308,19 +333,19 @@ export default function PlinkoThemeBuilder() {
           <div className="ptb-folds">
             <Fold title="Images" open meta={`${imagesSet} of 6`} info="Tap a card or drop a picture on it. Scan reads that part from a photo of its template page. Anything empty keeps the default look.">
               <div className="ptb-cards">
-                <ImageCard page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Cover" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
+                <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Cover" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
                   {draft.cover ? <img src={draft.cover} alt="" className="sq" /> : <span>Tap or drop a picture</span>}
                 </ImageCard>
-                <ImageCard page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5, up to 10. Tap a ball to remove it." count={`${draft.balls.length} of 10`} busy={busy === 'balls'}
+                <ImageCard download={`${PG}balls.pdf`} page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5, up to 10. Tap a ball to remove it." count={`${draft.balls.length} of 10`} busy={busy === 'balls'}
                   onFile={async (fl) => { const files = Array.from(fl).slice(0, 10 - draft.balls.length); const urls: string[] = []; for (const f of files) await up('balls', f, (u) => urls.push(u)); if (urls.length) set({ balls: [...draft.balls, ...urls].slice(0, 10) }); }}
                   onClear={() => set({ balls: [] })}>
                   {draft.balls.length ? <div className="ptb-balls">{draft.balls.map((b, i) => <span key={i} role="button" tabIndex={0} title="Remove this ball" onClick={(e) => { e.stopPropagation(); set({ balls: draft.balls.filter((_, k) => k !== i) }); }}><img src={b} alt={`Ball ${i + 1}`} /></span>)}</div> : <span>Tap or drop pictures</span>}
                   <small className="ptb-count">{draft.balls.length} of 10</small>
                 </ImageCard>
-                <ImageCard page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
-                <ImageCard page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
-                <ImageCard page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Board" hint="Behind the pegs. Portrait or square." value={draft.board} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
-                <ImageCard page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Side panels" hint="Behind the scoreboard and power-ups. Keep the middle calm so the text stays easy to read." value={draft.panel} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.background}.pdf`} page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.title}.pdf`} page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.board}.pdf`} page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Board" hint="Behind the pegs. Portrait or square." value={draft.board} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.panel}.pdf`} page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Side panels" hint="Behind the scoreboard and power-ups. Keep the middle calm so the text stays easy to read." value={draft.panel} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
               </div>
             </Fold>
 
@@ -336,34 +361,31 @@ export default function PlinkoThemeBuilder() {
               </div>
             </Fold>
 
-            <Fold title="Sounds" meta={`${draft.music ? 'Music, ' : ''}${pegColors.length} peg color${pegColors.length === 1 ? '' : 's'}`}
-              info="One song plays in the background for the whole game (MP3 or M4A works best). Each peg color makes its own sound when the ball bounces off it. Round 1 uses the first color, and one more color joins the board every round, in this order. Plain pegs keep the Pegs color and a soft tick.">
+            {/* Build Queue 306 (her words: "no colors for pegs in colors section. but rather have a section for "Game elements" that has a
+                second for pegs where i can define the color and sound for each peg in one"). */}
+            <Fold title="Game elements" meta={`${pegColors.length + 1} peg${pegColors.length ? 's' : ''}`}
+              info="Pegs: the plain pegs are on the board from the start. Each added peg color joins in its round (round 1 has the first one) and makes its sound when the ball bounces off it. Sounds never change the points.">
+              <h3>Pegs</h3>
+              <div className="ptb-pegrows">
+                <PegRow label="Plain pegs" color={draft.colors.peg ?? DEF.peg} sound={draft.pegSound ?? 'tick'} busy={busy === 'peg-plain'}
+                  onColor={(v) => set({ colors: { ...draft.colors, peg: v } })} onSound={(v) => set({ pegSound: v })} onUpload={() => { pegFile.current = -1; pegInput.current?.click(); }} />
+                {pegColors.map((pc, i) => (
+                  <PegRow key={i} label={`Round ${i + 1}`} color={pc.color} sound={pc.sound} busy={busy === `peg-${i}`}
+                    onColor={(v) => setPeg(i, { color: v })} onSound={(v) => setPeg(i, { sound: v })} onUpload={() => { pegFile.current = i; pegInput.current?.click(); }}
+                    onRemove={() => set({ pegColors: pegColors.filter((_, k) => k !== i) })} />
+                ))}
+                {pegColors.length < 10 && <button type="button" className="btn btn-sm" onClick={() => set({ pegColors: [...pegColors, PEG_START[pegColors.length % PEG_START.length]] })}>Add a peg color</button>}
+                <input ref={pegInput} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { const i = pegFile.current; const f = e.target.files?.[0]; if (i === -1) up('peg-plain', f, (u) => set({ pegSound: u }), true); else if (i !== null) up(`peg-${i}`, f, (u) => setPeg(i, { sound: u }), true); e.target.value = ''; }} />
+              </div>
+            </Fold>
+
+            <Fold title="Music" meta={draft.music ? 'Song added' : 'None'} info="One song plays quietly in the background for the whole game. MP3 or M4A works best.">
               <div className="ptb-music">
-                <b>Background music</b>
-                {draft.music ? <audio src={draft.music} controls preload="none" /> : <span className="ptb-hint">None</span>}
+                {draft.music ? <audio src={draft.music} controls preload="none" /> : <span className="ptb-hint">No song yet</span>}
                 <label className="btn btn-sm btn-primary">{busy === 'music' ? 'Uploading...' : draft.music ? 'Replace' : 'Upload song'}
                   <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { up('music', e.target.files?.[0], (u) => set({ music: u }), true); e.target.value = ''; }} />
                 </label>
                 {draft.music && <button type="button" className="btn btn-sm" onClick={() => set({ music: undefined })}>Remove</button>}
-              </div>
-              <h3>Peg colors</h3>
-              <div className="ptb-pegrows">
-                {pegColors.map((pc, i) => (
-                  <div key={i} className="ptb-pegrow">
-                    <span className="ptb-round">Round {i + 1}</span>
-                    <input type="color" value={pc.color} onChange={(e) => setPeg(i, { color: e.target.value })} aria-label={`Peg color ${i + 1}`} />
-                    <select value={PEG_SOUNDS.some((x) => x.id === pc.sound) ? pc.sound : 'file'} aria-label={`Sound for peg color ${i + 1}`}
-                      onChange={(e) => { if (e.target.value === 'upload') { pegFile.current = i; pegInput.current?.click(); return; } setPeg(i, { sound: e.target.value }); playPegSound(e.target.value); }}>
-                      {PEG_SOUNDS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
-                      {!PEG_SOUNDS.some((x) => x.id === pc.sound) && <option value="file">My sound file</option>}
-                      <option value="upload">Upload a sound...</option>
-                    </select>
-                    <button type="button" className="btn btn-sm" onClick={() => playPegSound(pc.sound)} aria-label={`Play the sound for peg color ${i + 1}`}>{busy === `peg-${i}` ? '...' : 'Play'}</button>
-                    <button type="button" className="ptb-link" onClick={() => set({ pegColors: pegColors.filter((_, k) => k !== i) })}>Remove</button>
-                  </div>
-                ))}
-                {pegColors.length < 10 && <button type="button" className="btn btn-sm" onClick={() => set({ pegColors: [...pegColors, PEG_START[pegColors.length % PEG_START.length]] })}>Add a peg color</button>}
-                <input ref={pegInput} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { const i = pegFile.current; const f = e.target.files?.[0]; if (i !== null) up(`peg-${i}`, f, (u) => setPeg(i, { sound: u }), true); e.target.value = ''; }} />
               </div>
             </Fold>
 
@@ -440,7 +462,8 @@ export default function PlinkoThemeBuilder() {
         </div>
 
         <div className="ptb-footer">
-          <button type="button" className="btn btn-primary btn-lg" onClick={() => doSave()}>Save theme</button>
+          <button type="button" className="btn btn-lg" onClick={() => doSave()}>{draft.approved ? 'Save' : 'Save draft'}</button>
+          {!draft.approved && <button type="button" className="btn btn-primary btn-lg" disabled={missing.length > 0} onClick={() => doSave(true)}>Publish</button>}
         </div>
       </div>
     </div>

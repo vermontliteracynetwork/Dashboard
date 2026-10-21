@@ -10,8 +10,8 @@ import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
 import { playPegSound, sfx, SfxToggle } from '../../lib/miniSfx';
-import { MyBest, useVisitScore } from '../../components/MyBest';
-import PlinkoSetup, { BALLS, type SetupPlayer } from './PlinkoSetup';
+import { useVisitScore } from '../../components/MyBest';
+import PlinkoSetup, { BALLS, Slider, type SetupPlayer } from './PlinkoSetup';
 import QuestionScreen from '../../components/QuestionScreen';
 import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
@@ -80,6 +80,11 @@ export default function PlinkoDrop() {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | null>(null);
+  // Build Queue 304: rounds added on the game over card (keep playing with the same players and scores).
+  const [moreRounds, setMoreRounds] = useState(0);
+  const [addN, setAddN] = useState(2);
+  const totalRef = useRef(0);
+  const banked = useRef({ xp: 0, counted: false });
   const visit = useVisitScore('plinkoDrop');
   // Build Queue 246 and 258: the theme picked on the first setup page (only themes she approved).
   const { approved: themes } = usePlinkoThemes();
@@ -104,7 +109,8 @@ export default function PlinkoDrop() {
   const pay = () => { if (unpaid.current > 0) payForAnswers(student.id, unpaid.current, 'Plinko', '🎯'); unpaid.current = 0; };
   const nPlayers = Math.max(1, players.length);
   const round = Math.floor(turnNo / nPlayers);
-  const totalRounds = rs.rounds;
+  const totalRounds = rs.rounds + moreRounds;
+  totalRef.current = totalRounds;
   const zones = Math.min(10, 5 + round);
   const nBuckets = Math.min(8, 3 + round);
   const cur = players[turnNo % nPlayers];
@@ -165,19 +171,30 @@ export default function PlinkoDrop() {
   const start = (setup: SetupPlayer[]) => {
     const list: Player[] = setup.map((x) => ({ ...x, name: x.kind === 'npc' ? npcName(x.npcId) : x.name, xp: 0, owed: 0 }));
     playersRef.current = list; setPlayers(list); setTurnNo(0); setWrap(null); setStarted(true); startMusic();
+    setMoreRounds(0); totalRef.current = rs.rounds; banked.current = { xp: 0, counted: false };
     beginTurn(0, list);
   };
   const endTurn = (t: number, list: Player[]) => {
     const nt = t + 1; setTurnNo(nt);
-    if (Math.floor(nt / list.length) >= totalRounds) { finish(list); return; }
+    if (Math.floor(nt / list.length) >= totalRef.current) { finish(list); return; }
     beginTurn(nt, list);
   };
   const finish = (list: Player[]) => {
     setPhase('over'); setBall(null); pay();
     const me = list.find((p) => p.kind === 'me');
-    if (me) { mergeStyleRow(owner, { xp: (saved.xp ?? 0) + me.xp, games: (saved.games ?? 0) + 1 }); visit.add(me.xp); }
+    // Only the XP since the last game over is added, so keeping going with more rounds never counts XP twice.
+    if (me) {
+      const gain = me.xp - banked.current.xp;
+      mergeStyleRow(owner, { xp: (saved.xp ?? 0) + gain, games: (saved.games ?? 0) + (banked.current.counted ? 0 : 1) });
+      visit.add(gain); banked.current = { xp: me.xp, counted: true };
+    }
     for (const p of list) if (p.kind === 'npc' && p.npcId && me) recordGameMemory(student.id, p.npcId, 'Plinko', me.xp > p.xp ? 'student' : me.xp < p.xp ? 'npc' : 'tie');
     playCheer();
+  };
+  const keepPlaying = () => {
+    const n = Math.max(1, Math.min(5, addN));
+    totalRef.current += n; setMoreRounds((m) => m + n);
+    beginTurn(turnRef.current + 1, playersRef.current); setTurnNo(turnRef.current);
   };
   const onRight = () => {
     if (cur.kind === 'me') { unpaid.current += 1; recordStreakCorrect(student.id); }
@@ -238,7 +255,7 @@ export default function PlinkoDrop() {
       if (i > 0 && i < path.length - 1) {
         const k = hits[i], c = k !== null && k !== undefined ? pc[k] : null;
         setHit(k ?? null);
-        if (c !== null && c !== undefined && theme?.pegColors?.[c]) playPegSound(theme.pegColors[c].sound); else sfx.tick();
+        if (c !== null && c !== undefined && theme?.pegColors?.[c]) playPegSound(theme.pegColors[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick();
       } else setHit(null);
     }, i * STEP)));
     timers.current.push(window.setTimeout(() => {
@@ -278,7 +295,8 @@ export default function PlinkoDrop() {
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" fill="currentColor" /><circle cx="17" cy="16" r="3" fill="currentColor" />{!musicOn && <path d="M3 3l18 18" />}</svg>
           </button>
         )}
-        <MyBest game="plinkoDrop" unit="XP" />
+        {/* Build Queue 303: the round in place of My best. */}
+        {started && <span className="btn pk2-round-pill" aria-live="polite">Round {Math.min(round + 1, totalRounds)}/{totalRounds}</span>}
         <span className="btn" aria-label={`${saved.xp ?? 0} Plinko XP in all`}><img className="pk2-star-sm" src={`${UI}star_full.png`} alt="" /> {saved.xp ?? 0} XP</span>
       </header>
 
@@ -291,7 +309,6 @@ export default function PlinkoDrop() {
               <b>{p.name}</b><strong>{p.xp}</strong>
             </div>
           ))}
-          <div className="pk2-round">Round {Math.min(round + 1, totalRounds)} of {totalRounds}</div>
         </aside>
 
         <section className="pk2-board" aria-label="Plinko board" style={{ ['--pk-cur' as string]: '#5a3d9e' }}>
@@ -377,6 +394,10 @@ export default function PlinkoDrop() {
               {ranked.map((p, i) => <li key={p.key}><span>{i + 1}.</span> <b>{p.name}</b> <strong>{p.xp} XP</strong></li>)}
             </ol>
             {me && <p>You earned <b>{me.xp} XP</b>. Your Plinko XP: {(saved.xp ?? 0)}.</p>}
+            <div className="pk2-more">
+              <Slider label="More rounds" value={addN} min={1} max={5} onChange={setAddN} />
+              <button type="button" className="btn btn-primary btn-lg" onClick={keepPlaying}>Keep playing</button>
+            </div>
             <div className="pf-detail-actions">
               {rivalPlayer && me ? (
                 <button type="button" className="btn btn-lg" onClick={() => setWrap(me.xp > rivalPlayer.xp ? 'won' : me.xp < rivalPlayer.xp ? 'lost' : 'tie')}>Done playing with {rivalPlayer.name}</button>
