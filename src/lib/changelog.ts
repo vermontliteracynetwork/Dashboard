@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-peg-sounds",
+    date: "2026-10-21",
+    icon: "🎵",
+    title: "Silly peg sounds and theme music in Plinko",
+    body: "Plinko themes can have colored pegs that bark, quack or boing when your ball bounces off them. A new peg color joins every round. Themes can play their own song too.",
+  },
+  {
     id: "2026-10-21-plinko-theme-powers",
     date: "2026-10-21",
     icon: "🎨",

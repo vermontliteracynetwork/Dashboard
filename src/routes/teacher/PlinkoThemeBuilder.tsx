@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import TeacherNav from '../../components/TeacherNav';
 import GameTabs from './GameTabs';
 import { makeId } from '../../lib/id';
-import { uploadImage } from '../../lib/upload';
+import { uploadAudio, uploadImage } from '../../lib/upload';
+import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
   DEFAULT_POWERS, PAGE_OF, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
-  type CutResult, type FontChoice, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
+  type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
 // The Plinko theme builder (Build Queue 296, her request: a Themes sub-tab in the teacher Game section, then a page
@@ -39,6 +40,8 @@ const FONT_ROLES: { key: 'title' | 'header' | 'body'; label: string; sample: str
 ];
 const blank = (): PlinkoTheme => ({ id: makeId(), name: '', font: 'default', approved: false, createdAt: new Date().toISOString(), balls: [], colors: {}, buckets: [], powers: {}, customPowers: [], fonts: {} });
 const HEX = /^#[0-9a-f]{6}$/i;
+// The first peg colors offered (her examples: a pink peg barks, an orange peg farts).
+const PEG_START: PegColor[] = [{ color: '#ff8ac4', sound: 'bark' }, { color: '#ff9f43', sound: 'fart' }, { color: '#7bd389', sound: 'boing' }, { color: '#9b8cff', sound: 'meow' }, { color: '#ffd93d', sound: 'ding' }, { color: '#4dc3ff', sound: 'splash' }];
 const Check = () => <svg viewBox="0 0 20 20" width="20" height="20" aria-label="Done"><circle cx="10" cy="10" r="10" fill="#16a34a" /><path d="M5.5 10.5l3 3 6-7" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 const Magnet = ({ size = 30 }: { size?: number }) => <svg viewBox="0 0 32 32" width={size} height={size} aria-hidden><path d="M8 5v11a8 8 0 0 0 16 0V5h-6v11a2 2 0 0 1-4 0V5z" fill="#127FB5" stroke="#6C626E" strokeWidth="1.2" /></svg>;
 const kindText = (p: PowerDef) => { const k = POWER_KINDS.find((x) => x.kind === p.kind); return k ? `${k.label}${k.nLabel ? ` (${k.nLabel.toLowerCase()} ${p.n ?? k.nDef})` : ''}` : ''; };
@@ -46,10 +49,10 @@ const kindText = (p: PowerDef) => { const k = POWER_KINDS.find((x) => x.kind ===
 function useUpload() {
   const [busy, setBusy] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
-  const up = async (key: string, file: File | undefined | null, done: (url: string) => void) => {
+  const up = async (key: string, file: File | undefined | null, done: (url: string) => void, audio = false) => {
     if (!file) return;
     setBusy(key); setErr(null);
-    try { done(await uploadImage(file)); } catch (e) { setErr(e instanceof Error ? e.message : 'The file could not be uploaded.'); }
+    try { done(await (audio ? uploadAudio(file) : uploadImage(file))); } catch (e) { setErr(e instanceof Error ? e.message : 'The file could not be uploaded.'); }
     setBusy(null);
   };
   return { busy, err, up };
@@ -83,7 +86,7 @@ function Preview({ t }: { t: PlinkoTheme }) {
         <section className="ptb-board" style={{ background: t.board ? `center / cover url("${t.board}")` : c('boardBg', DEF.board), borderColor: c('boardBorder', DEF.edge) }}>
           <span className="ptb-turn" style={{ background: c('primary', DEF.primary) }}>Ava's turn</span>
           <div className="ptb-zones">{[1, 2, 3, 4, 5].map((n) => <span key={n} style={{ background: c('zone', DEF.zone), borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{n}</span>)}</div>
-          <div className="ptb-pegs">{Array.from({ length: 23 }, (_, i) => <i key={i} style={{ background: c('peg', DEF.peg) }} />)}<b className="ptb-ball" style={{ background: ball(0) }} /></div>
+          <div className="ptb-pegs">{Array.from({ length: 23 }, (_, i) => { const pc = t.pegColors?.length && i % 3 === 1 ? t.pegColors[Math.floor(i / 3) % t.pegColors.length].color : undefined; return <i key={i} style={{ background: pc ?? c('peg', DEF.peg) }} />; })}<b className="ptb-ball" style={{ background: ball(0) }} /></div>
           <div className="ptb-buckets">{[10, 30, 20, 40, 10].map((n, i) => (
             <span key={i} style={{ background: t.buckets[i] ?? BUCKET_DEF[i], borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{i === 1 && <img src={`${UI}star_full.png`} alt="" />}{n}</span>
           ))}</div>
@@ -231,6 +234,10 @@ export default function PlinkoThemeBuilder() {
   const imagesSet = [draft.cover, draft.balls.length >= 5, draft.background, draft.title, draft.board, draft.panel].filter(Boolean).length;
   const colorsSet = [...Object.values(draft.colors), ...draft.buckets].filter((c): c is string => !!c);
   const fontsMeta = FONT_ROLES.map((r) => { const f = fonts[r.key]; return f?.url ? f.name : PLINKO_FONTS.find((x) => x.id === f?.preset)?.label; }).filter(Boolean).join(', ') || 'Default';
+  const pegColors = draft.pegColors ?? [];
+  const setPeg = (i: number, p: Partial<PegColor>) => set({ pegColors: pegColors.map((x, k) => (k === i ? { ...x, ...p } : x)) });
+  const pegInput = useRef<HTMLInputElement>(null);
+  const pegFile = useRef<number | null>(null);
   const sorted = useMemo(() => themes.slice().sort((a, b) => a.name.localeCompare(b.name)), [themes]);
 
   return (
@@ -318,6 +325,37 @@ export default function PlinkoThemeBuilder() {
               <div className="ptb-colors">
                 {BUCKET_DEF.map((d, i) => <ColorField key={i} label={`Bucket ${i + 1}`} def={d} value={draft.buckets[i] ?? undefined}
                   onChange={(v) => { const b = [...draft.buckets]; while (b.length < 8) b.push(null); b[i] = v ?? null; set({ buckets: b }); }} />)}
+              </div>
+            </Fold>
+
+            <Fold title="Sounds" meta={`${draft.music ? 'Music, ' : ''}${pegColors.length} peg color${pegColors.length === 1 ? '' : 's'}`}
+              info="One song plays in the background for the whole game (MP3 or M4A works best). Each peg color makes its own sound when the ball bounces off it. Round 1 uses the first color, and one more color joins the board every round, in this order. Plain pegs keep the Pegs color and a soft tick.">
+              <div className="ptb-music">
+                <b>Background music</b>
+                {draft.music ? <audio src={draft.music} controls preload="none" /> : <span className="ptb-hint">None</span>}
+                <label className="btn btn-sm btn-primary">{busy === 'music' ? 'Uploading...' : draft.music ? 'Replace' : 'Upload song'}
+                  <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { up('music', e.target.files?.[0], (u) => set({ music: u }), true); e.target.value = ''; }} />
+                </label>
+                {draft.music && <button type="button" className="btn btn-sm" onClick={() => set({ music: undefined })}>Remove</button>}
+              </div>
+              <h3>Peg colors</h3>
+              <div className="ptb-pegrows">
+                {pegColors.map((pc, i) => (
+                  <div key={i} className="ptb-pegrow">
+                    <span className="ptb-round">Round {i + 1}</span>
+                    <input type="color" value={pc.color} onChange={(e) => setPeg(i, { color: e.target.value })} aria-label={`Peg color ${i + 1}`} />
+                    <select value={PEG_SOUNDS.some((x) => x.id === pc.sound) ? pc.sound : 'file'} aria-label={`Sound for peg color ${i + 1}`}
+                      onChange={(e) => { if (e.target.value === 'upload') { pegFile.current = i; pegInput.current?.click(); return; } setPeg(i, { sound: e.target.value }); playPegSound(e.target.value); }}>
+                      {PEG_SOUNDS.map((x) => <option key={x.id} value={x.id}>{x.label}</option>)}
+                      {!PEG_SOUNDS.some((x) => x.id === pc.sound) && <option value="file">My sound file</option>}
+                      <option value="upload">Upload a sound...</option>
+                    </select>
+                    <button type="button" className="btn btn-sm" onClick={() => playPegSound(pc.sound)} aria-label={`Play the sound for peg color ${i + 1}`}>{busy === `peg-${i}` ? '...' : 'Play'}</button>
+                    <button type="button" className="ptb-link" onClick={() => set({ pegColors: pegColors.filter((_, k) => k !== i) })}>Remove</button>
+                  </div>
+                ))}
+                {pegColors.length < 10 && <button type="button" className="btn btn-sm" onClick={() => set({ pegColors: [...pegColors, PEG_START[pegColors.length % PEG_START.length]] })}>Add a peg color</button>}
+                <input ref={pegInput} type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { const i = pegFile.current; const f = e.target.files?.[0]; if (i !== null) up(`peg-${i}`, f, (u) => setPeg(i, { sound: u }), true); e.target.value = ''; }} />
               </div>
             </Fold>
 

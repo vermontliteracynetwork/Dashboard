@@ -50,6 +50,40 @@ export const sfx = {
   creak: () => tone(110, 0.4, 'sawtooth', 0.03, 180),
 };
 
+// Build Queue 299: silly sounds a Plinko theme gives its colored pegs (her examples: a pink peg barks, an orange peg
+// farts). All short, so a ball bouncing peg to peg never piles them up. A peg sound can also be her own uploaded file.
+function bark(delay = 0) { tone(520, 0.11, 'sawtooth', 0.07, 260, delay); noise(0.08, 0.05, 'bandpass', 900, delay); }
+export const PEG_SOUNDS: { id: string; label: string; play: () => void }[] = [
+  { id: 'bark', label: 'Bark', play: () => { bark(); bark(0.16); } },
+  { id: 'meow', label: 'Meow', play: () => { tone(700, 0.12, 'triangle', 0.06, 1000); tone(1000, 0.22, 'triangle', 0.06, 560, 0.11); } },
+  { id: 'fart', label: 'Fart', play: () => { tone(95, 0.38, 'sawtooth', 0.09, 60); tone(120, 0.3, 'square', 0.03, 70, 0.03); noise(0.35, 0.05, 'lowpass', 260); } },
+  { id: 'quack', label: 'Quack', play: () => { tone(380, 0.14, 'sawtooth', 0.07, 300); noise(0.12, 0.03, 'bandpass', 1400); } },
+  { id: 'moo', label: 'Moo', play: () => tone(150, 0.5, 'sawtooth', 0.05, 110) },
+  { id: 'boing', label: 'Boing', play: () => tone(180, 0.35, 'triangle', 0.09, 620) },
+  { id: 'pop', label: 'Pop', play: () => tone(520, 0.09, 'sine', 0.09, 880) },
+  { id: 'ding', label: 'Ding', play: () => tone(1320, 0.4, 'triangle', 0.07) },
+  { id: 'drum', label: 'Drum', play: () => { tone(120, 0.18, 'sine', 0.14, 55); noise(0.06, 0.05, 'lowpass', 500); } },
+  { id: 'whistle', label: 'Slide whistle', play: () => tone(600, 0.32, 'sine', 0.07, 1800) },
+  { id: 'honk', label: 'Honk', play: () => { tone(310, 0.22, 'square', 0.05); tone(330, 0.22, 'sawtooth', 0.03); } },
+  { id: 'zap', label: 'Zap', play: () => tone(1800, 0.16, 'sawtooth', 0.04, 200) },
+  { id: 'splash', label: 'Splash', play: () => sfx.splash() },
+  { id: 'coin', label: 'Coin', play: () => sfx.coin() },
+  { id: 'giggle', label: 'Giggle', play: () => { for (let i = 0; i < 4; i++) tone(900 - i * 60, 0.07, 'triangle', 0.05, 1100 - i * 60, i * 0.09); } },
+  { id: 'spring', label: 'Spring', play: () => { tone(300, 0.12, 'triangle', 0.07, 900); tone(300, 0.12, 'triangle', 0.05, 900, 0.12); } },
+];
+const fileSounds = new Map<string, HTMLAudioElement>();
+// A peg sound: a built-in id, or the address of an uploaded sound file.
+export function playPegSound(sound?: string) {
+  if (!sound || !sfxOn()) return;
+  const b = PEG_SOUNDS.find((x) => x.id === sound);
+  if (b) { b.play(); return; }
+  try {
+    let a = fileSounds.get(sound);
+    if (!a) { a = new Audio(sound); a.preload = 'auto'; fileSounds.set(sound, a); }
+    const c = a.cloneNode() as HTMLAudioElement; c.volume = 0.6; void c.play().catch(() => {});
+  } catch { /* fine */ }
+}
+
 export function SfxToggle({ plain = false }: { plain?: boolean } = {}) {
   const [on, setOn] = useState(sfxOn);
   const flip = () => { const v = !on; setOn(v); try { localStorage.setItem(KEY, v ? '1' : '0'); } catch { /* fine */ } if (v) sfx.chime(); };

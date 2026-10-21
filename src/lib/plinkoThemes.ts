@@ -32,6 +32,25 @@ export interface PlinkoTheme {
   board?: string;
   fonts?: Partial<Record<'title' | 'header' | 'body', FontChoice>>;
   customPowers?: PowerDef[];
+  // Build Queue 299: one background song for the theme, and colored pegs that each make a sound when the ball
+  // bounces off them (a built-in sound id from PEG_SOUNDS or an uploaded sound file). Round 1 uses the first color,
+  // and one more color joins at the start of every round.
+  music?: string;
+  pegColors?: PegColor[];
+}
+export interface PegColor { color: string; sound: string }
+// Which pegs wear a color in a round (index into pegColors, or null for a plain peg): one more color each round,
+// each on about an eighth of the pegs (at least 2), at random, with at least 30 percent of pegs left plain.
+export function colorPegs(nPegs: number, colors: PegColor[] | undefined, round: number): (number | null)[] {
+  const out: (number | null)[] = Array(nPegs).fill(null);
+  const k = Math.min(colors?.length ?? 0, round + 1);
+  if (!k || !nPegs) return out;
+  const idx = Array.from({ length: nPegs }, (_, i) => i);
+  for (let i = idx.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idx[i], idx[j]] = [idx[j], idx[i]]; }
+  const per = Math.max(2, Math.min(Math.round(nPegs / 8), Math.floor((nPegs * 0.7) / k)));
+  let p = 0;
+  for (let c = 0; c < k; c++) for (let j = 0; j < per && p < idx.length; j++) out[idx[p++]] = c;
+  return out;
 }
 export interface FontChoice { preset?: string; url?: string; name?: string }
 

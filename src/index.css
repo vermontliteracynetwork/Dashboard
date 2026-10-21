@@ -10054,3 +10054,16 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ptb-thumb .ptb-count { position: absolute; right: 6px; bottom: 4px; margin: 0; } button.ptb-thumb { position: relative; }
 @media (min-width: 1100px) { .ptb-layout { grid-template-columns: minmax(0, 1fr); } .ptb-stage { position: static; } }
 @media (min-width: 1500px) { .ptb-layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); } .ptb-stage { position: sticky; top: 12px; } }
+/* Build Queue 299: colored pegs light up when the ball bounces off them; the builder's Sounds section. */
+.pk2-field i { transition: transform .12s ease-out, filter .12s; }
+.pk2-field i.hit { transform: translate(-50%, -50%) scale(1.45); filter: brightness(1.2); }
+@media (prefers-reduced-motion: reduce) { .pk2-field i { transition: none; } .pk2-field i.hit { transform: translate(-50%, -50%); } }
+.ptb-music { display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; }
+.ptb-music audio { height: 36px; max-width: 100%; }
+.ptb-music .btn { position: relative; min-height: 40px; }
+.ptb-pegrows { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
+.ptb-pegrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ptb-pegrow input[type=color] { width: 40px; height: 40px; padding: 0; border: 1px solid #d1d5db; border-radius: 50%; overflow: hidden; background: none; cursor: pointer; }
+.ptb-pegrow select { min-height: 40px; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 8px; font: inherit; }
+.ptb-pegrow .btn { min-height: 40px; }
+.ptb-round { width: 66px; font-size: .82rem; font-weight: 700; color: var(--ptb-muted); }

@@ -53,3 +53,15 @@ export async function uploadVoiceMemo(blob: Blob): Promise<string> {
   if (error) throw error;
   return supabase.storage.from(VIDEO_BUCKET).getPublicUrl(path).data.publicUrl;
 }
+
+// A theme's background music or a sound effect (Build Queue 299). Kept in the videos bucket like voice memos; if the
+// bucket refuses an audio type, it is saved under a video type, which plays sound-only files the same way.
+export async function uploadAudio(file: File): Promise<string> {
+  if (!isSupabaseConfigured) throw new Error('Connect Supabase first (see SETUP.md) before uploading sounds.');
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'mp3';
+  const path = `sounds/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  let { error } = await supabase.storage.from(VIDEO_BUCKET).upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type || 'audio/mpeg' });
+  if (error) ({ error } = await supabase.storage.from(VIDEO_BUCKET).upload(path, file, { cacheControl: '3600', upsert: true, contentType: 'video/mp4' }));
+  if (error) throw error;
+  return supabase.storage.from(VIDEO_BUCKET).getPublicUrl(path).data.publicUrl;
+}
