@@ -1,4 +1,5 @@
 import type { MCQuestion, QuestionSet, QuizQuestion } from '../types';
+import { focusFor } from './questionFocus';
 
 // How games draw a question from the teacher's question sets. Teacher 2026-10-08: "star/focus question sets
 // must occur at 5x the frequency than other question sets, distributed at an even rate amung alls focus items".
@@ -23,7 +24,7 @@ export const hasPlayable = (qs: QuestionSet) => qs.kind === 'quiz' && playableOf
 const mcOf = (qs: QuestionSet) => playableOf(qs.questions);
 
 export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand: () => number = Math.random): MCQuestion | null {
-  const sets = questionSets.filter((qs) => qs.kind === 'quiz').map((qs) => ({ focus: !!qs.isFocus, qs: mcOf(qs) })).filter((s) => s.qs.length > 0);
+  const sets = questionSets.filter((qs) => qs.kind === 'quiz').map((qs) => ({ focus: focusFor(qs), qs: mcOf(qs) })).filter((s) => s.qs.length > 0);
   if (!sets.length) return null;
   const focus = sets.filter((s) => s.focus), rest = sets.filter((s) => !s.focus);
   for (let tries = 0; tries < 6; tries++) {
@@ -40,6 +41,6 @@ export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand
 
 // The sets a student may pick one of: only the starred ones while any are starred.
 export function pickableSets(questionSets: QuestionSet[]): QuestionSet[] {
-  const focus = questionSets.filter((qs) => qs.isFocus);
+  const focus = questionSets.filter((qs) => focusFor(qs));
   return focus.length ? focus : questionSets;
 }

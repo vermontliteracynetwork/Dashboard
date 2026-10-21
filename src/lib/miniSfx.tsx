@@ -6,8 +6,11 @@ import { useState } from 'react';
 const KEY = 'mini-sfx';
 export const sfxOn = () => { try { return localStorage.getItem(KEY) !== '0'; } catch { return true; } };
 let ctx: AudioContext | null = null;
+// Build Queue 344: a game can turn its sound effects down in five steps (5 = full, 0 = off).
+let level = 1;
+export const setSfxLevel = (step: number) => { level = Math.max(0, Math.min(5, step)) / 5; };
 function ac(): AudioContext | null {
-  if (!sfxOn()) return null;
+  if (!sfxOn() || level <= 0) return null;
   try {
     const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!Ctx) return null;
@@ -21,7 +24,7 @@ function tone(freq: number, dur: number, type: OscillatorType = 'sine', vol = 0.
   const at = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
   o.type = type; o.frequency.setValueAtTime(freq, at);
   if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, at + dur);
-  g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(vol, at + 0.01); g.gain.exponentialRampToValueAtTime(0.001, at + dur);
+  g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(vol * level, at + 0.01); g.gain.exponentialRampToValueAtTime(0.001, at + dur);
   o.connect(g); g.connect(c.destination); o.start(at); o.stop(at + dur + 0.05);
 }
 function noise(dur: number, vol = 0.06, filter: BiquadFilterType = 'lowpass', freq = 1200, delay = 0) {
@@ -29,7 +32,7 @@ function noise(dur: number, vol = 0.06, filter: BiquadFilterType = 'lowpass', fr
   const at = c.currentTime + delay, len = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
   for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
   const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
-  src.buffer = buf; f.type = filter; f.frequency.value = freq; g.gain.value = vol;
+  src.buffer = buf; f.type = filter; f.frequency.value = freq; g.gain.value = vol * level;
   src.connect(f); f.connect(g); g.connect(c.destination); src.start(at);
 }
 
@@ -94,14 +97,14 @@ export const PEG_SOUNDS: { id: string; label: string; play?: () => void; file?: 
 const fileSounds = new Map<string, HTMLAudioElement>();
 // A peg sound: a built-in id, or the address of an uploaded sound file.
 export function playPegSound(sound?: string) {
-  if (!sound || !sfxOn()) return;
+  if (!sound || !sfxOn() || level <= 0) return;
   const b = PEG_SOUNDS.find((x) => x.id === sound);
   if (b?.play) { b.play(); return; }
   if (b?.file) sound = b.file;
   try {
     let a = fileSounds.get(sound);
     if (!a) { a = new Audio(sound); a.preload = 'auto'; fileSounds.set(sound, a); }
-    const c = a.cloneNode() as HTMLAudioElement; c.volume = 0.6; void c.play().catch(() => {});
+    const c = a.cloneNode() as HTMLAudioElement; c.volume = 0.6 * level; void c.play().catch(() => {});
   } catch { /* fine */ }
 }
 

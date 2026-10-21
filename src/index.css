@@ -10222,3 +10222,48 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .pk2-parrow { display: grid; place-items: center; width: 64px; height: 40px; margin-inline: auto; border-radius: 999px; border: 2px solid #6c626e; background: #fff; color: #6c626e; cursor: pointer; box-shadow: 0 3px 0 rgba(108,98,110,.3); }
 .pk2-parrow:disabled { opacity: .35; cursor: default; }
 .pk2-main { grid-template-columns: minmax(150px, 0.8fr) minmax(0, 3fr) minmax(130px, 0.6fr); }
+/* Build Queue 340: the punctuation box is one blank gray square; each tap shows the next mark. */
+.symq-pcycle { width: 56px; height: 56px; border-radius: 12px; border: 3px solid #b8b3c4; background: #e7e5ec; font: 900 1.9rem/1 'Nunito', system-ui, sans-serif; color: #231b33; cursor: pointer; display: grid; place-items: center; touch-action: manipulation; }
+.symq-pcycle.set { background: #fff; border-color: #6c626e; }
+.symq-pcycle.fix { box-shadow: 0 0 0 4px rgba(246,168,91,.6); }
+.symq-pcycle.ok { border-color: #22c55e; background: #e9f9ef; }
+.symq-pcycle:active:not(:disabled) { scale: .94; }
+/* Build Queue 343: longer sentences get smaller symbols and boxes so they fit without scrolling; notes sit in one strip. */
+.symq-row.long { gap: 8px 6px; }
+.symq-row.long .symq-icon img { width: clamp(40px, 6vw, 62px); height: clamp(40px, 6vw, 62px); }
+.symq-row.long .symq-word { min-height: 42px; padding: 2px 12px; font-size: 1rem; border-width: 3px; }
+.symq-row.long .symq-pcycle { width: 48px; height: 48px; font-size: 1.6rem; }
+.symq-row.xlong { gap: 6px 4px; }
+.symq-row.xlong .symq-icon img { width: clamp(32px, 4.6vw, 48px); height: clamp(32px, 4.6vw, 48px); }
+.symq-row.xlong .symq-icon small { font-size: .72rem; }
+.symq-row.xlong .symq-word { min-height: 38px; padding: 2px 9px; font-size: .92rem; border-width: 3px; min-width: 5ch; }
+.symq-row.xlong .symq-dice { min-width: 38px; min-height: 38px; font-size: 1.1rem; }
+.symq-row.xlong .symq-pcycle { width: 42px; height: 42px; font-size: 1.4rem; }
+.symq-msgs { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px; max-width: 640px; text-align: center; }
+.symq-msgs .symq-note, .symq-msgs .symq-hint { max-width: none; }
+/* Build Queue 337: the focus star menu. */
+.focus-menu { position: absolute; min-width: 220px; max-width: 280px; background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; box-shadow: 0 12px 28px rgba(0,0,0,.16); padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; text-align: left; z-index: 30; }
+.focus-menu > b { font-size: .85rem; color: #6b7280; margin-bottom: 2px; }
+.focus-menu label { display: flex; align-items: center; gap: 8px; min-height: 40px; font-weight: 600; cursor: pointer; }
+.focus-menu input { width: 20px; height: 20px; }
+.focus-menu-list { display: flex; flex-direction: column; max-height: 220px; overflow-y: auto; padding-left: 26px; border-left: 2px solid #eef0f4; margin-left: 9px; }
+.focus-menu-list label { min-height: 36px; font-weight: 500; }
+/* Build Queue 344: centered sound and settings buttons, the volume menu, a glowing name for whose turn it is, a wider board. */
+.pk-head .sfx-toggle, .pk2 .sfx-toggle { display: inline-grid; place-items: center; padding: 0; min-width: 52px; }
+.pk-head .sfx-toggle svg { display: block; }
+.pk2-settings { position: fixed; top: 84px; right: 16px; z-index: 40; width: min(420px, 90vw); background: #fff; border: 3px solid #6c626e; border-radius: 20px; padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 10px 0 rgba(108,98,110,.25); }
+.pk2-settings .pkx-slider { grid-template-columns: 140px 1fr; gap: 12px; }
+.pk2-settings .pkx-slider-label b { font-size: 1.1rem; -webkit-text-stroke: 0; text-shadow: none; color: #6c626e; }
+.pk2-settings .pkx-value { font-size: 1.3rem; -webkit-text-stroke: 0; text-shadow: none; color: #6c626e; }
+.pk2-player.on { box-shadow: 0 0 0 3px #ff8ac4, 0 0 18px 6px rgba(255,138,196,.75) !important; animation: pk2TurnGlow 1.6s ease-in-out infinite alternate; }
+@keyframes pk2TurnGlow { from { box-shadow: 0 0 0 3px #ff8ac4, 0 0 10px 2px rgba(255,138,196,.55); } to { box-shadow: 0 0 0 3px #ff8ac4, 0 0 22px 9px rgba(255,138,196,.85); } }
+.pk2-board { width: min(100%, calc((100dvh - 230px) / 0.78)); }
+.pk2-main { grid-template-columns: minmax(150px, 0.7fr) minmax(0, 3.4fr) minmax(130px, 0.6fr); }
+/* Build Queue 346: zone and bucket numbers shrink with how many there are, so they always fit inside the board. */
+.pk2-zone, .pk2-zone span { font-size: var(--fit, 1.6rem) !important; min-width: 0; overflow: hidden; }
+.pk2-buckets span { font-size: var(--fit, 2rem) !important; min-width: 0; overflow: visible; position: relative; }
+/* Build Queue 345: stars sit on the bucket's top border and bob a little; the number never moves. */
+.pk2-buckets .pk2-stars { position: absolute; top: 0; left: 50%; transform: translate(-50%, -55%); display: flex; gap: 2px; font-size: 1rem; animation: pk2StarBob 1.4s ease-in-out infinite alternate; pointer-events: none; z-index: 1; }
+.pk2-buckets .pk2-stars img { width: clamp(18px, 2.6vw, 30px); height: auto; filter: drop-shadow(0 2px 0 rgba(0,0,0,.2)); }
+@keyframes pk2StarBob { from { translate: 0 1px; rotate: -6deg; } to { translate: 0 -4px; rotate: 6deg; } }
+@media (prefers-reduced-motion: reduce) { .pk2-buckets .pk2-stars, .pk2-player.on { animation: none; } }

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import { studentSettingsFor } from '../lib/questionFocus';
 import type { SymbolQuestion, TTSSettings } from '../types';
-import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, randomWord, suggestWords } from '../lib/symbolSentence';
+import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords } from '../lib/symbolSentence';
 import { useTypedSupport } from '../lib/typedSupport';
 import { useVoiceToText } from '../lib/useVoiceToText';
 import { speak } from './ReadAloud';
@@ -16,8 +17,12 @@ import SymbolTip from './SymbolTip';
 // fixing it; level 3 turns on the iPad's spell check and autocorrect, shows a list of close spellings to tap, and
 // a 🎤 to say a word into a box. The level works quietly; students never see a level label (Build Queue 291). Every box that is right gets its ✓ and locks; the sentence only counts as right
 // once every box is right. After two misses, 💡 Help gives a hint for each box still wrong.
+const PUNCT_CYCLE = ['.', '!', '?'];
+const PUNCT_NAME: Record<string, string> = { '.': 'period', '!': 'exclamation point', '?': 'question mark' };
+
 export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSentence }: { q: SymbolQuestion; disabled: boolean; tts?: TTSSettings; onResult: (correct: boolean, said: string) => void; onSentence?: (text: string) => void }) {
-  const st = { ...DEFAULT_SYMBOL_SETTINGS, ...q.settings };
+  // Build Queue 338: the student's own settings for this set win over the set's.
+  const st = { ...DEFAULT_SYMBOL_SETTINGS, ...q.settings, ...studentSettingsFor(q.id) };
   const { level, record } = useTypedSupport();
   const [vals, setVals] = useState<Record<number, string>>({});
   const [tip, setTip] = useState<number | null>(null);
@@ -45,6 +50,7 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
   // Build Queue 291: no "Read my sentence" button; the question's own speaker reads the sentence as it is so far.
   const spoken = slots.map((s, i) => (s.given ? s.word : vals[i] || SYMBOLS[s.pos].name)).filter((w) => !/^[.!?]$/.test(w) && w !== 'Punctuation').join(' ');
   useEffect(() => { onSentence?.(spoken); }, [spoken]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { void loadDictionary(); }, []); // Build Queue 342: the real dictionary for spelling
   // Build Queue 292 (her words: "if a caption is shown on click, it should be closed on click elsewhere").
   useEffect(() => {
     if (tip === null) return;
@@ -107,9 +113,11 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
     const first = Object.values(h)[0]; if (first) speak(first, tts);
   };
 
+  const withNote = slots.map((_, i) => i).filter((i) => notes[i] || (hints?.[i] && !ok[i]));
+  const msgAt = withNote.includes(focus ?? -1) ? focus! : withNote[0] ?? null;
   return (
     <div className="symq stack" style={{ alignItems: 'center' }}>
-      <div className="symq-row" role="group" aria-label="Symbol sentence">
+      <div className={`symq-row${slots.length >= 9 ? ' xlong' : slots.length >= 6 ? ' long' : ''}`} role="group" aria-label="Symbol sentence">
         {slots.map((s, i) => {
           const info = SYMBOLS[s.pos];
           const sugg = level === 3 && notes[i] && !s.given ? suggestWords(vals[i] ?? '', s.pos) : [];
@@ -123,12 +131,11 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
               )}
               {tip === i && <SymbolTip anchor={icons.current[i] ?? null} name={info.name} def={info.def} />}
               {st.punctuationCheck && s.pos === 'punctuation' ? (
-                <div className={`symq-punct${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} role="group" aria-label="Pick the punctuation">
-                  {['.', '?', '!'].map((m) => (
-                    <button key={m} type="button" disabled={disabled || !!ok[i]} aria-pressed={vals[i] === m} className={vals[i] === m ? 'on' : ''}
-                      onClick={() => { setVal(i, m); speak(m === '.' ? 'period' : m === '?' ? 'question mark' : 'exclamation point', tts); }}>{m}</button>
-                  ))}
-                </div>
+                // Build Queue 340 (her words: "a blank gray square. students can click it until it shows the punctuation they
+                // want (1 click period, 2 exclamation, 3 question)").
+                <button type="button" className={`symq-pcycle${vals[i] ? ' set' : ''}${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} disabled={disabled || !!ok[i]}
+                  aria-label={vals[i] ? `Punctuation: ${PUNCT_NAME[vals[i]]}. Tap to change it.` : 'Punctuation. Tap to choose it.'}
+                  onClick={() => { const m = PUNCT_CYCLE[(PUNCT_CYCLE.indexOf(vals[i] ?? '') + 1) % PUNCT_CYCLE.length]; setVal(i, m); speak(PUNCT_NAME[m], tts); }}>{vals[i] ?? ''}</button>
               ) : s.given ? (
                 <span className="symq-word given" style={{ ['--c' as string]: info.color, ['--ink' as string]: inkOn(s.pos) }}>{s.word}</span>
               ) : (
@@ -145,13 +152,20 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
                   {level === 3 && voice.supported && !disabled && !ok[i] && <button type="button" className={`symq-dice${voice.listening && focus === i ? ' live' : ''}`} onClick={() => { setFocus(i); voice.toggle(); }} aria-label={`Say ${/^[aeiou]/i.test(info.name) ? 'an' : 'a'} ${info.name.toLowerCase()}`}>🎤</button>}
                 </div>
               )}
-              {notes[i] && <span className="symq-note">{notes[i]}</span>}
-              {sugg.length > 0 && <span className="symq-sugg">{sugg.map((w) => <button key={w} type="button" onClick={() => setVal(i, w)}>{w}</button>)}</span>}
-              {hints?.[i] && !ok[i] && <span className="symq-hint">💡 {hints[i]}</span>}
+              {msgAt === i && sugg.length > 0 && <span className="symq-sugg">{sugg.map((w) => <button key={w} type="button" onClick={() => setVal(i, w)}>{w}</button>)}</span>}
             </div>
           );
         })}
       </div>
+      {/* Build Queue 343: one note at a time under the sentence (the box that needs fixing first), so the sentence
+          stays on one or two tidy rows and never pushes the Check button off the iPad screen. */}
+      {msgAt !== null && (notes[msgAt] || (hints?.[msgAt] && !ok[msgAt])) && (
+        <div className="symq-msgs" role="status">
+          <b style={{ color: SYMBOLS[slots[msgAt].pos].color }}>{SYMBOLS[slots[msgAt].pos].name}</b>
+          {notes[msgAt] && <span className="symq-note">{notes[msgAt]}</span>}
+          {hints?.[msgAt] && !ok[msgAt] && <span className="symq-hint">💡 {hints[msgAt]}</span>}
+        </div>
+      )}
       <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
         {tries >= 2 && !disabled && <button type="button" className="btn btn-sm" onClick={help}>💡 Help</button>}
       </div>

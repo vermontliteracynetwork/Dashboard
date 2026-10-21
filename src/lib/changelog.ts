@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-sentence-fixes",
+    date: "2026-10-21",
+    icon: "✏️",
+    title: "Easier symbol sentences",
+    body: "Real words are not marked as spelling mistakes any more. Tap the gray square to pick the punctuation. Long sentences fit on the screen, and the Tools have pictures.",
+  },
+  {
+    id: "2026-10-21-plinko-settings",
+    date: "2026-10-21",
+    icon: "🎚️",
+    title: "Plinko settings",
+    body: "Tap the gear in Plinko to turn the sound effects and music up or down. Your name glows when it is your turn, and the board is bigger.",
+  },
+  {
     id: "2026-10-21-plinko-new-look",
     date: "2026-10-21",
     icon: "🌈",

@@ -75,6 +75,24 @@ export const randomWord = (pos: SymbolPos, not?: string) => {
   return pool.length ? pool[Math.floor(Math.random() * pool.length)] : '';
 };
 
+// Build Queue 342 (her words: "grammar and spell check is wrong for many words and it is frustrating to students"):
+// a real English dictionary (275,000 words, public/words/english.txt, MIT licence) decides spelling, loaded once on the
+// first typed question. Until it arrives every word gets the benefit of the doubt.
+let DICT: Set<string> | null = null;
+let dictLoading: Promise<void> | null = null;
+export function loadDictionary(): Promise<void> {
+  if (DICT || dictLoading) return dictLoading ?? Promise.resolve();
+  dictLoading = fetch('/words/english.txt').then((r) => (r.ok ? r.text() : '')).then((t) => { if (t) DICT = new Set(t.split('\n')); }).catch(() => {});
+  return dictLoading;
+}
+export const isRealWord = (word: string) => {
+  const k = word.trim().toLowerCase().replace(/[.,!?]+$/, '').replace(/[’]/g, "'");
+  if (!k || LEX.has(k)) return true;
+  if (!DICT) return true;
+  return DICT.has(k) || DICT.has(k.replace(/'s$/, '')) || /^\d+$/.test(k);
+};
+const CLOSED: SymbolPos[] = ['article', 'pronoun', 'preposition', 'conjunction', 'interjection'];
+
 // The grammar check for one typed word: null when it fits, otherwise a kind message.
 export function grammarProblem(word: string, slot: SymbolSlot): string | null {
   const w = word.trim();
@@ -87,7 +105,14 @@ export function grammarProblem(word: string, slot: SymbolSlot): string | null {
   if (p) {
     if (p.has(slot.pos)) return null;
     if (slot.pos === 'noun' && p.has('propernoun')) return null;
-    return `That's not ${an} ${name}. ${SYMBOLS[slot.pos].name}: ${SYMBOLS[slot.pos].def.toLowerCase()}. Try again.`;
+    // Our word list only knows some uses of a word, so an everyday word in a describing or doing slot is not marked
+    // wrong just because the list has it as something else (fast, light, run, back...). Only clear mix-ups are:
+    // a small word like "the", "she" or "and" in a describing or naming slot, or a naming word in one of those slots.
+    const closedWord = [...p].every((x) => CLOSED.includes(x));
+    if (CLOSED.includes(slot.pos) || closedWord) return `That's not ${an} ${name}. ${SYMBOLS[slot.pos].name}: ${SYMBOLS[slot.pos].def.toLowerCase()}. Try again.`;
+    if (slot.pos === 'adverb' && /ly$/i.test(w)) return null;
+    if (slot.pos === 'adverb' && /(ed|ing)$/i.test(w)) return `That looks like a verb, not ${an} ${name}. Try again.`;
+    return null;
   }
   // A word we do not know: the endings give a hint, otherwise it gets the benefit of the doubt.
   if (slot.pos === 'adverb' && !/ly$/i.test(w) && /(ed|ing)$/i.test(w)) return `That looks like a verb, not ${an} ${name}. Try again.`;
@@ -101,7 +126,7 @@ export const fullSentence = (slots: SymbolSlot[], words?: Record<number, string>
 export const blankSymbolQuestion = (id: string, settings: SymbolSettings = DEFAULT_SYMBOL_SETTINGS): SymbolQuestion => ({ id, kind: 'symbol', prompt: 'Finish the symbol sentence.', slots: [], settings: { ...settings } });
 
 // ---------- typed-answer help (Build Queue 273) ----------
-export const isKnownWord = (word: string) => posesOf(word) !== null;
+export const isKnownWord = (word: string) => posesOf(word) !== null || isRealWord(word);
 const dist = (a: string, b: string) => {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
   for (let j = 1; j <= b.length; j++) d[0][j] = j;

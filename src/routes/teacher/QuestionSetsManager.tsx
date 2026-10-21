@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import type { Subject } from '../../types';
 import QuestionSetImport from './QuestionSetImport';
+import FocusMenu from '../../components/FocusMenu';
+import { useFocusStudents } from '../../lib/questionFocus';
 
 // Every saved question/drill set in one place, independent of which
 // activity (or activities) inserted a copy of it. Each set is a card
@@ -10,7 +12,8 @@ import QuestionSetImport from './QuestionSetImport';
 // editor (QuestionSetDetail) where it can be edited, duplicated, or deleted.
 export default function QuestionSetsManager() {
   const questionSets = useStore((s) => s.questionSets);
-  const updateQuestionSet = useStore((s) => s.updateQuestionSet);
+  const [focusMenu, setFocusMenu] = useState<string | null>(null);
+  const { map: focusMap } = useFocusStudents();
   const navigate = useNavigate();
   const [subjectFilter, setSubjectFilter] = useState<Subject | 'all'>('all');
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -123,23 +126,21 @@ export default function QuestionSetsManager() {
                       starring never also navigates into the set. */}
                   <button
                     className="btn btn-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      updateQuestionSet(set.id, { isFocus: !set.isFocus, focusedAt: !set.isFocus ? new Date().toISOString() : set.focusedAt });
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setFocusMenu(focusMenu === set.id ? null : set.id); }}
                     aria-label={set.isFocus ? `Unstar ${set.name} as a focus set` : `Star ${set.name} as a focus set`}
                     title={set.isFocus ? 'Focus set — shown around the game. Tap to unstar.' : 'Star as a focus set — shown around the game'}
                     style={{ position: 'absolute', top: 6, right: 6, zIndex: 1, minHeight: 36, minWidth: 36, padding: 0, borderRadius: '50%' }}
                   >
                     {set.isFocus ? '⭐' : '☆'}
                   </button>
+                  {focusMenu === set.id && <div style={{ position: 'absolute', top: 46, right: 6, zIndex: 5 }}><FocusMenu set={set} onClose={() => setFocusMenu(null)} /></div>}
                   <button
                     style={{ all: 'unset', display: 'contents', cursor: 'pointer' }}
                     onClick={() => navigate(`/teacher/question-sets/${set.id}`)}
                   >
                     <div className="set-card-body" style={{ paddingTop: 34 }}>
                       <span className="tag-pill">{set.subject === 'math' ? '🔢 Math' : '📚 Literacy'}</span>
-                      {set.isFocus && <span className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>⭐ Focus</span>}
+                      {set.isFocus && <span className="tag-pill" style={{ background: 'var(--purple)', color: '#fff' }}>⭐ Focus{focusMap[set.id]?.length ? `: ${focusMap[set.id].length} student${focusMap[set.id].length === 1 ? '' : 's'}` : ''}</span>}
                       <div className="set-card-title">{set.name}</div>
                       {set.description && <div className="set-card-meta">{set.description}</div>}
                       <div className="set-card-meta">

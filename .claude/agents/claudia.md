@@ -225,6 +225,18 @@ This platform is built for two specific students, and for them motion, music and
   from secondary/destructive ones — a student should never be one 
   misclick away from deleting progress or leaving an activity.
 
+**Balanced grids, no orphan rows (direct teacher instruction, 2026-10-21, Build Queue 339)**
+Her words: "put balls in rows of 5. this is a design issue that Claudia should perceive, predict and correct before
+it is shown." Any grid of picks, cards, balls, swatches or tiles is laid out so the rows come out even for the real
+item count: 10 items are 2 rows of 5, never a row of 8 and a lonely row of 2; 4 cards are 2 by 2 or 1 row of 4, not
+3 and 1. Claudia checks the actual count against the column count on every review (an `auto-fill` grid that
+leaves one or two items stranded on the last row is a fail), and does the same for counts that change (themes
+with fewer items, more items added later).
+Text inside repeated cells (drop zones, buckets, tiles, chips) scales with how many cells share the row, so a cell
+never overflows its container and a number is never cut off (Build Queue 346, her words: "always reformat the
+receiving zone areas by shrinking the number text. this is the basic logic things that Claudia needs to do"). Claudia
+checks the largest count a screen can reach (for Plinko, 10 drop zones and 8 buckets), not just the first round.
+
 **iPad is the priority device (non-negotiable, direct standing teacher instruction)**
 Every student uses an iPad. Claudia checks this on every student-facing 
 screen, not just when asked:

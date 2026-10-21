@@ -4,6 +4,11 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import QuizEditor from './QuizEditor';
 import DrillEditor from './DrillEditor';
+import FocusMenu from '../../components/FocusMenu';
+import { SymbolSettingsBar } from './SymbolSetEditor';
+import { useFocusStudents, useStudentSettings } from '../../lib/questionFocus';
+import { DEFAULT_SYMBOL_SETTINGS } from '../../lib/symbolSentence';
+import type { SymbolQuestion } from '../../types';
 
 // Full-page editor for one saved question/drill set, opened by clicking
 // its card on the Activities tab's Question Sets list. Editing here only
@@ -17,6 +22,10 @@ export default function QuestionSetDetail() {
   const duplicateQuestionSet = useStore((s) => s.duplicateQuestionSet);
   const deleteQuestionSet = useStore((s) => s.deleteQuestionSet);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [focusOpen, setFocusOpen] = useState(false);
+  const students = useStore((s) => s.students);
+  const { map: focusMap } = useFocusStudents();
+  const perStudent = useStudentSettings();
 
   const set = questionSets.find((qs) => qs.id === setId);
 
@@ -34,7 +43,6 @@ export default function QuestionSetDetail() {
   // change (see the comment above) — this button/indicator doesn't defer
   // anything, it's just a visible confirmation to match the Set name
   // panel's own pattern, since a teacher asked for one here too.
-  const [justSavedExtras, setJustSavedExtras] = useState(false);
   // The questions are edited as a draft too, then saved with one tap (teacher 2026-10-08: "make sure
   // i can save question sets after editing the questions"). Saving every keystroke raced with the
   // database echoing older saves back, which could undo an edit.
@@ -60,7 +68,6 @@ export default function QuestionSetDetail() {
     setDescriptionDraft(set?.description ?? '');
     setJustSaved(false);
     setJustSavedDescription(false);
-    setJustSavedExtras(false);
   }, [set?.id]);
 
   if (!set) {
@@ -115,111 +122,72 @@ export default function QuestionSetDetail() {
           </div>
         </div>
 
-        <div className="content-well stack">
-          <strong>Set name</strong>
-          <div className="row" style={{ alignItems: 'center' }}>
-            <input className="input" value={nameDraft} onChange={(e) => { setNameDraft(e.target.value); setJustSaved(false); }} />
-            <button
-              className="btn btn-primary btn-sm"
-              disabled={!nameDraft.trim() || nameDraft === set.name}
-              onClick={() => {
-                updateQuestionSet(set.id, { name: nameDraft.trim() });
-                setJustSaved(true);
-              }}
-            >
-              💾 Save
-            </button>
-            {justSaved && <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700 }}>✅ Saved</span>}
-          </div>
-        </div>
-
-        <div className="content-well stack">
-          <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-            <strong>Description &amp; focus</strong>
-            <button
-              className={`btn btn-sm ${set.isFocus ? 'btn-primary' : ''}`}
-              onClick={() => updateQuestionSet(set.id, { isFocus: !set.isFocus, focusedAt: !set.isFocus ? new Date().toISOString() : set.focusedAt })}
-              title="A starred set is shown around the game as this subject's current class theme"
-            >
-              {set.isFocus ? '⭐ Focus set — tap to unstar' : '☆ Star as a focus set'}
-            </button>
-          </div>
-          <div className="row" style={{ alignItems: 'flex-start' }}>
-            <textarea
-              className="input"
-              rows={2}
-              style={{ flex: 1 }}
-              placeholder="A brief subtext shown under the title (e.g. what this set covers)"
-              value={descriptionDraft}
-              onChange={(e) => { setDescriptionDraft(e.target.value); setJustSavedDescription(false); }}
-            />
-            <button
-              className="btn btn-primary btn-sm"
-              disabled={descriptionDraft === (set.description ?? '')}
-              onClick={() => {
-                updateQuestionSet(set.id, { description: descriptionDraft.trim() || undefined });
-                setJustSavedDescription(true);
-              }}
-            >
-              💾 Save
-            </button>
-            {justSavedDescription && <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700 }}>✅ Saved</span>}
-          </div>
-        </div>
-
-        <div className="content-well stack">
-          <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-            <strong>Tags</strong>
-            <div className="row" style={{ alignItems: 'center', gap: 8 }}>
-              <button className="btn btn-primary btn-sm" onClick={() => setJustSavedExtras(true)}>💾 Save</button>
-              {justSavedExtras && <span style={{ fontSize: '0.8rem', color: 'var(--success)', fontWeight: 700 }}>✅ Saved</span>}
-            </div>
-          </div>
-          <div className="stack" style={{ gap: 6 }}>
-            <div className="row-wrap" style={{ gap: 4 }}>
-              {(set.tags ?? []).map((t) => (
-                <span key={t} className="tag-pill tag-pill-sm">
-                  {t}{' '}
-                  <button
-                    aria-label={`Remove tag ${t}`}
-                    onClick={() => updateQuestionSet(set.id, { tags: (set.tags ?? []).filter((x) => x !== t) })}
-                    style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}
-                  >
-                    ✕
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="row" style={{ gap: 6 }}>
-              <input
-                className="input"
-                style={{ fontSize: '0.82rem', padding: '5px 8px' }}
-                placeholder="Add a tag…"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key !== 'Enter') return;
-                  e.preventDefault();
-                  const t = tagInput.trim();
-                  if (!t || (set.tags ?? []).includes(t)) return;
-                  updateQuestionSet(set.id, { tags: [...(set.tags ?? []), t] });
-                  setTagInput('');
-                }}
-              />
-              <button
-                className="btn chip-filter-sm"
-                disabled={!tagInput.trim()}
-                onClick={() => {
-                  const t = tagInput.trim();
-                  if (!t || (set.tags ?? []).includes(t)) return;
-                  updateQuestionSet(set.id, { tags: [...(set.tags ?? []), t] });
-                  setTagInput('');
-                }}
-              >
-                + Add
+        {/* Build Queue 338 (her words: "make this section (set name, focus, description, settings) smaller and more collapsed,
+            less space between things. clean it up. allow me to assign settings per student"): one compact panel. Name and
+            description save when you leave the box (or press Enter); tags save as you add them. */}
+        <div className="content-well qsd-head">
+          <div className="qsd-row">
+            <label className="qsd-field grow"><span>Name</span>
+              <input className="input" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)}
+                onBlur={() => { if (nameDraft.trim() && nameDraft !== set.name) { updateQuestionSet(set.id, { name: nameDraft.trim() }); setJustSaved(true); } }}
+                onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+            </label>
+            <div className="qsd-focus">
+              <button type="button" className={`btn btn-sm ${set.isFocus ? 'btn-primary' : ''}`} onClick={() => setFocusOpen((v) => !v)} aria-expanded={focusOpen}>
+                {set.isFocus ? `⭐ Focus${focusMap[set.id]?.length ? `: ${focusMap[set.id].length} student${focusMap[set.id].length === 1 ? '' : 's'}` : ': all students'}` : '☆ Not a focus'}
               </button>
+              {focusOpen && <FocusMenu set={set} onClose={() => setFocusOpen(false)} />}
             </div>
+            {(justSaved || justSavedDescription) && <span className="qsd-saved">✅ Saved</span>}
           </div>
+          <label className="qsd-field"><span>Description</span>
+            <input className="input" placeholder="What this set covers (shown under the title)" value={descriptionDraft}
+              onChange={(e) => setDescriptionDraft(e.target.value)}
+              onBlur={() => { if (descriptionDraft !== (set.description ?? '')) { updateQuestionSet(set.id, { description: descriptionDraft.trim() || undefined }); setJustSavedDescription(true); } }}
+              onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} />
+          </label>
+          <div className="qsd-row qsd-tags">
+            <span className="qsd-label">Tags</span>
+            {(set.tags ?? []).map((t) => (
+              <span key={t} className="tag-pill tag-pill-sm">
+                {t}{' '}
+                <button aria-label={`Remove tag ${t}`} onClick={() => updateQuestionSet(set.id, { tags: (set.tags ?? []).filter((x) => x !== t) })}
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}>✕</button>
+              </span>
+            ))}
+            <input className="input qsd-taginput" placeholder="Add a tag and press Enter" value={tagInput} onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return;
+                e.preventDefault();
+                const t = tagInput.trim();
+                if (!t || (set.tags ?? []).includes(t)) return;
+                updateQuestionSet(set.id, { tags: [...(set.tags ?? []), t] });
+                setTagInput('');
+              }} />
+          </div>
+          {set.kind === 'quiz' && set.questions.some((q) => q.kind === 'symbol') && (
+            <details className="qsd-students">
+              <summary>Student settings <small>{Object.keys(perStudent.map[set.id] ?? {}).length ? `${Object.keys(perStudent.map[set.id] ?? {}).length} with their own` : 'everyone uses the set settings'}</small></summary>
+              <p className="qsd-hint">Same questions, more or less support. Pick a student to give them their own settings; the rest use the set settings below.</p>
+              <div className="qsd-studentlist">
+                {students.map((st) => {
+                  const own = perStudent.map[set.id]?.[st.id];
+                  const base = (set.questions.find((q) => q.kind === 'symbol') as SymbolQuestion | undefined)?.settings ?? DEFAULT_SYMBOL_SETTINGS;
+                  return (
+                    <div key={st.id} className={`qsd-student${own ? ' own' : ''}`}>
+                      <div className="qsd-row">
+                        <b>{st.name}</b>
+                        {own
+                          ? <button type="button" className="btn btn-sm" onClick={() => perStudent.set(set.id, st.id, undefined)}>Use the set settings</button>
+                          : <button type="button" className="btn btn-sm" onClick={() => perStudent.set(set.id, st.id, { ...base })}>Give own settings</button>}
+                      </div>
+                      {own && <SymbolSettingsBar settings={{ ...base, ...own }} onChange={(v) => perStudent.set(set.id, st.id, v)} />}
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          )}
         </div>
 
         <div className="content-well stack">

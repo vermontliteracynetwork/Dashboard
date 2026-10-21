@@ -77,7 +77,7 @@ def build():
     one('THEME COVER IMAGE', 'A square picture students see when they pick a theme.', 'cover', 1180, 1180)
     one('BACKGROUND', 'The scene behind the whole game. The board and score board sit on top of it.', 'background', 1600, 1200)
     one('TITLE', 'The game name in your letters. The white around the letters turns see-through.', 'title', 1800, 600)
-    one('GAME BOARD', 'The picture behind the pegs. Keep it calm so the pegs and ball stay easy to see.', 'board', 990, 1230)
+    one('GAME BOARD', 'The picture behind the pegs. Keep it calm so the pegs and ball stay easy to see.', 'board', 1500, 1160)  # Build Queue 344: wider, like the board on screen
     one('SCORE BOARD BACKGROUND', 'The picture behind the players and their scores. Keep the middle calm.', 'panel', 620, 1230)
     for i in range(10):
         one(f'BALL {i + 1}', 'One ball in the circle.' + (' Balls 1 to 5 are needed.' if i < 5 else ' Extra, leave it white to skip it.'), f'ball{i + 1}', 1150, 1150, circle=True)

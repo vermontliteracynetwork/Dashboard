@@ -4,6 +4,7 @@
 // exactly one place.
 
 import type { Focus, FocusSubject, QuestionSet, Subject } from '../types';
+import { focusFor } from './questionFocus';
 import type { ConversationStep } from './worldQuest1';
 
 // Direct teacher instruction: Focuses are retired from live authoring —
@@ -14,7 +15,7 @@ import type { ConversationStep } from './worldQuest1';
 // recent wins" rule below).
 export function getFocusQuestionSet(questionSets: QuestionSet[], subject: Subject): QuestionSet | null {
   const candidates = questionSets
-    .filter((q) => q.subject === subject && q.isFocus)
+    .filter((q) => q.subject === subject && focusFor(q))
     .sort((a, b) => (b.focusedAt ?? '').localeCompare(a.focusedAt ?? ''));
   return candidates[0] ?? null;
 }

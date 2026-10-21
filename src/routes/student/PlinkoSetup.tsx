@@ -59,6 +59,9 @@ export interface SetupPlayer { key: string; name: string; kind: 'me' | 'irl' | '
 
 export const SpeakerIcon = () => <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /><path d="M19 6a8.5 8.5 0 0 1 0 12" /></svg>;
 
+// The column count that makes every row of a grid even (10 balls: 2 rows of 5; 30: 5 rows of 6).
+export const gridCols = (n: number) => (n <= 5 ? n : n <= 10 ? Math.ceil(n / 2) : [6, 5, 8, 7, 4].find((c) => n % c === 0) ?? 6);
+
 export function Slider({ label, value, min, max, onChange, disabled }: { label: string; value: number; min: number; max: number; onChange: (n: number) => void; disabled?: boolean }) {
   const pct = max === min ? 0 : ((value - min) / (max - min)) * 100;
   return (
@@ -201,7 +204,8 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
         {cur === 'balls' && (
           <>
             <h2 className="pkx-h">{names[ballFor]}</h2>
-            <div className="pkx-grid">
+            {/* Build Queue 339 (her words: "put balls in rows of 5"): even rows for the real ball count, never a stranded last row. */}
+            <div className="pkx-grid" style={{ gridTemplateColumns: `repeat(${gridCols(ballList.length)}, minmax(0, 1fr))`, maxWidth: gridCols(ballList.length) * 128, marginInline: 'auto' }}>
               {ballList.map((b, k) => {
                 const owner = balls.slice(0, count).findIndex((x) => x === k);
                 return (

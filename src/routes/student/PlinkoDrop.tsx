@@ -9,7 +9,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
-import { PEG_SOUNDS, playPegSound, sfx, SfxToggle } from '../../lib/miniSfx';
+import { PEG_SOUNDS, playPegSound, setSfxLevel, sfx, SfxToggle } from '../../lib/miniSfx';
 import { useVisitScore } from '../../components/MyBest';
 import PlinkoSetup, { BALLS, Slider, type SetupPlayer } from './PlinkoSetup';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -34,6 +34,9 @@ const RANGES = { rounds: { min: 3, max: 10, def: 5 }, per: { min: 1, max: 5, def
 const rowsFor = (round: number) => Math.min(12, 7 + round);
 const pegsFor = (zones: number, rows: number) => { const out: { x: number; r: number }[] = []; for (let r = 0; r < rows; r++) for (let x = r % 2 ? 0.5 : 0; x <= zones - 1 + 0.001; x += 1) out.push({ x, r }); return out; };
 const MUSIC_KEY = 'plinko-music';
+// Build Queue 344: the settings menu's two volume levels, 0 (off) to 5 (full), remembered on this iPad.
+const VOL_KEY = 'plinko-volume';
+const readVol = (): { sfx: number; music: number } => { try { return { sfx: 5, music: 4, ...JSON.parse(localStorage.getItem(VOL_KEY) ?? '{}') }; } catch { return { sfx: 5, music: 4 }; } };
 // One step of a ball's fall (Build Queue 316): where it goes, how long it takes (ms), its easing, the peg it touches.
 type BallPt = { x: number; y: number; d: number; e?: string; hit?: number | null; tag?: 'pop' | 'land'; rot?: number; sq?: boolean };
 const FLY_MS = 850;
@@ -83,7 +86,10 @@ export default function PlinkoDrop() {
   // Build Queue 316: points flying from the bucket to the score, and the score row that just got them.
   const [flyer, setFlyer] = useState<{ id: number; text: string; x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [bump, setBump] = useState<string | null>(null);
-  const [pPage, setPPage] = useState(0); // Build Queue 325: three power-up cards at a time
+  const [pPage, setPPage] = useState(0);
+  const [vol, setVolState] = useState(readVol);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const musicVol = (v = vol.music) => 0.35 * (v / 4); // Build Queue 325: three power-up cards at a time
   const [popping, setPopping] = useState(false);
   const [pegCol, setPegCol] = useState<(number | null)[]>([]);
   const [hit, setHit] = useState<number[]>([]);
@@ -120,7 +126,8 @@ export default function PlinkoDrop() {
   const playersRef = useRef<Player[]>([]);
   const activeRef = useRef<Power[]>([]);
   const turnRef = useRef(0);
-  useEffect(() => () => { timers.current.forEach(clearTimeout); musicRef.current?.pause(); }, []);
+  useEffect(() => () => { timers.current.forEach(clearTimeout); musicRef.current?.pause(); setSfxLevel(5); }, []);
+  useEffect(() => { setSfxLevel(vol.sfx); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!student) return null;
 
   const owner = `plinko:${student.id}`;
@@ -140,12 +147,12 @@ export default function PlinkoDrop() {
   const startMusic = () => {
     musicRef.current?.pause(); musicRef.current = null;
     if (!theme?.music || !musicPref()) return;
-    try { const a = new Audio(theme.music); a.loop = true; a.volume = 0.35; musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ }
+    try { const a = new Audio(theme.music); a.loop = true; a.volume = musicVol(); musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ }
   };
   const flipMusic = () => {
     const v = !musicOn; setMusicOn(v); try { localStorage.setItem(MUSIC_KEY, v ? '1' : '0'); } catch { /* fine */ }
     if (!v) { musicRef.current?.pause(); return; }
-    if (musicRef.current) void musicRef.current.play().catch(() => {}); else if (theme?.music) { try { const a = new Audio(theme.music); a.loop = true; a.volume = 0.35; musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ } }
+    if (musicRef.current) void musicRef.current.play().catch(() => {}); else if (theme?.music) { try { const a = new Audio(theme.music); a.loop = true; a.volume = musicVol(); musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ } }
   };
 
   const newBoard = (rnd: number) => {
@@ -244,6 +251,10 @@ export default function PlinkoDrop() {
     goAsk(cur);
   };
   const setPlayersBoth = (fn: (ps: Player[]) => Player[]) => { playersRef.current = fn(playersRef.current); setPlayers(playersRef.current); };
+  const setVol = (v: { sfx: number; music: number }) => {
+    setVolState(v); setSfxLevel(v.sfx); try { localStorage.setItem(VOL_KEY, JSON.stringify(v)); } catch { /* fine */ }
+    if (musicRef.current) musicRef.current.volume = musicVol(v.music);
+  };
   const flyPoints = (key: string, b: number, text: string) => {
     const from = document.querySelectorAll('.pk2-buckets > span')[b]?.getBoundingClientRect();
     const to = document.querySelector(`[data-player="${key}"] strong`)?.getBoundingClientRect();
@@ -411,6 +422,17 @@ export default function PlinkoDrop() {
         <LeaveButton plain onLeave={() => { pay(); back.go(); }} />
         {theme?.title ? <h1 className="pk2-title-img"><img src={theme.title} alt={`Plinko: ${theme.name}`} /></h1> : <h1>Plinko</h1>}
         <SfxToggle plain />
+        {/* Build Queue 344: a settings button beside the sound button, with the two volumes. */}
+        <button type="button" className="btn sfx-toggle" onClick={() => setSettingsOpen((o) => !o)} aria-expanded={settingsOpen} aria-label="Settings">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        </button>
+        {settingsOpen && (
+          <div className="pk2-settings" role="dialog" aria-label="Settings">
+            <Slider label="Sound effects" value={vol.sfx} min={0} max={5} onChange={(v) => setVol({ ...vol, sfx: v })} />
+            <Slider label="Music" value={vol.music} min={0} max={5} onChange={(v) => setVol({ ...vol, music: v })} />
+            <button type="button" className="btn btn-primary" onClick={() => setSettingsOpen(false)}>Done</button>
+          </div>
+        )}
         {theme?.music && (
           <button type="button" className="btn sfx-toggle" onClick={flipMusic} aria-pressed={musicOn} aria-label={musicOn ? 'Music on. Tap to turn it off.' : 'Music off. Tap to turn it on.'}>
             <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M9 18V5l11-2v13" /><circle cx="6" cy="18" r="3" fill="currentColor" /><circle cx="17" cy="16" r="3" fill="currentColor" />{!musicOn && <path d="M3 3l18 18" />}</svg>
@@ -433,10 +455,9 @@ export default function PlinkoDrop() {
         </aside>
 
         <section className="pk2-board" aria-label="Plinko board" style={{ ['--pk-cur' as string]: '#5a3d9e' }}>
-          {cur && phase !== 'over' && <div className="pk2-turn">{cur.name}'s turn</div>}
           {/* Build Queue 293 (her words: "widen main plinko board. never overlap drop zones. show numbers for drop zones"):
               numbered drop zones in equal columns across the top, like Plink-oh, so they can never overlap. */}
-          <div className="pk2-zones" style={{ gridTemplateColumns: `repeat(${zones}, 1fr)` }}>
+          <div className="pk2-zones" style={{ gridTemplateColumns: `repeat(${zones}, minmax(0, 1fr))`, ['--fit' as string]: `${Math.max(0.8, 1.9 - zones * 0.1).toFixed(2)}rem` }}>
             {Array.from({ length: zones }, (_, z) => (
               <button key={z} type="button" className={`pk2-zone${phase === 'aim' && aimX === z ? ' on' : ''}`} disabled={phase !== 'aim' || cur?.kind === 'npc'}
                 onPointerEnter={() => setAimX(z)} onFocus={() => setAimX(z)} onClick={() => dropAt(z, secondRef.current)} aria-label={`Drop zone ${z + 1}`}>
@@ -445,21 +466,21 @@ export default function PlinkoDrop() {
             ))}
             {phase === 'aim' && <b className={`pk2-ball aim${bigOn ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
           </div>
-          <div className="pk2-field" style={{ aspectRatio: `${zones} / ${Math.max(4.6, zones * 0.82)}` }}>
+          <div className="pk2-field" style={{ aspectRatio: `${zones} / ${Math.max(3.6, zones * 0.62)}` }}>
             {/* Build Queue 313: rows alternate like Plink-oh, and every peg drifts a little (each on its own beat). */}
             {pegs.map((p, i) => { const c = pegCol[i]; const col = c !== null && c !== undefined ? pegTypes[c]?.color : undefined; return <i key={i} className={`${hit.includes(i) ? 'hit' : ''}${gone.includes(i) ? ' gone' : ''}${col ? ' color' : ''}`} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%`, animationDelay: `${-((i * 0.37) % 3)}s`, ...(col ? { background: col } : {}) }} />; })}
             {floats.map((f) => <em key={f.id} className="pk2-pegxp" style={{ left: `${xPct(pegs[f.k]?.x ?? 0)}%`, top: `${yPct(pegs[f.k]?.r ?? 0)}%` }}>+{f.v}</em>)}
             {ball && ballEl(ball, 'b1')}
             {ball2 && ballEl(ball2, 'b2')}
           </div>
-          <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, 1fr)` }}>
+          <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, minmax(0, 1fr))`, ['--fit' as string]: `${Math.max(1, 2.5 - nBuckets * 0.18).toFixed(2)}rem` }}>
             {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win?.includes(i) ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? ', a power-up star' : ''}`}>{stars[i] ? <em className="pk2-stars">{Array.from({ length: stars[i] }, (_, k) => <img key={k} src={`${UI}star_full.png`} alt="" />)}</em> : null}{v}</span>)}
           </div>
           <p className="pk2-msg" aria-live="polite">{note ?? ''}</p>
         </section>
 
         <aside className="pk2-panel pk2-powers" aria-label="Power-ups">
-          <h2>Power-ups</h2>
+          {(phase === 'powers' || active.length > 0) && <h2>Power-ups</h2>}
           {phase === 'powers' && cur ? (
             <>
               {/* Build Queue 315: power-ups as cards like Plink-oh (name, big picture, a select button that turns into a
@@ -478,8 +499,6 @@ export default function PlinkoDrop() {
           ) : (
             <>
               {active.map((pw) => <div key={`a-${pw}`} className="pk2-pcard on"><b>{pName(pw)}</b><span className="pk2-pcard-pic">{pIcon(pw)}</span><small>{pDef(pw)?.does}</small><i className="pk2-pcard-btn">{CHECK}</i></div>)}
-              {!active.length && <p className="pk2-small"><img className="pk2-star-sm" src={`${UI}star_full.png`} alt="A star" /> = a power-up next round</p>}
-              {players.filter((p) => p.owed > 0).map((p) => <p key={p.key} className="pk2-small">{p.name}: <img className="pk2-star-sm" src={`${UI}star_full.png`} alt="" /> next round</p>)}
             </>
           )}
         </aside>

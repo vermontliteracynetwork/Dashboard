@@ -124,6 +124,16 @@ function ProgressPips({ done, total }: { done: number; total: number }) {
   );
 }
 
+// Build Queue 341: a drawn icon for each tool.
+const tIco = (d: React.ReactNode) => <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{d}</svg>;
+const TOOL_ICON = {
+  calc: tIco(<><rect x="5" y="3" width="14" height="18" rx="2" /><rect x="8" y="6" width="8" height="3" rx=".5" /><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 16.5h.01M12 16.5h.01M15.5 16.5h.01" strokeWidth="2.6" /></>),
+  pad: tIco(<><path d="M5 4h10l4 4v12H5z" /><path d="M15 4v4h4" /><path d="M8 13l3-3 4 4-3 3H8z" /></>),
+  size: tIco(<><path d="M3 19l5-13 5 13M4.8 15h6.4" /><path d="M14 19l3.5-8 3.5 8M15.2 16.5h4.6" /></>),
+  mark: tIco(<><path d="M14.5 4.5l5 5L10 19H5v-5z" /><path d="M4 21h16" stroke="#f5c400" strokeWidth="3" /></>),
+  rest: tIco(<><path d="M5 11h12a3 3 0 0 1 0 6h-1a5 5 0 0 1-5 3H9a4 4 0 0 1-4-4z" /><path d="M17 12.5h1a1.5 1.5 0 0 1 0 3" /><path d="M9 4c0 1.5 1.5 1.5 1.5 3M12.5 4c0 1.5 1.5 1.5 1.5 3" /></>),
+};
+
 export default function QuestionScreen({
   prompt,
   choices,
@@ -341,18 +351,18 @@ export default function QuestionScreen({
                 boxShadow: '0 12px 28px rgba(46,42,36,0.18)',
                 padding: 12,
                 display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 8,
+                gridTemplateColumns: '1fr', // Build Queue 339 rule: five tools in one even column, never 2 + 2 + 1
+                gap: 6,
                 zIndex: 10,
               }}
             >
               {[
-                { icon: '🧮', label: 'Calculator', active: showCalc, onClick: () => { setShowCalc((v) => !v); setShowToolbox(false); } },
-                { icon: '📝', label: 'Scratchpad', active: showPad, onClick: () => { setShowPad((v) => !v); setShowToolbox(false); } },
-                { icon: '🔤', label: `Text Size ${['A', 'A+', 'A++'][sizeIdx]}`, active: sizeIdx > 0, onClick: nextSize },
-                { icon: '🖍️', label: highlightOn ? 'Highlight: on' : 'Highlight', active: highlightOn, onClick: () => { setHighlightOn((v) => !v); setShowToolbox(false); } },
+                { icon: '🧮', svg: TOOL_ICON.calc, label: 'Calculator', active: showCalc, onClick: () => { setShowCalc((v) => !v); setShowToolbox(false); } },
+                { icon: '📝', svg: TOOL_ICON.pad, label: 'Scratchpad', active: showPad, onClick: () => { setShowPad((v) => !v); setShowToolbox(false); } },
+                { icon: '🔤', svg: TOOL_ICON.size, label: `Text Size ${['A', 'A+', 'A++'][sizeIdx]}`, active: sizeIdx > 0, onClick: nextSize },
+                { icon: '🖍️', svg: TOOL_ICON.mark, label: highlightOn ? 'Highlight: on' : 'Highlight', active: highlightOn, onClick: () => { setHighlightOn((v) => !v); setShowToolbox(false); } },
                 // Pets v2 (her spec): "Questions set function needs to have a break in the tools".
-                { icon: '🐾', label: 'Take a break', active: false, onClick: () => { setShowToolbox(false); openCheckOnPet('break'); } },
+                { icon: '🐾', svg: TOOL_ICON.rest, label: 'Take a break', active: false, onClick: () => { setShowToolbox(false); openCheckOnPet('break'); } },
               ].map((tool) => (
                 <button
                   key={tool.icon}
@@ -361,22 +371,24 @@ export default function QuestionScreen({
                   aria-pressed={tool.active}
                   style={{
                     display: 'flex',
-                    flexDirection: 'column',
+                    flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 4,
-                    padding: '10px 6px',
-                    minHeight: 64,
+                    gap: 10,
+                    padding: '8px 14px',
+                    minHeight: 52,
+                    minWidth: 190,
                     borderRadius: 12,
                     border: tool.active ? '2px solid #2E7BB8' : '1px solid #F2E8D6',
                     background: tool.active ? '#E3F0FB' : '#FBF3E3',
                     color: '#3A342A',
-                    fontSize: 12,
-                    fontWeight: 600,
+                    fontSize: 14,
+                    fontWeight: 700,
                     cursor: 'pointer',
                     touchAction: 'manipulation',
                   }}
                 >
-                  {!plain && <span style={{ fontSize: 20 }}>{tool.icon}</span>}
+                  {/* Build Queue 341 (her words: "tools need to have icons for what they are"): drawn icons, so they show in plain games too. */}
+                  <span aria-hidden style={{ display: 'grid', placeItems: 'center', width: 30, height: 30, color: '#2E7BB8' }}>{tool.svg}</span>
                   {tool.label}
                 </button>
               ))}
