@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-peg-xp",
+    date: "2026-10-21",
+    icon: "🎯",
+    title: "Pop pegs for XP in Plinko",
+    body: "Colored pegs pop away when your ball hits them and give XP. Each round a new color joins, worth one more XP. Land on a star to win one power-up for the next round.",
+  },
+  {
     id: "2026-10-21-plinko-new-powers",
     date: "2026-10-21",
     icon: "⚡",

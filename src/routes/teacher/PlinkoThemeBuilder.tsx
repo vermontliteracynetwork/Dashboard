@@ -7,7 +7,7 @@ import { uploadAudio, uploadImage } from '../../lib/upload';
 import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_POWERS, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
+  DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
   type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
@@ -40,6 +40,15 @@ const FONT_ROLES: { key: 'title' | 'header' | 'body'; label: string; sample: str
 ];
 const blank = (): PlinkoTheme => ({ id: makeId(), name: '', font: 'default', approved: false, createdAt: new Date().toISOString(), balls: [], colors: {}, buckets: [], powers: {}, customPowers: [], fonts: {} });
 const HEX = /^#[0-9a-f]{6}$/i;
+// Build Queue 312: the Default theme as a full theme she can edit, filled with everything the default game uses.
+// Saved under the id "default", it becomes the game's default look (students still see it as Classic).
+const urlOf = (bg: string) => /url\("([^"]+)"\)/.exec(bg)?.[1] ?? '';
+const defaultDraft = (): PlinkoTheme => ({
+  id: DEFAULT_THEME_ID, name: 'Default', font: 'default', approved: true, createdAt: new Date().toISOString(), cover: '/games/covers/plinko-drop.svg',
+  balls: BALLS.map((b) => urlOf(b.bg)).filter(Boolean),
+  colors: { primary: DEF.primary, secondary: DEF.secondary, text: DEF.text, panelBg: DEF.panel, boardBg: DEF.board, boardBorder: DEF.edge, peg: DEF.peg, zone: DEF.zone, powerBg: DEF.powerBg, powerBtn: DEF.powerBtn },
+  buckets: [...BUCKET_DEF], powers: {}, customPowers: [], fonts: {}, pegColors: DEFAULT_PEG_COLORS.map((x) => ({ ...x })),
+});
 // One peg in the Game elements section: its color and its sound together.
 function PegRow({ label, color, sound, busy, onColor, onSound, onUpload, onRemove }: { label: string; color: string; sound: string; busy: boolean; onColor: (v: string) => void; onSound: (v: string) => void; onUpload: () => void; onRemove?: () => void }) {
   const known = PEG_SOUNDS.some((x) => x.id === sound);
@@ -110,7 +119,7 @@ function Preview({ t }: { t: PlinkoTheme }) {
         <section className="ptb-board" style={{ background: t.board ? `center / cover url("${t.board}")` : c('boardBg', DEF.board), borderColor: c('boardBorder', DEF.edge) }}>
           <span className="ptb-turn" style={{ background: c('primary', DEF.primary) }}>Ava's turn</span>
           <div className="ptb-zones">{[1, 2, 3, 4, 5].map((n) => <span key={n} style={{ background: c('zone', DEF.zone), borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{n}</span>)}</div>
-          <div className="ptb-pegs">{Array.from({ length: 23 }, (_, i) => { const pc = t.pegColors?.length && i % 3 === 1 ? t.pegColors[Math.floor(i / 3) % t.pegColors.length].color : undefined; return <i key={i} style={{ background: pc ?? c('peg', DEF.peg) }} />; })}<b className="ptb-ball" style={{ background: ball(0) }} /></div>
+          <div className="ptb-pegs">{[5, 4, 5, 4, 5].map((n, r) => <div key={r} className="ptb-pegrow-p">{Array.from({ length: n }, (_, k) => { const i = r * 5 + k; const pegs = t.pegColors?.length ? t.pegColors : DEFAULT_PEG_COLORS; const pc = i % 3 === 1 ? pegs[Math.floor(i / 3) % pegs.length].color : undefined; return <i key={k} style={{ background: pc ?? c('peg', DEF.peg), animationDelay: `${-((i * 0.37) % 3)}s` }} />; })}</div>)}<b className="ptb-ball" style={{ background: ball(0) }} /></div>
           <div className="ptb-buckets">{[10, 30, 20, 40, 10].map((n, i) => (
             <span key={i} style={{ background: t.buckets[i] ?? BUCKET_DEF[i], borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{i === 1 && <img src={`${UI}star_full.png`} alt="" />}{n}</span>
           ))}</div>
@@ -230,13 +239,15 @@ export default function PlinkoThemeBuilder() {
     if (dirty && !window.confirm('You have changes that are not saved. Leave them?')) return;
     setDraft(t ? { customPowers: [], fonts: {}, ...structuredClone(t) } : blank()); setDirty(false); setSaved(null);
   };
-  const missing = [!draft.name.trim() && 'a theme name', !draft.cover && 'a 1x1 cover', draft.balls.length < 5 && `at least 5 balls (${draft.balls.length} now)`].filter(Boolean) as string[];
+  const isDefault = draft.id === DEFAULT_THEME_ID;
+  const maxBalls = isDefault ? 30 : 10;
+  const missing = isDefault ? [] : [!draft.name.trim() && 'a theme name', !draft.cover && 'a 1x1 cover', draft.balls.length < 5 && `at least 5 balls (${draft.balls.length} now)`].filter(Boolean) as string[];
   const unbuilt = (draft.customPowers ?? []).filter((p) => p.kind === 'none');
   const doSave = (approved = draft.approved) => {
     if (!draft.name.trim()) { setSaved('Give the theme a name first.'); return; }
-    const t = { ...draft, approved: approved && missing.length === 0 };
+    const t = { ...draft, approved: isDefault || (approved && missing.length === 0) };
     save(themes.some((x) => x.id === t.id) ? themes.map((x) => (x.id === t.id ? t : x)) : [t, ...themes]);
-    setDraft(t); setDirty(false); setSaved(t.approved ? 'Published. Students can pick this theme.' : 'Saved as a draft. Students do not see it yet.');
+    setDraft(t); setDirty(false); setSaved(isDefault ? 'Saved. Every game uses this as the default look.' : t.approved ? 'Published. Students can pick this theme.' : 'Saved as a draft. Students do not see it yet.');
   };
   const setPower = (id: PlinkoPower, p: Partial<{ name: string; img: string; does: string }>) => set({ powers: { ...draft.powers, [id]: { ...draft.powers[id], ...p } } });
   const setCustom = (i: number, p: Partial<PowerDef>) => set({ customPowers: (draft.customPowers ?? []).map((x, k) => (k === i ? { ...x, ...p } : x)) });
@@ -252,7 +263,7 @@ export default function PlinkoThemeBuilder() {
   const mergeBalls = (urls: string[], slots: number[]) => {
     const b = draft.balls.slice();
     urls.forEach((u, k) => { const i = slots[k] ?? k; if (i < b.length) b[i] = u; else b.push(u); });
-    return b.slice(0, 10);
+    return b.slice(0, maxBalls);
   };
   const importFiles = async (files: File[]) => {
     if (!files.length) return;
@@ -285,7 +296,11 @@ export default function PlinkoThemeBuilder() {
         <nav className="ptb-crumbs" aria-label="Breadcrumb"><Link to="/teacher/game/themes">Themes</Link><span>/</span><b>Plinko</b></nav>
 
         <div className="ptb-themes" aria-label="Saved themes">
-          {sorted.map((t) => (
+          <button type="button" className={`ptb-theme${isDefault ? ' on' : ''}`} onClick={() => open(themes.find((x) => x.id === DEFAULT_THEME_ID) ?? defaultDraft())}>
+            <span style={{ background: `center / cover url("${themes.find((x) => x.id === DEFAULT_THEME_ID)?.cover ?? '/games/covers/plinko-drop.svg'}")` }} />
+            <b>Default</b><small className="live">Always on</small>
+          </button>
+          {sorted.filter((t) => t.id !== DEFAULT_THEME_ID).map((t) => (
             <button key={t.id} type="button" className={`ptb-theme${t.id === draft.id ? ' on' : ''}`} onClick={() => open(t)}>
               <span style={{ background: t.cover ? `center / cover url("${t.cover}")` : '#eef0f4' }} />
               <b>{t.name}</b><small className={t.approved ? 'live' : ''}>{t.approved ? 'Live' : 'Draft'}</small>
@@ -303,13 +318,23 @@ export default function PlinkoThemeBuilder() {
           </label>
           <div className="ptb-actions">
             {/* Build Queue 302 (her words: "instead of share with students, show publish button"). */}
-            {draft.approved && <span className="ptb-live">Published</span>}
-            <button type="button" className="btn" onClick={() => doSave()}>{draft.approved ? 'Save' : 'Save draft'}</button>
-            {draft.approved
-              ? <button type="button" className="btn" onClick={() => doSave(false)}>Unpublish</button>
-              : <button type="button" className="btn btn-primary" disabled={missing.length > 0} onClick={() => doSave(true)}>Publish</button>}
-            <Info label="About publishing">Publish shows the theme to students. It needs a name, a cover and at least 5 balls. Unpublish hides it again. A draft can be saved any time.</Info>
-            {themes.some((x) => x.id === draft.id) && <button type="button" className="btn btn-danger" onClick={() => { if (window.confirm(`Delete the ${draft.name} theme?`)) { save(themes.filter((x) => x.id !== draft.id)); setDraft(blank()); setDirty(false); } }}>Delete</button>}
+            {isDefault ? (
+              <>
+                <button type="button" className="btn btn-primary" onClick={() => doSave()}>Save</button>
+                <button type="button" className="btn" onClick={() => { if (window.confirm('Put the Default theme back the way it started?')) set(defaultDraft()); }}>Reset</button>
+                <Info label="About the Default theme">The Default theme is the look every game uses unless a student picks another theme. Change anything, then Save. Reset puts everything back to the original.</Info>
+              </>
+            ) : (
+              <>
+                {draft.approved && <span className="ptb-live">Published</span>}
+                <button type="button" className="btn" onClick={() => doSave()}>{draft.approved ? 'Save' : 'Save draft'}</button>
+                {draft.approved
+                  ? <button type="button" className="btn" onClick={() => doSave(false)}>Unpublish</button>
+                  : <button type="button" className="btn btn-primary" disabled={missing.length > 0} onClick={() => doSave(true)}>Publish</button>}
+                <Info label="About publishing">Publish shows the theme to students. It needs a name, a cover and at least 5 balls. Unpublish hides it again. A draft can be saved any time.</Info>
+              </>
+            )}
+            {!isDefault && themes.some((x) => x.id === draft.id) && <button type="button" className="btn btn-danger" onClick={() => { if (window.confirm(`Delete the ${draft.name} theme?`)) { save(themes.filter((x) => x.id !== draft.id)); setDraft(blank()); setDirty(false); } }}>Delete</button>}
           </div>
           {(missing.length > 0 || dirty || saved || err) && (
             <div className="ptb-notes">
@@ -342,11 +367,11 @@ export default function PlinkoThemeBuilder() {
                 <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Cover" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
                   {draft.cover ? <img src={draft.cover} alt="" className="sq" /> : <span>Tap or drop a picture</span>}
                 </ImageCard>
-                <ImageCard download={`${PG}balls.pdf`} page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5, up to 10. Tap a ball to remove it." count={`${draft.balls.length} of 10`} busy={busy === 'balls'}
-                  onFile={async (fl) => { const files = Array.from(fl).slice(0, 10 - draft.balls.length); const urls: string[] = []; for (const f of files) await up('balls', f, (u) => urls.push(u)); if (urls.length) set({ balls: [...draft.balls, ...urls].slice(0, 10) }); }}
+                <ImageCard download={`${PG}balls.pdf`} page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5. Tap a ball to remove it." count={`${draft.balls.length} of ${maxBalls}`} busy={busy === 'balls'}
+                  onFile={async (fl) => { const files = Array.from(fl).slice(0, maxBalls - draft.balls.length); const urls: string[] = []; for (const f of files) await up('balls', f, (u) => urls.push(u)); if (urls.length) set({ balls: [...draft.balls, ...urls].slice(0, maxBalls) }); }}
                   onClear={() => set({ balls: [] })}>
                   {draft.balls.length ? <div className="ptb-balls">{draft.balls.map((b, i) => <span key={i} role="button" tabIndex={0} title="Remove this ball" onClick={(e) => { e.stopPropagation(); set({ balls: draft.balls.filter((_, k) => k !== i) }); }}><img src={b} alt={`Ball ${i + 1}`} /></span>)}</div> : <span>Tap or drop pictures</span>}
-                  <small className="ptb-count">{draft.balls.length} of 10</small>
+                  <small className="ptb-count">{draft.balls.length} of {maxBalls}</small>
                 </ImageCard>
                 <ImageCard download={`${PG}page-${PAGE_OF.background}.pdf`} page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
                 <ImageCard download={`${PG}page-${PAGE_OF.title}.pdf`} page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />

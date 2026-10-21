@@ -10102,3 +10102,18 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ptb-cards { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); }
 .ptb-ib span { font-size: .66rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .ptb-ib { min-width: 0; padding: 4px 3px; }
+/* Build Queue 310 and 313: pegs drift a little; colored pegs pop away when hit with a floating "+XP". */
+.pk2-field i { animation: pk2PegDrift 3s ease-in-out infinite alternate; }
+@keyframes pk2PegDrift { from { translate: 0 -2px; } to { translate: 0 2px; } }
+.pk2-field i.color { box-shadow: inset 0 -2px 0 rgba(0,0,0,.2), 0 0 0 2px rgba(255,255,255,.55); }
+.pk2-field i.gone { animation: pk2PegGone .35s ease-out forwards; pointer-events: none; }
+@keyframes pk2PegGone { 0% { scale: 1.4; opacity: 1; } 100% { scale: 0; opacity: 0; } }
+.pk2-pegxp { position: absolute; transform: translate(-50%, -50%); font: 900 1.2rem/1 'Baloo 2', 'Nunito', sans-serif; font-style: normal; color: #fff; -webkit-text-stroke: 1.5px #6c626e; paint-order: stroke fill; pointer-events: none; z-index: 4; animation: pk2PegXp .9s ease-out forwards; }
+@keyframes pk2PegXp { from { opacity: 1; translate: 0 0; } to { opacity: 0; translate: 0 -34px; } }
+@media (prefers-reduced-motion: reduce) { .pk2-field i { animation: none; } .pk2-field i.gone { animation: none; opacity: 0; } .pk2-pegxp { animation: none; } }
+/* Build Queue 313: the builder preview's pegs alternate rows of 5 and 4, drifting a little. */
+.ptb-pegs { display: flex; flex-direction: column; justify-content: space-evenly; align-items: stretch; }
+.ptb-pegrow-p { display: flex; justify-content: space-around; padding: 0 4%; }
+.ptb-pegrow-p:nth-child(even) { padding: 0 14%; }
+.ptb-pegrow-p i { animation: pk2PegDrift 3s ease-in-out infinite alternate; }
+@media (prefers-reduced-motion: reduce) { .ptb-pegrow-p i { animation: none; } }

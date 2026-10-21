@@ -45,6 +45,9 @@ export interface PegColor { color: string; sound: string }
 // each on about an eighth of the pegs (at least 2), at random, with at least 30 percent of pegs left plain.
 // `order` is this game's random order of the peg types, so each round adds a random new one (Build Queue 308).
 export const MAX_PEG_TYPES = 20;
+// Build Queue 310: the peg types every game has unless a theme sets its own (soft sounds; each one disappears when hit).
+export const DEFAULT_PEG_COLORS: PegColor[] = [{ color: '#ff8ac4', sound: 'pop' }, { color: '#7bd389', sound: 'ding' }, { color: '#9b8cff', sound: 'boing' }, { color: '#ffd93d', sound: 'coin' }, { color: '#4dc3ff', sound: 'splash' }];
+export const DEFAULT_THEME_ID = 'default';
 export function pegOrder(colors: PegColor[] | undefined): number[] {
   const o = Array.from({ length: Math.min(MAX_PEG_TYPES, colors?.length ?? 0) }, (_, i) => i);
   for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
@@ -77,7 +80,7 @@ export const SPEC_FIELDS: { key: keyof PowerSpec; label: string; ask: string }[]
   { key: 'moves', label: 'How the ball moves', ask: 'Does the ball move differently? Which way, how much?' },
   { key: 'mixes', label: 'With other power-ups', ask: 'What happens when it is on at the same time as another one?' },
 ];
-const ALWAYS = 'Picked at the start of your turn with a star from your last drop. On for this turn only, then it is gone.';
+const ALWAYS = 'One power-up per round: won with a star in the round before, picked at the start of your turn, on for this turn only, never saved.';
 export const POWER_KINDS: { kind: PowerKind; label: string; nLabel?: string; nMin?: number; nMax?: number; nDef?: number; spec?: Required<PowerSpec> }[] = [
   // Build Queue 307: her preset list first (double points, magnet, growing, pop, heavy, extra bouncy, two balls).
   { kind: 'multiply', label: 'Double points (multiply the points)', nLabel: 'Times', nMin: 2, nMax: 5, nDef: 2,
@@ -93,7 +96,7 @@ export const POWER_KINDS: { kind: PowerKind; label: string; nLabel?: string; nMi
   { kind: 'bouncy', label: 'Extra bouncy ball (bounces twice as far)',
     spec: { does: 'The ball is extra bouncy and jumps a whole space on every peg, so anything can happen.', when: `${ALWAYS} It is bouncy for every drop this turn.`, moves: 'On each row it bounces a full space left or right instead of half a space.', mixes: 'With Magnet, every bounce toward the top bucket is a full space, so it gets there faster. Heavy, Big and Growing balls still fall straight on some rows.' } },
   { kind: 'twin', label: 'Two balls (drop two at once)',
-    spec: { does: 'Two balls drop from the same zone at once and each one bounces its own way. Both score.', when: `${ALWAYS} Every drop this turn is two balls.`, moves: 'Each ball moves the usual way, on its own path.', mixes: 'Every other power-up works on both balls (Double doubles both). Stars from both buckets count for your next turn, up to 3.' } },
+    spec: { does: 'Two balls drop from the same zone at once and each one bounces its own way. Both score.', when: `${ALWAYS} Every drop this turn is two balls.`, moves: 'Each ball moves the usual way, on its own path.', mixes: 'Every other power-up works on both balls (Double doubles both). A star in either bucket gives one power-up for the next round.' } },
   { kind: 'big', label: 'Big ball (bounces less, easier to aim)',
     spec: { does: 'The ball is bigger and heavier, so where you drop it matters more.', when: `${ALWAYS} The ball is big for every drop this turn.`, moves: 'On each row of pegs there is a 1 in 2 chance it falls straight down instead of bouncing left or right.', mixes: 'With a magnet: on the rows where the big ball does bounce, the magnet can still pull it.' } },
   { kind: 'extra', label: 'Extra drops this turn', nLabel: 'Drops', nMin: 1, nMax: 3, nDef: 1,

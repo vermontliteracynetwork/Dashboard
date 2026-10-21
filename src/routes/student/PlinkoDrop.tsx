@@ -17,7 +17,7 @@ import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
-import { colorPegs, pegOrder, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
+import { DEFAULT_PEG_COLORS, DEFAULT_THEME_ID, colorPegs, pegOrder, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
 
 // Plinko after Baamboozle's Plink-oh (Build Queue 244 and 250, plan in docs/PLINKO_PLAN.pdf).
 // Her rules (2026-10-20): up to 5 players on one iPad, the student plus classmates in the room and
@@ -78,6 +78,9 @@ export default function PlinkoDrop() {
   const [popping, setPopping] = useState(false);
   const [pegCol, setPegCol] = useState<(number | null)[]>([]);
   const [hit, setHit] = useState<number[]>([]);
+  // Build Queue 310: colored pegs the ball hit this round (they disappear) and the "+2" that floats up from each.
+  const [gone, setGone] = useState<number[]>([]);
+  const [floats, setFloats] = useState<{ id: number; k: number; v: number }[]>([]);
   const [musicOn, setMusicOn] = useState(musicPref);
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const pegOrderRef = useRef<number[]>([]);
@@ -90,9 +93,12 @@ export default function PlinkoDrop() {
   const banked = useRef({ xp: 0, counted: false });
   const visit = useVisitScore('plinkoDrop');
   // Build Queue 246 and 258: the theme picked on the first setup page (only themes she approved).
-  const { approved: themes } = usePlinkoThemes();
+  // Build Queue 312: her edited Default theme (if she saved one) is the game's default look.
+  const { approved: allApproved, themes: allThemes } = usePlinkoThemes();
+  const themes = allApproved.filter((t) => t.id !== DEFAULT_THEME_ID);
   const [themeId, setThemeId] = useState<string | null>(null);
-  const theme = themes.find((t) => t.id === themeId) ?? null;
+  const theme = themes.find((t) => t.id === themeId) ?? allThemes.find((t) => t.id === DEFAULT_THEME_ID) ?? null;
+  const pegTypes = theme?.pegColors?.length ? theme.pegColors : DEFAULT_PEG_COLORS;
   const plist = powersFor(theme);
   const plistRef = useRef(plist); plistRef.current = plist;
   const extraLeft = useRef(0);
@@ -100,7 +106,7 @@ export default function PlinkoDrop() {
   const timers = useRef<number[]>([]);
   const secondRef = useRef(false);
   // The board and players live in refs too, so Neighbor turns and timers always read the current ones.
-  const boardRef = useRef<{ buckets: number[]; stars: number[]; zones: number; nb: number; pegCol: (number | null)[] }>({ buckets: [], stars: [], zones: 5, nb: 3, pegCol: [] });
+  const boardRef = useRef<{ buckets: number[]; stars: number[]; zones: number; nb: number; pegCol: (number | null)[]; gone: Set<number> }>({ buckets: [], stars: [], zones: 5, nb: 3, pegCol: [], gone: new Set() });
   const playersRef = useRef<Player[]>([]);
   const activeRef = useRef<Power[]>([]);
   const turnRef = useRef(0);
@@ -135,13 +141,14 @@ export default function PlinkoDrop() {
     const nb = Math.min(8, 3 + rnd), z = Math.min(10, 5 + rnd);
     const bk = shuffle(Array.from({ length: nb }, (_, i) => (i + 1) * 10));
     // Stars on buckets: smaller buckets carry more stars, so aiming is a choice (points now, or power-ups next turn).
-    const st = bk.map((v) => (v === Math.max(...bk) ? 0 : Math.random() < 0.6 ? Math.max(1, Math.min(3, Math.round((40 - Math.min(v, 40)) / 12 + Math.random()))) : 0));
-    if (!st.some(Boolean)) st[bk.indexOf(Math.min(...bk))] = 2;
+    // Build Queue 311: a star is one power-up for the next round (never more than one, never saved longer).
+    const st = bk.map((v) => (v === Math.max(...bk) ? 0 : Math.random() < (v <= 20 ? 0.7 : 0.4) ? 1 : 0));
+    if (!st.some(Boolean)) st[bk.indexOf(Math.min(...bk))] = 1;
     // Build Queue 299: one more peg color (and its sound) joins at the start of every round.
-    if (rnd === 0) pegOrderRef.current = pegOrder(theme?.pegColors);
-    const pc = colorPegs(pegsFor(z).length, theme?.pegColors, rnd, pegOrderRef.current);
-    boardRef.current = { buckets: bk, stars: st, zones: z, nb, pegCol: pc };
-    setBuckets(bk); setStars(st); setPegCol(pc);
+    if (rnd === 0) pegOrderRef.current = pegOrder(pegTypes);
+    const pc = colorPegs(pegsFor(z).length, pegTypes, rnd, pegOrderRef.current);
+    boardRef.current = { buckets: bk, stars: st, zones: z, nb, pegCol: pc, gone: new Set() };
+    setBuckets(bk); setStars(st); setPegCol(pc); setGone([]); setFloats([]);
     if (rnd > 0 && rnd < pegOrderRef.current.length) timers.current.push(window.setTimeout(() => setNote('A new peg color joined the board!'), 1800));
   };
   const beginTurn = (t: number, list: Player[]) => {
@@ -266,22 +273,41 @@ export default function PlinkoDrop() {
     const falls = twin ? [fall(), fall()] : [fall()];
     const n = falls[0].path.length;
     const STEP = heavy ? 150 : 190;
-    const soundOf = (k: number | null | undefined) => { const c = k !== null && k !== undefined ? pc[k] : null; if (c !== null && c !== undefined && theme?.pegColors?.[c]) playPegSound(theme.pegColors[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick(); };
+    // Build Queue 310: a colored peg disappears when the ball hits it and gives XP: the peg type that joined in round 1 is
+    // worth 1 XP, the one that joined in round 2 is worth 2, and so on. Peg XP is never multiplied. Worked out before the
+    // ball falls so the score and the animation agree; a peg already gone is just an empty space.
+    const before = boardRef.current.gone, after = new Set(before);
+    const events: { i: number; k: number; v: number }[] = [];
+    for (let i = 1; i < n - 1; i++) for (const f of falls) {
+      const k = f.hits[i]; if (k === null || k === undefined) continue;
+      const c = pc[k]; if (c === null || c === undefined || after.has(k)) continue;
+      after.add(k); events.push({ i, k, v: pegOrderRef.current.indexOf(c) + 1 });
+    }
+    boardRef.current.gone = after;
+    const pegXp = events.reduce((m, e) => m + e.v, 0);
+    const soundOf = (k: number) => { const c = pc[k]; if (c !== null && c !== undefined && pegTypes[c]) playPegSound(pegTypes[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick(); };
     for (let i = 0; i < n; i++) timers.current.push(window.setTimeout(() => {
       setBall(falls[0].path[i]); setBall2(falls[1]?.path[i] ?? null);
       const popNow = pop && i === n - 2;
       setPopping(popNow); if (popNow) sfx.pop();
       if (i > 0 && i < n - 1) {
-        const ks = falls.map((f) => f.hits[i]).filter((k): k is number => k !== null && k !== undefined);
+        const ks = falls.map((f) => f.hits[i]).filter((k): k is number => k !== null && k !== undefined && !before.has(k));
         setHit(ks); [...new Set(ks)].forEach(soundOf);
+        const now = events.filter((e) => e.i === i);
+        if (now.length) {
+          setGone((g) => [...g, ...now.map((e) => e.k)]);
+          const add = now.map((e) => ({ id: Math.random(), k: e.k, v: e.v }));
+          setFloats((f) => [...f, ...add]);
+          timers.current.push(window.setTimeout(() => setFloats((f) => f.filter((x) => !add.includes(x))), 900));
+        }
       } else setHit([]);
     }, i * STEP));
     timers.current.push(window.setTimeout(() => {
-      const pts = falls.reduce((m, f) => m + bk[f.b] * mult + bonus, 0);
-      const won = falls.reduce((m, f) => m + (st[f.b] ?? 0), 0);
-      setPlayersBoth((ps) => ps.map((x2) => (x2.key === p.key ? { ...x2, xp: x2.xp + pts, owed: Math.min(3, x2.owed + won) } : x2)));
+      const pts = falls.reduce((m, f) => m + bk[f.b] * mult + bonus, 0) + pegXp;
+      const won = falls.some((f) => (st[f.b] ?? 0) > 0) ? 1 : 0;
+      setPlayersBoth((ps) => ps.map((x2) => (x2.key === p.key ? { ...x2, xp: x2.xp + pts, owed: Math.min(1, x2.owed + won) } : x2)));
       setWin(falls.map((f) => f.b)); sfx.coin(); if (pts >= 40 || won) playCheer();
-      const msg = `${p.name}: +${pts} XP${won ? ` and ${Math.min(3, won)} power-up${won === 1 ? '' : 's'} for next turn` : ''}`;
+      const msg = `${p.name}: +${pts} XP${pegXp ? ` (${pegXp} from pegs)` : ''}${won ? ' and a power-up for next round' : ''}`;
       setNote(msg); if (won) speak(msg, student.ttsSettings);
     }, n * STEP + 80));
     const path = falls[0].path;
@@ -351,12 +377,14 @@ export default function PlinkoDrop() {
             {phase === 'aim' && <b className={`pk2-ball aim${bigOn ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-field" style={{ aspectRatio: `${zones} / ${Math.max(4.6, zones * 0.82)}` }}>
-            {pegs.map((p, i) => { const c = pegCol[i]; const col = c !== null && c !== undefined ? theme?.pegColors?.[c]?.color : undefined; return <i key={i} className={hit.includes(i) ? 'hit' : undefined} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%`, ...(col ? { background: col } : {}) }} />; })}
+            {/* Build Queue 313: rows alternate like Plink-oh, and every peg drifts a little (each on its own beat). */}
+            {pegs.map((p, i) => { const c = pegCol[i]; const col = c !== null && c !== undefined ? pegTypes[c]?.color : undefined; return <i key={i} className={`${hit.includes(i) ? 'hit' : ''}${gone.includes(i) ? ' gone' : ''}${col ? ' color' : ''}`} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%`, animationDelay: `${-((i * 0.37) % 3)}s`, ...(col ? { background: col } : {}) }} />; })}
+            {floats.map((f) => <em key={f.id} className="pk2-pegxp" style={{ left: `${xPct(pegs[f.k]?.x ?? 0)}%`, top: `${yPct(pegs[f.k]?.r ?? 0)}%` }}>+{f.v}</em>)}
             {ball && ballEl(ball, 'b1')}
             {ball2 && ballEl(ball2, 'b2')}
           </div>
           <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, 1fr)` }}>
-            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win?.includes(i) ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{Array.from({ length: stars[i] }, (_, k) => <img key={k} src={`${UI}star_full.png`} alt="" />)}</em> : null}{v}</span>)}
+            {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win?.includes(i) ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? ', a power-up star' : ''}`}>{stars[i] ? <em className="pk2-stars">{Array.from({ length: stars[i] }, (_, k) => <img key={k} src={`${UI}star_full.png`} alt="" />)}</em> : null}{v}</span>)}
           </div>
           <p className="pk2-msg" aria-live="polite">{note ?? ''}</p>
         </section>
