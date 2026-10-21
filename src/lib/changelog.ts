@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-more-pegs",
+    date: "2026-10-21",
+    icon: "🔢",
+    title: "Plinko gets harder each round",
+    body: "Every round adds a new row of pegs, so they get closer together. Power-ups show three cards at a time; use the arrows to see more. New funny peg sounds too.",
+  },
+  {
     id: "2026-10-21-plinko-bounce",
     date: "2026-10-21",
     icon: "🏀",

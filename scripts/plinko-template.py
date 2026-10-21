@@ -18,7 +18,7 @@ BOLD = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 REG = '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf'
 INK, MUTED, HATCH, PAPER = (40, 40, 48), (110, 110, 120), (205, 205, 212), (244, 244, 247)
 M, MS = 60, 110  # marker offset from the page edge, marker size
-NPAGES = 19
+NPAGES = 20
 # Build Queue 300: each page prints its own number as five small squares (filled = 1) at the bottom right, so the
 # app knows which page a photo is even when pages come in any order.
 CODE = {'x': W - M - MS - 30 - 5 * 66 - 20, 'y': H - 141, 'size': 46, 'gap': 20, 'bits': 5}
@@ -92,6 +92,9 @@ def build():
     area(d, 'again_ball1', regions, n, 1380, 300, 520, 520, 'BALL 1', circle=True)
     area(d, 'again_ball2', regions, n, 1380, 900, 520, 520, 'BALL 2', circle=True)
     pages.append(im)
+    # Build Queue 334: a blank page for a power-up of the theme's own. Copy it as many times as needed; each copy that is
+    # scanned or uploaded adds one new power-up (its name and action are set in the theme builder).
+    one('NEW POWER-UP COVER IMAGE', 'A power-up of your own. Draw its cover image. Make a copy of this page for each new power-up.', 'power_new', 1180, 1180)
     assert len(pages) == NPAGES
     return regions, pages
 

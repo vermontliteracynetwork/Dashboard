@@ -51,6 +51,31 @@ export const MAX_PEG_TYPES = 20;
 // Build Queue 310: the peg types every game has unless a theme sets its own (soft sounds; each one disappears when hit).
 export const DEFAULT_PEG_COLORS: PegColor[] = [{ color: '#ff8ac4', sound: 'pop' }, { color: '#7bd389', sound: 'ding' }, { color: '#9b8cff', sound: 'boing' }, { color: '#ffd93d', sound: 'coin' }, { color: '#4dc3ff', sound: 'splash' }];
 export const DEFAULT_THEME_ID = 'default';
+// Build Queue 333: plain solid color balls (no design) that fill a theme up to 10 balls after its own.
+const solid = (c: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="${c}" stroke="#4e4651" stroke-width="5"/></svg>`)}`;
+export const SOLID_BALLS = ['#e63946', '#ffd60a', '#3a86ff', '#2bb24c', '#ff8c1a', '#8e44ad', '#ff6fb5', '#1abc9c', '#8d5a2b', '#9aa0a6'].map(solid);
+export const fillBalls = (balls: string[]) => (balls.length >= 10 ? balls.slice(0, 10) : [...balls, ...SOLID_BALLS.slice(0, 10 - balls.length)]);
+// Build Queue 332: anything a theme leaves out comes from her Default theme (no background uploaded: the default
+// background; one sound effect added: the default sounds plus that one, since the sound list starts from the defaults).
+export function withDefaults(t: PlinkoTheme | null, d: PlinkoTheme | null | undefined): PlinkoTheme | null {
+  if (!t) return d ?? null;
+  if (!d || t.id === d.id) return t;
+  const pick = <T,>(a: T | undefined, b: T | undefined) => (a === undefined || a === null || a === '' || (Array.isArray(a) && !a.length) ? b : a);
+  const powers: PlinkoTheme['powers'] = { ...d.powers };
+  for (const [k, v] of Object.entries(t.powers ?? {}) as [PlinkoPower, NonNullable<PlinkoTheme['powers'][PlinkoPower]>][]) {
+    const base = d.powers?.[k] ?? {};
+    powers[k] = { ...base, ...Object.fromEntries(Object.entries(v).filter(([, x]) => x !== undefined && x !== '' && !(Array.isArray(x) && !x.length))) };
+  }
+  return {
+    ...t,
+    background: pick(t.background, d.background), panel: pick(t.panel, d.panel), title: pick(t.title, d.title), board: pick(t.board, d.board), cover: pick(t.cover, d.cover),
+    balls: t.balls.length ? fillBalls(t.balls) : d.balls,
+    colors: { ...d.colors, ...Object.fromEntries(Object.entries(t.colors).filter(([, x]) => x)) },
+    buckets: Array.from({ length: 8 }, (_, i) => t.buckets[i] ?? d.buckets[i] ?? null),
+    powers, fonts: { ...d.fonts, ...Object.fromEntries(Object.entries(t.fonts ?? {}).filter(([, x]) => x)) },
+    music: pick(t.music, d.music), pegColors: pick(t.pegColors, d.pegColors), pegSound: pick(t.pegSound, d.pegSound), sfx: pick(t.sfx, d.sfx),
+  };
+}
 export function pegOrder(colors: PegColor[] | undefined): number[] {
   const o = Array.from({ length: Math.min(MAX_PEG_TYPES, colors?.length ?? 0) }, (_, i) => i);
   for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; }
@@ -293,8 +318,8 @@ async function toPages(files: File[], onStep?: (msg: string) => void): Promise<H
       const worker = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default;
       pdfjs.GlobalWorkerOptions.workerSrc = worker;
       const doc = await pdfjs.getDocument({ data: await file.arrayBuffer() }).promise;
-      for (let p = 1; p <= Math.min(doc.numPages, TEMPLATE_PAGES); p++) {
-        onStep?.(`Reading page ${p} of ${Math.min(doc.numPages, TEMPLATE_PAGES)}...`);
+      for (let p = 1; p <= Math.min(doc.numPages, 60); p++) {
+        onStep?.(`Reading page ${p} of ${Math.min(doc.numPages, 60)}...`);
         const page = await doc.getPage(p);
         const v1 = page.getViewport({ scale: 1 });
         const vp = page.getViewport({ scale: W / v1.width });
@@ -315,22 +340,22 @@ async function toPages(files: File[], onStep?: (msg: string) => void): Promise<H
 export interface CutResult {
   cover?: Blob; background?: Blob; board?: Blob; panel?: Blob; title?: Blob; balls: Blob[]; ballSlots: number[];
   colors: Partial<Record<PlinkoColorKey, string>>; buckets: (string | null)[];
-  powers: Partial<Record<PlinkoPower, Blob>>; twinBalls: Blob[]; pages: number;
+  powers: Partial<Record<PlinkoPower, Blob>>; twinBalls: Blob[]; newPowers: Blob[]; pages: number;
 }
 
 // Cuts every design space out of straightened pages. `pageNos` says which template page each one is (all pages in
 // order by default, or one page scanned from a single card).
 function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> {
   const byNo = new Map<number, HTMLCanvasElement>(); pages.forEach((p, i) => byNo.set(pageNos[i], p));
-  const crop = (key: string, inset = 0) => {
-    const r = R[key]; const src = byNo.get(r.page); if (!src) return null;
+  const crop = (key: string, inset = 0, from?: HTMLCanvasElement) => {
+    const r = R[key]; if (!r) return null; const src = from ?? byNo.get(r.page); if (!src) return null;
     const w = r.w - inset * 2, h = r.h - inset * 2;
     const c = canvas(w, h), ctx = c.getContext('2d', { willReadFrequently: true })!;
     ctx.drawImage(src, r.x + inset, r.y + inset, w, h, 0, 0, w, h);
     return { c, ctx, data: ctx.getImageData(0, 0, w, h), r, w, h };
   };
   const run = async (): Promise<CutResult> => {
-    const out: CutResult = { balls: [], ballSlots: [], colors: {}, buckets: [], powers: {}, twinBalls: [], pages: pages.length };
+    const out: CutResult = { balls: [], ballSlots: [], colors: {}, buckets: [], powers: {}, twinBalls: [], newPowers: [], pages: pages.length };
     for (const [k, type] of [['cover', 'image/jpeg'], ['background', 'image/jpeg'], ['board', 'image/jpeg'], ['panel', 'image/jpeg']] as const) {
       const s = crop(k, 12); if (s && whiteShare(s.data.data) < 0.97) out[k] = await toBlob(s.c, type, 0.88);
     }
@@ -360,6 +385,12 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
     for (const k of ['magnet', 'double', 'big', 'again'] as PlinkoPower[]) {
       const s = crop(`power_${k}`, 12); if (!s || whiteShare(s.data.data) > 0.97) continue;
       out.powers[k] = await toBlob(s.c, 'image/png');
+    }
+    // Build Queue 334: every copy of the New Power-up page is one new power-up.
+    if (R.power_new) for (let i = 0; i < pages.length; i++) {
+      if (pageNos[i] !== R.power_new.page) continue;
+      const s = crop('power_new', 12, pages[i]); if (!s || whiteShare(s.data.data) > 0.97) continue;
+      out.newPowers.push(await toBlob(s.c, 'image/png'));
     }
     // Double Ball Drop's two balls, drawn on its page beside its cover image.
     for (const k of ['again_ball1', 'again_ball2']) {
@@ -397,8 +428,10 @@ export async function buildTheme(cut: CutResult, info: { id: string; name: strin
     const img = await up(cut.powers[k]); const name = info.powerNames[k]?.trim();
     if (img || name) powers[k] = { ...(img ? { img } : {}), ...(name ? { name } : {}) };
   }
+  const customPowers: PowerDef[] = [];
+  for (const b of cut.newPowers) customPowers.push({ id: `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`, name: '', does: '', img: await uploadImage(b), kind: 'multiply', n: 2 });
   if (cut.twinBalls.length) { const balls = await Promise.all(cut.twinBalls.map((b) => uploadImage(b))); powers.again = { ...powers.again, balls }; }
-  return { id: info.id, name: info.name.trim() || 'My theme', madeBy: info.madeBy?.trim() || undefined, font: info.font, approved: false, createdAt: new Date().toISOString(), cover, background, board, panel, title, balls, colors: cut.colors, buckets: cut.buckets, powers };
+  return { id: info.id, name: info.name.trim() || 'My theme', madeBy: info.madeBy?.trim() || undefined, font: info.font, approved: false, createdAt: new Date().toISOString(), cover, background, board, panel, title, balls, colors: cut.colors, buckets: cut.buckets, powers, customPowers };
 }
 
 // The CSS variables a theme sets on the Plinko screen (anything left out keeps the default look).

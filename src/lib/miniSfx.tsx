@@ -53,7 +53,7 @@ export const sfx = {
 // Build Queue 299: silly sounds a Plinko theme gives its colored pegs (her examples: a pink peg barks, an orange peg
 // farts). All short, so a ball bouncing peg to peg never piles them up. A peg sound can also be her own uploaded file.
 function bark(delay = 0) { tone(520, 0.11, 'sawtooth', 0.07, 260, delay); noise(0.08, 0.05, 'bandpass', 900, delay); }
-export const PEG_SOUNDS: { id: string; label: string; play: () => void }[] = [
+export const PEG_SOUNDS: { id: string; label: string; play?: () => void; file?: string }[] = [
   { id: 'tick', label: 'Soft tick', play: () => sfx.tick() },
   { id: 'bark', label: 'Bark', play: () => { bark(); bark(0.16); } },
   { id: 'meow', label: 'Meow', play: () => { tone(700, 0.12, 'triangle', 0.06, 1000); tone(1000, 0.22, 'triangle', 0.06, 560, 0.11); } },
@@ -71,13 +71,33 @@ export const PEG_SOUNDS: { id: string; label: string; play: () => void }[] = [
   { id: 'coin', label: 'Coin', play: () => sfx.coin() },
   { id: 'giggle', label: 'Giggle', play: () => { for (let i = 0; i < 4; i++) tone(900 - i * 60, 0.07, 'triangle', 0.05, 1100 - i * 60, i * 0.09); } },
   { id: 'spring', label: 'Spring', play: () => { tone(300, 0.12, 'triangle', 0.07, 900); tone(300, 0.12, 'triangle', 0.05, 900, 0.12); } },
+  // Build Queue 331: her Freesound pack (credits in public/games/plinko/sfx/CREDITS.txt).
+  { id: 'f-success-jingle', label: 'Success jingle', file: '/games/plinko/sfx/success-jingle.wav' },
+  { id: 'f-short-horn', label: 'Short horn', file: '/games/plinko/sfx/short-horn.wav' },
+  { id: 'f-whip', label: 'Whip crack', file: '/games/plinko/sfx/whip.wav' },
+  { id: 'f-funny-yay', label: 'Funny yay', file: '/games/plinko/sfx/funny-yay.wav' },
+  { id: 'f-camera', label: 'Camera click', file: '/games/plinko/sfx/camera.wav' },
+  { id: 'f-pop2', label: 'Bubble pop', file: '/games/plinko/sfx/pop2.wav' },
+  { id: 'f-crow', label: 'Crow', file: '/games/plinko/sfx/crow.wav' },
+  { id: 'f-comedy-whistle', label: 'Comedy whistle', file: '/games/plinko/sfx/comedy-whistle.wav' },
+  { id: 'f-water-drop', label: 'Water drop', file: '/games/plinko/sfx/water-drop.wav' },
+  { id: 'f-dog-bark', label: 'Dog bark', file: '/games/plinko/sfx/dog-bark.wav' },
+  { id: 'f-car-horn', label: 'Car horn', file: '/games/plinko/sfx/car-horn.wav' },
+  { id: 'f-jump', label: 'Jump', file: '/games/plinko/sfx/jump.wav' },
+  { id: 'f-hmm', label: 'Hmm?', file: '/games/plinko/sfx/hmm.wav' },
+  { id: 'f-correct', label: 'Correct ding', file: '/games/plinko/sfx/correct.wav' },
+  { id: 'f-glass', label: 'Glass jar', file: '/games/plinko/sfx/glass.wav' },
+  { id: 'f-fart2', label: 'Real fart', file: '/games/plinko/sfx/fart2.mp3' },
+  { id: 'f-what', label: 'What?', file: '/games/plinko/sfx/what.wav' },
+  { id: 'f-goblin', label: 'Goblin yell', file: '/games/plinko/sfx/goblin.mp3' },
 ];
 const fileSounds = new Map<string, HTMLAudioElement>();
 // A peg sound: a built-in id, or the address of an uploaded sound file.
 export function playPegSound(sound?: string) {
   if (!sound || !sfxOn()) return;
   const b = PEG_SOUNDS.find((x) => x.id === sound);
-  if (b) { b.play(); return; }
+  if (b?.play) { b.play(); return; }
+  if (b?.file) sound = b.file;
   try {
     let a = fileSounds.get(sound);
     if (!a) { a = new Audio(sound); a.preload = 'auto'; fileSounds.set(sound, a); }

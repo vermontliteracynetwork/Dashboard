@@ -17,7 +17,7 @@ import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
-import { DEFAULT_PEG_COLORS, DEFAULT_THEME_ID, colorPegs, pegOrder, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
+import { DEFAULT_PEG_COLORS, DEFAULT_THEME_ID, colorPegs, withDefaults, pegOrder, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
 
 // Plinko after Baamboozle's Plink-oh (Build Queue 244 and 250, plan in docs/PLINKO_PLAN.pdf).
 // Her rules (2026-10-20): up to 5 players on one iPad, the student plus classmates in the room and
@@ -30,8 +30,9 @@ import { DEFAULT_PEG_COLORS, DEFAULT_THEME_ID, colorPegs, pegOrder, powersFor, t
 // buckets: stars on a bucket (up to 3) are how many power-ups the player picks at the start of their next turn.
 
 const RANGES = { rounds: { min: 3, max: 10, def: 5 }, per: { min: 1, max: 5, def: 1 } };
-const ROWS = 7;
-const pegsFor = (zones: number) => { const out: { x: number; r: number }[] = []; for (let r = 0; r < ROWS; r++) for (let x = r % 2 ? 0.5 : 0; x <= zones - 1 + 0.001; x += 1) out.push({ x, r }); return out; };
+// Build Queue 326: one more row of pegs every round (7 rows in round 1, up to 12), so the pegs get closer together.
+const rowsFor = (round: number) => Math.min(12, 7 + round);
+const pegsFor = (zones: number, rows: number) => { const out: { x: number; r: number }[] = []; for (let r = 0; r < rows; r++) for (let x = r % 2 ? 0.5 : 0; x <= zones - 1 + 0.001; x += 1) out.push({ x, r }); return out; };
 const MUSIC_KEY = 'plinko-music';
 // One step of a ball's fall (Build Queue 316): where it goes, how long it takes (ms), its easing, the peg it touches.
 type BallPt = { x: number; y: number; d: number; e?: string; hit?: number | null; tag?: 'pop' | 'land' };
@@ -82,6 +83,7 @@ export default function PlinkoDrop() {
   // Build Queue 316: points flying from the bucket to the score, and the score row that just got them.
   const [flyer, setFlyer] = useState<{ id: number; text: string; x0: number; y0: number; x1: number; y1: number } | null>(null);
   const [bump, setBump] = useState<string | null>(null);
+  const [pPage, setPPage] = useState(0); // Build Queue 325: three power-up cards at a time
   const [popping, setPopping] = useState(false);
   const [pegCol, setPegCol] = useState<(number | null)[]>([]);
   const [hit, setHit] = useState<number[]>([]);
@@ -105,7 +107,7 @@ export default function PlinkoDrop() {
   const { approved: allApproved, themes: allThemes } = usePlinkoThemes();
   const themes = allApproved.filter((t) => t.id !== DEFAULT_THEME_ID);
   const [themeId, setThemeId] = useState<string | null>(null);
-  const theme = themes.find((t) => t.id === themeId) ?? allThemes.find((t) => t.id === DEFAULT_THEME_ID) ?? null;
+  const theme = withDefaults(themes.find((t) => t.id === themeId) ?? null, allThemes.find((t) => t.id === DEFAULT_THEME_ID));
   const pegTypes = theme?.pegColors?.length ? theme.pegColors : DEFAULT_PEG_COLORS;
   const plist = powersFor(theme);
   const plistRef = useRef(plist); plistRef.current = plist;
@@ -114,7 +116,7 @@ export default function PlinkoDrop() {
   const timers = useRef<number[]>([]);
   const secondRef = useRef(false);
   // The board and players live in refs too, so Neighbor turns and timers always read the current ones.
-  const boardRef = useRef<{ buckets: number[]; stars: number[]; zones: number; nb: number; pegCol: (number | null)[]; gone: Set<number> }>({ buckets: [], stars: [], zones: 5, nb: 3, pegCol: [], gone: new Set() });
+  const boardRef = useRef<{ buckets: number[]; stars: number[]; zones: number; nb: number; pegCol: (number | null)[]; gone: Set<number>; rows: number }>({ buckets: [], stars: [], zones: 5, nb: 3, pegCol: [], gone: new Set(), rows: 7 });
   const playersRef = useRef<Player[]>([]);
   const activeRef = useRef<Power[]>([]);
   const turnRef = useRef(0);
@@ -132,7 +134,8 @@ export default function PlinkoDrop() {
   const nBuckets = Math.min(8, 3 + round);
   const cur = players[turnNo % nPlayers];
   const npcName = (id?: string) => (id && profiles[id]?.name) || 'Neighbor';
-  const pegs = pegsFor(zones);
+  const rows = rowsFor(round);
+  const pegs = pegsFor(zones, rows);
   // Build Queue 299: the theme's one background song, started from the Start tap so the iPad lets it play.
   const startMusic = () => {
     musicRef.current?.pause(); musicRef.current = null;
@@ -161,8 +164,8 @@ export default function PlinkoDrop() {
       const list: string[] = []; while (list.length < pegTypes.length) list.push(...mix());
       pegSoundRef.current = list;
     }
-    const pc = colorPegs(pegsFor(z).length, pegTypes, rnd, pegOrderRef.current);
-    boardRef.current = { buckets: bk, stars: st, zones: z, nb, pegCol: pc, gone: new Set() };
+    const pc = colorPegs(pegsFor(z, rowsFor(rnd)).length, pegTypes, rnd, pegOrderRef.current);
+    boardRef.current = { buckets: bk, stars: st, zones: z, nb, pegCol: pc, gone: new Set(), rows: rowsFor(rnd) };
     setBuckets(bk); setStars(st); setPegCol(pc); setGone([]); setFloats([]);
     if (rnd > 0 && rnd < pegOrderRef.current.length) timers.current.push(window.setTimeout(() => setNote('A new peg color joined the board!'), 1800));
   };
@@ -182,7 +185,7 @@ export default function PlinkoDrop() {
       setPlayersBoth((ps) => ps.map((x) => (x.key === p.key ? { ...x, owed: 0 } : x)));
       setNote(`${p.name} picked ${activeRef.current.map((x) => pName(x)).join(' and ')}.`);
     } else if (p.owed > 0) {
-      setPhase('powers'); speak(`${p.name}, pick ${p.owed} power-up${p.owed === 1 ? '' : 's'} for this turn.`, student.ttsSettings); return;
+      setPPage(0); setPhase('powers'); speak(`${p.name}, pick ${p.owed} power-up${p.owed === 1 ? '' : 's'} for this turn.`, student.ttsSettings); return;
     }
     goAsk(p);
   };
@@ -251,7 +254,8 @@ export default function PlinkoDrop() {
   const dropAt = (zone: number, second: boolean) => {
     const list = playersRef.current, t = turnRef.current, p = list[t % list.length];
     const { buckets: bk, stars: st, zones: z, nb, pegCol: pc } = boardRef.current;
-    const field = pegsFor(z);
+    const ROWS = boardRef.current.rows;
+    const field = pegsFor(z, ROWS);
     const act = activeRef.current;
     // Every active power-up applies its action (Build Queue 296): the four defaults and a theme's own.
     const defs = act.map((id) => plistRef.current.find((x) => x.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
@@ -352,7 +356,7 @@ export default function PlinkoDrop() {
     }, end + 120 + FLY_MS + 1300));
   };
   const xPct = (x: number) => ((x + 0.5) / zones) * 100;
-  const yPct = (y: number) => ((y + 1) / (ROWS + 1.6)) * 100;
+  const yPct = (y: number) => ((y + 1) / (rows + 1.6)) * 100;
   const ranked = [...players].sort((a, b) => b.xp - a.xp);
   const me = players.find((p) => p.kind === 'me');
   const rivalPlayer = rivalId ? players.find((p) => p.npcId === rivalId) : undefined;
@@ -367,7 +371,7 @@ export default function PlinkoDrop() {
   const bigOn = kindOn('big');
   // How a ball looks with this turn's power-ups: big, growing (bigger every row), heavy (darker, falls fast), extra bouncy (squashes).
   const ballEl = (bl: BallPt, key: string) => {
-    const grow = kindOn('grow') ? 0.75 + 0.75 * Math.max(0, Math.min(1, bl.y / ROWS)) : 1;
+    const grow = kindOn('grow') ? 0.75 + 0.75 * Math.max(0, Math.min(1, bl.y / rows)) : 1;
     const cls = `pk2-ball${bigOn ? ' big' : ''}${kindOn('heavy') ? ' heavy' : ''}${kindOn('bouncy') ? ' bouncy' : ''}${popping ? ' popping' : ''}`;
     const img = twinImgs?.[key === 'b2' ? 1 : 0];
     return <b key={key} className={cls} style={{ left: `${xPct(bl.x)}%`, top: `${yPct(bl.y)}%`, width: `${((bigOn ? 63 : 45) * grow) / zones}%`, background: img ? `center / cover no-repeat url("${img}")` : ballBg(cur), transition: bl.d ? `left ${bl.d}ms linear, top ${bl.d}ms ${bl.e ?? 'ease-in'}, width .2s ease-out` : undefined }} />;
@@ -433,12 +437,14 @@ export default function PlinkoDrop() {
               {/* Build Queue 315: power-ups as cards like Plink-oh (name, big picture, a select button that turns into a
                   check), one per row, with no side panel behind them. */}
               <p className="pk2-small"><b>{cur.name}</b>, pick one</p>
-              {plist.map(({ id: pw }) => { const on = active.includes(pw); return (
+              {plist.length > 3 && <button type="button" className="pk2-parrow" disabled={pPage === 0} onClick={() => setPPage((x) => Math.max(0, x - 1))} aria-label="Earlier power-ups"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 15l6-6 6 6" /></svg></button>}
+              {plist.slice(pPage * 3, pPage * 3 + 3).map(({ id: pw }) => { const on = active.includes(pw); return (
                 <button key={pw} type="button" className={`pk2-pcard${on ? ' on' : ''}`} onClick={() => togglePower(pw)} disabled={!on && active.length >= cur.owed} aria-pressed={on}>
                   <b>{pName(pw)}</b><span className="pk2-pcard-pic">{pIcon(pw)}</span><small>{pDef(pw)?.does}</small>
                   <i className="pk2-pcard-btn">{on ? CHECK : 'Select'}</i>
                 </button>
               ); })}
+              {plist.length > 3 && <button type="button" className="pk2-parrow" disabled={(pPage + 1) * 3 >= plist.length} onClick={() => setPPage((x) => x + 1)} aria-label="More power-ups"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M6 9l6 6 6-6" /></svg></button>}
               <button type="button" className="btn btn-primary" onClick={powersDone}>{active.length ? 'Done' : 'Skip'}</button>
             </>
           ) : (

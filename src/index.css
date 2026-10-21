@@ -10173,3 +10173,52 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ptb-pcards h4 { margin: 0; text-align: center; font-size: 1rem; }
 .ptb-main { grid-template-columns: 1fr 2.6fr .9fr; align-items: stretch; }
 .ptb-zones span { font-size: 1rem; padding: 4px 0; }
+/* Build Queue 325: square power-up cards, three at a time with arrows. */
+.ptb-main { grid-template-columns: 1fr 2.8fr .75fr; }
+.ptb-pcards { align-items: center; }
+.ptb-pcard { width: 100%; max-width: 118px; aspect-ratio: 1; justify-content: space-between; box-sizing: border-box; }
+.ptb-pcard img, .ptb-pcard svg { width: 34px; height: 34px; }
+.ptb-parrow { border: none; background: rgba(255,255,255,.75); border-radius: 999px; width: 40px; height: 26px; font-size: .8rem; cursor: pointer; color: inherit; }
+.ptb-parrow:disabled { opacity: .35; cursor: default; }
+.ptb-pickhint { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.ptb-pickhint > small { font-weight: 700; font-size: .75rem; }
+.ptb-pcards.big .ptb-pcard { box-shadow: 0 0 0 3px #fff, 0 3px 0 rgba(0,0,0,.15); }
+/* Build Queue 327: preview tabs and the extra screens. */
+.ptb-stagewrap { display: flex; flex-direction: column; gap: 8px; }
+.ptb-ptabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ptb-ptabs button { border: 1.5px solid var(--ptb-line); background: #fff; border-radius: 999px; padding: 8px 14px; font: 700 .85rem inherit; cursor: pointer; min-height: 40px; color: var(--ptb-ink); }
+.ptb-ptabs button.on { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+.ptb-screen { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 8px 10%; }
+.ptb-screen-title img { max-height: 70px; } .ptb-screen-title b { font-size: 2.4rem; }
+.ptb-mslider { display: grid; grid-template-columns: 110px 1fr 30px; align-items: center; gap: 10px; width: 100%; max-width: 520px; }
+.ptb-mslider b { font-size: 1.1rem; } .ptb-mslider em { font-style: normal; font-weight: 900; font-size: 1.2rem; }
+.ptb-mslider span { height: 14px; border-radius: 999px; background: rgba(255,255,255,.8); border: 2px solid #fff; overflow: hidden; } .ptb-mslider i { display: block; height: 100%; }
+.ptb-mthemes { display: flex; flex-direction: column; align-items: center; gap: 2px; } .ptb-mthemes span { width: 64px; height: 64px; border-radius: 12px; border: 3px solid #fff; box-shadow: 0 3px 0 rgba(0,0,0,.15); } .ptb-mthemes small { font-weight: 700; }
+.ptb-mrow { display: flex; gap: 10px; }
+.ptb-mbtn { padding: 10px 22px; border-radius: 14px; color: #fff; font-weight: 800; box-shadow: 0 4px 0 rgba(0,0,0,.18); border: 2px solid rgba(0,0,0,.12); }
+.ptb-mballs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px 18px; }
+.ptb-mballs span { display: flex; flex-direction: column; align-items: center; gap: 4px; } .ptb-mballs i { width: 54px; height: 54px; border-radius: 50%; } .ptb-mballs small { font-weight: 700; background: #fff; border-radius: 8px; padding: 0 12px; }
+.ptb-over { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 28px; border: 3px solid; border-radius: 18px; min-width: 60%; }
+.ptb-over > b { font-size: 1.8rem; } .ptb-over ol { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; font-weight: 700; } .ptb-over li { display: flex; align-items: center; gap: 8px; } .ptb-over li i { width: 26px; height: 26px; border-radius: 50%; }
+/* Build Queue 328: big picture view. */
+.ptb-lb { position: fixed; inset: 0; z-index: 90; background: rgba(17,24,39,.72); display: grid; place-items: center; padding: 16px; }
+.ptb-lb-box { position: relative; background: repeating-conic-gradient(#f3f4f6 0 25%, #fff 0 50%) 0 0 / 20px 20px; border-radius: 18px; padding: 44px 70px 16px; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: min(900px, 94vw); }
+.ptb-lb-box img { max-width: 100%; max-height: 70vh; object-fit: contain; } .ptb-lb-box img.round { width: min(360px, 60vw); height: min(360px, 60vw); }
+.ptb-lb-close { position: absolute; top: 8px; right: 10px; width: 40px; height: 40px; border-radius: 50%; border: none; background: #fff; font-size: 1.6rem; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.ptb-lb-arrow { position: absolute; top: 50%; translate: 0 -50%; width: 52px; height: 52px; border-radius: 50%; border: none; background: #fff; color: #374151; display: grid; place-items: center; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+.ptb-lb-arrow.left { left: 10px; } .ptb-lb-arrow.right { right: 10px; }
+.ptb-lb-foot { display: flex; gap: 12px; align-items: center; font-weight: 700; background: #fff; border-radius: 999px; padding: 4px 6px 4px 14px; }
+/* Build Queue 329: name bar with Publish beside it, autosave note, a small x on removable color chips. */
+.ptb-namerow { display: flex; gap: 8px; align-items: center; } .ptb-namerow input { flex: 1; min-width: 0; }
+.ptb-autosave { color: #15803d; font-weight: 700; font-size: .85rem; min-width: 64px; } .ptb-autosave.busy { color: var(--ptb-muted); }
+.ptb-color { position: relative; }
+.ptb-x { position: absolute; top: 2px; right: 4px; border: none; background: none; font-size: 1.1rem; line-height: 1; color: var(--ptb-muted); cursor: pointer; width: 28px; height: 28px; }
+.ptb-bar { grid-template-columns: minmax(260px, 1.5fr) minmax(140px, .8fr) auto; }
+/* Build Queue 325: narrower, square power-up cards, three at a time with arrows. */
+.pk2-pcard { aspect-ratio: 1; max-width: 150px; margin-inline: auto; justify-content: space-between; padding: 8px; }
+.pk2-pcard > small { display: none; }
+.pk2-pcard-pic { height: auto; flex: 1; }
+.pk2-pcard-pic img, .pk2-pcard-pic svg { width: 52px !important; height: 52px !important; }
+.pk2-parrow { display: grid; place-items: center; width: 64px; height: 40px; margin-inline: auto; border-radius: 999px; border: 2px solid #6c626e; background: #fff; color: #6c626e; cursor: pointer; box-shadow: 0 3px 0 rgba(108,98,110,.3); }
+.pk2-parrow:disabled { opacity: .35; cursor: default; }
+.pk2-main { grid-template-columns: minmax(150px, 0.8fr) minmax(0, 3fr) minmax(130px, 0.6fr); }

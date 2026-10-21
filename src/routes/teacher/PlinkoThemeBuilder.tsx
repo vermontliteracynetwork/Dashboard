@@ -7,7 +7,7 @@ import { uploadAudio, uploadImage } from '../../lib/upload';
 import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
+  DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, withDefaults, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
   type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
@@ -45,7 +45,7 @@ const HEX = /^#[0-9a-f]{6}$/i;
 const urlOf = (bg: string) => /url\("([^"]+)"\)/.exec(bg)?.[1] ?? '';
 const defaultDraft = (): PlinkoTheme => ({
   id: DEFAULT_THEME_ID, name: 'Default', font: 'default', approved: true, createdAt: new Date().toISOString(), cover: '/games/covers/plinko-drop.svg',
-  balls: BALLS.map((b) => urlOf(b.bg)).filter(Boolean),
+  balls: BALLS.slice(0, 10).map((b) => urlOf(b.bg)).filter(Boolean),
   colors: { primary: DEF.primary, secondary: DEF.secondary, text: DEF.text, panelBg: DEF.panel, boardBg: DEF.board, boardBorder: DEF.edge, peg: DEF.peg, zone: DEF.zone, powerBg: DEF.powerBg, powerBtn: DEF.powerBtn },
   buckets: [...BUCKET_DEF], powers: {}, customPowers: [], fonts: {}, pegColors: DEFAULT_PEG_COLORS.map((x) => ({ ...x })),
 });
@@ -93,50 +93,128 @@ function useUpload() {
   return { busy, err, up };
 }
 
+// Build Queue 327: the preview has a tab for each screen students see, all in the theme's look.
+const PREVIEW_TABS = [['game', 'Game'], ['menu', 'Main menu'], ['balls', 'Ball picker'], ['powers', 'Power-up pick'], ['over', 'Game over']] as const;
+type PreviewTab = typeof PREVIEW_TABS[number][0];
+
 function Preview({ t }: { t: PlinkoTheme }) {
+  const [tab, setTab] = useState<PreviewTab>('game');
+  const [pPage, setPPage] = useState(0);
   const v = themeVars(t) as Record<string, string>;
   const c = (k: PlinkoColorKey, d: string) => t.colors[k] ?? d;
   const body = v.fontFamily;
   const head = v['--pk-head-font'] ?? body, title = v['--pk-title-font'] ?? body;
-  const ball = (i: number) => (t.balls[i] ? `center / contain no-repeat url("${t.balls[i]}")` : BALLS[i].bg);
+  const balls = t.balls.length ? t.balls.map((u) => `center / contain no-repeat url("${u}")`) : BALLS.slice(0, 10).map((b) => b.bg);
+  const ball = (i: number) => balls[i % balls.length];
   const powers = [...DEFAULT_POWERS.map((d) => ({ ...d, ...{ name: t.powers[d.id as PlinkoPower]?.name || d.name, img: t.powers[d.id as PlinkoPower]?.img } })), ...(t.customPowers ?? [])];
-  const panel = (extra?: string) => ({ background: t.panel ? `center / cover url("${t.panel}")` : c('panelBg', DEF.panel), borderColor: c('primary', DEF.primary), color: c('text', DEF.text), ...(extra ? { background: extra } : {}) });
+  const panel = () => ({ background: t.panel ? `center / cover url("${t.panel}")` : c('panelBg', DEF.panel), borderColor: c('primary', DEF.primary), color: c('text', DEF.text) });
+  const titleEl = t.title ? <img src={t.title} alt={t.name || 'Title'} /> : <b style={{ fontFamily: title }}>Plinko</b>;
+  // Build Queue 325: square power-up cards, three at a time, with arrows for the rest (never "and more").
+  const pages = Math.max(1, Math.ceil(powers.length / 3)), pg = Math.min(pPage, pages - 1);
+  const cards = (big?: boolean) => (
+    <aside className={`ptb-pcards${big ? ' big' : ''}`} style={{ color: c('text', DEF.text) }}>
+      <h4 style={{ fontFamily: head }}>Power-ups</h4>
+      {pages > 1 && <button type="button" className="ptb-parrow" disabled={pg === 0} onClick={() => setPPage(pg - 1)} aria-label="Earlier power-ups">&#9650;</button>}
+      {powers.slice(pg * 3, pg * 3 + 3).map((p) => (
+        <div key={p.id} className="ptb-pcard" style={{ background: c('powerBg', DEF.secondary), borderColor: c('boardBorder', DEF.edge) }}>
+          <b style={{ fontFamily: head }}>{p.name || 'New power-up'}</b>
+          {p.img ? <img src={p.img} alt="" /> : DEFAULT_ICON[p.id] ? <img src={DEFAULT_ICON[p.id]!} alt="" /> : p.id === 'magnet' ? <Magnet size={28} /> : <span className="ptb-noimg" />}
+          <em style={{ background: c('powerBtn', DEF.powerBtn) }}>Select</em>
+        </div>
+      ))}
+      {pages > 1 && <button type="button" className="ptb-parrow" disabled={pg >= pages - 1} onClick={() => setPPage(pg + 1)} aria-label="More power-ups">&#9660;</button>}
+    </aside>
+  );
+  const board = (
+    <section className="ptb-board" style={{ background: t.board ? `center / cover url("${t.board}")` : c('boardBg', DEF.board), borderColor: c('boardBorder', DEF.edge) }}>
+      <span className="ptb-turn" style={{ background: c('primary', DEF.primary) }}>Ava's turn</span>
+      <div className="ptb-zones">{[1, 2, 3, 4, 5].map((n) => <span key={n} style={{ background: c('zone', DEF.zone), borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{n}</span>)}</div>
+      <div className="ptb-pegs">{[5, 4, 5, 4, 5, 4, 5].map((n, r) => <div key={r} className="ptb-pegrow-p">{Array.from({ length: n }, (_, k) => { const i = r * 5 + k; const pegs = t.pegColors?.length ? t.pegColors : DEFAULT_PEG_COLORS; const pc = i % 3 === 1 ? pegs[Math.floor(i / 3) % pegs.length].color : undefined; return <i key={k} style={{ background: pc ?? c('peg', DEF.peg), animationDelay: `${-((i * 0.37) % 3)}s` }} />; })}</div>)}<b className="ptb-ball" style={{ background: ball(0) }} /></div>
+      <div className="ptb-buckets">{[10, 30, 20, 40, 10].map((n, i) => (
+        <span key={i} style={{ background: t.buckets[i] ?? BUCKET_DEF[i], borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{i === 1 && <img src={`${UI}star_full.png`} alt="" />}{n}</span>
+      ))}</div>
+    </section>
+  );
+  const btn = (label: string, primary?: boolean) => <span className="ptb-mbtn" style={{ background: primary ? c('primary', DEF.primary) : c('secondary', DEF.secondary), fontFamily: head }}>{label}</span>;
   return (
-    <div className="ptb-preview" style={{ background: t.background ? `center / cover no-repeat url("${t.background}")` : DEF.bg, fontFamily: body, color: c('text', DEF.text) }} aria-label="Theme preview">
-      <div className="ptb-head">
-        {t.title ? <img src={t.title} alt={t.name || 'Title'} /> : <b style={{ fontFamily: title }}>Plinko</b>}
-        <span className="ptb-chip" style={{ background: c('secondary', DEF.secondary) }}>Round 2/5</span>
-        <span className="ptb-chip" style={{ background: c('secondary', DEF.secondary) }}>120 XP</span>
+    <div className="ptb-stagewrap">
+      <div className="ptb-ptabs" role="tablist" aria-label="Preview screens">
+        {PREVIEW_TABS.map(([id, label]) => <button key={id} type="button" role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>{label}</button>)}
       </div>
-      <div className="ptb-main">
-        <aside className="ptb-panel" style={panel()}>
-          <h4 style={{ fontFamily: head }}>Scores</h4>
-          {['Ava', 'Roscoe'].map((n, i) => (
-            <div key={n} className={`ptb-player${i === 0 ? ' on' : ''}`} style={{ boxShadow: i === 0 ? `0 0 0 2px ${c('primary', DEF.primary)}` : undefined }}>
-              <i style={{ background: ball(i) }} /><span>{n}</span><b>{i === 0 ? 40 : 20}</b>
+      <div className="ptb-preview" style={{ background: t.background ? `center / cover no-repeat url("${t.background}")` : DEF.bg, fontFamily: body, color: c('text', DEF.text) }} aria-label="Theme preview">
+        {(tab === 'game' || tab === 'powers') && (
+          <>
+            <div className="ptb-head">{titleEl}<span className="ptb-chip" style={{ background: c('secondary', DEF.secondary) }}>Round 2/5</span><span className="ptb-chip" style={{ background: c('secondary', DEF.secondary) }}>120 XP</span></div>
+            <div className="ptb-main">
+              <aside className="ptb-panel" style={panel()}>
+                <h4 style={{ fontFamily: head }}>Scores</h4>
+                {['Ava', 'Roscoe'].map((n, i) => (
+                  <div key={n} className={`ptb-player${i === 0 ? ' on' : ''}`} style={{ boxShadow: i === 0 ? `0 0 0 2px ${c('primary', DEF.primary)}` : undefined }}>
+                    <i style={{ background: ball(i) }} /><span>{n}</span><b>{i === 0 ? 40 : 20}</b>
+                  </div>
+                ))}
+              </aside>
+              {board}
+              {tab === 'game' ? cards() : <div className="ptb-pickhint">{cards(true)}<small>Ava, pick one</small></div>}
             </div>
-          ))}
-        </aside>
-        <section className="ptb-board" style={{ background: t.board ? `center / cover url("${t.board}")` : c('boardBg', DEF.board), borderColor: c('boardBorder', DEF.edge) }}>
-          <span className="ptb-turn" style={{ background: c('primary', DEF.primary) }}>Ava's turn</span>
-          <div className="ptb-zones">{[1, 2, 3, 4, 5].map((n) => <span key={n} style={{ background: c('zone', DEF.zone), borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{n}</span>)}</div>
-          <div className="ptb-pegs">{[5, 4, 5, 4, 5].map((n, r) => <div key={r} className="ptb-pegrow-p">{Array.from({ length: n }, (_, k) => { const i = r * 5 + k; const pegs = t.pegColors?.length ? t.pegColors : DEFAULT_PEG_COLORS; const pc = i % 3 === 1 ? pegs[Math.floor(i / 3) % pegs.length].color : undefined; return <i key={k} style={{ background: pc ?? c('peg', DEF.peg), animationDelay: `${-((i * 0.37) % 3)}s` }} />; })}</div>)}<b className="ptb-ball" style={{ background: ball(0) }} /></div>
-          <div className="ptb-buckets">{[10, 30, 20, 40, 10].map((n, i) => (
-            <span key={i} style={{ background: t.buckets[i] ?? BUCKET_DEF[i], borderColor: c('boardBorder', DEF.edge), color: c('text', DEF.text) }}>{i === 1 && <img src={`${UI}star_full.png`} alt="" />}{n}</span>
-          ))}</div>
-        </section>
-        {/* Build Queue 315: power-ups as cards, one per row, with no panel behind them. */}
-        <aside className="ptb-pcards" style={{ color: c('text', DEF.text) }}>
-          <h4 style={{ fontFamily: head }}>Power-ups</h4>
-          {powers.slice(0, 3).map((p) => (
-            <div key={p.id} className="ptb-pcard" style={{ background: c('powerBg', DEF.secondary), borderColor: c('boardBorder', DEF.edge) }}>
-              <b style={{ fontFamily: head }}>{p.name || 'New power-up'}</b>
-              {p.img ? <img src={p.img} alt="" /> : DEFAULT_ICON[p.id] ? <img src={DEFAULT_ICON[p.id]!} alt="" /> : p.id === 'magnet' ? <Magnet size={28} /> : <span className="ptb-noimg" />}
-              <em style={{ background: c('powerBtn', DEF.powerBtn) }}>Select</em>
+          </>
+        )}
+        {tab === 'menu' && (
+          <div className="ptb-screen">
+            <div className="ptb-screen-title">{titleEl}</div>
+            {['Players', 'Rounds', 'Questions'].map((l, i) => <div key={l} className="ptb-mslider"><b style={{ fontFamily: head }}>{l}</b><span><i style={{ width: `${[40, 50, 20][i]}%`, background: c('primary', DEF.primary) }} /></span><em>{[2, 5, 1][i]}</em></div>)}
+            <div className="ptb-mthemes"><span style={{ background: t.cover ? `center / cover url("${t.cover}")` : '#fff' }} /><small>{t.name || 'This theme'}</small></div>
+            <div className="ptb-mrow">{btn('Back')}{btn('Next', true)}</div>
+          </div>
+        )}
+        {tab === 'balls' && (
+          <div className="ptb-screen">
+            <div className="ptb-screen-title"><b style={{ fontFamily: head }}>Pick your ball</b></div>
+            <div className="ptb-mballs">{balls.slice(0, 10).map((bg, i) => <span key={i}><i style={{ background: bg }} /><small>{i + 1}</small></span>)}</div>
+            <div className="ptb-mrow">{btn('Back')}{btn('Random')}</div>
+          </div>
+        )}
+        {tab === 'over' && (
+          <div className="ptb-screen">
+            <div className="ptb-over" style={{ ...panel(), fontFamily: body }}>
+              <b style={{ fontFamily: head }}>Game over!</b>
+              <ol>{['Ava 160 XP', 'Roscoe 120 XP'].map((r, i) => <li key={r}><i style={{ background: ball(i) }} />{r}</li>)}</ol>
+              <div className="ptb-mslider"><b style={{ fontFamily: head }}>More rounds</b><span><i style={{ width: '30%', background: c('primary', DEF.primary) }} /></span><em>2</em></div>
+              <div className="ptb-mrow">{btn('Leave')}{btn('Keep playing', true)}{btn('Play again', true)}</div>
             </div>
-          ))}
-          {powers.length > 3 && <small>and {powers.length - 3} more</small>}
-        </aside>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Build Queue 328: an uploaded picture shown big; balls one at a time with left and right arrows.
+function Lightbox({ images, start, round, onClose, onRemove }: { images: string[]; start: number; round?: boolean; onClose: () => void; onRemove?: (i: number) => void }) {
+  const [i, setI] = useState(start);
+  const n = images.length;
+  useEffect(() => {
+    const k = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); if (e.key === 'ArrowLeft') setI((x) => (x - 1 + n) % n); if (e.key === 'ArrowRight') setI((x) => (x + 1) % n); };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  }, [n, onClose]);
+  if (!n) return null;
+  const cur = Math.min(i, n - 1);
+  const arrow = (dir: -1 | 1) => (
+    <button type="button" className={`ptb-lb-arrow ${dir < 0 ? 'left' : 'right'}`} onClick={() => setI((x) => (x + dir + n) % n)} aria-label={dir < 0 ? 'Previous' : 'Next'}>
+      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d={dir < 0 ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'} /></svg>
+    </button>
+  );
+  return (
+    <div className="ptb-lb" role="dialog" aria-modal="true" aria-label="Picture" onClick={onClose}>
+      <div className="ptb-lb-box" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="ptb-lb-close" onClick={onClose} aria-label="Close">&times;</button>
+        {n > 1 && arrow(-1)}
+        <img src={images[cur]} alt="" className={round ? 'round' : ''} />
+        {n > 1 && arrow(1)}
+        <div className="ptb-lb-foot">
+          {n > 1 && <span>{cur + 1} of {n}</span>}
+          {onRemove && <button type="button" className="btn btn-sm" onClick={() => { onRemove(cur); if (n <= 1) onClose(); else setI(Math.max(0, cur - (cur === n - 1 ? 1 : 0))); }}>Remove</button>}
+        </div>
       </div>
     </div>
   );
@@ -148,10 +226,12 @@ const UP = <Ico d={<><path d="M12 15V4" /><path d="M7 9l5-5 5 5" /><path d="M4 1
 const SCAN = <Ico d={<><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" /><circle cx="12" cy="12" r="3.2" /></>} />;
 const DOWN = <Ico d={<><path d="M12 4v11" /><path d="M7 10l5 5 5-5" /><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /></>} />;
 
-function ImageCard({ label, hint, required, value, busy, onFile, onClear, multiple, count, children, page, onScan, download }: {
+function ImageCard({ label, hint, required, value, busy, onFile, onClear, multiple, count, children, page, onScan, download, onView }: {
   label: string; hint: string; required?: boolean; value?: string; busy: boolean; onFile: (f: FileList) => void; onClear?: () => void; multiple?: boolean; count?: string; children?: React.ReactNode;
   // Build Queue 297: read this card's template page from a photo, a picture or a PDF page.
   page?: number; onScan?: (f: File[]) => void; download?: string;
+  // Build Queue 328: tap an uploaded picture to see it big.
+  onView?: () => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const scanRef = useRef<HTMLInputElement>(null);
@@ -169,7 +249,7 @@ function ImageCard({ label, hint, required, value, busy, onFile, onClear, multip
         {required && <span className="ptb-req">Required</span>}
         {full && <span className="ptb-check"><Check /></span>}
       </div>
-      <button type="button" className="ptb-thumb" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`}>{children ?? (value ? <img src={value} alt="" /> : <span>Tap or drop a picture</span>)}</button>
+      <button type="button" className="ptb-thumb" disabled={busy} onClick={() => (onView ? onView() : ref.current?.click())} aria-label={onView ? `See ${label}` : `Upload ${label}`}>{children ?? (value ? <img src={value} alt="" /> : <span>Tap or drop a picture</span>)}</button>
       <div className="ptb-icons">
         <button type="button" className="ptb-ib primary" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`} data-tip={busy ? 'Uploading...' : value || (multiple && done && count && !count.startsWith('0')) ? (multiple ? 'Add more' : 'Replace') : 'Upload'}>{UP}</button>
         {page && onScan && <button type="button" className="ptb-ib" onClick={() => scanRef.current?.click()} aria-label={multiple ? 'Scan the ball pages' : `Scan template page ${page}`} data-tip="Scan">{SCAN}</button>}
@@ -217,12 +297,13 @@ function ColorField({ label, value, def, onChange, onRemove }: { label: string; 
   useEffect(() => setText(value ?? ''), [value]);
   return (
     <div className="ptb-color">
+      {onRemove && <button type="button" className="ptb-x" onClick={onRemove} aria-label={`Remove ${label}`}>&times;</button>}
       <input type="color" value={value ?? def} onChange={(e) => onChange(e.target.value)} aria-label={`${label} color`} />
       <div>
         <b>{label}</b>
         <div className="ptb-hex">
           <input value={text} placeholder={def} maxLength={7} aria-label={`${label} hex code`} onChange={(e) => { const x = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`; setText(e.target.value); if (HEX.test(x)) onChange(x.toLowerCase()); }} />
-          {onRemove ? <button type="button" className="ptb-link" onClick={onRemove}>Remove</button> : value && <button type="button" className="ptb-link" onClick={() => onChange(undefined)}>Default</button>}
+
         </div>
       </div>
     </div>
@@ -238,19 +319,26 @@ export default function PlinkoThemeBuilder() {
   const { busy, err, up } = useUpload();
   const set = (p: Partial<PlinkoTheme>) => { setDraft((d) => ({ ...d, ...p })); setDirty(true); setSaved(null); };
   const open = (t?: PlinkoTheme) => {
-    if (dirty && !window.confirm('You have changes that are not saved. Leave them?')) return;
+    if (dirty && draft.name.trim()) doSave();
     setDraft(t ? { customPowers: [], fonts: {}, ...structuredClone(t) } : blank()); setDirty(false); setSaved(null);
   };
   const isDefault = draft.id === DEFAULT_THEME_ID;
-  const maxBalls = isDefault ? 30 : 10;
-  const missing = isDefault ? [] : [!draft.name.trim() && 'a theme name', !draft.cover && 'a 1x1 cover', draft.balls.length < 5 && `at least 5 balls (${draft.balls.length} now)`].filter(Boolean) as string[];
+  const maxBalls = 10; // Build Queue 330: no more than 10 balls in any theme
+  // Build Queue 332: anything not added comes from the Default theme, so only a name is needed to publish.
+  const missing = isDefault ? [] : [!draft.name.trim() && 'a theme name'].filter(Boolean) as string[];
   const unbuilt = (draft.customPowers ?? []).filter((p) => p.kind === 'none');
   const doSave = (approved = draft.approved) => {
-    if (!draft.name.trim()) { setSaved('Give the theme a name first.'); return; }
+    if (!isDefault && !draft.name.trim()) return;
     const t = { ...draft, approved: isDefault || (approved && missing.length === 0) };
     save(themes.some((x) => x.id === t.id) ? themes.map((x) => (x.id === t.id ? t : x)) : [t, ...themes]);
-    setDraft(t); setDirty(false); setSaved(isDefault ? 'Saved. Every game uses this as the default look.' : t.approved ? 'Published. Students can pick this theme.' : 'Saved as a draft. Students do not see it yet.');
+    setDraft(t); setDirty(false); setSaved(t.approved ? 'Published' : 'Saved');
   };
+  // Every change saves on its own a moment after the last edit (once the theme has a name).
+  useEffect(() => {
+    if (!dirty || (!isDefault && !draft.name.trim())) return;
+    const id = window.setTimeout(() => doSave(), 700);
+    return () => window.clearTimeout(id);
+  }, [draft, dirty]); // eslint-disable-line react-hooks/exhaustive-deps
   const setPower = (id: PlinkoPower, p: Partial<{ name: string; img: string; does: string; balls: string[] }>) => set({ powers: { ...draft.powers, [id]: { ...draft.powers[id], ...p } } });
   const setCustom = (i: number, p: Partial<PowerDef>) => set({ customPowers: (draft.customPowers ?? []).map((x, k) => (k === i ? { ...x, ...p } : x)) });
   // Build Queue 297: bring designs in from the template, as the Canva PDF or as pictures or phone photos of the
@@ -259,6 +347,7 @@ export default function PlinkoThemeBuilder() {
     const t = await buildTheme(cutRes, { id: draft.id, name: draft.name, font: draft.font, powerNames: {} }, setPdfStep);
     set({ cover: t.cover ?? draft.cover, background: t.background ?? draft.background, board: t.board ?? draft.board, panel: t.panel ?? draft.panel, title: t.title ?? draft.title,
       balls: mergeBalls(t.balls, cutRes.ballSlots), colors: { ...draft.colors, ...t.colors }, buckets: t.buckets.some(Boolean) ? t.buckets : draft.buckets,
+      customPowers: [...(draft.customPowers ?? []), ...(t.customPowers ?? [])],
       powers: Object.fromEntries((['magnet', 'double', 'big', 'again'] as PlinkoPower[]).map((k) => [k, { ...draft.powers[k], ...(t.powers[k]?.img ? { img: t.powers[k]!.img } : {}), ...(t.powers[k]?.balls ? { balls: t.powers[k]!.balls } : {}) }])) });
   };
   // Each scanned ball keeps its slot (ball 3 replaces ball 3); a slot past the end is added at the end.
@@ -283,7 +372,8 @@ export default function PlinkoThemeBuilder() {
   const setFont = (k: 'title' | 'header' | 'body', f?: FontChoice) => set({ fonts: { ...fonts, [k]: f } });
   const imagesSet = [draft.cover, draft.balls.length >= 5, draft.background, draft.title, draft.board, draft.panel].filter(Boolean).length;
   const colorsSet = [...Object.values(draft.colors), ...draft.buckets].filter((c): c is string => !!c);
-  const fontsMeta = FONT_ROLES.map((r) => { const f = fonts[r.key]; return f?.url ? f.name : PLINKO_FONTS.find((x) => x.id === f?.preset)?.label; }).filter(Boolean).join(', ') || 'Default';
+  const fontsMeta = FONT_ROLES.map((r) => { const f = fonts[r.key]; return f?.url ? f.name : PLINKO_FONTS.find((x) => x.id === f?.preset)?.label; }).filter(Boolean).join(', ');
+  const [lightbox, setLightbox] = useState<{ images: string[]; start: number; round?: boolean; key: keyof PlinkoTheme } | null>(null);
   const pegColors = draft.pegColors ?? [];
   // Build Queue 322 and 323: the peg sounds a game can pair with peg colors (all the built-in ones unless she picked).
   const pool = draft.sfx ?? PEG_SOUNDS.filter((x) => x.id !== 'tick').map((x) => x.id);
@@ -314,38 +404,36 @@ export default function PlinkoThemeBuilder() {
           <button type="button" className="ptb-theme new" onClick={() => open()}><span>+</span><b>New theme</b></button>
         </div>
 
+        {/* Build Queue 329 (her words: "saves should save automatically. publish button should be by the theme name top part"). */}
         <section className="ptb-bar content-well">
-          <label className="ptb-field"><span>Theme name <span className="ptb-req">Required</span></span>
-            <input value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="Winter, Dogs, Space..." />
-          </label>
+          <div className="ptb-field ptb-namebar">
+            <span>Theme name {!isDefault && <span className="ptb-req">Required</span>}</span>
+            <div className="ptb-namerow">
+              <input value={draft.name} onChange={(e) => set({ name: e.target.value })} placeholder="Winter, Dogs, Space..." aria-label="Theme name" />
+              {isDefault ? (
+                <button type="button" className="btn" onClick={() => { if (window.confirm('Put this theme back the way it started?')) set(defaultDraft()); }}>Reset</button>
+              ) : draft.approved ? (
+                <>
+                  <span className="ptb-live">Published</span>
+                  <button type="button" className="btn" onClick={() => doSave(false)}>Unpublish</button>
+                </>
+              ) : (
+                <button type="button" className="btn btn-primary" disabled={missing.length > 0} onClick={() => doSave(true)}>Publish</button>
+              )}
+              <Info label="About publishing">{isDefault ? 'This is the look every game uses unless a student picks another theme. Changes save on their own. Reset puts everything back to the original.' : 'Changes save on their own. Publish shows the theme to students; it only needs a name, since anything you do not add uses the Default theme. Unpublish hides it again.'}</Info>
+            </div>
+          </div>
           <label className="ptb-field">Made by
             <input value={draft.madeBy ?? ''} onChange={(e) => set({ madeBy: e.target.value || undefined })} placeholder="Optional" />
           </label>
           <div className="ptb-actions">
-            {/* Build Queue 302 (her words: "instead of share with students, show publish button"). */}
-            {isDefault ? (
-              <>
-                <button type="button" className="btn btn-primary" onClick={() => doSave()}>Save</button>
-                <button type="button" className="btn" onClick={() => { if (window.confirm('Put the Default theme back the way it started?')) set(defaultDraft()); }}>Reset</button>
-                <Info label="About the Default theme">The Default theme is the look every game uses unless a student picks another theme. Change anything, then Save. Reset puts everything back to the original.</Info>
-              </>
-            ) : (
-              <>
-                {draft.approved && <span className="ptb-live">Published</span>}
-                <button type="button" className="btn" onClick={() => doSave()}>{draft.approved ? 'Save' : 'Save draft'}</button>
-                {draft.approved
-                  ? <button type="button" className="btn" onClick={() => doSave(false)}>Unpublish</button>
-                  : <button type="button" className="btn btn-primary" disabled={missing.length > 0} onClick={() => doSave(true)}>Publish</button>}
-                <Info label="About publishing">Publish shows the theme to students. It needs a name, a cover and at least 5 balls. Unpublish hides it again. A draft can be saved any time.</Info>
-              </>
-            )}
+            <span className={`ptb-autosave${dirty ? ' busy' : ''}`} role="status">{dirty ? 'Saving...' : saved ? 'Saved' : ''}</span>
             {!isDefault && themes.some((x) => x.id === draft.id) && <button type="button" className="btn btn-danger" onClick={() => { if (window.confirm(`Delete the ${draft.name} theme?`)) { save(themes.filter((x) => x.id !== draft.id)); setDraft(blank()); setDirty(false); } }}>Delete</button>}
           </div>
-          {(missing.length > 0 || dirty || saved || err) && (
+          {(missing.length > 0 || err || (dirty && !isDefault && !draft.name.trim())) && (
             <div className="ptb-notes">
+              {dirty && !isDefault && !draft.name.trim() && <span className="ptb-note warn">Give the theme a name to save it.</span>}
               {missing.length > 0 && <span className="ptb-note">Needed to publish: {missing.join(', ')}</span>}
-              {dirty && <span className="ptb-note warn">Not saved</span>}
-              {saved && <span className="ptb-note ok" role="status">{saved}</span>}
               {err && <span className="ptb-note bad" role="alert">{err}</span>}
             </div>
           )}
@@ -353,7 +441,7 @@ export default function PlinkoThemeBuilder() {
 
         <div className="ptb-layout">
           <div className="ptb-stage">
-            <Preview t={draft} />
+            <Preview t={withDefaults(draft, themes.find((x) => x.id === DEFAULT_THEME_ID) ?? defaultDraft()) ?? draft} />
             <div className="ptb-template">
               <b>Template</b>
               <Info label="About the template">
@@ -369,23 +457,23 @@ export default function PlinkoThemeBuilder() {
           <div className="ptb-folds">
             <Fold title="Images" open meta={`${imagesSet} of 6`} info="Tap a card or drop a picture on it. Scan reads that part from a photo of its template page. Anything empty keeps the default look.">
               <div className="ptb-cards">
-                <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Theme cover image" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
+                <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Theme cover image" hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} onView={draft.cover ? () => setLightbox({ images: [draft.cover!], start: 0, key: 'cover' }) : undefined} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
                   {draft.cover ? <img src={draft.cover} alt="" className="sq" /> : <span>Tap or drop a picture</span>}
                 </ImageCard>
-                <ImageCard download={`${PG}balls.pdf`} page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" required multiple hint="Square PNGs with see-through corners. At least 5. Tap a ball to remove it." count={`${draft.balls.length} of ${maxBalls}`} busy={busy === 'balls'}
+                <ImageCard download={`${PG}balls.pdf`} page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" multiple hint="Square PNGs with see-through corners, up to 10. A theme with fewer gets plain solid color balls for the rest. Tap the balls to see them one at a time." count={`${draft.balls.length} of ${maxBalls}`} busy={busy === 'balls'}
                   onFile={async (fl) => { const files = Array.from(fl).slice(0, maxBalls - draft.balls.length); const urls: string[] = []; for (const f of files) await up('balls', f, (u) => urls.push(u)); if (urls.length) set({ balls: [...draft.balls, ...urls].slice(0, maxBalls) }); }}
                   onClear={() => set({ balls: [] })}>
-                  {draft.balls.length ? <div className="ptb-balls">{draft.balls.map((b, i) => <span key={i} role="button" tabIndex={0} title="Remove this ball" onClick={(e) => { e.stopPropagation(); set({ balls: draft.balls.filter((_, k) => k !== i) }); }}><img src={b} alt={`Ball ${i + 1}`} /></span>)}</div> : <span>Tap or drop pictures</span>}
+                  {draft.balls.length ? <div className="ptb-balls">{draft.balls.map((b, i) => <span key={i} role="button" tabIndex={0} title={`See ball ${i + 1}`} onClick={(e) => { e.stopPropagation(); setLightbox({ images: draft.balls, start: i, round: true, key: 'balls' }); }}><img src={b} alt={`Ball ${i + 1}`} /></span>)}</div> : <span>Tap or drop pictures</span>}
                   <small className="ptb-count">{draft.balls.length} of {maxBalls}</small>
                 </ImageCard>
-                <ImageCard download={`${PG}page-${PAGE_OF.background}.pdf`} page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.title}.pdf`} page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.board}.pdf`} page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Game board" hint="Behind the pegs. Portrait or square." value={draft.board} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.panel}.pdf`} page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Score board background" hint="Behind the players and their scores. Keep the middle calm so the names stay easy to read." value={draft.panel} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.background}.pdf`} page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} onView={draft.background ? () => setLightbox({ images: [draft.background!], start: 0, key: 'background' }) : undefined} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.title}.pdf`} page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} onView={draft.title ? () => setLightbox({ images: [draft.title!], start: 0, key: 'title' }) : undefined} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.board}.pdf`} page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Game board" hint="Behind the pegs. Portrait or square." value={draft.board} onView={draft.board ? () => setLightbox({ images: [draft.board!], start: 0, key: 'board' }) : undefined} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.panel}.pdf`} page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Score board background" hint="Behind the players and their scores. Keep the middle calm so the names stay easy to read." value={draft.panel} onView={draft.panel ? () => setLightbox({ images: [draft.panel!], start: 0, key: 'panel' }) : undefined} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
               </div>
             </Fold>
 
-            <Fold title="Colors" meta={<span className="ptb-swatches">{colorsSet.length ? colorsSet.map((c, i) => <i key={i} style={{ background: c }} />) : 'Default'}</span>}
+            <Fold title="Colors" meta={<span className="ptb-swatches">{colorsSet.length ? colorsSet.map((c, i) => <i key={i} style={{ background: c }} />) : null}</span>}
               info={<>Pick a color or type a hex code.{COLORS.map((c) => <span key={c.key} className="ptb-pop-row"><b>{c.label}:</b> {c.hint}</span>)}<span className="ptb-pop-row"><b>Buckets:</b> 1 to 3 show from round 1, then one more each round.</span><span className="ptb-pop-row"><b>Pegs:</b> plain pegs are on the board from the start. Add up to 20 peg colors; each round one more joins at random and pops for XP when hit.</span></>}>
               <div className="ptb-colors">
                 {COLORS.map((c) => <ColorField key={c.key} label={c.label} def={c.def} value={draft.colors[c.key]} onChange={(v) => set({ colors: { ...draft.colors, [c.key]: v } })} />)}
@@ -518,16 +606,17 @@ export default function PlinkoThemeBuilder() {
                   );
                 })}
                 <button type="button" className="btn btn-sm" onClick={() => set({ customPowers: [...(draft.customPowers ?? []), { id: makeId(), name: '', does: '', kind: 'multiply', n: 2 }] })}>Add a power-up</button>
+                <a className="ptb-link" href={`${PG}page-${TEMPLATE_PAGES}.pdf`} download>Download the New Power-up page</a>
               </div>
             </Fold>
           </div>
         </div>
 
-        <div className="ptb-footer">
-          <button type="button" className="btn btn-lg" onClick={() => doSave()}>{draft.approved ? 'Save' : 'Save draft'}</button>
-          {!draft.approved && <button type="button" className="btn btn-primary btn-lg" disabled={missing.length > 0} onClick={() => doSave(true)}>Publish</button>}
-        </div>
       </div>
+      {lightbox && (
+        <Lightbox images={lightbox.key === 'balls' ? draft.balls : lightbox.images} start={lightbox.start} round={lightbox.round} onClose={() => setLightbox(null)}
+          onRemove={(i) => { if (lightbox.key === 'balls') set({ balls: draft.balls.filter((_, k) => k !== i) }); else { set({ [lightbox.key]: undefined } as Partial<PlinkoTheme>); setLightbox(null); } }} />
+      )}
     </div>
   );
 }
