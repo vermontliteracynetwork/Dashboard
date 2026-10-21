@@ -120,7 +120,11 @@ const FileAudio = forwardRef<MusicPlayerHandle, { src: string; volume: number; o
       getDuration: () => (a.current && Number.isFinite(a.current.duration) ? a.current.duration : 0),
     }), []);
     useEffect(() => { if (a.current) { a.current.volume = Math.max(0, Math.min(1, volume / 100)); void a.current.play().catch(() => {}); } }, [src]); // eslint-disable-line react-hooks/exhaustive-deps
-    return <audio ref={a} src={src} autoPlay playsInline preload="auto" onEnded={onEnded} onCanPlay={onReady} style={{ display: 'none' }} />;
+    // Build Queue 351: the iPad may refuse the first play() before any audio has loaded, so it plays again once the
+    // song can play (only that first time, so a pause is never undone).
+    const kicked = useRef(false);
+    const canPlay = () => { onReady(); if (!kicked.current && a.current) { kicked.current = true; void a.current.play().catch(() => {}); } };
+    return <audio ref={a} src={src} autoPlay playsInline preload="auto" onEnded={onEnded} onCanPlay={canPlay} style={{ display: 'none' }} />;
   },
 );
 export const isSongFile = (url: string) => !extractYouTubeId(url) && /^https?:\/\//.test(url.trim());
