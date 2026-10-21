@@ -152,7 +152,16 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
             {/* Her rules (2026-10-12): music is audio only, never a video, and it comes from the
                 youtube-nocookie.com address (the same one the music player uses) instead of youtube.com,
                 so it still plays where youtube.com is blocked. The player is a hidden 1 pixel frame. */}
-            {ytId ? (
+            {track && !ytId ? (
+              <>
+                <div className="cop-nowplaying" aria-live="polite">
+                  <span className="cop-eq" aria-hidden><i /><i /><i /><i /></span>
+                  <span>Now playing: <b>{musicTracks.find((t) => t.url === track)?.title ?? 'a song'}</b></span>
+                </div>
+                {/* Build Queue 349: a song file plays through a hidden audio element. */}
+                <audio src={track} autoPlay playsInline style={{ display: 'none' }} />
+              </>
+            ) : ytId ? (
               <>
                 <div className="cop-nowplaying" aria-live="polite">
                   <span className="cop-eq" aria-hidden><i /><i /><i /><i /></span>

@@ -105,6 +105,25 @@ function formatTime(s: number) {
   return `${m}:${sec.toString().padStart(2, '0')}`;
 }
 
+// Build Queue 349: a song file (an MP3 she uploaded, or a direct audio link) plays through a plain audio element,
+// with the same controls as a YouTube song.
+const FileAudio = forwardRef<MusicPlayerHandle, { src: string; volume: number; onEnded: () => void; onReady: () => void }>(
+  function FileAudio({ src, volume, onEnded, onReady }, ref) {
+    const a = useRef<HTMLAudioElement>(null);
+    useImperativeHandle(ref, () => ({
+      play: () => { void a.current?.play().catch(() => {}); },
+      pause: () => a.current?.pause(),
+      seekTo: (s: number) => { if (a.current) a.current.currentTime = s; },
+      setVolume: (v: number) => { if (a.current) a.current.volume = Math.max(0, Math.min(1, v / 100)); },
+      getCurrentTime: () => a.current?.currentTime ?? 0,
+      getDuration: () => (a.current && Number.isFinite(a.current.duration) ? a.current.duration : 0),
+    }), []);
+    useEffect(() => { if (a.current) { a.current.volume = Math.max(0, Math.min(1, volume / 100)); void a.current.play().catch(() => {}); } }, [src]); // eslint-disable-line react-hooks/exhaustive-deps
+    return <audio ref={a} src={src} autoPlay playsInline preload="auto" onEnded={onEnded} onCanPlay={onReady} style={{ display: 'none' }} />;
+  },
+);
+export const isSongFile = (url: string) => !extractYouTubeId(url) && /^https?:\/\//.test(url.trim());
+
 export default function GlobalMusicPlayer() {
   const musicTracks = useStore((s) => s.musicTracks);
   const playingTrackId = useStore((s) => s.playingTrackId);
@@ -148,11 +167,12 @@ export default function GlobalMusicPlayer() {
     setPlayingTrackId(next.id);
   };
 
-  if (!playing || !ytId) return null;
+  const fileSrc = playing && !ytId && isSongFile(playing.url) ? playing.url.trim() : null;
+  if (!playing || (!ytId && !fileSrc)) return null;
 
   return (
     <>
-      <YouTubeAudio
+      {fileSrc ? <FileAudio key={fileSrc} ref={playerRef} src={fileSrc} volume={volume} onReady={() => setReady(true)} onEnded={() => goRelative(1)} /> : ytId && <YouTubeAudio
         // Direct teacher bug report: switching tracks (Next/Prev, or
         // picking a new song) silently stopped working. Root cause: with
         // no `key`, React reused the SAME <iframe> DOM node across a track
@@ -172,7 +192,7 @@ export default function GlobalMusicPlayer() {
         volume={volume}
         onReady={() => setReady(true)}
         onEnded={() => goRelative(1)}
-      />
+      />}
       {expanded ? (
         <div
           style={{

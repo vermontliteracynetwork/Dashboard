@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-music-app",
+    date: "2026-10-21",
+    icon: "🎵",
+    title: "Music on the computer",
+    body: "Tap Music on the computer to pick a song. It keeps playing while you work and play.",
+  },
+  {
     id: "2026-10-21-sentence-fixes",
     date: "2026-10-21",
     icon: "✏️",

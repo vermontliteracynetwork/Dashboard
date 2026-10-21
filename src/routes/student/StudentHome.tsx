@@ -15,6 +15,7 @@ import { formatMoney } from '../../lib/money';
 import WebpageFrame from '../../components/WebpageFrame';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 import { Icon } from '../../components/Icon';
+import MusicPicker from '../../components/MusicPicker';
 
 // A live analog clock face for the Computer's widget desktop — direct
 // teacher ask ("an analog clock... visual as a widget"). Takes the current
@@ -66,6 +67,7 @@ function AnalogClock({ now }: { now: Date }) {
 
 export default function StudentHome() {
   const navigate = useNavigate();
+  const [showMusic, setShowMusic] = useState(false);
   const currentStudentId = useStore((s) => s.currentStudentId);
   const students = useStore((s) => s.students);
   const badges = useStore((s) => s.badges);
@@ -441,6 +443,13 @@ export default function StudentHome() {
           <span className="widget-icon">⚗️</span>
           <span className="widget-label">Alchemy</span>
         </button>
+        {/* Music (Build Queue 348, her words: "add "Music" on computer that opens as the music viewer"): the same song list as
+            the Boom Box, car radio and Concert Hall; songs keep playing in the background. */}
+        <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => setShowMusic(true)} aria-label="Music">
+          <span className="widget-icon">🎵</span>
+          <span className="widget-label">Music</span>
+        </button>
+        {showMusic && <MusicPicker onClose={() => setShowMusic(false)} />}
         {/* Diary (Build Queue 290, her words: "remove this from login. instead add a \"Diary\" in computer"). */}
         <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/diary')} aria-label="Diary">
           <span className="widget-icon">📔</span>

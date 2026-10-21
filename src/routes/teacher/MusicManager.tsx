@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { useStore } from '../../store/store';
 import { extractYouTubeId } from '../../lib/youtube';
 import type { MusicTrack } from '../../types';
+import { uploadAudio } from '../../lib/upload';
+import { isSongFile } from '../../components/GlobalMusicPlayer';
 
 // A shared music library — direct teacher request: a car radio, the
 // Concert Hall building, and a placeable Boom Box all draw from this same
@@ -19,6 +21,18 @@ export default function MusicManager() {
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  // Build Queue 349 (her words: "add this suno song to the mp3 music library as a song. call it "Dog Nose Magic""):
+  // song files (an MP3 downloaded from Suno, for example) upload straight into the library.
+  const [uploading, setUploading] = useState(false);
+  const uploadSong = async (file: File | undefined, name?: string) => {
+    if (!file) return;
+    const t = (name ?? title).trim() || file.name.replace(/\.[a-z0-9]+$/i, '');
+    setUploading(true); setError(null);
+    try { const url = await uploadAudio(file); addMusicTrack({ title: t, url, tags }); resetForm(); }
+    catch (e) { setError(e instanceof Error ? e.message : 'That song could not be uploaded.'); }
+    setUploading(false);
+  };
+  const hasDogNose = musicTracks.some((t) => t.title.trim().toLowerCase() === 'dog nose magic');
 
   const allTags = useMemo(
     () => Array.from(new Set(musicTracks.flatMap((t) => t.tags ?? []))).sort(),
@@ -44,8 +58,8 @@ export default function MusicManager() {
     const t = title.trim();
     const u = linkUrl.trim();
     if (!t || !u) return;
-    if (!extractYouTubeId(u)) {
-      setError("That doesn't look like a YouTube link. Paste the full video URL.");
+    if (!extractYouTubeId(u) && !isSongFile(u)) {
+      setError("Paste a YouTube link or a link to a song file (MP3), or use Upload a song file.");
       return;
     }
     setError(null);
@@ -61,7 +75,7 @@ export default function MusicManager() {
     <div className="content-well stack">
       <strong>🎵 Music</strong>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        A shared music library — plays audio-only (no video) from the car radio, the Concert Hall building, and the Boom Box. Paste a YouTube link and give it a title.
+        A shared music library: plays audio only (no video) from the car radio, the Concert Hall building, the Boom Box and the Music app on the student computer. Paste a YouTube link, or upload a song file (MP3, M4A), and give it a title.
       </p>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -83,7 +97,19 @@ export default function MusicManager() {
           <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!title.trim() || !linkUrl.trim()} onClick={addLink}>
             + Add Track
           </button>
+          <label className="btn btn-sm" style={{ minHeight: 44, position: 'relative' }}>{uploading ? 'Uploading...' : 'Upload a song file'}
+            <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { void uploadSong(e.target.files?.[0]); e.target.value = ''; }} />
+          </label>
         </div>
+        {!hasDogNose && (
+          <div className="row-wrap" style={{ gap: 8, alignItems: 'center', padding: '8px 12px', borderRadius: 12, background: '#fff7d6', border: '1.5px dashed #e0b100' }}>
+            <b>🐶 Dog Nose Magic</b>
+            <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>In Suno, open the song, tap the three dots, Download, MP3 Audio. Then upload it here.</span>
+            <label className="btn btn-sm btn-primary" style={{ minHeight: 44, position: 'relative' }}>{uploading ? 'Uploading...' : 'Upload Dog Nose Magic'}
+              <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { void uploadSong(e.target.files?.[0], 'Dog Nose Magic'); e.target.value = ''; }} />
+            </label>
+          </div>
+        )}
         <div className="stack" style={{ gap: 6, maxWidth: 320 }}>
           <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tags/categories (optional)</label>
           {tags.length > 0 && (
