@@ -120,9 +120,25 @@ type Region = { page: number; x: number; y: number; w: number; h: number; circle
 const R = REGIONS.regions as Record<string, Region>;
 const W = REGIONS.width, H = REGIONS.height;
 const MARK = (REGIONS as unknown as { markers: Record<'tl' | 'tr' | 'bl' | 'br', [number, number]> }).markers;
-export const TEMPLATE_PAGES = 7;
-// Which template page each builder card reads (Build Queue 297: scan one page from a card).
-export const PAGE_OF = { cover: 1, background: 2, balls: 3, title: 4, board: 5, panel: 5, colors: 6, powers: 7 } as const;
+// Build Queue 300: one design item per page (cover, background, title, board, side panel, 10 balls, 4 power-ups,
+// then the color palette), 20 pages in all. Each page prints its number as five small squares, so photos can come in
+// any order and a card can scan any of its pages.
+export const TEMPLATE_PAGES = (REGIONS as unknown as { pages: number }).pages;
+const CODE = (REGIONS as unknown as { code: { x: number; y: number; size: number; gap: number; bits: number } }).code;
+// The first template page each builder card reads.
+export const PAGE_OF = { cover: R.cover.page, background: R.background.page, title: R.title.page, board: R.board.page, panel: R.panel.page, balls: R.ball1.page, powers: R.power_magnet.page, colors: R.primary.page } as const;
+// Reads a straightened page's number from its five squares (null if it has none, like an older template).
+function readPageNo(c: HTMLCanvasElement): number | null {
+  const ctx = c.getContext('2d', { willReadFrequently: true })!;
+  let n = 0;
+  for (let b = 0; b < CODE.bits; b++) {
+    const x = CODE.x + b * (CODE.size + CODE.gap) + CODE.size * 0.25, y = CODE.y + CODE.size * 0.25, s = Math.round(CODE.size * 0.5);
+    const d = ctx.getImageData(Math.round(x), Math.round(y), s, s).data;
+    let sum = 0; for (let i = 0; i < d.length; i += 4) sum += d[i] + d[i + 1] + d[i + 2];
+    n = n * 2 + (sum / (d.length / 4) / 3 < 110 ? 1 : 0);
+  }
+  return n >= 1 && n <= TEMPLATE_PAGES ? n : null;
+}
 
 const toBlob = (c: HTMLCanvasElement, type: string, q?: number) => new Promise<Blob>((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error('Could not save a picture'))), type, q));
 const canvas = (w: number, h: number) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -251,7 +267,7 @@ async function toPages(files: File[], onStep?: (msg: string) => void): Promise<H
 }
 
 export interface CutResult {
-  cover?: Blob; background?: Blob; board?: Blob; panel?: Blob; title?: Blob; balls: Blob[];
+  cover?: Blob; background?: Blob; board?: Blob; panel?: Blob; title?: Blob; balls: Blob[]; ballSlots: number[];
   colors: Partial<Record<PlinkoColorKey, string>>; buckets: (string | null)[];
   powers: Partial<Record<PlinkoPower, Blob>>; pages: number;
 }
@@ -268,7 +284,7 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
     return { c, ctx, data: ctx.getImageData(0, 0, w, h), r, w, h };
   };
   const run = async (): Promise<CutResult> => {
-    const out: CutResult = { balls: [], colors: {}, buckets: [], powers: {}, pages: pages.length };
+    const out: CutResult = { balls: [], ballSlots: [], colors: {}, buckets: [], powers: {}, pages: pages.length };
     for (const [k, type] of [['cover', 'image/jpeg'], ['background', 'image/jpeg'], ['board', 'image/jpeg'], ['panel', 'image/jpeg']] as const) {
       const s = crop(k, 12); if (s && whiteShare(s.data.data) < 0.97) out[k] = await toBlob(s.c, type, 0.88);
     }
@@ -284,7 +300,7 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
       const b = crop(`ball${i}`); if (!b || whiteShare(b.data.data, b.w, true) > 0.97) continue;
       const c = canvas(b.w, b.h), ctx = c.getContext('2d')!;
       ctx.beginPath(); ctx.arc(b.w / 2, b.h / 2, b.w / 2 - 9, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(b.c, 0, 0);
-      out.balls.push(await toBlob(c, 'image/png'));
+      out.balls.push(await toBlob(c, 'image/png')); out.ballSlots.push(i - 1);
     }
     const avg = (key: string) => {
       const s = crop(key); if (!s) return null;
@@ -306,17 +322,15 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
   return run();
 }
 
-// The whole template: the Canva PDF, or one picture or phone photo per page in page order (1 to 7).
-export async function cutTemplate(files: File[], onStep?: (msg: string) => void): Promise<CutResult> {
+// The whole template: the Canva PDF, or pictures or phone photos of the pages. Each page reads its own number; a
+// page without one counts as the next page in order.
+export async function cutTemplate(files: File[], onStep?: (msg: string) => void, first = 1): Promise<CutResult> {
   const pages = await toPages(files, onStep);
   onStep?.('Cutting out your designs...');
-  return cut(pages, pages.map((_, i) => i + 1));
+  return cut(pages, pages.map((p, i) => readPageNo(p) ?? first + i));
 }
-// One template page for one card (for example a photo of the Balls page).
-export async function cutTemplatePage(file: File, pageNo: number, onStep?: (msg: string) => void): Promise<CutResult> {
-  const pages = await toPages([file], onStep);
-  return cut(pages.slice(0, 1), [pageNo]);
-}
+// Pages scanned from one card (for example photos of a few ball pages).
+export const cutTemplatePage = (files: File[], pageNo: number, onStep?: (msg: string) => void) => cutTemplate(files, onStep, pageNo);
 export const cutThemePdf = (file: File, onStep?: (msg: string) => void) => cutTemplate([file], onStep);
 
 // Uploads the cut pictures and returns the theme (not approved yet).

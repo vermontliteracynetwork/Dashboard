@@ -1,31 +1,31 @@
 Plinko custom theme kit
 
-The template is 7 pages, each 11 x 8.5 in (landscape letter).
+The template is 20 pages, each 11 x 8.5 in (landscape letter), one item per page.
 Draw or design only inside the dashed lines. The gray striped area is outside.
 Keep the four black corner squares clear. They tell the app which way is up.
+The small squares at the bottom right are the page number. Do not color them.
 
 Pages
-1 Cover (needed)       2 Background        3 Balls (1 to 5 needed, 6 to 10 extra)
-4 Title (the white around the letters turns see-through)
-5 Board and side panel 6 Colors (one solid color per square)
-7 Power-ups (a picture for each, they keep the same action)
+1 Cover (needed)   2 Background   3 Title (the white around the letters turns see-through)
+4 Board            5 Side panel
+6 to 15 Ball 1 to Ball 10 (balls 1 to 5 needed, leave the others white to skip them)
+16 to 19 Power-ups: Magnet, Double, Big Ball, Second Drop (they keep the same action)
+20 Colors (one solid color per square)
 Leave anything white to keep the usual look.
 
 On paper
-1. Print plinko-theme-template.pdf (or the page PNGs) at actual size.
+1. Print plinko-theme-template.pdf (or only the pages you need) at actual size.
 2. Draw and color inside the dashed shapes.
 
 In Canva
-1. Make an 11 x 8.5 in design with 7 pages.
-2. Upload page-1.png to page-7.png, put each one on its page full size,
-   then right click it, Lock, so it cannot move.
-3. Design on top inside the shapes. Download as PDF Standard, all 7 pages.
+1. Make an 11 x 8.5 in design with one page per template page you use.
+2. Put each page-N.png on its page full size, then right click it, Lock, so it cannot move.
+3. Design on top inside the shape. Download as PDF Standard.
 
 Upload (teacher dashboard: Games, Themes, Plinko)
 - Upload the PDF, or pictures of the pages, or Take photos with the iPad.
-  Pictures go in page order. Get the whole page and all four corners in the photo.
-- To redo one part, tap Scan page N on that card and upload just that page.
+  Any order works: each page reads its own number. Get the whole page and all four corners in the photo.
+- To redo one part, tap Scan on that card and upload just that page.
 - Check the preview, then turn on Show to students.
 
 Main theme reference: main-theme-reference/Plinko-main-theme.pdf
-(Inclusive Sans and the ten pastel colors used by the built-in Plinko look.)

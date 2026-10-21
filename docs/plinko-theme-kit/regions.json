@@ -1,6 +1,14 @@
 {
  "width": 2200,
  "height": 1700,
+ "pages": 20,
+ "code": {
+  "x": 1650,
+  "y": 1559,
+  "size": 46,
+  "gap": 20,
+  "bits": 5
+ },
  "markers": {
   "tl": [
    115.0,
@@ -22,10 +30,10 @@
  "regions": {
   "cover": {
    "page": 1,
-   "x": 540,
+   "x": 510,
    "y": 300,
-   "w": 1120,
-   "h": 1120,
+   "w": 1180,
+   "h": 1180,
    "circle": false
   },
   "background": {
@@ -36,112 +44,144 @@
    "h": 1200,
    "circle": false
   },
-  "ball1": {
-   "page": 3,
-   "x": 250,
-   "y": 330,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball2": {
-   "page": 3,
-   "x": 610,
-   "y": 330,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball3": {
-   "page": 3,
-   "x": 970,
-   "y": 330,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball4": {
-   "page": 3,
-   "x": 1330,
-   "y": 330,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball5": {
-   "page": 3,
-   "x": 1690,
-   "y": 330,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball6": {
-   "page": 3,
-   "x": 250,
-   "y": 920,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball7": {
-   "page": 3,
-   "x": 610,
-   "y": 920,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball8": {
-   "page": 3,
-   "x": 970,
-   "y": 920,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball9": {
-   "page": 3,
-   "x": 1330,
-   "y": 920,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
-  "ball10": {
-   "page": 3,
-   "x": 1690,
-   "y": 920,
-   "w": 300,
-   "h": 300,
-   "circle": true
-  },
   "title": {
-   "page": 4,
+   "page": 3,
    "x": 200,
-   "y": 560,
+   "y": 590,
    "w": 1800,
-   "h": 540,
+   "h": 600,
    "circle": false
   },
   "board": {
-   "page": 5,
-   "x": 300,
-   "y": 300,
-   "w": 900,
-   "h": 1120,
+   "page": 4,
+   "x": 605,
+   "y": 275,
+   "w": 990,
+   "h": 1230,
    "circle": false
   },
   "panel": {
    "page": 5,
-   "x": 1420,
+   "x": 790,
+   "y": 275,
+   "w": 620,
+   "h": 1230,
+   "circle": false
+  },
+  "ball1": {
+   "page": 6,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball2": {
+   "page": 7,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball3": {
+   "page": 8,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball4": {
+   "page": 9,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball5": {
+   "page": 10,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball6": {
+   "page": 11,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball7": {
+   "page": 12,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball8": {
+   "page": 13,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball9": {
+   "page": 14,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "ball10": {
+   "page": 15,
+   "x": 525,
+   "y": 315,
+   "w": 1150,
+   "h": 1150,
+   "circle": true
+  },
+  "power_magnet": {
+   "page": 16,
+   "x": 510,
    "y": 300,
-   "w": 560,
-   "h": 1120,
+   "w": 1180,
+   "h": 1180,
+   "circle": false
+  },
+  "power_double": {
+   "page": 17,
+   "x": 510,
+   "y": 300,
+   "w": 1180,
+   "h": 1180,
+   "circle": false
+  },
+  "power_big": {
+   "page": 18,
+   "x": 510,
+   "y": 300,
+   "w": 1180,
+   "h": 1180,
+   "circle": false
+  },
+  "power_again": {
+   "page": 19,
+   "x": 510,
+   "y": 300,
+   "w": 1180,
+   "h": 1180,
    "circle": false
   },
   "primary": {
-   "page": 6,
+   "page": 20,
    "x": 250,
    "y": 400,
    "w": 170,
@@ -149,7 +189,7 @@
    "circle": false
   },
   "secondary": {
-   "page": 6,
+   "page": 20,
    "x": 475,
    "y": 400,
    "w": 170,
@@ -157,7 +197,7 @@
    "circle": false
   },
   "text": {
-   "page": 6,
+   "page": 20,
    "x": 700,
    "y": 400,
    "w": 170,
@@ -165,7 +205,7 @@
    "circle": false
   },
   "boardBorder": {
-   "page": 6,
+   "page": 20,
    "x": 925,
    "y": 400,
    "w": 170,
@@ -173,7 +213,7 @@
    "circle": false
   },
   "boardBg": {
-   "page": 6,
+   "page": 20,
    "x": 1150,
    "y": 400,
    "w": 170,
@@ -181,7 +221,7 @@
    "circle": false
   },
   "peg": {
-   "page": 6,
+   "page": 20,
    "x": 1375,
    "y": 400,
    "w": 170,
@@ -189,7 +229,7 @@
    "circle": false
   },
   "powerBg": {
-   "page": 6,
+   "page": 20,
    "x": 1600,
    "y": 400,
    "w": 170,
@@ -197,7 +237,7 @@
    "circle": false
   },
   "powerBtn": {
-   "page": 6,
+   "page": 20,
    "x": 1825,
    "y": 400,
    "w": 170,
@@ -205,7 +245,7 @@
    "circle": false
   },
   "bucket1": {
-   "page": 6,
+   "page": 20,
    "x": 250,
    "y": 900,
    "w": 170,
@@ -213,7 +253,7 @@
    "circle": false
   },
   "bucket2": {
-   "page": 6,
+   "page": 20,
    "x": 475,
    "y": 900,
    "w": 170,
@@ -221,7 +261,7 @@
    "circle": false
   },
   "bucket3": {
-   "page": 6,
+   "page": 20,
    "x": 700,
    "y": 900,
    "w": 170,
@@ -229,7 +269,7 @@
    "circle": false
   },
   "bucket4": {
-   "page": 6,
+   "page": 20,
    "x": 925,
    "y": 900,
    "w": 170,
@@ -237,7 +277,7 @@
    "circle": false
   },
   "bucket5": {
-   "page": 6,
+   "page": 20,
    "x": 1150,
    "y": 900,
    "w": 170,
@@ -245,7 +285,7 @@
    "circle": false
   },
   "bucket6": {
-   "page": 6,
+   "page": 20,
    "x": 1375,
    "y": 900,
    "w": 170,
@@ -253,7 +293,7 @@
    "circle": false
   },
   "bucket7": {
-   "page": 6,
+   "page": 20,
    "x": 1600,
    "y": 900,
    "w": 170,
@@ -261,43 +301,11 @@
    "circle": false
   },
   "bucket8": {
-   "page": 6,
+   "page": 20,
    "x": 1825,
    "y": 900,
    "w": 170,
    "h": 170,
-   "circle": false
-  },
-  "power_magnet": {
-   "page": 7,
-   "x": 250,
-   "y": 520,
-   "w": 360,
-   "h": 360,
-   "circle": false
-  },
-  "power_double": {
-   "page": 7,
-   "x": 700,
-   "y": 520,
-   "w": 360,
-   "h": 360,
-   "circle": false
-  },
-  "power_big": {
-   "page": 7,
-   "x": 1150,
-   "y": 520,
-   "w": 360,
-   "h": 360,
-   "circle": false
-  },
-  "power_again": {
-   "page": 7,
-   "x": 1600,
-   "y": 520,
-   "w": 360,
-   "h": 360,
    "circle": false
   }
  }

@@ -110,7 +110,7 @@ function Preview({ t }: { t: PlinkoTheme }) {
 function ImageCard({ label, hint, required, value, busy, onFile, onClear, multiple, count, children, page, onScan }: {
   label: string; hint: string; required?: boolean; value?: string; busy: boolean; onFile: (f: FileList) => void; onClear?: () => void; multiple?: boolean; count?: string; children?: React.ReactNode;
   // Build Queue 297: read this card's template page from a photo, a picture or a PDF page.
-  page?: number; onScan?: (f: File) => void;
+  page?: number; onScan?: (f: File[]) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const scanRef = useRef<HTMLInputElement>(null);
@@ -131,10 +131,10 @@ function ImageCard({ label, hint, required, value, busy, onFile, onClear, multip
       <button type="button" className="ptb-thumb" disabled={busy} onClick={() => ref.current?.click()} aria-label={`Upload ${label}`}>{children ?? (value ? <img src={value} alt="" /> : <span>Tap or drop a picture</span>)}</button>
       <div className="ptb-card-actions">
         <button type="button" className="btn btn-sm btn-primary" disabled={busy} onClick={() => ref.current?.click()}>{busy ? 'Uploading...' : value || (multiple && done && count && !count.startsWith('0')) ? (multiple ? 'Add more' : 'Replace') : 'Upload'}</button>
-        {page && onScan && <button type="button" className="btn btn-sm" title={`Photo or scan of template page ${page}`} onClick={() => scanRef.current?.click()}>Scan page {page}</button>}
+        {page && onScan && <button type="button" className="btn btn-sm" title={multiple ? 'Photos or scans of the ball pages' : `Photo or scan of template page ${page}`} onClick={() => scanRef.current?.click()}>{multiple ? 'Scan pages' : `Scan page ${page}`}</button>}
         {(value || (multiple && count && !count.startsWith('0'))) && onClear && <button type="button" className="btn btn-sm" onClick={onClear}>Remove{multiple ? ' all' : ''}</button>}
       </div>
-      {onScan && <input ref={scanRef} type="file" accept="image/*,application/pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onScan(f); e.target.value = ''; }} />}
+      {onScan && <input ref={scanRef} type="file" accept="image/*,application/pdf" multiple={multiple} hidden onChange={(e) => { const f = Array.from(e.target.files ?? []); if (f.length) onScan(f); e.target.value = ''; }} />}
       <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" multiple={multiple} hidden onChange={(e) => { if (e.target.files?.length) onFile(e.target.files); e.target.value = ''; }} />
     </div>
   );
@@ -214,18 +214,24 @@ export default function PlinkoThemeBuilder() {
   const merge = async (cutRes: CutResult) => {
     const t = await buildTheme(cutRes, { id: draft.id, name: draft.name, font: draft.font, powerNames: {} }, setPdfStep);
     set({ cover: t.cover ?? draft.cover, background: t.background ?? draft.background, board: t.board ?? draft.board, panel: t.panel ?? draft.panel, title: t.title ?? draft.title,
-      balls: t.balls.length ? t.balls.slice(0, 10) : draft.balls, colors: { ...draft.colors, ...t.colors }, buckets: t.buckets.some(Boolean) ? t.buckets : draft.buckets,
+      balls: mergeBalls(t.balls, cutRes.ballSlots), colors: { ...draft.colors, ...t.colors }, buckets: t.buckets.some(Boolean) ? t.buckets : draft.buckets,
       powers: Object.fromEntries((['magnet', 'double', 'big', 'again'] as PlinkoPower[]).map((k) => [k, { ...draft.powers[k], ...(t.powers[k]?.img ? { img: t.powers[k]!.img } : {}) }])) });
+  };
+  // Each scanned ball keeps its slot (ball 3 replaces ball 3); a slot past the end is added at the end.
+  const mergeBalls = (urls: string[], slots: number[]) => {
+    const b = draft.balls.slice();
+    urls.forEach((u, k) => { const i = slots[k] ?? k; if (i < b.length) b[i] = u; else b.push(u); });
+    return b.slice(0, 10);
   };
   const importFiles = async (files: File[]) => {
     if (!files.length) return;
     try { await merge(await cutTemplate(files, setPdfStep)); setPdfStep('Imported. Check the preview, then Save.'); }
     catch (e) { setPdfStep(e instanceof Error ? e.message : 'The files could not be read.'); }
   };
-  const scanPage = async (key: string, pageNo: number, file?: File) => {
-    if (!file) return;
+  const scanPage = async (key: string, pageNo: number, files?: File[]) => {
+    if (!files?.length) return;
     setPdfStep(null);
-    try { await merge(await cutTemplatePage(file, pageNo, setPdfStep)); setPdfStep(`Page ${pageNo} scanned.`); }
+    try { await merge(await cutTemplatePage(files, pageNo, setPdfStep)); setPdfStep(files.length > 1 ? `${files.length} pages scanned.` : 'Page scanned.'); }
     catch (e) { setPdfStep(e instanceof Error ? e.message : 'That page could not be read.'); }
     void key;
   };
@@ -288,7 +294,7 @@ export default function PlinkoThemeBuilder() {
             <div className="ptb-template">
               <b>Template</b>
               <Info label="About the template">
-                {TEMPLATE_PAGES} pages, 11 x 8.5 in. Print it to draw by hand, or put each page in Canva and lock it. Upload the Canva PDF, pictures, or photos of the pages in order. Keep all four corner squares in each photo.
+                {TEMPLATE_PAGES} pages, 11 x 8.5 in. Print it to draw by hand, or put each page in Canva and lock it. One item per page. Upload the Canva PDF, pictures, or photos of the pages in any order. Keep all four corner squares in each photo.
               </Info>
               <a className="btn btn-sm" href="/plinko/plinko-theme-template.pdf" download>Download</a>
               <label className="btn btn-sm btn-primary">Upload PDF or pictures<input type="file" accept="application/pdf,image/*" multiple hidden onChange={(e) => { importFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} /></label>
@@ -298,7 +304,7 @@ export default function PlinkoThemeBuilder() {
           </div>
 
           <div className="ptb-folds">
-            <Fold title="Images" open meta={`${imagesSet} of 6`} info="Tap a card or drop a picture on it. Scan page reads that part from a photo of the template. Anything empty keeps the default look.">
+            <Fold title="Images" open meta={`${imagesSet} of 6`} info="Tap a card or drop a picture on it. Scan reads that part from a photo of its template page. Anything empty keeps the default look.">
               <div className="ptb-cards">
                 <ImageCard page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Cover" required hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
                   {draft.cover ? <img src={draft.cover} alt="" className="sq" /> : <span>Tap or drop a picture</span>}
