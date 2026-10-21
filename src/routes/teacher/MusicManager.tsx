@@ -3,6 +3,7 @@ import { useStore } from '../../store/store';
 import { extractYouTubeId } from '../../lib/youtube';
 import type { MusicTrack } from '../../types';
 import { uploadAudio } from '../../lib/upload';
+import { useMusicTracks } from '../../lib/musicLibrary';
 import { isSongFile } from '../../components/GlobalMusicPlayer';
 
 // A shared music library — direct teacher request: a car radio, the
@@ -11,7 +12,7 @@ import { isSongFile } from '../../components/GlobalMusicPlayer';
 // students hear it through a hidden YouTube embed, so there's no cover
 // image/upload option to add here, just a title and a link.
 export default function MusicManager() {
-  const musicTracks = useStore((s) => s.musicTracks);
+  const musicTracks = useMusicTracks();
   const addMusicTrack = useStore((s) => s.addMusicTrack);
   const deleteMusicTrack = useStore((s) => s.deleteMusicTrack);
 
@@ -162,7 +163,7 @@ export default function MusicManager() {
           )}
           <div className="stack" style={{ gap: 6 }}>
             {visibleTracks.map((t) => (
-              <MusicTrackRow key={t.id} track={t} onDelete={() => deleteMusicTrack(t.id)} />
+              <MusicTrackRow key={t.id} track={t} onDelete={() => { if (!t.id.startsWith('builtin-')) deleteMusicTrack(t.id); }} />
             ))}
           </div>
         </>

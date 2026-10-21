@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store/store';
+import { useMusicTracks } from '../lib/musicLibrary';
 
 // The car dashboard (teacher spec 2026-10-04): a small "dash" card at the
 // top of the screen while driving a car. Gas dial on the left (the number
@@ -76,7 +77,7 @@ export default function CarDashboard({ speedRef, maxSpeed, gasDashes, gasSeconds
   onPickSong: () => void;
   onSettings: () => void;
 }) {
-  const tracks = useStore((s) => s.musicTracks);
+  const tracks = useMusicTracks();
   const playingId = useStore((s) => s.playingTrackId);
   const volume = useStore((s) => s.musicVolume);
   const setVolume = useStore((s) => s.setMusicVolume);

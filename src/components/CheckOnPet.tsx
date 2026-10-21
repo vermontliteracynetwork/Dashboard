@@ -6,6 +6,7 @@ import { ageForTraining, AGE_LABEL, AGE_SCALE, PET_REPLY, petFeeling } from '../
 import { useTrickSessions, learnedTricks, isLearned } from '../lib/petGym';
 import { SEL_STARTER_TOOLS, SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../lib/selZones';
 import { extractYouTubeId } from '../lib/youtube';
+import { playableSrc, useMusicTracks } from '../lib/musicLibrary';
 import SelZoneEmotionPicker from './SelZoneEmotionPicker';
 import PetStage3D, { type TrickCue } from './PetStage3D';
 import { PET_FOODS, feedFromInventory, foodById, usePetFood } from '../lib/petFood';
@@ -34,7 +35,7 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
   const allPets = useStore((s) => s.pets);
   const recordSelCheckIn = useStore((s) => s.recordSelCheckIn);
   const carePet = useStore((s) => s.carePet);
-  const musicTracks = useStore((s) => s.musicTracks);
+  const musicTracks = useMusicTracks();
   const pets = allPets.filter((p) => p.studentId === student?.id);
   const [i, setI] = useState(0);
   const pet = pets[Math.min(i, pets.length - 1)];
@@ -159,7 +160,7 @@ function CheckOnPet({ reason, onClose }: { reason: 'break' | 'spam' | 'help'; on
                   <span>Now playing: <b>{musicTracks.find((t) => t.url === track)?.title ?? 'a song'}</b></span>
                 </div>
                 {/* Build Queue 349: a song file plays through a hidden audio element. */}
-                <audio src={track} autoPlay playsInline style={{ display: 'none' }} />
+                <audio src={playableSrc(track)} autoPlay playsInline style={{ display: 'none' }} />
               </>
             ) : ytId ? (
               <>

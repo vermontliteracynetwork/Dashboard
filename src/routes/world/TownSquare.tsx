@@ -84,6 +84,7 @@ import { generateAutoQuestion } from '../../lib/autoQuestions';
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import { VehicleSoundController, type VehicleSoundKind } from '../../lib/vehicleAudio';
 import { drawQuestion } from '../../lib/questionPick';
+import { useMusicTracks } from '../../lib/musicLibrary';
 
 // Maps each Quest Neighbor's role to the one Focus lane (see types.ts's
 // FocusSubject) their conversations/indicator should reflect — direct
@@ -3154,7 +3155,7 @@ export default function TownSquare() {
   // route changes), never a video surface. One plain overlay picker (not
   // 3D-anchored) serves all three triggers, same as every other full-
   // screen panel in this file (showTodayTasks, the self pie menu, ...).
-  const musicTracks = useStore((s) => s.musicTracks);
+  const musicTracks = useMusicTracks();
   const [showMusicPicker, setShowMusicPicker] = useState(false);
   // A tapped farm animal's answer (animalSoundFor), shown in a bubble over it for a moment.
   const [animalPoke, setAnimalPoke] = useState<{ id: string; text: string; x: number; z: number; at: number } | null>(null);

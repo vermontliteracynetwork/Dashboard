@@ -1,6 +1,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useStore } from '../store/store';
 import { extractYouTubeId, loadYouTubeApi } from '../lib/youtube';
+import { playableSrc, useMusicTracks } from '../lib/musicLibrary';
 
 // Direct teacher instruction: "ensure that the music player can always be
 // played in the background, even when students are completing
@@ -125,7 +126,7 @@ const FileAudio = forwardRef<MusicPlayerHandle, { src: string; volume: number; o
 export const isSongFile = (url: string) => !extractYouTubeId(url) && /^https?:\/\//.test(url.trim());
 
 export default function GlobalMusicPlayer() {
-  const musicTracks = useStore((s) => s.musicTracks);
+  const musicTracks = useMusicTracks();
   const playingTrackId = useStore((s) => s.playingTrackId);
   const setPlayingTrackId = useStore((s) => s.setPlayingTrackId);
   const playing = musicTracks.find((t) => t.id === playingTrackId);
@@ -167,7 +168,7 @@ export default function GlobalMusicPlayer() {
     setPlayingTrackId(next.id);
   };
 
-  const fileSrc = playing && !ytId && isSongFile(playing.url) ? playing.url.trim() : null;
+  const fileSrc = playing && !ytId && isSongFile(playing.url) ? playableSrc(playing.url) : null;
   if (!playing || (!ytId && !fileSrc)) return null;
 
   return (

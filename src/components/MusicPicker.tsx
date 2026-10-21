@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useStore } from '../store/store';
 import { Icon } from './Icon';
+import { useMusicTracks } from '../lib/musicLibrary';
 
 // The shared music picker (car radio, Concert Hall, Boom Box, and since Build Queue 348 the Music app on the
 // student computer). Audio only: tapping a song starts the app-wide player (GlobalMusicPlayer), which keeps
 // playing across screens with its own small Now Playing bar.
 export default function MusicPicker({ onClose }: { onClose: () => void }) {
-  const musicTracks = useStore((s) => s.musicTracks);
+  const musicTracks = useMusicTracks();
   const playingTrackId = useStore((s) => s.playingTrackId);
   const setPlayingTrackId = useStore((s) => s.setPlayingTrackId);
   const [tag, setTag] = useState<string | null>(null);
