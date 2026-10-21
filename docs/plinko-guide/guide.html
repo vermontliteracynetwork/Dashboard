@@ -73,8 +73,8 @@
 <h2>One turn, step by step</h2>
 <ol class="steps">
   <li><div><b>Whose turn.</b> A big card shows the player and the round.</div></li>
-  <li><div><b>Pick a power-up.</b> Only if you landed on a star in the round before. You get one power-up, used this turn. Power-ups never save for later rounds.</div></li>
   <li><div><b>Answer.</b> Get the question right to earn your drop.</div></li>
+  <li><div><b>Pick a power-up.</b> Only after the question is answered, and only if you landed on a star in the round before. You get one power-up, used this turn. Power-ups never save for later rounds.</div></li>
   <li><div><b>Aim.</b> Tap a numbered drop zone across the top of the board.</div></li>
   <li><div><b>Drop.</b> The ball falls through 7 rows of pegs. On each row it bounces half a space left or right, by chance.</div></li>
   <li><div><b>Land.</b> The bucket gives you XP. A star on that bucket is a power-up for your next turn.</div></li>
@@ -95,19 +95,19 @@
 <ul>
   <li>Bucket points are mixed into a new order at the start of every round, so the best bucket moves.</li>
   <li><b>Stars:</b> the top bucket never has a star. Smaller buckets are more likely to have one. There is always at least one bucket with a star.</li>
-  <li><b>Colored pegs:</b> when the ball hits a colored peg, the peg pops away and gives XP. The peg color from round 1 is worth 1 XP, the color that joins in round 2 is worth 2 XP, and so on. Popped pegs come back at the start of the next round.</li>
+  <li><b>Pegs:</b> every peg the ball hits pops away and gives XP. A plain peg is worth 1 XP. The peg color from round 1 is worth 1 XP, the color that joins in round 2 is worth 2 XP, and so on. A popped peg leaves a gap the ball falls straight through. Popped pegs come back at the start of the next round.</li>
   <li>That makes aiming a choice: big points now, or power-ups for your next turn.</li>
 </ul>
 
 <h2>How points are counted</h2>
 <div class="box blue">
-  <div class="formula">XP for a drop = bucket points &times; every multiplier, then + every bonus, then + colored peg XP</div>
+  <div class="formula">XP for a drop = bucket points &times; every multiplier, then + every bonus, then + peg XP</div>
   <p class="muted" style="text-align:center;margin:0">Example: the ball lands in 30 with Double on and a +20 bonus: 30 &times; 2 = 60, then 60 + 20 = 80 XP.</p>
 </div>
 
 <h2>The four main power-ups</h2>
 <p>Every power-up in every theme follows the same four rules: <b>what it does</b>, <b>when it works</b>, <b>how the ball moves</b>, and <b>how it works with other power-ups</b>. A theme can rename a main power-up and give it a new picture, but it always keeps its action.</p>
-<p class="muted">All power-ups: one per round, won with a star in the round before, picked at the start of your turn, on for this whole turn (extra drops included), then gone. They never save.</p>
+<p class="muted">All power-ups: one per round, won with a star in the round before, picked after your question, before you aim, on for this whole turn (extra drops included), then gone. They never save.</p>
 
 <div class="power">
   <div class="pic"><img src="../../public/games/plinko/ui/power-double.png" alt=""></div>

@@ -10267,3 +10267,15 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .pk2-buckets .pk2-stars img { width: clamp(18px, 2.6vw, 30px); height: auto; filter: drop-shadow(0 2px 0 rgba(0,0,0,.2)); }
 @keyframes pk2StarBob { from { translate: 0 1px; rotate: -6deg; } to { translate: 0 -4px; rotate: 6deg; } }
 @media (prefers-reduced-motion: reduce) { .pk2-buckets .pk2-stars, .pk2-player.on { animation: none; } }
+
+/* Build Queue 353: the power-up column always fits the screen. At most three cards, which shrink to fit, and the
+   Skip/Done button stays on screen; the column never scrolls. */
+.pk2 .pk2-panel.pk2-powers, .pk2.themed .pk2-panel.pk2-powers { overflow: hidden; height: calc(100dvh - 96px); box-sizing: border-box; padding-block: 4px; gap: 6px; }
+.pk2-powers .pk2-pcard { flex: 0 1 150px; min-height: 0; aspect-ratio: auto; max-height: 150px; width: min(150px, 100%); }
+.pk2-powers .pk2-pcard-pic { flex: 1 1 auto; min-height: 0; height: auto; }
+.pk2-powers .pk2-pcard-pic img, .pk2-powers .pk2-pcard-pic svg { width: auto !important; height: 100% !important; max-height: 60px; max-width: 100%; }
+.pk2-powers .pk2-pcard-btn { min-height: 32px; flex: none; }
+.pk2-powers .pk2-parrow, .pk2-powers > .btn-primary { flex: none; }
+.pk2-powers .pk2-parrow { min-height: 34px; padding-block: 2px; }
+/* Build Queue 352: pegs pop smaller when hit, so the small bounce reads clearly. */
+.pk2-field i.hit { transform: translate(-50%, -50%) scale(1.3); }
