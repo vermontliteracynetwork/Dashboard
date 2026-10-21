@@ -51,6 +51,37 @@ export const MAX_PEG_TYPES = 20;
 // Build Queue 310: the peg types every game has unless a theme sets its own (soft sounds; each one disappears when hit).
 export const DEFAULT_PEG_COLORS: PegColor[] = [{ color: '#ff8ac4', sound: 'pop' }, { color: '#7bd389', sound: 'ding' }, { color: '#9b8cff', sound: 'boing' }, { color: '#ffd93d', sound: 'coin' }, { color: '#4dc3ff', sound: 'splash' }];
 export const DEFAULT_THEME_ID = 'default';
+// Build Queue 335: her designed template (cut from her Canva PDF into public/games/plinko/default-theme/) is the Default
+// theme's art: cover, background, title, game board, score board, 10 balls, the four power-up cover images and Double
+// Ball Drop's two balls.
+const DT = '/games/plinko/default-theme/';
+export const DEFAULT_ART = {
+  cover: `${DT}cover.jpg`, background: `${DT}background.jpg`, title: `${DT}title.png`, board: `${DT}board.jpg`, panel: `${DT}panel.jpg`,
+  balls: Array.from({ length: 10 }, (_, i) => `${DT}ball-${i + 1}.png`),
+  powers: { magnet: { img: `${DT}power-magnet.png` }, double: { img: `${DT}power-double.png` }, big: { img: `${DT}power-big.png` }, again: { img: `${DT}power-again.png`, balls: [`${DT}again-ball-1.png`, `${DT}again-ball-2.png`] } } as PlinkoTheme['powers'],
+};
+// Plain pegs are purple like her title, so they stand out on the pale pink board.
+export const DEFAULT_PEG = '#b65ce6';
+export const builtinDefault = (): PlinkoTheme => ({ id: DEFAULT_THEME_ID, name: 'Default', font: 'default', approved: true, createdAt: '', ...DEFAULT_ART, powers: structuredClone(DEFAULT_ART.powers), colors: { peg: DEFAULT_PEG }, buckets: [], customPowers: [], fonts: {} });
+// A Default theme saved before her art existed gets the art wherever it still has the old pictures or none.
+export function upgradeDefault(t: PlinkoTheme | null | undefined): PlinkoTheme {
+  if (!t) return builtinDefault();
+  const old = (u?: string) => !u || u === '/games/covers/plinko-drop.svg';
+  const powers: PlinkoTheme['powers'] = { ...t.powers };
+  for (const k of ['magnet', 'double', 'big', 'again'] as PlinkoPower[]) {
+    const a = DEFAULT_ART.powers[k]!, p = { ...(powers[k] ?? {}) };
+    if (!p.img) p.img = a.img;
+    if (a.balls && !p.balls?.filter(Boolean).length) p.balls = a.balls;
+    powers[k] = p;
+  }
+  return {
+    ...t, powers,
+    colors: { ...t.colors, peg: !t.colors.peg || t.colors.peg.toLowerCase() === '#f9fbf4' ? DEFAULT_PEG : t.colors.peg },
+    cover: old(t.cover) ? DEFAULT_ART.cover : t.cover, background: t.background || DEFAULT_ART.background, title: t.title || DEFAULT_ART.title,
+    board: t.board || DEFAULT_ART.board, panel: t.panel || DEFAULT_ART.panel,
+    balls: !t.balls.length || t.balls.every((b) => b.startsWith('/games/plinko/balls/')) ? DEFAULT_ART.balls : t.balls,
+  };
+}
 // Build Queue 333: plain solid color balls (no design) that fill a theme up to 10 balls after its own.
 const solid = (c: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="${c}" stroke="#4e4651" stroke-width="5"/></svg>`)}`;
 export const SOLID_BALLS = ['#e63946', '#ffd60a', '#3a86ff', '#2bb24c', '#ff8c1a', '#8e44ad', '#ff6fb5', '#1abc9c', '#8d5a2b', '#9aa0a6'].map(solid);

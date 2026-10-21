@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-new-look",
+    date: "2026-10-21",
+    icon: "🌈",
+    title: "Plinko has a new look",
+    body: "Plinko has a fresh pastel look with wavy colors, new balls like a smiley, a paw and a cat, and new power-up pictures.",
+  },
+  {
     id: "2026-10-21-plinko-more-pegs",
     date: "2026-10-21",
     icon: "🔢",

@@ -7,7 +7,7 @@ import { uploadAudio, uploadImage } from '../../lib/upload';
 import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, withDefaults, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
+  DEFAULT_ART, DEFAULT_PEG, DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, upgradeDefault, withDefaults, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
   type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
@@ -42,12 +42,11 @@ const blank = (): PlinkoTheme => ({ id: makeId(), name: '', font: 'default', app
 const HEX = /^#[0-9a-f]{6}$/i;
 // Build Queue 312: the Default theme as a full theme she can edit, filled with everything the default game uses.
 // Saved under the id "default", it becomes the game's default look (students still see it as Classic).
-const urlOf = (bg: string) => /url\("([^"]+)"\)/.exec(bg)?.[1] ?? '';
 const defaultDraft = (): PlinkoTheme => ({
-  id: DEFAULT_THEME_ID, name: 'Default', font: 'default', approved: true, createdAt: new Date().toISOString(), cover: '/games/covers/plinko-drop.svg',
-  balls: BALLS.slice(0, 10).map((b) => urlOf(b.bg)).filter(Boolean),
-  colors: { primary: DEF.primary, secondary: DEF.secondary, text: DEF.text, panelBg: DEF.panel, boardBg: DEF.board, boardBorder: DEF.edge, peg: DEF.peg, zone: DEF.zone, powerBg: DEF.powerBg, powerBtn: DEF.powerBtn },
-  buckets: [...BUCKET_DEF], powers: {}, customPowers: [], fonts: {}, pegColors: DEFAULT_PEG_COLORS.map((x) => ({ ...x })),
+  id: DEFAULT_THEME_ID, name: 'Default', font: 'default', approved: true, createdAt: new Date().toISOString(),
+  ...DEFAULT_ART, powers: structuredClone(DEFAULT_ART.powers),
+  colors: { primary: DEF.primary, secondary: DEF.secondary, text: DEF.text, panelBg: DEF.panel, boardBg: DEF.board, boardBorder: DEF.edge, peg: DEFAULT_PEG, zone: DEF.zone, powerBg: DEF.powerBg, powerBtn: DEF.powerBtn },
+  buckets: [...BUCKET_DEF], customPowers: [], fonts: {}, pegColors: DEFAULT_PEG_COLORS.map((x) => ({ ...x })),
 });
 // One peg in the Game elements section: its color and its sound together.
 function PegRow({ label, color, sound, busy, onColor, onSound, onUpload, onRemove, noColor }: { label: string; color: string; sound: string; busy: boolean; onColor: (v: string) => void; onSound: (v: string) => void; onUpload: () => void; onRemove?: () => void; noColor?: boolean }) {
@@ -391,8 +390,8 @@ export default function PlinkoThemeBuilder() {
         <nav className="ptb-crumbs" aria-label="Breadcrumb"><Link to="/teacher/game/themes">Themes</Link><span>/</span><b>Plinko</b></nav>
 
         <div className="ptb-themes" aria-label="Saved themes">
-          <button type="button" className={`ptb-theme${isDefault ? ' on' : ''}`} onClick={() => open(themes.find((x) => x.id === DEFAULT_THEME_ID) ?? defaultDraft())}>
-            <span style={{ background: `center / cover url("${themes.find((x) => x.id === DEFAULT_THEME_ID)?.cover ?? '/games/covers/plinko-drop.svg'}")` }} />
+          <button type="button" className={`ptb-theme${isDefault ? ' on' : ''}`} onClick={() => { const d = themes.find((x) => x.id === DEFAULT_THEME_ID); open(d ? upgradeDefault(d) : defaultDraft()); }}>
+            <span style={{ background: `center / cover url("${upgradeDefault(themes.find((x) => x.id === DEFAULT_THEME_ID)).cover}")` }} />
             <b>Default</b><small className="live">Always on</small>
           </button>
           {sorted.filter((t) => t.id !== DEFAULT_THEME_ID).map((t) => (
@@ -441,7 +440,7 @@ export default function PlinkoThemeBuilder() {
 
         <div className="ptb-layout">
           <div className="ptb-stage">
-            <Preview t={withDefaults(draft, themes.find((x) => x.id === DEFAULT_THEME_ID) ?? defaultDraft()) ?? draft} />
+            <Preview t={withDefaults(draft, upgradeDefault(themes.find((x) => x.id === DEFAULT_THEME_ID) ?? defaultDraft())) ?? draft} />
             <div className="ptb-template">
               <b>Template</b>
               <Info label="About the template">

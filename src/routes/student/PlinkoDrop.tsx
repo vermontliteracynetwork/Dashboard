@@ -17,7 +17,7 @@ import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
-import { DEFAULT_PEG_COLORS, DEFAULT_THEME_ID, colorPegs, withDefaults, pegOrder, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
+import { DEFAULT_PEG_COLORS, DEFAULT_THEME_ID, colorPegs, upgradeDefault, withDefaults, pegOrder, powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
 
 // Plinko after Baamboozle's Plink-oh (Build Queue 244 and 250, plan in docs/PLINKO_PLAN.pdf).
 // Her rules (2026-10-20): up to 5 players on one iPad, the student plus classmates in the room and
@@ -107,7 +107,7 @@ export default function PlinkoDrop() {
   const { approved: allApproved, themes: allThemes } = usePlinkoThemes();
   const themes = allApproved.filter((t) => t.id !== DEFAULT_THEME_ID);
   const [themeId, setThemeId] = useState<string | null>(null);
-  const theme = withDefaults(themes.find((t) => t.id === themeId) ?? null, allThemes.find((t) => t.id === DEFAULT_THEME_ID));
+  const theme = withDefaults(themes.find((t) => t.id === themeId) ?? null, upgradeDefault(allThemes.find((t) => t.id === DEFAULT_THEME_ID)));
   const pegTypes = theme?.pegColors?.length ? theme.pegColors : DEFAULT_PEG_COLORS;
   const plist = powersFor(theme);
   const plistRef = useRef(plist); plistRef.current = plist;
