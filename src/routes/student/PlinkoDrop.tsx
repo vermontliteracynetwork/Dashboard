@@ -17,7 +17,7 @@ import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useRoundSettings } from '../../lib/gameRounds';
 import { useNpcProfiles } from '../../style/npcs';
 import { recordGameMemory } from '../../lib/gameRivals';
-import { themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
+import { powersFor, themeVars, usePlinkoThemes } from '../../lib/plinkoThemes';
 
 // Plinko after Baamboozle's Plink-oh (Build Queue 244 and 250, plan in docs/PLINKO_PLAN.pdf).
 // Her rules (2026-10-20): up to 5 players on one iPad, the student plus classmates in the room and
@@ -36,14 +36,14 @@ const I = (d: React.ReactNode) => <svg viewBox="0 0 32 32" width="34" height="34
 // Build Queue 295: her Cute Cartoony icons for three power-ups (cut from her demo sheets), the drawn magnet for the fourth.
 const UI = '/games/plinko/ui/';
 const PIC = (src: string) => <img src={src} alt="" width={34} height={34} style={{ objectFit: 'contain' }} />;
-const POWERS = {
-  double: { name: 'Double', icon: PIC(`${UI}power-double.png`), does: 'Counts twice.' },
-  big: { name: 'Big Ball', icon: PIC(`${UI}power-big.png`), does: 'Bounces less.' },
-  magnet: { name: 'Magnet', icon: I(<path d="M8 5v11a8 8 0 0 0 16 0V5h-6v11a2 2 0 0 1-4 0V5z" fill="#127FB5" stroke="#6C626E" strokeWidth="1.2" />), does: 'Pulls to the top bucket.' },
-  again: { name: 'Second Drop', icon: PIC(`${UI}power-again.png`), does: 'One more ball.' },
-} as const;
-type Power = keyof typeof POWERS;
-const POWER_IDS = Object.keys(POWERS) as Power[];
+// The default pictures; a theme's own picture (or an added power-up's) replaces them (Build Queue 296).
+const DEFAULT_ICON: Record<string, React.ReactNode> = {
+  double: PIC(`${UI}power-double.png`),
+  big: PIC(`${UI}power-big.png`),
+  magnet: I(<path d="M8 5v11a8 8 0 0 0 16 0V5h-6v11a2 2 0 0 1-4 0V5z" fill="#127FB5" stroke="#6C626E" strokeWidth="1.2" />),
+  again: PIC(`${UI}power-again.png`),
+};
+type Power = string;
 const shuffle = <T,>(a: T[]) => { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
 type Player = { key: string; name: string; kind: 'me' | 'irl' | 'npc'; npcId?: string; xp: number; ball: number; owed: number };
@@ -78,6 +78,9 @@ export default function PlinkoDrop() {
   const { approved: themes } = usePlinkoThemes();
   const [themeId, setThemeId] = useState<string | null>(null);
   const theme = themes.find((t) => t.id === themeId) ?? null;
+  const plist = powersFor(theme);
+  const plistRef = useRef(plist); plistRef.current = plist;
+  const extraLeft = useRef(0);
   const unpaid = useRef(0);
   const timers = useRef<number[]>([]);
   const secondRef = useRef(false);
@@ -123,7 +126,7 @@ export default function PlinkoDrop() {
   };
   const afterIntro = (p: Player) => {
     if (p.owed > 0 && p.kind === 'npc') {
-      activeRef.current = shuffle(POWER_IDS).slice(0, p.owed); setActive(activeRef.current);
+      activeRef.current = shuffle(plistRef.current.map((x) => x.id)).slice(0, p.owed); setActive(activeRef.current);
       setPlayersBoth((ps) => ps.map((x) => (x.key === p.key ? { ...x, owed: 0 } : x)));
       setNote(`${p.name} picked ${activeRef.current.map((x) => pName(x)).join(' and ')}.`);
     } else if (p.owed > 0) {
@@ -179,8 +182,14 @@ export default function PlinkoDrop() {
     const list = playersRef.current, t = turnRef.current, p = list[t % list.length];
     const { buckets: bk, stars: st, zones: z, nb } = boardRef.current;
     const act = activeRef.current;
+    // Every active power-up applies its action (Build Queue 296): the four defaults and a theme's own.
+    const defs = act.map((id) => plistRef.current.find((x) => x.id === id)).filter((d): d is NonNullable<typeof d> => !!d);
+    const has = (k: string) => defs.some((d) => d.kind === k);
+    const mult = defs.filter((d) => d.kind === 'multiply').reduce((m, d) => m * (d.n ?? 2), 1);
+    const bonus = defs.filter((d) => d.kind === 'bonus').reduce((m, d) => m + (d.n ?? 20), 0);
+    if (!second) extraLeft.current = defs.filter((d) => d.kind === 'extra').reduce((m, d) => m + (d.n ?? 1), 0);
     setPhase('drop'); setNote(null);
-    const big = act.includes('big'), magnet = act.includes('magnet');
+    const big = has('big'), magnet = has('magnet');
     const target = bk.indexOf(Math.max(...bk));
     const tx = ((target + 0.5) * z) / nb - 0.5;
     let x = zone;
@@ -193,12 +202,14 @@ export default function PlinkoDrop() {
       }
       path.push({ x, y: r + 0.5 });
     }
-    const b = Math.min(nb - 1, Math.max(0, Math.floor(((x + 0.5) / z) * nb)));
+    let b = Math.min(nb - 1, Math.max(0, Math.floor(((x + 0.5) / z) * nb)));
+    // Lucky: never the lowest bucket; the ball rolls to the better neighbor.
+    if (has('lucky') && bk[b] === Math.min(...bk.slice(0, nb))) { const l = b > 0 ? bk[b - 1] : -1, r = b < nb - 1 ? bk[b + 1] : -1; b = r >= l ? b + 1 : b - 1; }
     path.push({ x: ((b + 0.5) * z) / nb - 0.5, y: ROWS + 0.35 });
     const STEP = 190;
     path.forEach((pt, i) => timers.current.push(window.setTimeout(() => { setBall(pt); if (i > 0 && i < path.length - 1) sfx.tick(); }, i * STEP)));
     timers.current.push(window.setTimeout(() => {
-      const pts = bk[b] * (act.includes('double') ? 2 : 1);
+      const pts = bk[b] * mult + bonus;
       const won = st[b] ?? 0;
       setPlayersBoth((ps) => ps.map((x2) => (x2.key === p.key ? { ...x2, xp: x2.xp + pts, owed: Math.min(3, x2.owed + won) } : x2)));
       setWin(b); sfx.coin(); if (pts >= 40 || won) playCheer();
@@ -206,7 +217,7 @@ export default function PlinkoDrop() {
       setNote(msg); if (won) speak(msg, student.ttsSettings);
     }, path.length * STEP + 80));
     timers.current.push(window.setTimeout(() => {
-      if (act.includes('again') && !second) { activeRef.current = act.filter((x3) => x3 !== 'again'); setActive(activeRef.current); setBall(null); setWin(null); setNote('Second Drop!'); secondRef.current = true; setPhase('aim'); return; }
+      if (extraLeft.current > 0) { extraLeft.current -= 1; if (!extraLeft.current) { activeRef.current = act.filter((id) => !defs.some((d) => d.id === id && d.kind === 'extra')); setActive(activeRef.current); } setBall(null); setWin(null); setNote('Extra drop!'); secondRef.current = true; setPhase('aim'); return; }
       secondRef.current = false;
       endTurn(t, playersRef.current);
     }, path.length * STEP + 1500));
@@ -217,9 +228,11 @@ export default function PlinkoDrop() {
   const me = players.find((p) => p.kind === 'me');
   const rivalPlayer = rivalId ? players.find((p) => p.npcId === rivalId) : undefined;
   const ballBg = (p?: Player) => (theme?.balls[p?.ball ?? 0] ? `center / cover no-repeat url("${theme.balls[p?.ball ?? 0]}")` : BALLS[p?.ball ?? 0].bg);
-  // A theme renames a power-up and gives it a picture; the action never changes (258).
-  const pName = (pw: Power) => theme?.powers[pw]?.name || POWERS[pw].name;
-  const pIcon = (pw: Power) => (theme?.powers[pw]?.img ? <img src={theme.powers[pw]!.img} alt="" className="pk2-power-img" /> : POWERS[pw].icon);
+  // A theme renames a power-up and gives it a picture; the action of the four defaults never changes (258).
+  const pDef = (pw: Power) => plist.find((x) => x.id === pw);
+  const pName = (pw: Power) => pDef(pw)?.name ?? pw;
+  const pIcon = (pw: Power) => { const d = pDef(pw); return d?.img ? <img src={d.img} alt="" className="pk2-power-img" /> : DEFAULT_ICON[pw] ?? null; };
+  const bigOn = active.some((id) => pDef(id)?.kind === 'big');
 
   return (
     <div className={`pk2${theme ? ' themed' : ''}`} style={themeVars(theme) as React.CSSProperties}>
@@ -254,11 +267,11 @@ export default function PlinkoDrop() {
                 <span>{z + 1}</span>
               </button>
             ))}
-            {phase === 'aim' && <b className={`pk2-ball aim${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
+            {phase === 'aim' && <b className={`pk2-ball aim${bigOn ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-field" style={{ aspectRatio: `${zones} / ${Math.max(4.6, zones * 0.82)}` }}>
             {pegs.map((p, i) => <i key={i} style={{ left: `${xPct(p.x)}%`, top: `${yPct(p.r)}%`, width: `${25 / zones}%` }} />)}
-            {ball && <b className={`pk2-ball${active.includes('big') ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(active.includes('big') ? 63 : 45) / zones}%`, background: ballBg(cur) }} />}
+            {ball && <b className={`pk2-ball${bigOn ? ' big' : ''}`} style={{ left: `${xPct(ball.x)}%`, top: `${yPct(ball.y)}%`, width: `${(bigOn ? 63 : 45) / zones}%`, background: ballBg(cur) }} />}
           </div>
           <div className="pk2-buckets" style={{ gridTemplateColumns: `repeat(${nBuckets}, 1fr)` }}>
             {buckets.slice(0, nBuckets).map((v, i) => <span key={i} className={`b${Math.min(40, v)}${win === i ? ' win' : ''}`} style={theme?.buckets[i] ? { background: theme.buckets[i]! } : undefined} aria-label={`${v} points${stars[i] ? `, ${stars[i]} power-up stars` : ''}`}>{stars[i] ? <em className="pk2-stars">{Array.from({ length: stars[i] }, (_, k) => <img key={k} src={`${UI}star_full.png`} alt="" />)}</em> : null}{v}</span>)}
@@ -271,9 +284,9 @@ export default function PlinkoDrop() {
           {phase === 'powers' && cur ? (
             <>
               <p className="pk2-small"><b>{cur.name}</b>, pick {cur.owed} ({active.length} of {cur.owed})</p>
-              {POWER_IDS.map((pw) => (
+              {plist.map(({ id: pw }) => (
                 <div key={pw} className={`pk2-power${active.includes(pw) ? ' on' : ''}`}>
-                  <span>{pIcon(pw)}</span><b>{pName(pw)}</b><small>{POWERS[pw].does}</small>
+                  <span>{pIcon(pw)}</span><b>{pName(pw)}</b><small>{pDef(pw)?.does}</small>
                   <button type="button" className="btn btn-sm pk2-select" onClick={() => togglePower(pw)} disabled={!active.includes(pw) && active.length >= cur.owed}>{active.includes(pw) ? 'Selected ✓' : 'Select'}</button>
                 </div>
               ))}

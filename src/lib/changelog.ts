@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-21-plinko-theme-powers",
+    date: "2026-10-21",
+    icon: "🎨",
+    title: "Plinko themes with their own power-ups",
+    body: "Themes your teacher makes can have their own cover, fonts and new power-ups, like bonus points or extra drops.",
+  },
+  {
     id: "2026-10-20-plinko-balls",
     date: "2026-10-20",
     icon: "🎱",

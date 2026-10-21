@@ -10,7 +10,7 @@ import REGIONS from '../games/plinkoThemeRegions.json';
 // Power-ups keep their action in every theme; a theme only renames them and gives them a picture.
 
 export type PlinkoPower = 'double' | 'big' | 'magnet' | 'again';
-export type PlinkoColorKey = 'primary' | 'secondary' | 'text' | 'boardBorder' | 'boardBg' | 'peg' | 'powerBg' | 'powerBtn';
+export type PlinkoColorKey = 'primary' | 'secondary' | 'text' | 'boardBorder' | 'boardBg' | 'peg' | 'powerBg' | 'powerBtn' | 'panelBg' | 'zone';
 export interface PlinkoTheme {
   id: string;
   name: string;
@@ -24,7 +24,55 @@ export interface PlinkoTheme {
   balls: string[];
   colors: Partial<Record<PlinkoColorKey, string>>;
   buckets: (string | null)[];
-  powers: Partial<Record<PlinkoPower, { name?: string; img?: string }>>;
+  powers: Partial<Record<PlinkoPower, { name?: string; img?: string; does?: string }>>;
+  // Build Queue 296 (the teacher's theme builder): a 1x1 cover for the student picker, a board picture, three fonts
+  // (a preset or an uploaded font file each) and power-ups of the theme's own.
+  cover?: string;
+  board?: string;
+  fonts?: Partial<Record<'title' | 'header' | 'body', FontChoice>>;
+  customPowers?: PowerDef[];
+}
+export interface FontChoice { preset?: string; url?: string; name?: string }
+
+// Power-ups: the four defaults plus any a theme adds. Each one does one built-in action; "none" means the teacher
+// described something new in its logic notes, so it is saved but not offered to students until that action is built.
+export type PowerKind = 'multiply' | 'bonus' | 'big' | 'magnet' | 'extra' | 'lucky' | 'none';
+export interface PowerDef { id: string; name: string; does: string; img?: string; kind: PowerKind; n?: number; logic?: string }
+export const POWER_KINDS: { kind: PowerKind; label: string; nLabel?: string; nMin?: number; nMax?: number; nDef?: number }[] = [
+  { kind: 'multiply', label: 'Multiply the points of the drop', nLabel: 'Times', nMin: 2, nMax: 5, nDef: 2 },
+  { kind: 'bonus', label: 'Add bonus XP to the drop', nLabel: 'XP', nMin: 5, nMax: 100, nDef: 20 },
+  { kind: 'big', label: 'Big ball (bounces less, easier to aim)' },
+  { kind: 'magnet', label: 'Pull the ball toward the top bucket' },
+  { kind: 'extra', label: 'Extra drops this turn', nLabel: 'Drops', nMin: 1, nMax: 3, nDef: 1 },
+  { kind: 'lucky', label: 'Never land in the lowest bucket' },
+  { kind: 'none', label: 'Something new (describe the logic)' },
+];
+export const DEFAULT_POWERS: PowerDef[] = [
+  { id: 'double', name: 'Double', does: 'Counts twice.', kind: 'multiply', n: 2 },
+  { id: 'big', name: 'Big Ball', does: 'Bounces less.', kind: 'big' },
+  { id: 'magnet', name: 'Magnet', does: 'Pulls to the top bucket.', kind: 'magnet' },
+  { id: 'again', name: 'Second Drop', does: 'One more ball.', kind: 'extra', n: 1 },
+];
+// The power-ups a game offers: the defaults (with a theme's own name, picture and description) and the theme's
+// added ones that have a built action.
+export function powersFor(t: PlinkoTheme | null | undefined, withUnbuilt = false): PowerDef[] {
+  const base = DEFAULT_POWERS.map((d) => { const o = t?.powers?.[d.id as PlinkoPower]; return { ...d, name: o?.name || d.name, img: o?.img, does: o?.does || d.does }; });
+  return [...base, ...(t?.customPowers ?? []).filter((c) => withUnbuilt || c.kind !== 'none')];
+}
+
+// Fonts: a preset from the list, or her own uploaded font file loaded under its own family name.
+const loaded = new Set<string>();
+const famOf = (url: string) => `PkFont${Math.abs([...url].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7))}`;
+export function fontFamilyFor(c?: FontChoice, fallback = PLINKO_FONTS[0].css): string {
+  if (c?.url) {
+    const fam = famOf(c.url);
+    if (!loaded.has(fam) && typeof FontFace !== 'undefined') {
+      loaded.add(fam);
+      new FontFace(fam, `url("${c.url}")`).load().then((f) => document.fonts.add(f)).catch(() => loaded.delete(fam));
+    }
+    return `'${fam}', ${fallback}`;
+  }
+  return c?.preset ? fontCss(c.preset) : fallback;
 }
 
 export const PLINKO_FONTS = [
@@ -150,9 +198,15 @@ export async function buildTheme(cut: CutResult, info: { id: string; name: strin
 // The CSS variables a theme sets on the Plinko screen (anything left out keeps the default look).
 export function themeVars(t: PlinkoTheme | null | undefined): Record<string, string> {
   if (!t) return {};
-  const v: Record<string, string> = { fontFamily: fontCss(t.font) };
+  const body = t.fonts?.body ? fontFamilyFor(t.fonts.body) : fontCss(t.font);
+  const v: Record<string, string> = { fontFamily: body };
+  if (t.fonts?.title) v['--pk-title-font'] = fontFamilyFor(t.fonts.title, body);
+  if (t.fonts?.header) v['--pk-head-font'] = fontFamilyFor(t.fonts.header, body);
+  if (t.board) v['--pk-board'] = `url("${t.board}") center / cover no-repeat`;
+  if (t.colors.panelBg) v['--pk-panel'] = t.colors.panelBg;
+  if (t.colors.zone) v['--pk-zone'] = t.colors.zone;
   if (t.background) v['--pk-bg'] = `url("${t.background}") center / cover no-repeat, #222`;
-  if (t.colors.boardBg) v['--pk-board'] = t.colors.boardBg;
+  if (t.colors.boardBg && !t.board) v['--pk-board'] = t.colors.boardBg;
   if (t.colors.boardBorder) v['--pk-board-edge'] = t.colors.boardBorder;
   if (t.colors.peg) v['--pk-peg'] = t.colors.peg;
   if (t.colors.text) v['--pk-ink'] = t.colors.text;

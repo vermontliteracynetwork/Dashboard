@@ -147,7 +147,7 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
                 <button type="button" className={`pkx-theme${!theme ? ' on' : ''}`} onClick={() => { onTheme?.(null); sfx.pop(); }}><span className="pkx-theme-main" />Classic</button>
                 {themes.map((t) => (
                   <button key={t.id} type="button" className={`pkx-theme${theme?.id === t.id ? ' on' : ''}`} onClick={() => { onTheme?.(t.id); setBalls([null, null, null, null, null]); sfx.pop(); say(t.name); }}>
-                    <span style={{ background: t.background ? `center / cover url("${t.background}")` : t.colors.primary ?? '#5a3d9e' }} />{t.name}
+                    <span style={{ background: t.cover ? `center / cover url("${t.cover}")` : t.background ? `center / cover url("${t.background}")` : t.colors.primary ?? '#5a3d9e' }} />{t.name}
                   </button>
                 ))}
               </div>

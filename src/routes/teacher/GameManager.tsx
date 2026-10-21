@@ -2,6 +2,7 @@ import CinemaVideosManager from './CinemaVideosManager';
 import ScratchGamesManager from './ScratchGamesManager';
 import MusicManager from './MusicManager';
 import TeacherNav from '../../components/TeacherNav';
+import GameTabs from './GameTabs';
 import EconomySettingsPanel from './EconomySettingsPanel';
 import GusSettingsPanel from '../../games/grammarGus/ui/GusSettingsPanel';
 import GusReportPanel from '../../games/grammarGus/ui/GusReportPanel';
@@ -18,6 +19,7 @@ export default function GameManager() {
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
+        <GameTabs />
         <h1>🎮 Game</h1>
 
         <EconomySettingsPanel />
