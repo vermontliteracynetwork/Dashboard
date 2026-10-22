@@ -70,7 +70,7 @@ export function Slider({ label, value, min, max, onChange, disabled }: { label: 
       <div className="pkx-track-wrap">
         <span className="pkx-value" style={{ left: `calc(${pct}% + ${24 - pct * 0.48}px)` }}>{value}</span>
         <input type="range" min={min} max={max} step={1} value={value} disabled={disabled} aria-label={label}
-          style={{ ['--pct' as string]: `${pct}%` }} onChange={(e) => { onChange(Number(e.target.value)); sfx.tick(); }} />
+          style={{ ['--pct' as string]: `${pct}%`, ['--stop' as string]: `calc(26px + (100% - 52px) * ${pct / 100})` }} onChange={(e) => { onChange(Number(e.target.value)); sfx.tick(); }} />
       </div>
     </div>
   );
@@ -132,8 +132,18 @@ export default function PlinkoSetup({ studentName, profiles, rounds, perTurn, ra
   const go = (to: typeof pages[number]) => setPage(pages.indexOf(to));
   const nextFromMenu = () => { setBallFor(0); go(count > 1 ? 'who' : 'balls'); };
 
+  // Build Queue 360 (her words: "apply background of the main menu page to be the same as the main background in the game
+  // when the theme is applied. apply color selected to the main menu (buttons, drag sliders)"): a theme's background
+  // fills the menu screen, Next and the slider fill take its Primary color, Leave and the slider knob its Secondary.
+  const themed = !!theme && theme.id !== 'default';
+  const ink = (hex?: string) => { const m = hex?.match(/^#?([0-9a-f]{6})$/i); if (!m) return undefined; const n = parseInt(m[1], 16); return ((n >> 16) * 0.3 + ((n >> 8) & 255) * 0.59 + (n & 255) * 0.11) > 150 ? '#3a3340' : '#ffffff'; };
+  const vars = themed ? {
+    ...(theme!.background ? { ['--pkx-bg' as string]: `center / cover no-repeat url("${theme!.background}")` } : {}),
+    ...(theme!.colors.primary ? { ['--pkx-fill' as string]: theme!.colors.primary, ['--pkx-go' as string]: theme!.colors.primary, ['--pkx-go-ink' as string]: ink(theme!.colors.primary) } : {}),
+    ...(theme!.colors.secondary ? { ['--pkx-btn' as string]: theme!.colors.secondary, ['--pkx-btn-ink' as string]: ink(theme!.colors.secondary), ['--pkx-knob' as string]: theme!.colors.secondary } : {}),
+  } as React.CSSProperties : undefined;
   return (
-    <div className="pkx">
+    <div className={`pkx${themed ? ' themed' : ''}`} style={vars}>
       <div className="pkx-card">
         <button type="button" className="pkx-say" onClick={() => say(SAY[cur])} aria-label="Listen"><SpeakerIcon /></button>
         {cur === 'menu' && (

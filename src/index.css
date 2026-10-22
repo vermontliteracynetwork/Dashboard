@@ -10279,3 +10279,13 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .pk2-powers .pk2-parrow { min-height: 34px; padding-block: 2px; }
 /* Build Queue 352: pegs pop smaller when hit, so the small bounce reads clearly. */
 .pk2-field i.hit { transform: translate(-50%, -50%) scale(1.3); }
+
+/* Build Queue 362: the slider fill reaches the knob's middle, so it shows even at the first dot. */
+.pkx-slider input[type=range] { background: linear-gradient(90deg, var(--pkx-fill, #93BFE6) var(--stop, var(--pct)), var(--pkx-track, #F9FBF4) var(--stop, var(--pct))); }
+/* Build Queue 360: a theme's background behind the Plinko menu, and its colors on the buttons and sliders. */
+.pkx.themed { background: var(--pkx-bg, #E9E4F7); }
+.pkx.themed .pkx-slider input[type=range]::-webkit-slider-thumb { background: var(--pkx-knob, #FF8AC4); }
+.pkx.themed .pkx-slider input[type=range]::-moz-range-thumb { background: var(--pkx-knob, #FF8AC4); }
+.pkx.themed .pkx-btn { background: var(--pkx-btn, #93BFE6); color: var(--pkx-btn-ink, #6C626E); }
+.pkx.themed .pkx-btn.go { background: var(--pkx-go, #C3FCB6); color: var(--pkx-go-ink, #6C626E); }
+.pkx.themed .pkx-theme.on { border-color: var(--pkx-go, #127FB5); }

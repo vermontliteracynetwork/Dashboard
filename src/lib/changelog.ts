@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-22-plinko-theme-menu",
+    date: "2026-10-22",
+    icon: "🎨",
+    title: "Plinko menu matches your theme",
+    body: "Pick a Plinko theme and the menu changes to its background and colors. The sliders fill in right from the first dot.",
+  },
+  {
     id: "2026-10-21-feelings-app",
     date: "2026-10-21",
     icon: "🎡",
