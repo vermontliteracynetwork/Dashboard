@@ -33,7 +33,6 @@ export default function MusicManager() {
     catch (e) { setError(e instanceof Error ? e.message : 'That song could not be uploaded.'); }
     setUploading(false);
   };
-  const hasDogNose = musicTracks.some((t) => t.title.trim().toLowerCase() === 'dog nose magic');
 
   const allTags = useMemo(
     () => Array.from(new Set(musicTracks.flatMap((t) => t.tags ?? []))).sort(),
@@ -102,15 +101,6 @@ export default function MusicManager() {
             <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { void uploadSong(e.target.files?.[0]); e.target.value = ''; }} />
           </label>
         </div>
-        {!hasDogNose && (
-          <div className="row-wrap" style={{ gap: 8, alignItems: 'center', padding: '8px 12px', borderRadius: 12, background: '#fff7d6', border: '1.5px dashed #e0b100' }}>
-            <b>🐶 Dog Nose Magic</b>
-            <span style={{ fontSize: '0.85rem', opacity: 0.8 }}>In Suno, open the song, tap the three dots, Download, MP3 Audio. Then upload it here.</span>
-            <label className="btn btn-sm btn-primary" style={{ minHeight: 44, position: 'relative' }}>{uploading ? 'Uploading...' : 'Upload Dog Nose Magic'}
-              <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { void uploadSong(e.target.files?.[0], 'Dog Nose Magic'); e.target.value = ''; }} />
-            </label>
-          </div>
-        )}
         <div className="stack" style={{ gap: 6, maxWidth: 320 }}>
           <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tags/categories (optional)</label>
           {tags.length > 0 && (

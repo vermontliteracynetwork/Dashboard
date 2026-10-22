@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-22-yoga-songs",
+    date: "2026-10-22",
+    icon: "🧘",
+    title: "New Yoga Songs",
+    body: "Dog Nose Magic and The B-S-B Crew are in the music player. Find them under Yoga Songs.",
+  },
+  {
     id: "2026-10-22-plinko-theme-menu",
     date: "2026-10-22",
     icon: "🎨",

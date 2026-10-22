@@ -127,7 +127,8 @@ const FileAudio = forwardRef<MusicPlayerHandle, { src: string; volume: number; o
     return <audio ref={a} src={src} autoPlay playsInline preload="auto" onEnded={onEnded} onCanPlay={canPlay} style={{ display: 'none' }} />;
   },
 );
-export const isSongFile = (url: string) => !extractYouTubeId(url) && /^https?:\/\//.test(url.trim());
+// Build Queue 366: a song file on this site (/music/...) counts too.
+export const isSongFile = (url: string) => !extractYouTubeId(url) && /^(https?:\/\/|\/music\/)/.test(url.trim());
 
 export default function GlobalMusicPlayer() {
   const musicTracks = useMusicTracks();

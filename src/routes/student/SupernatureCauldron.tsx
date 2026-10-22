@@ -362,8 +362,8 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
 
       <section className="cz-shelf" aria-label="Shelf">
         <span className="sn-seg" role="radiogroup" aria-label="Shelf">
-          <button type="button" role="radio" aria-checked={shelf === 'el'} className={shelf === 'el' ? 'on' : ''} onClick={() => { snSound('page'); setShelf('el'); }}>⚗️ Elements</button>
-          <button type="button" role="radio" aria-checked={shelf === 'magic'} className={shelf === 'magic' ? 'on' : ''} onClick={() => { snSound('page'); setShelf('magic'); }}>🌿 Magic{magic.some((m) => !pot.includes(m)) ? ' •' : ''}</button>
+          <button type="button" role="radio" aria-checked={shelf === 'el'} className={shelf === 'el' ? 'on' : ''} onClick={() => { snSound('page'); setShelf('el'); }}>{/* Build Queue 367: her labels, swapped */}🌿 Magic</button>
+          <button type="button" role="radio" aria-checked={shelf === 'magic'} className={shelf === 'magic' ? 'on' : ''} onClick={() => { snSound('page'); setShelf('magic'); }}>⚗️ Elements{magic.some((m) => !pot.includes(m)) ? ' •' : ''}</button>
         </span>
         <div className="cz-grid">
           {shelf === 'el' ? SHELF.map((id) => ELEM.get(id)!).map((e) => (
