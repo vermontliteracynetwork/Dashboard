@@ -374,15 +374,66 @@ export interface CutResult {
   powers: Partial<Record<PlinkoPower, Blob>>; twinBalls: Blob[]; newPowers: Blob[]; pages: number;
 }
 
+// ---- finding each outline on the page (Build Queue 356) ----
+// Her words: "take the outline of the area (without the boarder) and fill it as if it was just the area of the design, no
+// border or background fill area. certianly no text." The template's outlines are dark gray lines. Every dark gray ring
+// on a page that is big and mostly hollow is an outline (text, the page number squares, the corner squares and the
+// header band are too small or solid to count). Each design space is cut from just inside its own outline, past the
+// line, so a page that came in a little bigger, smaller or shifted still gives only the design: no border, no hatched
+// background, no template words. A page whose outline cannot be found (art painted over it) falls back to where the
+// outline sits on the template.
+type Box = { x: number; y: number; w: number; h: number; lw: number };
+const RING_CACHE = new WeakMap<HTMLCanvasElement, Box[]>();
+function outlines(page: HTMLCanvasElement): Box[] {
+  const hit = RING_CACHE.get(page); if (hit) return hit;
+  const S = 2, w = Math.floor(page.width / S), h = Math.floor(page.height / S);
+  const c = canvas(w, h), ctx = c.getContext('2d', { willReadFrequently: true })!;
+  ctx.drawImage(page, 0, 0, w, h);
+  const d = ctx.getImageData(0, 0, w, h).data;
+  const m = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b); if (mx < 120 && mx - Math.min(r, g, b) < 36) m[i] = 1; }
+  const seen = new Uint8Array(w * h), out: Box[] = [], st: number[] = [];
+  for (let i = 0; i < w * h; i++) {
+    if (!m[i] || seen[i]) continue;
+    let x0 = w, y0 = h, x1 = 0, y1 = 0, n = 0;
+    st.push(i); seen[i] = 1;
+    while (st.length) {
+      const k = st.pop()!, x = k % w, y = (k / w) | 0; n++;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+      if (x > 0 && m[k - 1] && !seen[k - 1]) { seen[k - 1] = 1; st.push(k - 1); }
+      if (x < w - 1 && m[k + 1] && !seen[k + 1]) { seen[k + 1] = 1; st.push(k + 1); }
+      if (y > 0 && m[k - w] && !seen[k - w]) { seen[k - w] = 1; st.push(k - w); }
+      if (y < h - 1 && m[k + w] && !seen[k + w]) { seen[k + w] = 1; st.push(k + w); }
+    }
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+    if (bw < w * 0.12 || bh < h * 0.12 || n / (bw * bh) > 0.3) continue;
+    out.push({ x: x0 * S, y: y0 * S, w: bw * S, h: bh * S, lw: Math.max(3, (n / (2 * (bw + bh))) * S) });
+  }
+  RING_CACHE.set(page, out);
+  return out;
+}
+// The outline on this page that belongs to a design space: the same shape, nearest to where the template puts it.
+function outlineFor(page: HTMLCanvasElement, r: Region): Box | null {
+  const ar = r.w / r.h;
+  const fits = outlines(page).filter((b) => Math.abs(b.w / b.h - ar) / ar < 0.2 && b.w > r.w * 0.4 && b.w < r.w * 1.6);
+  if (!fits.length) return null;
+  const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+  return fits.reduce((a, b) => (Math.hypot(b.x + b.w / 2 - cx, b.y + b.h / 2 - cy) < Math.hypot(a.x + a.w / 2 - cx, a.y + a.h / 2 - cy) ? b : a));
+}
+
 // Cuts every design space out of straightened pages. `pageNos` says which template page each one is (all pages in
 // order by default, or one page scanned from a single card).
 function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> {
   const byNo = new Map<number, HTMLCanvasElement>(); pages.forEach((p, i) => byNo.set(pageNos[i], p));
-  const crop = (key: string, inset = 0, from?: HTMLCanvasElement) => {
+  // Build Queue 356: always cut just inside the outline found on the page (past its line), so only the design comes in.
+  const crop = (key: string, _inset = 0, from?: HTMLCanvasElement) => {
     const r = R[key]; if (!r) return null; const src = from ?? byNo.get(r.page); if (!src) return null;
-    const w = r.w - inset * 2, h = r.h - inset * 2;
+    const found = outlineFor(src, r);
+    const box = found ?? { x: r.x, y: r.y, w: r.w, h: r.h, lw: 7 };
+    const inset = Math.round(box.lw * 1.4) + 6;
+    const w = Math.max(8, Math.round(box.w - inset * 2)), h = Math.max(8, Math.round(box.h - inset * 2));
     const c = canvas(w, h), ctx = c.getContext('2d', { willReadFrequently: true })!;
-    ctx.drawImage(src, r.x + inset, r.y + inset, w, h, 0, 0, w, h);
+    ctx.drawImage(src, box.x + inset, box.y + inset, w, h, 0, 0, w, h);
     return { c, ctx, data: ctx.getImageData(0, 0, w, h), r, w, h };
   };
   const run = async (): Promise<CutResult> => {
@@ -401,7 +452,7 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
     for (let i = 1; i <= 10; i++) {
       const b = crop(`ball${i}`); if (!b || whiteShare(b.data.data, b.w, true) > 0.97) continue;
       const c = canvas(b.w, b.h), ctx = c.getContext('2d')!;
-      ctx.beginPath(); ctx.arc(b.w / 2, b.h / 2, b.w / 2 - 9, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(b.c, 0, 0);
+      ctx.beginPath(); ctx.arc(b.w / 2, b.h / 2, b.w / 2 - 1, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(b.c, 0, 0);
       out.balls.push(await toBlob(c, 'image/png')); out.ballSlots.push(i - 1);
     }
     const avg = (key: string) => {
@@ -427,7 +478,7 @@ function cut(pages: HTMLCanvasElement[], pageNos: number[]): Promise<CutResult> 
     for (const k of ['again_ball1', 'again_ball2']) {
       const b = crop(k); if (!b || whiteShare(b.data.data, b.w, true) > 0.97) continue;
       const c = canvas(b.w, b.h), ctx = c.getContext('2d')!;
-      ctx.beginPath(); ctx.arc(b.w / 2, b.h / 2, b.w / 2 - 9, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(b.c, 0, 0);
+      ctx.beginPath(); ctx.arc(b.w / 2, b.h / 2, b.w / 2 - 1, 0, Math.PI * 2); ctx.clip(); ctx.drawImage(b.c, 0, 0);
       out.twinBalls.push(await toBlob(c, 'image/png'));
     }
     return out;
