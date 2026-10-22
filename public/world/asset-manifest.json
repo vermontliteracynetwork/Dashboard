@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-20T16:29:28.248Z",
+  "generatedAt": "2026-10-22T18:30:29.237Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -4635,6 +4635,1531 @@
       "path": "/world/models/suburb/road-straight-house-2-low.glb",
       "label": "Road Straight House 2 Low",
       "category": "suburb"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Coconut_1.glb",
+      "label": "Beach Prop Coconut 1",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Docks_Corner.glb",
+      "label": "Beach Prop Docks Corner",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Docks_Corner_Supports.glb",
+      "label": "Beach Prop Docks Corner Supports",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Docks_Steps.glb",
+      "label": "Beach Prop Docks Steps",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Docks_Straight.glb",
+      "label": "Beach Prop Docks Straight",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Docks_Straight_Supports.glb",
+      "label": "Beach Prop Docks Straight Supports",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Shell_1.glb",
+      "label": "Beach Prop Shell 1",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Shell_2.glb",
+      "label": "Beach Prop Shell 2",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Starfish_1.glb",
+      "label": "Beach Prop Starfish 1",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Starfish_2.glb",
+      "label": "Beach Prop Starfish 2",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Treasure_Chest.glb",
+      "label": "Beach Prop Treasure Chest",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Tree_Palm_1.glb",
+      "label": "Beach Prop Tree Palm 1",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Tree_Palm_2.glb",
+      "label": "Beach Prop Tree Palm 2",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Prop_Tree_Palm_3.glb",
+      "label": "Beach Prop Tree Palm 3",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Corner_Inner_2x2.glb",
+      "label": "Beach Terrain Sand Corner Inner 2x2",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Corner_Inner_4x4.glb",
+      "label": "Beach Terrain Sand Corner Inner 4x4",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Corner_Outer_2x2.glb",
+      "label": "Beach Terrain Sand Corner Outer 2x2",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Corner_Outer_4x4.glb",
+      "label": "Beach Terrain Sand Corner Outer 4x4",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Floor.glb",
+      "label": "Beach Terrain Sand Floor",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Floor_Raised.glb",
+      "label": "Beach Terrain Sand Floor Raised",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Side_Gentle.glb",
+      "label": "Beach Terrain Sand Side Gentle",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Side_Overlap_Side.glb",
+      "label": "Beach Terrain Sand Side Overlap Side",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Side_Sharp.glb",
+      "label": "Beach Terrain Sand Side Sharp",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Side_Shift_Gentle.glb",
+      "label": "Beach Terrain Sand Side Shift Gentle",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Side_Shift_Sharp.glb",
+      "label": "Beach Terrain Sand Side Shift Sharp",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Transition_Gentle_Sharp_Centered.glb",
+      "label": "Beach Terrain Sand Transition Gentle Sharp Centered",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Transition_Gentle_Sharp_Flush_Base.glb",
+      "label": "Beach Terrain Sand Transition Gentle Sharp Flush Base",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-beach/Beach_Terrain_Sand_Transition_Gentle_Sharp_Flush_Crest.glb",
+      "label": "Beach Terrain Sand Transition Gentle Sharp Flush Crest",
+      "category": "terrain-beach"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Cliff_Terrain_Entrance_Flat_Base.glb",
+      "label": "Cave Cliff Terrain Entrance Flat Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Cliff_Terrain_Entrance_Round_Base.glb",
+      "label": "Cave Cliff Terrain Entrance Round Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Cliff_Terrain_Entrance_Round_Top.glb",
+      "label": "Cave Cliff Terrain Entrance Round Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Cliff_Terrain_Entrance_Round_Top_Center.glb",
+      "label": "Cave Cliff Terrain Entrance Round Top Center",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Entrance_1.glb",
+      "label": "Cave Prop Entrance 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Hanging_Cables_1.glb",
+      "label": "Cave Prop Hanging Cables 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Hanging_Cables_2.glb",
+      "label": "Cave Prop Hanging Cables 2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Hanging_Cables_3.glb",
+      "label": "Cave Prop Hanging Cables 3",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Hanging_Lamp_1.glb",
+      "label": "Cave Prop Hanging Lamp 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Minecart_1.glb",
+      "label": "Cave Prop Minecart 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Pick_Large.glb",
+      "label": "Cave Prop Pick Large",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Pick_Small.glb",
+      "label": "Cave Prop Pick Small",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Bumpstop.glb",
+      "label": "Cave Prop Railway Bumpstop",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Curve_Large.glb",
+      "label": "Cave Prop Railway Curve Large",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Curve_Small.glb",
+      "label": "Cave Prop Railway Curve Small",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Hill_Gentle.glb",
+      "label": "Cave Prop Railway Hill Gentle",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Hill_Sharp.glb",
+      "label": "Cave Prop Railway Hill Sharp",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Intersection.glb",
+      "label": "Cave Prop Railway Intersection",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Straight_1.glb",
+      "label": "Cave Prop Railway Straight 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Straight_2.glb",
+      "label": "Cave Prop Railway Straight 2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Straight_3.glb",
+      "label": "Cave Prop Railway Straight 3",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Straight_4.glb",
+      "label": "Cave Prop Railway Straight 4",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Railway_Switch.glb",
+      "label": "Cave Prop Railway Switch",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Stalagmite_Connected_Base.glb",
+      "label": "Cave Prop Stalagmite Connected Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Stalagmite_Connected_Mid.glb",
+      "label": "Cave Prop Stalagmite Connected Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Stalagmite_Connected_Top.glb",
+      "label": "Cave Prop Stalagmite Connected Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Stalagmite_Normal.glb",
+      "label": "Cave Prop Stalagmite Normal",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Stalagmite_Tiny.glb",
+      "label": "Cave Prop Stalagmite Tiny",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Beam_1.glb",
+      "label": "Cave Prop Support Ceiling Beam 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Beam_2.glb",
+      "label": "Cave Prop Support Ceiling Beam 2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Beam_3.glb",
+      "label": "Cave Prop Support Ceiling Beam 3",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Beam_4.glb",
+      "label": "Cave Prop Support Ceiling Beam 4",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Boards_1.glb",
+      "label": "Cave Prop Support Ceiling Boards 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Boards_2.glb",
+      "label": "Cave Prop Support Ceiling Boards 2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Boards_3.glb",
+      "label": "Cave Prop Support Ceiling Boards 3",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Ceiling_Boards_4.glb",
+      "label": "Cave Prop Support Ceiling Boards 4",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Corner_Brace_1.glb",
+      "label": "Cave Prop Support Corner Brace 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Corner_Brace_2.glb",
+      "label": "Cave Prop Support Corner Brace 2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Boards_1.glb",
+      "label": "Cave Prop Support Wall Boards 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Boards_2.glb",
+      "label": "Cave Prop Support Wall Boards 2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Boards_3.glb",
+      "label": "Cave Prop Support Wall Boards 3",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Boards_4.glb",
+      "label": "Cave Prop Support Wall Boards 4",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Pillar_1.glb",
+      "label": "Cave Prop Support Wall Pillar 1",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Pillar_2.glb",
+      "label": "Cave Prop Support Wall Pillar 2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Pillar_3.glb",
+      "label": "Cave Prop Support Wall Pillar 3",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Prop_Support_Wall_Pillar_4.glb",
+      "label": "Cave Prop Support Wall Pillar 4",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_1x1_Base.glb",
+      "label": "Cave Terrain Corner Inner 1x1 Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_1x1_Mid.glb",
+      "label": "Cave Terrain Corner Inner 1x1 Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_1x1_Top.glb",
+      "label": "Cave Terrain Corner Inner 1x1 Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_2x2_Base.glb",
+      "label": "Cave Terrain Corner Inner 2x2 Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_2x2_Mid.glb",
+      "label": "Cave Terrain Corner Inner 2x2 Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_2x2_Top.glb",
+      "label": "Cave Terrain Corner Inner 2x2 Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_3x3_Base.glb",
+      "label": "Cave Terrain Corner Inner 3x3 Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_3x3_Mid.glb",
+      "label": "Cave Terrain Corner Inner 3x3 Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Inner_3x3_Top.glb",
+      "label": "Cave Terrain Corner Inner 3x3 Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Outer_1x1_Base.glb",
+      "label": "Cave Terrain Corner Outer 1x1 Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Outer_1x1_Top.glb",
+      "label": "Cave Terrain Corner Outer 1x1 Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Outer_2x2_Base.glb",
+      "label": "Cave Terrain Corner Outer 2x2 Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Outer_2x2_Mid.glb",
+      "label": "Cave Terrain Corner Outer 2x2 Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Outer_2x2_Top.glb",
+      "label": "Cave Terrain Corner Outer 2x2 Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Outer_3x3_Mid.glb",
+      "label": "Cave Terrain Corner Outer 3x3 Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Corner_Outer_3x3_Top.glb",
+      "label": "Cave Terrain Corner Outer 3x3 Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Flat_Round_Inner.glb",
+      "label": "Cave Terrain Flat Round Inner",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Flat_Round_Mid.glb",
+      "label": "Cave Terrain Flat Round Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Flat_Round_Outer.glb",
+      "label": "Cave Terrain Flat Round Outer",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Floor_Normal.glb",
+      "label": "Cave Terrain Floor Normal",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Floor_Raised.glb",
+      "label": "Cave Terrain Floor Raised",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Corner_Inner_2x2.glb",
+      "label": "Cave Terrain Hill Corner Inner 2x2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Corner_Inner_4x4.glb",
+      "label": "Cave Terrain Hill Corner Inner 4x4",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Corner_Outer_2x2.glb",
+      "label": "Cave Terrain Hill Corner Outer 2x2",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Corner_Outer_4x4.glb",
+      "label": "Cave Terrain Hill Corner Outer 4x4",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Side_Gentle.glb",
+      "label": "Cave Terrain Hill Side Gentle",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Side_Overlap_Side.glb",
+      "label": "Cave Terrain Hill Side Overlap Side",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Side_Sharp.glb",
+      "label": "Cave Terrain Hill Side Sharp",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Side_Shift_Gentle.glb",
+      "label": "Cave Terrain Hill Side Shift Gentle",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Side_Shift_Sharp.glb",
+      "label": "Cave Terrain Hill Side Shift Sharp",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Transition_Gentle_Sharp_Centered.glb",
+      "label": "Cave Terrain Hill Transition Gentle Sharp Centered",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Transition_Gentle_Sharp_Flush_Base.glb",
+      "label": "Cave Terrain Hill Transition Gentle Sharp Flush Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Hill_Transition_Gentle_Sharp_Flush_Crest.glb",
+      "label": "Cave Terrain Hill Transition Gentle Sharp Flush Crest",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Side_Base.glb",
+      "label": "Cave Terrain Side Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Side_Incline_Base.glb",
+      "label": "Cave Terrain Side Incline Base",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Side_Incline_Top.glb",
+      "label": "Cave Terrain Side Incline Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Side_Mid.glb",
+      "label": "Cave Terrain Side Mid",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cave/Cave_Terrain_Side_Top.glb",
+      "label": "Cave Terrain Side Top",
+      "category": "terrain-cave"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Prop_Bridge_Rope_End.glb",
+      "label": "Cliff Prop Bridge Rope End",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Prop_Bridge_Rope_Middle.glb",
+      "label": "Cliff Prop Bridge Rope Middle",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Prop_Bridge_Rope_Middle_Support.glb",
+      "label": "Cliff Prop Bridge Rope Middle Support",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Prop_Rock_1.glb",
+      "label": "Cliff Prop Rock 1",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Prop_Rock_2.glb",
+      "label": "Cliff Prop Rock 2",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_1x1_Base.glb",
+      "label": "Cliff Terrain Corner Inner 1x1 Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_1x1_Mid.glb",
+      "label": "Cliff Terrain Corner Inner 1x1 Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_1x1_Top.glb",
+      "label": "Cliff Terrain Corner Inner 1x1 Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_2x2_Base.glb",
+      "label": "Cliff Terrain Corner Inner 2x2 Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_2x2_Mid.glb",
+      "label": "Cliff Terrain Corner Inner 2x2 Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_2x2_Top.glb",
+      "label": "Cliff Terrain Corner Inner 2x2 Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_3x3_Base.glb",
+      "label": "Cliff Terrain Corner Inner 3x3 Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_3x3_Mid.glb",
+      "label": "Cliff Terrain Corner Inner 3x3 Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Inner_3x3_Top.glb",
+      "label": "Cliff Terrain Corner Inner 3x3 Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_1x1_Base.glb",
+      "label": "Cliff Terrain Corner Outer 1x1 Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_1x1_Top.glb",
+      "label": "Cliff Terrain Corner Outer 1x1 Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_2x2_Base.glb",
+      "label": "Cliff Terrain Corner Outer 2x2 Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_2x2_Mid.glb",
+      "label": "Cliff Terrain Corner Outer 2x2 Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_2x2_Top.glb",
+      "label": "Cliff Terrain Corner Outer 2x2 Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_3x3_Base.glb",
+      "label": "Cliff Terrain Corner Outer 3x3 Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_3x3_Mid.glb",
+      "label": "Cliff Terrain Corner Outer 3x3 Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Corner_Outer_3x3_Top.glb",
+      "label": "Cliff Terrain Corner Outer 3x3 Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Hill_Base_Top_Joined_Gentle.glb",
+      "label": "Cliff Terrain Hill Base Top Joined Gentle",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Hill_Base_Top_Joined_Sharp.glb",
+      "label": "Cliff Terrain Hill Base Top Joined Sharp",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Hill_Gentle_Base.glb",
+      "label": "Cliff Terrain Hill Gentle Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Hill_Gentle_Top.glb",
+      "label": "Cliff Terrain Hill Gentle Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Hill_Sharp_Base.glb",
+      "label": "Cliff Terrain Hill Sharp Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Hill_Sharp_Top.glb",
+      "label": "Cliff Terrain Hill Sharp Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Path_Steps_Center.glb",
+      "label": "Cliff Terrain Path Steps Center",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Path_Steps_Center_Top.glb",
+      "label": "Cliff Terrain Path Steps Center Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Path_Steps_Edge.glb",
+      "label": "Cliff Terrain Path Steps Edge",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Path_Steps_Grass_Edge.glb",
+      "label": "Cliff Terrain Path Steps Grass Edge",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Path_Steps_Grass_Edge_Top.glb",
+      "label": "Cliff Terrain Path Steps Grass Edge Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Side_Base.glb",
+      "label": "Cliff Terrain Side Base",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Side_Falloff_Center.glb",
+      "label": "Cliff Terrain Side Falloff Center",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Side_Falloff_Edge.glb",
+      "label": "Cliff Terrain Side Falloff Edge",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Side_Mid.glb",
+      "label": "Cliff Terrain Side Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Side_Top.glb",
+      "label": "Cliff Terrain Side Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Base_Flat.glb",
+      "label": "Cliff Terrain Waterfall Base Flat",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Base_Hill.glb",
+      "label": "Cliff Terrain Waterfall Base Hill",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Mid.glb",
+      "label": "Cliff Terrain Waterfall Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Top.glb",
+      "label": "Cliff Terrain Waterfall Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Water_Mid.glb",
+      "label": "Cliff Terrain Waterfall Water Mid",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Water_Mid_Edge.glb",
+      "label": "Cliff Terrain Waterfall Water Mid Edge",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Water_Top.glb",
+      "label": "Cliff Terrain Waterfall Water Top",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-cliff/Cliff_Terrain_Waterfall_Water_Top_Edge.glb",
+      "label": "Cliff Terrain Waterfall Water Top Edge",
+      "category": "terrain-cliff"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_1x1_Base.glb",
+      "label": "Escarpment Terrain Corner Inner 1x1 Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_1x1_Mid.glb",
+      "label": "Escarpment Terrain Corner Inner 1x1 Mid",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_1x1_Top.glb",
+      "label": "Escarpment Terrain Corner Inner 1x1 Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_2x2_Base.glb",
+      "label": "Escarpment Terrain Corner Inner 2x2 Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_2x2_Mid.glb",
+      "label": "Escarpment Terrain Corner Inner 2x2 Mid",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_2x2_Top.glb",
+      "label": "Escarpment Terrain Corner Inner 2x2 Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_3x3_Base.glb",
+      "label": "Escarpment Terrain Corner Inner 3x3 Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_3x3_Mid.glb",
+      "label": "Escarpment Terrain Corner Inner 3x3 Mid",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Inner_3x3_Top.glb",
+      "label": "Escarpment Terrain Corner Inner 3x3 Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_1x1_Base.glb",
+      "label": "Escarpment Terrain Corner Outer 1x1 Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_1x1_Top.glb",
+      "label": "Escarpment Terrain Corner Outer 1x1 Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_2x2_Base.glb",
+      "label": "Escarpment Terrain Corner Outer 2x2 Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_2x2_Mid.glb",
+      "label": "Escarpment Terrain Corner Outer 2x2 Mid",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_2x2_Top.glb",
+      "label": "Escarpment Terrain Corner Outer 2x2 Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_3x3_Base.glb",
+      "label": "Escarpment Terrain Corner Outer 3x3 Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_3x3_Mid.glb",
+      "label": "Escarpment Terrain Corner Outer 3x3 Mid",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Corner_Outer_3x3_Top.glb",
+      "label": "Escarpment Terrain Corner Outer 3x3 Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Hill_Base.glb",
+      "label": "Escarpment Terrain Hill Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Hill_Crest_Top.glb",
+      "label": "Escarpment Terrain Hill Crest Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Hill_Top.glb",
+      "label": "Escarpment Terrain Hill Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Side_Base.glb",
+      "label": "Escarpment Terrain Side Base",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Side_Falloff_Center.glb",
+      "label": "Escarpment Terrain Side Falloff Center",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Side_Falloff_Edge.glb",
+      "label": "Escarpment Terrain Side Falloff Edge",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Side_Mid.glb",
+      "label": "Escarpment Terrain Side Mid",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-escarpment/Escarpment_Terrain_Side_Top.glb",
+      "label": "Escarpment Terrain Side Top",
+      "category": "terrain-escarpment"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Branch_1.glb",
+      "label": "Hilly Prop Branch 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Branch_2.glb",
+      "label": "Hilly Prop Branch 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Branch_3.glb",
+      "label": "Hilly Prop Branch 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bridge_Log_End.glb",
+      "label": "Hilly Prop Bridge Log End",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bridge_Log_End_Edge.glb",
+      "label": "Hilly Prop Bridge Log End Edge",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bridge_Log_Middle.glb",
+      "label": "Hilly Prop Bridge Log Middle",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bridge_Log_Middle_Edge.glb",
+      "label": "Hilly Prop Bridge Log Middle Edge",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bridge_Log_Post_Support.glb",
+      "label": "Hilly Prop Bridge Log Post Support",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bridge_Log_Post_Top.glb",
+      "label": "Hilly Prop Bridge Log Post Top",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bush_1.glb",
+      "label": "Hilly Prop Bush 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bush_2.glb",
+      "label": "Hilly Prop Bush 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bush_3.glb",
+      "label": "Hilly Prop Bush 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Bush_4.glb",
+      "label": "Hilly Prop Bush 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Camp_Campfire.glb",
+      "label": "Hilly Prop Camp Campfire",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Camp_Lean_To.glb",
+      "label": "Hilly Prop Camp Lean To",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Camp_Sitting_Log.glb",
+      "label": "Hilly Prop Camp Sitting Log",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Camp_Wood_Pile.glb",
+      "label": "Hilly Prop Camp Wood Pile",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Cattail_1.glb",
+      "label": "Hilly Prop Cattail 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Cattail_2.glb",
+      "label": "Hilly Prop Cattail 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Boards_1.glb",
+      "label": "Hilly Prop Fence Boards 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Boards_2.glb",
+      "label": "Hilly Prop Fence Boards 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Boards_3.glb",
+      "label": "Hilly Prop Fence Boards 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Boards_4.glb",
+      "label": "Hilly Prop Fence Boards 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Curve_1x1.glb",
+      "label": "Hilly Prop Fence Curve 1x1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Curve_2x2.glb",
+      "label": "Hilly Prop Fence Curve 2x2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Curve_3x3.glb",
+      "label": "Hilly Prop Fence Curve 3x3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Gate_1.glb",
+      "label": "Hilly Prop Fence Gate 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Gate_2.glb",
+      "label": "Hilly Prop Fence Gate 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Hill_Gentle.glb",
+      "label": "Hilly Prop Fence Hill Gentle",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Hill_Sharp.glb",
+      "label": "Hilly Prop Fence Hill Sharp",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Post_1.glb",
+      "label": "Hilly Prop Fence Post 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Post_2.glb",
+      "label": "Hilly Prop Fence Post 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Post_3.glb",
+      "label": "Hilly Prop Fence Post 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Fence_Post_4.glb",
+      "label": "Hilly Prop Fence Post 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Flower_Daisy.glb",
+      "label": "Hilly Prop Flower Daisy",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Flower_Lily_Blue.glb",
+      "label": "Hilly Prop Flower Lily Blue",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Flower_Lily_Pink.glb",
+      "label": "Hilly Prop Flower Lily Pink",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Flower_Rose.glb",
+      "label": "Hilly Prop Flower Rose",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Flower_Sunflower.glb",
+      "label": "Hilly Prop Flower Sunflower",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Flower_Tulip.glb",
+      "label": "Hilly Prop Flower Tulip",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Grass_Clump_1.glb",
+      "label": "Hilly Prop Grass Clump 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Grass_Clump_2.glb",
+      "label": "Hilly Prop Grass Clump 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Grass_Clump_3.glb",
+      "label": "Hilly Prop Grass Clump 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Grass_Clump_4.glb",
+      "label": "Hilly Prop Grass Clump 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Hollow_Trunk.glb",
+      "label": "Hilly Prop Hollow Trunk",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Mushroom_1.glb",
+      "label": "Hilly Prop Mushroom 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Mushroom_2.glb",
+      "label": "Hilly Prop Mushroom 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Rock_1.glb",
+      "label": "Hilly Prop Rock 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Rock_2.glb",
+      "label": "Hilly Prop Rock 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Rock_3.glb",
+      "label": "Hilly Prop Rock 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Rock_4.glb",
+      "label": "Hilly Prop Rock 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Ruins_Pillar_1.glb",
+      "label": "Hilly Prop Ruins Pillar 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Ruins_Pillar_2.glb",
+      "label": "Hilly Prop Ruins Pillar 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Ruins_Pillar_3.glb",
+      "label": "Hilly Prop Ruins Pillar 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Ruins_Pillar_4.glb",
+      "label": "Hilly Prop Ruins Pillar 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Ruins_Pillar_5.glb",
+      "label": "Hilly Prop Ruins Pillar 5",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_1.glb",
+      "label": "Hilly Prop Stepping Stones 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_2.glb",
+      "label": "Hilly Prop Stepping Stones 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_3.glb",
+      "label": "Hilly Prop Stepping Stones 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_4.glb",
+      "label": "Hilly Prop Stepping Stones 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_5.glb",
+      "label": "Hilly Prop Stepping Stones 5",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_6.glb",
+      "label": "Hilly Prop Stepping Stones 6",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_7.glb",
+      "label": "Hilly Prop Stepping Stones 7",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stepping_Stones_8.glb",
+      "label": "Hilly Prop Stepping Stones 8",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Stump.glb",
+      "label": "Hilly Prop Stump",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Cedar_1.glb",
+      "label": "Hilly Prop Tree Cedar 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Cedar_2.glb",
+      "label": "Hilly Prop Tree Cedar 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Oak_1.glb",
+      "label": "Hilly Prop Tree Oak 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Oak_2.glb",
+      "label": "Hilly Prop Tree Oak 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Oak_3.glb",
+      "label": "Hilly Prop Tree Oak 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Oak_4.glb",
+      "label": "Hilly Prop Tree Oak 4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Pine_1.glb",
+      "label": "Hilly Prop Tree Pine 1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Pine_2.glb",
+      "label": "Hilly Prop Tree Pine 2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Prop_Tree_Pine_3.glb",
+      "label": "Hilly Prop Tree Pine 3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Grass_Floor.glb",
+      "label": "Hilly Terrain Grass Floor",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Corner_Inner_2x2.glb",
+      "label": "Hilly Terrain Hill Corner Inner 2x2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Corner_Inner_3x3.glb",
+      "label": "Hilly Terrain Hill Corner Inner 3x3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Corner_Inner_4x4.glb",
+      "label": "Hilly Terrain Hill Corner Inner 4x4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Corner_Outer_2x2.glb",
+      "label": "Hilly Terrain Hill Corner Outer 2x2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Corner_Outer_3x3.glb",
+      "label": "Hilly Terrain Hill Corner Outer 3x3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Corner_Outer_4x4.glb",
+      "label": "Hilly Terrain Hill Corner Outer 4x4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Side_Gentle.glb",
+      "label": "Hilly Terrain Hill Side Gentle",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Side_Overlap_Side.glb",
+      "label": "Hilly Terrain Hill Side Overlap Side",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Side_Sharp.glb",
+      "label": "Hilly Terrain Hill Side Sharp",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Side_Shift_Gentle.glb",
+      "label": "Hilly Terrain Hill Side Shift Gentle",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Side_Shift_Sharp.glb",
+      "label": "Hilly Terrain Hill Side Shift Sharp",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Transition_Gentle_Sharp_Centered.glb",
+      "label": "Hilly Terrain Hill Transition Gentle Sharp Centered",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Transition_Gentle_Sharp_Flush_Base.glb",
+      "label": "Hilly Terrain Hill Transition Gentle Sharp Flush Base",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Hill_Transition_Gentle_Sharp_Flush_Crest.glb",
+      "label": "Hilly Terrain Hill Transition Gentle Sharp Flush Crest",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Center.glb",
+      "label": "Hilly Terrain Path Center",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Inner_1x1.glb",
+      "label": "Hilly Terrain Path Corner Inner 1x1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Inner_2x2.glb",
+      "label": "Hilly Terrain Path Corner Inner 2x2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Inner_3x3.glb",
+      "label": "Hilly Terrain Path Corner Inner 3x3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Outer_1x1.glb",
+      "label": "Hilly Terrain Path Corner Outer 1x1",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Outer_2x2.glb",
+      "label": "Hilly Terrain Path Corner Outer 2x2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Outer_3x3.glb",
+      "label": "Hilly Terrain Path Corner Outer 3x3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Outer_4x4.glb",
+      "label": "Hilly Terrain Path Corner Outer 4x4",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Y_2x2.glb",
+      "label": "Hilly Terrain Path Corner Y 2x2",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Corner_Y_3x3.glb",
+      "label": "Hilly Terrain Path Corner Y 3x3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Esse_2x3.glb",
+      "label": "Hilly Terrain Path Esse 2x3",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Hill_Gentle_Plain_Center.glb",
+      "label": "Hilly Terrain Path Hill Gentle Plain Center",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Hill_Gentle_Plain_Side.glb",
+      "label": "Hilly Terrain Path Hill Gentle Plain Side",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Hill_Sharp_Plain_Center.glb",
+      "label": "Hilly Terrain Path Hill Sharp Plain Center",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Hill_Sharp_Plain_Side.glb",
+      "label": "Hilly Terrain Path Hill Sharp Plain Side",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Hill_Sharp_Steps_Center.glb",
+      "label": "Hilly Terrain Path Hill Sharp Steps Center",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Hill_Sharp_Steps_Side.glb",
+      "label": "Hilly Terrain Path Hill Sharp Steps Side",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Path_Side.glb",
+      "label": "Hilly Terrain Path Side",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Water_Curve.glb",
+      "label": "Hilly Terrain Water Curve",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Water_Flat.glb",
+      "label": "Hilly Terrain Water Flat",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-hilly/Hilly_Terrain_Water_Slope.glb",
+      "label": "Hilly Terrain Water Slope",
+      "category": "terrain-hilly"
+    },
+    {
+      "path": "/world/models/terrain-mountain/Mountain_1.glb",
+      "label": "Mountain 1",
+      "category": "terrain-mountain"
+    },
+    {
+      "path": "/world/models/terrain-mountain/Mountain_2.glb",
+      "label": "Mountain 2",
+      "category": "terrain-mountain"
+    },
+    {
+      "path": "/world/models/terrain-mountain/Mountain_3.glb",
+      "label": "Mountain 3",
+      "category": "terrain-mountain"
+    },
+    {
+      "path": "/world/models/terrain-mountain/Mountain_4.glb",
+      "label": "Mountain 4",
+      "category": "terrain-mountain"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Prop_Boulder_1.glb",
+      "label": "Shared Prop Boulder 1",
+      "category": "terrain-shared"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Prop_Boulder_2.glb",
+      "label": "Shared Prop Boulder 2",
+      "category": "terrain-shared"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Prop_Boulder_3.glb",
+      "label": "Shared Prop Boulder 3",
+      "category": "terrain-shared"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Prop_Boulder_4.glb",
+      "label": "Shared Prop Boulder 4",
+      "category": "terrain-shared"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Prop_Boulder_5.glb",
+      "label": "Shared Prop Boulder 5",
+      "category": "terrain-shared"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Prop_Boulder_6.glb",
+      "label": "Shared Prop Boulder 6",
+      "category": "terrain-shared"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Terrain_Dirt_Gathered_Corner.glb",
+      "label": "Shared Terrain Dirt Gathered Corner",
+      "category": "terrain-shared"
+    },
+    {
+      "path": "/world/models/terrain-shared/Shared_Terrain_Dirt_Gathered_Straight.glb",
+      "label": "Shared Terrain Dirt Gathered Straight",
+      "category": "terrain-shared"
     },
     {
       "path": "/world/models/toolsbits/anvil.gltf",
