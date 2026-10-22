@@ -7,7 +7,7 @@ import { uploadAudio, uploadImage } from '../../lib/upload';
 import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_ART, DEFAULT_PEG, DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, upgradeDefault, withDefaults, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, fontFamilyFor, themeVars, usePlinkoThemes,
+  DEFAULT_ART, DEFAULT_PEG, DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, upgradeDefault, withDefaults, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, isTemplatePage, POWER_PAGE, fontFamilyFor, themeVars, usePlinkoThemes,
   type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
@@ -557,7 +557,7 @@ export default function PlinkoThemeBuilder() {
                   const o = draft.powers[d.id as PlinkoPower] ?? {};
                   return (
                     <div key={d.id} className="ptb-power-row">
-                      <PowerPic img={o.img} fallback={DEFAULT_ICON[d.id]} magnet={d.id === 'magnet'} busy={busy === `p-${d.id}`} onFile={(f) => up(`p-${d.id}`, f, (u) => setPower(d.id as PlinkoPower, { img: u }))} onClear={o.img ? () => setPower(d.id as PlinkoPower, { img: '' }) : undefined} />
+                      <PowerPic img={o.img} fallback={DEFAULT_ICON[d.id]} magnet={d.id === 'magnet'} busy={busy === `p-${d.id}`} onFile={async (f) => { if (await isTemplatePage(f)) { await scanPage(`p-${d.id}`, POWER_PAGE[d.id as PlinkoPower], [f]); return; } up(`p-${d.id}`, f, (u) => setPower(d.id as PlinkoPower, { img: u })); }} onClear={o.img ? () => setPower(d.id as PlinkoPower, { img: '' }) : undefined} />
                       <label className="ptb-field">Name<input value={o.name ?? ''} placeholder={d.name} onChange={(e) => setPower(d.id as PlinkoPower, { name: e.target.value })} /></label>
                       <label className="ptb-field">Description<input value={o.does ?? ''} placeholder={d.does} onChange={(e) => setPower(d.id as PlinkoPower, { does: e.target.value })} /></label>
                       <div className="ptb-action"><small>Action</small><b>{kindText(d)}</b><Rules p={d} /></div>
@@ -566,7 +566,7 @@ export default function PlinkoThemeBuilder() {
                         <div className="ptb-twin wide">
                           <small>Its two balls</small>
                           {[0, 1].map((bi) => (
-                            <PowerPic key={bi} round img={o.balls?.[bi]} busy={busy === `tb-${bi}`} onFile={(f) => up(`tb-${bi}`, f, (u) => { const b = [...(o.balls ?? [])]; b[bi] = u; setPower('again', { balls: b }); })}
+                            <PowerPic key={bi} round img={o.balls?.[bi]} busy={busy === `tb-${bi}`} onFile={async (f) => { if (await isTemplatePage(f)) { await scanPage(`tb-${bi}`, POWER_PAGE.again, [f]); return; } up(`tb-${bi}`, f, (u) => { const b = [...(o.balls ?? [])]; b[bi] = u; setPower('again', { balls: b }); }); }}
                               onClear={o.balls?.[bi] ? () => { const b = [...(o.balls ?? [])]; b[bi] = ''; setPower('again', { balls: b.filter(Boolean).length ? b : [] }); } : undefined} />
                           ))}
                         </div>
@@ -629,7 +629,7 @@ function PowerPic({ img, fallback, magnet, busy, onFile, onClear, round }: { img
         {img && <span className="ptb-check"><Check /></span>}
       </button>
       <small>{busy ? 'Uploading...' : img ? <button type="button" className="ptb-link" onClick={onClear}>Use default</button> : 'Upload'}</small>
-      <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
+      <input ref={ref} type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,application/pdf" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
     </div>
   );
 }

@@ -493,6 +493,20 @@ export async function cutTemplate(files: File[], onStep?: (msg: string) => void,
   onStep?.('Cutting out your designs...');
   return cut(pages, pages.map((p, i) => readPageNo(p) ?? first + i));
 }
+// Build Queue 357 (her words: "when you add the double ball drop, it should be one upload image it should add the balls
+// and cover image respectively without me adding 3"): a picture dropped on a power-up card is checked first. A whole
+// template page (its four corner squares and an outline or page number) is cut like a scan, so the Double Ball Drop
+// page fills its cover image and both balls at once; any other picture is used as it is.
+export const POWER_PAGE: Record<PlinkoPower, number> = { magnet: R.power_magnet.page, double: R.power_double.page, big: R.power_big.page, again: R.power_again.page };
+export async function isTemplatePage(file: File): Promise<boolean> {
+  if (file.type === 'application/pdf' || /\.pdf$/i.test(file.name)) return true;
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    if (!findMarkers(bmp)) return false;
+    const p = straighten(bmp);
+    return readPageNo(p) !== null || outlines(p).length > 0;
+  } catch { return false; }
+}
 // Pages scanned from one card (for example photos of a few ball pages).
 export const cutTemplatePage = (files: File[], pageNo: number, onStep?: (msg: string) => void) => cutTemplate(files, onStep, pageNo);
 export const cutThemePdf = (file: File, onStep?: (msg: string) => void) => cutTemplate([file], onStep);
