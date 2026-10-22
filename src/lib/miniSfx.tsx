@@ -94,18 +94,40 @@ export const PEG_SOUNDS: { id: string; label: string; play?: () => void; file?: 
   { id: 'f-what', label: 'What?', file: '/games/plinko/sfx/what.wav' },
   { id: 'f-goblin', label: 'Goblin yell', file: '/games/plinko/sfx/goblin.mp3' },
 ];
-const fileSounds = new Map<string, HTMLAudioElement>();
+// (file sounds now play through Web Audio, see playPegSound)
 // A peg sound: a built-in id, or the address of an uploaded sound file.
-export function playPegSound(sound?: string) {
+// Build Queue 363 (her words: "peg sounds arent working"): the iPad will not start a sound file from a timer, only from
+// a tap, so file sounds (her sound pack, uploaded sounds) went quiet once the ball was falling. They now load into Web
+// Audio (the same unlocked player the built-in tones use) and play from there, cut short so each peg sound is quick.
+const buffers = new Map<string, AudioBuffer | 'loading' | 'bad'>();
+const urlOf = (sound: string) => PEG_SOUNDS.find((x) => x.id === sound)?.file ?? sound;
+function loadBuffer(url: string) {
+  if (buffers.has(url)) return;
+  const c = ac(); if (!c) return;
+  buffers.set(url, 'loading');
+  fetch(url).then((r) => r.arrayBuffer()).then((data) => new Promise<AudioBuffer>((res, rej) => c.decodeAudioData(data, res, rej)))
+    .then((buf) => buffers.set(url, buf)).catch(() => buffers.set(url, 'bad'));
+}
+// Loads the sounds a game will use (call it from the Start tap, which also unlocks audio on the iPad).
+export function preloadPegSounds(sounds: (string | undefined)[]) {
+  for (const s of sounds) { if (!s) continue; const b = PEG_SOUNDS.find((x) => x.id === s); if (b?.play) continue; loadBuffer(urlOf(s)); }
+}
+const PEG_MAX = 0.7; // seconds: a peg sound never runs longer than this
+export function playPegSound(sound?: string, rate = 1) {
   if (!sound || !sfxOn() || level <= 0) return;
   const b = PEG_SOUNDS.find((x) => x.id === sound);
   if (b?.play) { b.play(); return; }
-  if (b?.file) sound = b.file;
-  try {
-    let a = fileSounds.get(sound);
-    if (!a) { a = new Audio(sound); a.preload = 'auto'; fileSounds.set(sound, a); }
-    const c = a.cloneNode() as HTMLAudioElement; c.volume = 0.6 * level; void c.play().catch(() => {});
-  } catch { /* fine */ }
+  const url = urlOf(sound);
+  const c = ac(), buf = buffers.get(url);
+  if (c && buf instanceof AudioBuffer) {
+    const src = c.createBufferSource(), g = c.createGain(), at = c.currentTime, dur = Math.min(PEG_MAX, buf.duration);
+    src.buffer = buf; src.playbackRate.value = rate; g.gain.setValueAtTime(0.6 * level, at); g.gain.setValueAtTime(0.6 * level, at + Math.max(0, dur - 0.08)); g.gain.linearRampToValueAtTime(0.0001, at + dur);
+    src.connect(g); g.connect(c.destination); src.start(at); src.stop(at + dur + 0.02);
+    return;
+  }
+  if (buf !== 'loading') loadBuffer(url);
+  // Not loaded yet: a short built-in tone keeps every hit audible.
+  sfx.tick();
 }
 
 export function SfxToggle({ plain = false }: { plain?: boolean } = {}) {
@@ -113,3 +135,10 @@ export function SfxToggle({ plain = false }: { plain?: boolean } = {}) {
   const flip = () => { const v = !on; setOn(v); try { localStorage.setItem(KEY, v ? '1' : '0'); } catch { /* fine */ } if (v) sfx.chime(); };
   return <button type="button" className="btn sfx-toggle" onClick={flip} aria-label={on ? 'Sound effects on. Tap to turn them off.' : 'Sound effects off. Tap to turn them on.'} aria-pressed={on}>{plain ? <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" />{on ? <path d="M16.5 8.5a5 5 0 0 1 0 7" /> : <path d="M16 9l5 6M21 9l-5 6" />}</svg> : on ? '🔊' : '🔇'}</button>;
 }
+
+// Build Queue 365 (her words: "make sure the background music stops playing in a song when the students leave a
+// game"): a game's background music is registered here, and App stops all of it whenever the screen changes, so it
+// can never keep playing after a student leaves (the music player's songs are separate and keep going on purpose).
+const gameMusic = new Set<HTMLAudioElement>();
+export const registerGameMusic = (a: HTMLAudioElement) => { gameMusic.add(a); return a; };
+export const stopGameMusic = () => { gameMusic.forEach((a) => { try { a.pause(); a.currentTime = 0; } catch { /* fine */ } }); gameMusic.clear(); };

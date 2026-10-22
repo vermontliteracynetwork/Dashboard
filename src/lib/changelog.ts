@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-22-plinko-sounds",
+    date: "2026-10-22",
+    icon: "🎯",
+    title: "Plinko sounds and slower drops",
+    body: "Every peg color has its own sound, and you can hear them on the iPad. The ball falls slower. With Double Ball Drop you pick a drop zone for each ball.",
+  },
+  {
     id: "2026-10-22-yoga-songs",
     date: "2026-10-22",
     icon: "🧘",

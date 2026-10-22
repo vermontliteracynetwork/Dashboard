@@ -10289,3 +10289,5 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .pkx.themed .pkx-btn { background: var(--pkx-btn, #93BFE6); color: var(--pkx-btn-ink, #6C626E); }
 .pkx.themed .pkx-btn.go { background: var(--pkx-go, #C3FCB6); color: var(--pkx-go-ink, #6C626E); }
 .pkx.themed .pkx-theme.on { border-color: var(--pkx-go, #127FB5); }
+/* Build Queue 361: Double Ball Drop's first ball waits in its drop zone while the second is aimed. */
+.pk2-ball.aim.parked { animation: none; opacity: .9; }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Suspense } from 'react';
 import { HashRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom';
 import { useStore } from './store/store';
@@ -55,6 +55,7 @@ import SelRecheckPrompt from './components/SelRecheckPrompt';
 import SelLoginGate from './components/SelLoginGate';
 import { lazyFresh } from './lib/freshBuild';
 import GlobalMusicPlayer from './components/GlobalMusicPlayer';
+import { stopGameMusic } from './lib/miniSfx';
 
 // Lazy-loaded: Three.js/react-three-fiber are heavy, and only the world
 // route (and the teacher's 3D Build Mode) needs them — every existing 2D
@@ -168,6 +169,7 @@ export default function App() {
             (not inside TownSquare, which used to own it and die on
             navigation) so it survives every route change. */}
         <GlobalMusicPlayer />
+        <GameMusicStopper />
         <TrailTracker />
         <Routes>
           <Route path="/" element={<RoleSelect />} />
@@ -320,4 +322,12 @@ function TeacherGusRoute() {
 // Pop-ups for students (chat, check-ins, streaks...) never show over a teacher's board page.
 function NotOnBoard({ children }: { children: React.ReactNode }) {
   return useLocation().pathname.startsWith('/gus-board/') ? null : <>{children}</>;
+}
+
+// Build Queue 365: a game's background music stops the moment the screen changes (leaving the game, Back, Home).
+function GameMusicStopper() {
+  const { pathname } = useLocation();
+  const first = useRef(true);
+  useEffect(() => { if (first.current) { first.current = false; return; } stopGameMusic(); }, [pathname]);
+  return null;
 }

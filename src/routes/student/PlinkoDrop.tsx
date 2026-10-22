@@ -9,7 +9,7 @@ import { payForAnswers } from '../../lib/gameEarnings';
 import { recordStreakCorrect } from '../../lib/streak';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
-import { PEG_SOUNDS, playPegSound, setSfxLevel, sfx, SfxToggle } from '../../lib/miniSfx';
+import { PEG_SOUNDS, playPegSound, preloadPegSounds, registerGameMusic, setSfxLevel, sfx, SfxToggle } from '../../lib/miniSfx';
 import { useVisitScore } from '../../components/MyBest';
 import PlinkoSetup, { BALLS, Slider, type SetupPlayer } from './PlinkoSetup';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -100,6 +100,9 @@ export default function PlinkoDrop() {
   const musicRef = useRef<HTMLAudioElement | null>(null);
   const pegOrderRef = useRef<number[]>([]);
   const pegSoundRef = useRef<string[]>([]);
+  const pegRateRef = useRef<number[]>([]);
+  // Build Queue 361: Double Ball Drop's first ball's drop zone, picked before the second.
+  const [twinFirst, setTwinFirst] = useState<number | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [wrap, setWrap] = useState<'won' | 'lost' | 'tie' | null>(null);
   // Build Queue 304: rounds added on the game over card (keep playing with the same players and scores).
@@ -147,12 +150,12 @@ export default function PlinkoDrop() {
   const startMusic = () => {
     musicRef.current?.pause(); musicRef.current = null;
     if (!theme?.music || !musicPref()) return;
-    try { const a = new Audio(theme.music); a.loop = true; a.volume = musicVol(); musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ }
+    try { const a = registerGameMusic(new Audio(theme.music)); a.loop = true; a.volume = musicVol(); musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ }
   };
   const flipMusic = () => {
     const v = !musicOn; setMusicOn(v); try { localStorage.setItem(MUSIC_KEY, v ? '1' : '0'); } catch { /* fine */ }
     if (!v) { musicRef.current?.pause(); return; }
-    if (musicRef.current) void musicRef.current.play().catch(() => {}); else if (theme?.music) { try { const a = new Audio(theme.music); a.loop = true; a.volume = musicVol(); musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ } }
+    if (musicRef.current) void musicRef.current.play().catch(() => {}); else if (theme?.music) { try { const a = registerGameMusic(new Audio(theme.music)); a.loop = true; a.volume = musicVol(); musicRef.current = a; void a.play().catch(() => {}); } catch { /* fine */ } }
   };
 
   const newBoard = (rnd: number) => {
@@ -168,8 +171,13 @@ export default function PlinkoDrop() {
       // Build Queue 322: every game pairs each peg color with a random sound from the theme's sounds (or all of them).
       const pool = theme?.sfx?.length ? theme.sfx : PEG_SOUNDS.filter((x) => x.id !== 'tick').map((x) => x.id);
       const mix = () => { const m = pool.slice(); for (let i = m.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [m[i], m[j]] = [m[j], m[i]]; } return m; };
-      const list: string[] = []; while (list.length < pegTypes.length) list.push(...mix());
-      pegSoundRef.current = list;
+      // Build Queue 364 (her words: "one sound per peg color"): every peg color has its own one sound for the whole game,
+      // never shared with another color while there are enough sounds; if a theme has fewer sounds than colors, a reused
+      // sound is played higher, so no two colors ever sound the same.
+      const first = mix(), list: string[] = [], rates: number[] = [];
+      for (let k = 0; k < pegTypes.length; k++) { list.push(first[k % first.length]); rates.push(1 + 0.18 * Math.floor(k / first.length)); }
+      pegSoundRef.current = list; pegRateRef.current = rates;
+      preloadPegSounds([...list, theme?.pegSound]);
     }
     const pc = colorPegs(pegsFor(z, rowsFor(rnd)).length, pegTypes, rnd, pegOrderRef.current);
     boardRef.current = { buckets: bk, stars: st, zones: z, nb, pegCol: pc, gone: new Set(), rows: rowsFor(rnd) };
@@ -199,7 +207,7 @@ export default function PlinkoDrop() {
       setPPage(0); setPhase('powers'); setNote(null); speak(`${p.name}, pick a power-up for this turn.`, student.ttsSettings); return;
     }
     setPhase('aim');
-    if (p.kind === 'npc') timers.current.push(window.setTimeout(() => dropAt(Math.floor(Math.random() * boardRef.current.zones), false), 1300));
+    if (p.kind === 'npc') timers.current.push(window.setTimeout(() => dropAt(Math.floor(Math.random() * boardRef.current.zones), false, Math.floor(Math.random() * boardRef.current.zones)), 1300));
     else setNote(null);
   };
   const goAsk = (p: Player) => {
@@ -268,7 +276,8 @@ export default function PlinkoDrop() {
     setFlyer({ id: Math.random(), text, x0: from.left + from.width / 2, y0: from.top + from.height / 2, x1: to.left + to.width / 2, y1: to.top + to.height / 2 });
     timers.current.push(window.setTimeout(() => setFlyer(null), FLY_MS + 60));
   };
-  const dropAt = (zone: number, second: boolean) => {
+  const dropAt = (zone: number, second: boolean, zone2?: number) => {
+    setTwinFirst(null);
     const list = playersRef.current, t = turnRef.current, p = list[t % list.length];
     const { buckets: bk, stars: st, zones: z, nb, pegCol: pc } = boardRef.current;
     const ROWS = boardRef.current.rows;
@@ -295,8 +304,8 @@ export default function PlinkoDrop() {
     // ball falls straight through (a little drift, no bounce, no sound).
     const taken = new Set(boardRef.current.gone);
     const rnd = (a: number, b: number) => a + Math.random() * (b - a);
-    const fall = () => {
-      let x = zone;
+    const fall = (from = zone) => {
+      let x = from;
       let rot = 0;
       const path: BallPt[] = [{ x, y: -0.7, d: 0, rot: 0 }];
       for (let r = 0; r < ROWS; r++) {
@@ -358,8 +367,9 @@ export default function PlinkoDrop() {
       path.push({ x: bx, y: ROWS + 0.35, d: 0.12, e: 'ease-in', rot });
       return { path, b };
     };
-    const falls = twin ? [fall(), fall()] : [fall()];
-    const ROW = heavy ? 150 : 195;
+    // Build Queue 361: with Double Ball Drop each ball falls from the drop zone picked for it.
+    const falls = twin ? [fall(zone2 ?? zone), fall(zone)] : [fall()];
+    const ROW = heavy ? 240 : 320; // Build Queue 361: slower drops (her words: "have balls drop slower in general")
     const timed = falls.map((f) => { let at = 0; return f.path.map((pt) => { at += pt.d * ROW; return { ...pt, d: pt.d * ROW, at }; }); });
     const end = Math.max(...timed.map((tp) => tp[tp.length - 1].at));
     // Build Queue 310: a colored peg disappears when the ball hits it and gives XP: the peg type that joined in round 1 is
@@ -373,7 +383,7 @@ export default function PlinkoDrop() {
       .forEach(({ at, k }) => { const c = pc[k]; if (after.has(k)) return; after.add(k); events.push({ at, k, v: c === null || c === undefined ? 1 : pegOrderRef.current.indexOf(c) + 1 }); });
     boardRef.current.gone = after;
     const pegXp = events.reduce((m, e) => m + e.v, 0);
-    const soundOf = (k: number) => { const c = pc[k]; if (c !== null && c !== undefined && pegTypes[c]) playPegSound(pegSoundRef.current[c] ?? pegTypes[c].sound); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick(); };
+    const soundOf = (k: number) => { const c = pc[k]; if (c !== null && c !== undefined && pegTypes[c]) playPegSound(pegSoundRef.current[c] ?? pegTypes[c].sound, pegRateRef.current[c] ?? 1); else if (theme?.pegSound) playPegSound(theme.pegSound); else sfx.tick(); };
     timed.forEach((tp, bi) => tp.forEach((pt) => timers.current.push(window.setTimeout(() => {
       (bi === 0 ? setBall : setBall2)(pt);
       if (bi === 0) setPopping(pt.tag === 'pop');
@@ -477,11 +487,16 @@ export default function PlinkoDrop() {
           <div className="pk2-zones" style={{ gridTemplateColumns: `repeat(${zones}, minmax(0, 1fr))`, ['--fit' as string]: `${Math.max(0.8, 1.9 - zones * 0.1).toFixed(2)}rem` }}>
             {Array.from({ length: zones }, (_, z) => (
               <button key={z} type="button" className={`pk2-zone${phase === 'aim' && aimX === z ? ' on' : ''}`} disabled={phase !== 'aim' || cur?.kind === 'npc'}
-                onPointerEnter={() => setAimX(z)} onFocus={() => setAimX(z)} onClick={() => dropAt(z, secondRef.current)} aria-label={`Drop zone ${z + 1}`}>
+                onPointerEnter={() => setAimX(z)} onFocus={() => setAimX(z)} onClick={() => {
+                  // Build Queue 361 (her words: "for double drop, student can choose a drop zone for both balls respectively").
+                  if (kindOn('twin') && twinFirst === null) { setTwinFirst(z); sfx.pop(); setNote('Ball 1 is ready. Now pick a drop zone for ball 2.'); return; }
+                  dropAt(z, secondRef.current, twinFirst ?? undefined);
+                }} aria-label={`Drop zone ${z + 1}`}>
                 <span>{z + 1}</span>
               </button>
             ))}
             {phase === 'aim' && <b className={`pk2-ball aim${bigOn ? ' big' : ''}`} style={{ left: `${xPct(Math.min(aimX, zones - 1))}%`, background: ballBg(cur) }} />}
+            {phase === 'aim' && twinFirst !== null && <b className="pk2-ball aim parked" style={{ left: `${xPct(Math.min(twinFirst, zones - 1))}%`, background: twinImgs?.[0] ? `center / cover no-repeat url("${twinImgs[0]}")` : ballBg(cur) }} aria-hidden />}
           </div>
           <div className="pk2-field" style={{ aspectRatio: `${zones} / ${Math.max(3.6, zones * 0.62)}` }}>
             {/* Build Queue 313: rows alternate like Plink-oh, and every peg drifts a little (each on its own beat). */}
