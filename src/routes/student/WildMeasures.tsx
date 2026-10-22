@@ -24,10 +24,12 @@ const WILD: [string, number][] = [
   ['pine_1', 1.3], ['pine_2', 1.3], ['pine_3', 1.3], ['pine_4', 1.3], ['twistedtree_1', 1.6], ['twistedtree_2', 1.6], ['deadtree_1', 1.3],
   // Build Queue 373: her Modular Terrain Collection's hill props.
   ['t_boulder_1', 0.9], ['t_boulder_2', 1], ['t_boulder_3', 0.8], ['t_ruins_pillar_1', 0.6], ['t_ruins_pillar_3', 0.45], ['t_tree_oak_1', 1.1], ['t_tree_oak_2', 1.1], ['t_bush_1', 0.8], ['t_bush_2', 0.8], ['t_rock_1', 0.7], ['t_rock_2', 0.7],
+  // Build Queue 374 and 375: her low poly rocks (four colors) and Pond Kit plants.
+  ['r_sand', 0.8], ['r_grey', 0.8], ['r_green', 0.7], ['r_orange', 0.7], ['p_cattail', 0.6], ['p_calla', 0.55],
   ['rock_medium_1', 0.9], ['rock_medium_2', 0.9], ['rock_medium_3', 0.8], ['bush_common', 1], ['bush_common_flowers', 1], ['fern_1', 0.7], ['plant_1_big', 0.7], ['plant_7_big', 0.7],
 ];
 const SMALL: [string, number][] = [['flower_3_group', 0.55], ['flower_4_group', 0.55], ['mushroom_common', 0.45], ['mushroom_laetiporus', 0.45], ['grass_common_tall', 0.5], ['grass_wispy_tall', 0.5], ['clover_1', 0.4], ['pebble_round_1', 0.35],
-  ['t_flower_daisy', 0.4], ['t_flower_sunflower', 0.4], ['t_flower_tulip', 0.4], ['t_flower_rose', 0.4], ['t_grass_clump_1', 0.45], ['t_branch_1', 0.5], ['t_stepping_stones_1', 0.6]];
+  ['t_flower_daisy', 0.4], ['t_flower_sunflower', 0.4], ['t_flower_tulip', 0.4], ['t_flower_rose', 0.4], ['t_grass_clump_1', 0.45], ['t_branch_1', 0.5], ['t_stepping_stones_1', 0.6], ['p_mint', 0.45], ['p_longgrass', 0.55]];
 const hash = (x: number, y: number) => { let h = (x * 374761393 + y * 668265263) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
 function decoFor(x: number, y: number, turf: boolean): [string, number] | null {
   const h = hash(x, y), k = hash(y + 31, x + 7);

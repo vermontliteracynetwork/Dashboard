@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T18:30:29.237Z",
+  "generatedAt": "2026-10-22T18:38:29.953Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -2567,6 +2567,346 @@
       "category": "market"
     },
     {
+      "path": "/world/models/nature-stylized/Bush_Common.glb",
+      "label": "Bush Common",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Bush_Common_Flowers.glb",
+      "label": "Bush Common Flowers",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Clover_1.glb",
+      "label": "Clover 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Clover_2.glb",
+      "label": "Clover 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/CommonTree_1.glb",
+      "label": "Common Tree 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/CommonTree_2.glb",
+      "label": "Common Tree 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/CommonTree_3.glb",
+      "label": "Common Tree 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/CommonTree_4.glb",
+      "label": "Common Tree 4",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/CommonTree_5.glb",
+      "label": "Common Tree 5",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/DeadTree_1.glb",
+      "label": "Dead Tree 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/DeadTree_2.glb",
+      "label": "Dead Tree 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/DeadTree_3.glb",
+      "label": "Dead Tree 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/DeadTree_4.glb",
+      "label": "Dead Tree 4",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/DeadTree_5.glb",
+      "label": "Dead Tree 5",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Fern_1.glb",
+      "label": "Fern 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Flower_3_Group.glb",
+      "label": "Flower 3 Group",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Flower_3_Single.glb",
+      "label": "Flower 3 Single",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Flower_4_Group.glb",
+      "label": "Flower 4 Group",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Flower_4_Single.glb",
+      "label": "Flower 4 Single",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Grass_Common_Short.glb",
+      "label": "Grass Common Short",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Grass_Common_Tall.glb",
+      "label": "Grass Common Tall",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Grass_Wispy_Short.glb",
+      "label": "Grass Wispy Short",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Grass_Wispy_Tall.glb",
+      "label": "Grass Wispy Tall",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Mushroom_Common.glb",
+      "label": "Mushroom Common",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Mushroom_Laetiporus.glb",
+      "label": "Mushroom Laetiporus",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Round_1.glb",
+      "label": "Pebble Round 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Round_2.glb",
+      "label": "Pebble Round 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Round_3.glb",
+      "label": "Pebble Round 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Round_4.glb",
+      "label": "Pebble Round 4",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Round_5.glb",
+      "label": "Pebble Round 5",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Square_1.glb",
+      "label": "Pebble Square 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Square_2.glb",
+      "label": "Pebble Square 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Square_3.glb",
+      "label": "Pebble Square 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Square_4.glb",
+      "label": "Pebble Square 4",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Square_5.glb",
+      "label": "Pebble Square 5",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pebble_Square_6.glb",
+      "label": "Pebble Square 6",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Petal_1.glb",
+      "label": "Petal 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Petal_2.glb",
+      "label": "Petal 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Petal_3.glb",
+      "label": "Petal 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Petal_4.glb",
+      "label": "Petal 4",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Petal_5.glb",
+      "label": "Petal 5",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pine_1.glb",
+      "label": "Pine 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pine_2.glb",
+      "label": "Pine 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pine_3.glb",
+      "label": "Pine 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pine_4.glb",
+      "label": "Pine 4",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Pine_5.glb",
+      "label": "Pine 5",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Plant_1.glb",
+      "label": "Plant 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Plant_1_Big.glb",
+      "label": "Plant 1 Big",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Plant_7.glb",
+      "label": "Plant 7",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Plant_7_Big.glb",
+      "label": "Plant 7 Big",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Round_Small_1.glb",
+      "label": "Rock Path Round Small 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Round_Small_2.glb",
+      "label": "Rock Path Round Small 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Round_Small_3.glb",
+      "label": "Rock Path Round Small 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Round_Thin.glb",
+      "label": "Rock Path Round Thin",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Round_Wide.glb",
+      "label": "Rock Path Round Wide",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Square_Small_1.glb",
+      "label": "Rock Path Square Small 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Square_Small_2.glb",
+      "label": "Rock Path Square Small 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Square_Small_3.glb",
+      "label": "Rock Path Square Small 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Square_Thin.glb",
+      "label": "Rock Path Square Thin",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/RockPath_Square_Wide.glb",
+      "label": "Rock Path Square Wide",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Rock_Medium_1.glb",
+      "label": "Rock Medium 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Rock_Medium_2.glb",
+      "label": "Rock Medium 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/Rock_Medium_3.glb",
+      "label": "Rock Medium 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/TwistedTree_1.glb",
+      "label": "Twisted Tree 1",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/TwistedTree_2.glb",
+      "label": "Twisted Tree 2",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/TwistedTree_3.glb",
+      "label": "Twisted Tree 3",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/TwistedTree_4.glb",
+      "label": "Twisted Tree 4",
+      "category": "nature-stylized"
+    },
+    {
+      "path": "/world/models/nature-stylized/TwistedTree_5.glb",
+      "label": "Twisted Tree 5",
+      "category": "nature-stylized"
+    },
+    {
       "path": "/world/models/nature/blocky-bush-01.glb",
       "label": "Blocky Bush 01",
       "category": "nature"
@@ -3400,6 +3740,451 @@
       "path": "/world/models/pirate/crate.glb",
       "label": "Crate",
       "category": "pirate"
+    },
+    {
+      "path": "/world/models/pond/Bathtub.gltf",
+      "label": "Bathtub",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Bird_1.gltf",
+      "label": "Bird 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Bird_2.gltf",
+      "label": "Bird 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Bird_3.gltf",
+      "label": "Bird 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Branch_1a.gltf",
+      "label": "Branch 1a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Branch_1b.gltf",
+      "label": "Branch 1b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Branch_2a.gltf",
+      "label": "Branch 2a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Branch_2b.gltf",
+      "label": "Branch 2b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Branch_3a.gltf",
+      "label": "Branch 3a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Branch_3b.gltf",
+      "label": "Branch 3b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/CatTail_1.gltf",
+      "label": "Cat Tail 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/CatTail_2.gltf",
+      "label": "Cat Tail 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/CatTail_3.gltf",
+      "label": "Cat Tail 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Clay_Pot.gltf",
+      "label": "Clay Pot",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Dragonfly_1.gltf",
+      "label": "Dragonfly 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Dragonfly_2.gltf",
+      "label": "Dragonfly 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Dragonfly_3.gltf",
+      "label": "Dragonfly 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Frog_1.gltf",
+      "label": "Frog 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Frog_2.gltf",
+      "label": "Frog 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Frog_3.gltf",
+      "label": "Frog 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Long_Grass_Patch_1.gltf",
+      "label": "Long Grass Patch 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Long_Grass_Patch_2.gltf",
+      "label": "Long Grass Patch 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Metal_Tub.gltf",
+      "label": "Metal Tub",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Mini_Plant_1.gltf",
+      "label": "Mini Plant 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Mini_Plant_2.gltf",
+      "label": "Mini Plant 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Mini_Plant_3.gltf",
+      "label": "Mini Plant 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_1a.gltf",
+      "label": "Pebble 1a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_1a_Moss.gltf",
+      "label": "Pebble 1a Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_1b.gltf",
+      "label": "Pebble 1b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_1b_Moss.gltf",
+      "label": "Pebble 1b Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_1c.gltf",
+      "label": "Pebble 1c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_1c_Moss.gltf",
+      "label": "Pebble 1c Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_2a.gltf",
+      "label": "Pebble 2a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_2a_Moss.gltf",
+      "label": "Pebble 2a Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_2b.gltf",
+      "label": "Pebble 2b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_2b_Moss.gltf",
+      "label": "Pebble 2b Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_2c.gltf",
+      "label": "Pebble 2c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_2c_Moss.gltf",
+      "label": "Pebble 2c Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_3a.gltf",
+      "label": "Pebble 3a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_3a_Moss.gltf",
+      "label": "Pebble 3a Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_3b.gltf",
+      "label": "Pebble 3b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_3b_Moss.gltf",
+      "label": "Pebble 3b Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_3c.gltf",
+      "label": "Pebble 3c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_3c_Moss.gltf",
+      "label": "Pebble 3c Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_4.gltf",
+      "label": "Pebble 4",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_4a.gltf",
+      "label": "Pebble 4a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_4a_Moss.gltf",
+      "label": "Pebble 4a Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_4b.gltf",
+      "label": "Pebble 4b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_4b_Moss.gltf",
+      "label": "Pebble 4b Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_4c.gltf",
+      "label": "Pebble 4c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pebble_4c_Moss.gltf",
+      "label": "Pebble 4c Moss",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pond_1.gltf",
+      "label": "Pond 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pond_2.gltf",
+      "label": "Pond 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pond_3.gltf",
+      "label": "Pond 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Pond_4.gltf",
+      "label": "Pond 4",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_1a.gltf",
+      "label": "Rock 1a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_1b.gltf",
+      "label": "Rock 1b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_1c.gltf",
+      "label": "Rock 1c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_2a.gltf",
+      "label": "Rock 2a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_2b.gltf",
+      "label": "Rock 2b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_2c.gltf",
+      "label": "Rock 2c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_3a.gltf",
+      "label": "Rock 3a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_3b.gltf",
+      "label": "Rock 3b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_3c.gltf",
+      "label": "Rock 3c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_4a.gltf",
+      "label": "Rock 4a",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_4b.gltf",
+      "label": "Rock 4b",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Rock_4c.gltf",
+      "label": "Rock 4c",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Short_Grass_Patch_1.gltf",
+      "label": "Short Grass Patch 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Short_Grass_Patch_2.gltf",
+      "label": "Short Grass Patch 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Swamp_Calla_1.gltf",
+      "label": "Swamp Calla 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Swamp_Calla_2.gltf",
+      "label": "Swamp Calla 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Swamp_Calla_3.gltf",
+      "label": "Swamp Calla 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Hyacinth_1.gltf",
+      "label": "Water Hyacinth 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Hyacinth_2.gltf",
+      "label": "Water Hyacinth 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Hyacinth_3.gltf",
+      "label": "Water Hyacinth 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lettuce_1.gltf",
+      "label": "Water Lettuce 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lettuce_2.gltf",
+      "label": "Water Lettuce 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lettuce_3.gltf",
+      "label": "Water Lettuce 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lily_Blossom_1.gltf",
+      "label": "Water Lily Blossom 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lily_Blossom_2.gltf",
+      "label": "Water Lily Blossom 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lily_Blossom_3.gltf",
+      "label": "Water Lily Blossom 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lily_Leaf_1.gltf",
+      "label": "Water Lily Leaf 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lily_Leaf_2.gltf",
+      "label": "Water Lily Leaf 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lily_Leaf_3.gltf",
+      "label": "Water Lily Leaf 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Lily_Leaf_4.gltf",
+      "label": "Water Lily Leaf 4",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Mint_1.gltf",
+      "label": "Water Mint 1",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Mint_2.gltf",
+      "label": "Water Mint 2",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Water_Mint_3.gltf",
+      "label": "Water Mint 3",
+      "category": "pond"
+    },
+    {
+      "path": "/world/models/pond/Wooden_Tub.gltf",
+      "label": "Wooden Tub",
+      "category": "pond"
     },
     {
       "path": "/world/models/props/boom-box.glb",
@@ -4420,6 +5205,486 @@
       "path": "/world/models/restaurant/Wall_Stains.gltf",
       "label": "Wall Stains",
       "category": "restaurant"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-01-green.glb",
+      "label": "Rock Type1 01 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-01-grey.glb",
+      "label": "Rock Type1 01 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-01-orange.glb",
+      "label": "Rock Type1 01 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-01-sand.glb",
+      "label": "Rock Type1 01 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-02-green.glb",
+      "label": "Rock Type1 02 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-02-grey.glb",
+      "label": "Rock Type1 02 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-02-orange.glb",
+      "label": "Rock Type1 02 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-02-sand.glb",
+      "label": "Rock Type1 02 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-03-green.glb",
+      "label": "Rock Type1 03 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-03-grey.glb",
+      "label": "Rock Type1 03 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-03-orange.glb",
+      "label": "Rock Type1 03 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-03-sand.glb",
+      "label": "Rock Type1 03 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-04-green.glb",
+      "label": "Rock Type1 04 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-04-grey.glb",
+      "label": "Rock Type1 04 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-04-orange.glb",
+      "label": "Rock Type1 04 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type1-04-sand.glb",
+      "label": "Rock Type1 04 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-01-green.glb",
+      "label": "Rock Type2 01 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-01-grey.glb",
+      "label": "Rock Type2 01 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-01-orange.glb",
+      "label": "Rock Type2 01 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-01-sand.glb",
+      "label": "Rock Type2 01 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-02-green.glb",
+      "label": "Rock Type2 02 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-02-grey.glb",
+      "label": "Rock Type2 02 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-02-orange.glb",
+      "label": "Rock Type2 02 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-02-sand.glb",
+      "label": "Rock Type2 02 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-03-green.glb",
+      "label": "Rock Type2 03 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-03-grey.glb",
+      "label": "Rock Type2 03 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-03-orange.glb",
+      "label": "Rock Type2 03 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-03-sand.glb",
+      "label": "Rock Type2 03 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-04-green.glb",
+      "label": "Rock Type2 04 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-04-grey.glb",
+      "label": "Rock Type2 04 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-04-orange.glb",
+      "label": "Rock Type2 04 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type2-04-sand.glb",
+      "label": "Rock Type2 04 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-01-green.glb",
+      "label": "Rock Type3 01 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-01-grey.glb",
+      "label": "Rock Type3 01 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-01-orange.glb",
+      "label": "Rock Type3 01 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-01-sand.glb",
+      "label": "Rock Type3 01 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-02-green.glb",
+      "label": "Rock Type3 02 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-02-grey.glb",
+      "label": "Rock Type3 02 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-02-orange.glb",
+      "label": "Rock Type3 02 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-02-sand.glb",
+      "label": "Rock Type3 02 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-03-green.glb",
+      "label": "Rock Type3 03 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-03-grey.glb",
+      "label": "Rock Type3 03 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-03-orange.glb",
+      "label": "Rock Type3 03 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-03-sand.glb",
+      "label": "Rock Type3 03 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-04-green.glb",
+      "label": "Rock Type3 04 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-04-grey.glb",
+      "label": "Rock Type3 04 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-04-orange.glb",
+      "label": "Rock Type3 04 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type3-04-sand.glb",
+      "label": "Rock Type3 04 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-01-green.glb",
+      "label": "Rock Type4 01 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-01-grey.glb",
+      "label": "Rock Type4 01 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-01-orange.glb",
+      "label": "Rock Type4 01 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-01-sand.glb",
+      "label": "Rock Type4 01 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-02-green.glb",
+      "label": "Rock Type4 02 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-02-grey.glb",
+      "label": "Rock Type4 02 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-02-orange.glb",
+      "label": "Rock Type4 02 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-02-sand.glb",
+      "label": "Rock Type4 02 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-03-green.glb",
+      "label": "Rock Type4 03 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-03-grey.glb",
+      "label": "Rock Type4 03 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-03-orange.glb",
+      "label": "Rock Type4 03 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-03-sand.glb",
+      "label": "Rock Type4 03 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-04-green.glb",
+      "label": "Rock Type4 04 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-04-grey.glb",
+      "label": "Rock Type4 04 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-04-orange.glb",
+      "label": "Rock Type4 04 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type4-04-sand.glb",
+      "label": "Rock Type4 04 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-01-green.glb",
+      "label": "Rock Type5 01 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-01-grey.glb",
+      "label": "Rock Type5 01 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-01-orange.glb",
+      "label": "Rock Type5 01 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-01-sand.glb",
+      "label": "Rock Type5 01 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-02-green.glb",
+      "label": "Rock Type5 02 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-02-grey.glb",
+      "label": "Rock Type5 02 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-02-orange.glb",
+      "label": "Rock Type5 02 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-02-sand.glb",
+      "label": "Rock Type5 02 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-03-green.glb",
+      "label": "Rock Type5 03 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-03-grey.glb",
+      "label": "Rock Type5 03 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-03-orange.glb",
+      "label": "Rock Type5 03 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-03-sand.glb",
+      "label": "Rock Type5 03 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-04-green.glb",
+      "label": "Rock Type5 04 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-04-grey.glb",
+      "label": "Rock Type5 04 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-04-orange.glb",
+      "label": "Rock Type5 04 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type5-04-sand.glb",
+      "label": "Rock Type5 04 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-01-green.glb",
+      "label": "Rock Type6 01 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-01-grey.glb",
+      "label": "Rock Type6 01 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-01-orange.glb",
+      "label": "Rock Type6 01 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-01-sand.glb",
+      "label": "Rock Type6 01 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-02-green.glb",
+      "label": "Rock Type6 02 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-02-grey.glb",
+      "label": "Rock Type6 02 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-02-orange.glb",
+      "label": "Rock Type6 02 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-02-sand.glb",
+      "label": "Rock Type6 02 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-03-green.glb",
+      "label": "Rock Type6 03 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-03-grey.glb",
+      "label": "Rock Type6 03 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-03-orange.glb",
+      "label": "Rock Type6 03 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-03-sand.glb",
+      "label": "Rock Type6 03 Sand",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-04-green.glb",
+      "label": "Rock Type6 04 Green",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-04-grey.glb",
+      "label": "Rock Type6 04 Grey",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-04-orange.glb",
+      "label": "Rock Type6 04 Orange",
+      "category": "rocks-lowpoly"
+    },
+    {
+      "path": "/world/models/rocks-lowpoly/rock-type6-04-sand.glb",
+      "label": "Rock Type6 04 Sand",
+      "category": "rocks-lowpoly"
     },
     {
       "path": "/world/models/scifi/Access_Card.glb",
