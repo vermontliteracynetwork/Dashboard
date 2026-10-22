@@ -42,6 +42,8 @@ export interface PlinkoTheme {
   pegSound?: string;
   // Build Queue 322 and 323: the sounds a game pairs with the peg colors at random (built-in ids or her sound files).
   sfx?: string[];
+  // Build Queue 358: which version of the outline cut its pictures have been through (see recutTheme).
+  recut?: number;
 }
 export interface PegColor { color: string; sound: string }
 // Which pegs wear a color in a round (index into pegColors, or null for a plain peg): one more color each round,
@@ -391,7 +393,7 @@ function outlines(page: HTMLCanvasElement): Box[] {
   ctx.drawImage(page, 0, 0, w, h);
   const d = ctx.getImageData(0, 0, w, h).data;
   const m = new Uint8Array(w * h);
-  for (let i = 0; i < w * h; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b); if (mx < 120 && mx - Math.min(r, g, b) < 36) m[i] = 1; }
+  for (let i = 0; i < w * h; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], mx = Math.max(r, g, b); if (d[i * 4 + 3] > 200 && mx < 120 && mx - Math.min(r, g, b) < 36) m[i] = 1; }
   const seen = new Uint8Array(w * h), out: Box[] = [], st: number[] = [];
   for (let i = 0; i < w * h; i++) {
     if (!m[i] || seen[i]) continue;
@@ -506,6 +508,71 @@ export async function isTemplatePage(file: File): Promise<boolean> {
     const p = straighten(bmp);
     return readPageNo(p) !== null || outlines(p).length > 0;
   } catch { return false; }
+}
+// Build Queue 358 (her words: "use the files that are already uploaded into the In the Sea them to reformat them. make
+// sure they format accurately on input"). A picture that is not a whole template page but still holds an outline (a
+// cut made before item 356, or a screenshot of one space) is trimmed to just inside its biggest outline; a ball is
+// cut round. Clean art with no outline in it comes back null and is kept as it is.
+async function trimBlob(blob: Blob, round: boolean): Promise<Blob | null> {
+  const bmp = await createImageBitmap(blob);
+  const c = canvas(bmp.width, bmp.height); c.getContext('2d')!.drawImage(bmp, 0, 0);
+  const rings = outlines(c).filter((b) => b.w >= c.width * 0.35 && b.h >= c.height * 0.35);
+  if (!rings.length) return null;
+  const b = rings.reduce((a, x) => (x.w * x.h > a.w * a.h ? x : a));
+  const inset = Math.round(b.lw * 1.4) + 6, w = Math.max(8, Math.round(b.w - inset * 2)), h = Math.max(8, Math.round(b.h - inset * 2));
+  const o = canvas(w, h), ctx = o.getContext('2d')!;
+  if (round) { ctx.beginPath(); ctx.arc(w / 2, h / 2, Math.min(w, h) / 2 - 1, 0, Math.PI * 2); ctx.clip(); }
+  ctx.drawImage(c, b.x + inset, b.y + inset, w, h, 0, 0, w, h);
+  return toBlob(o, round || blob.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.9);
+}
+export const trimToOutline = (file: File, round = false) => trimBlob(file, round).catch(() => null);
+// One design space cut from one template page (a card's own space; for a power-up of the theme's own, page 20).
+export async function cutSpace(file: File, key: string): Promise<Blob | null> {
+  const r = R[key]; if (!r) return null;
+  const res = await cutTemplate([file], undefined, r.page);
+  if (key.startsWith('ball')) return res.balls[0] ?? null;
+  if (key === 'power_new') return res.newPowers[0] ?? null;
+  if (key.startsWith('power_')) return res.powers[key.slice(6) as PlinkoPower] ?? null;
+  return (res as unknown as Record<string, Blob | undefined>)[key] ?? null;
+}
+export const RECUT_VERSION = 1;
+// Goes through every picture a theme already has: a whole template page is cut into its spaces (the Double Ball Drop
+// page gives its cover and both balls), a picture with an outline in it is trimmed, and clean art stays. Returns only
+// the fields that changed, with the new pictures uploaded.
+export async function recutTheme(t: PlinkoTheme, onStep?: (msg: string) => void): Promise<Partial<PlinkoTheme>> {
+  const out: Partial<PlinkoTheme> = { recut: RECUT_VERSION };
+  const get = async (url?: string) => { if (!url) return null; try { const r = await fetch(url); return r.ok ? new File([await r.blob()], 'pic', { type: r.headers.get('content-type') ?? 'image/png' }) : null; } catch { return null; } };
+  // Returns the new url, or null when the picture is fine as it is.
+  const fix = async (url: string | undefined, key: string, round: boolean): Promise<string | null> => {
+    const f = await get(url); if (!f) return null;
+    if (await isTemplatePage(f)) { const b = await cutSpace(f, key); return b ? uploadImage(b) : null; }
+    const b = await trimToOutline(f, round); return b ? uploadImage(b) : null;
+  };
+  let n = 0; const step = () => onStep?.(`Fixing the cut of the pictures (${++n})...`);
+  for (const k of ['cover', 'background', 'title', 'board', 'panel'] as const) { step(); const u = await fix(t[k], k, false); if (u) out[k] = u; }
+  const balls = t.balls.slice(); let ballsChanged = false;
+  for (let i = 0; i < balls.length; i++) { step(); const u = await fix(balls[i], `ball${i + 1}`, true); if (u) { balls[i] = u; ballsChanged = true; } }
+  if (ballsChanged) out.balls = balls;
+  const powers = structuredClone(t.powers); let powChanged = false;
+  for (const k of ['magnet', 'double', 'big', 'again'] as PlinkoPower[]) {
+    const pw = powers[k]; if (!pw?.img) continue; step();
+    const f = await get(pw.img); if (!f) continue;
+    if (k === 'again' && await isTemplatePage(f)) {
+      // The Double Ball Drop page: its cover image and both balls in one go.
+      const res = await cutTemplate([f], undefined, R.power_again.page);
+      if (res.powers.again) { pw.img = await uploadImage(res.powers.again); powChanged = true; }
+      if (res.twinBalls.length) { pw.balls = await Promise.all(res.twinBalls.map((b) => uploadImage(b))); powChanged = true; }
+      continue;
+    }
+    const u = await fix(pw.img, `power_${k}`, false); if (u) { pw.img = u; powChanged = true; }
+  }
+  const twin = powers.again?.balls ?? [];
+  for (let i = 0; i < twin.length; i++) { step(); const u = await fix(twin[i], `again_ball${i + 1}`, true); if (u) { twin[i] = u; powChanged = true; } }
+  if (powChanged) out.powers = powers;
+  const custom = (t.customPowers ?? []).slice(); let cChanged = false;
+  for (let i = 0; i < custom.length; i++) { if (!custom[i].img) continue; step(); const u = await fix(custom[i].img, 'power_new', false); if (u) { custom[i] = { ...custom[i], img: u }; cChanged = true; } }
+  if (cChanged) out.customPowers = custom;
+  return out;
 }
 // Pages scanned from one card (for example photos of a few ball pages).
 export const cutTemplatePage = (files: File[], pageNo: number, onStep?: (msg: string) => void) => cutTemplate(files, onStep, pageNo);

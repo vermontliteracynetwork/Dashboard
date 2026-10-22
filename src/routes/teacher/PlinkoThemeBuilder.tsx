@@ -7,7 +7,7 @@ import { uploadAudio, uploadImage } from '../../lib/upload';
 import { PEG_SOUNDS, playPegSound } from '../../lib/miniSfx';
 import { BALLS } from '../student/PlinkoSetup';
 import {
-  DEFAULT_ART, DEFAULT_PEG, DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, upgradeDefault, withDefaults, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, isTemplatePage, POWER_PAGE, fontFamilyFor, themeVars, usePlinkoThemes,
+  DEFAULT_ART, DEFAULT_PEG, DEFAULT_PEG_COLORS, DEFAULT_POWERS, DEFAULT_THEME_ID, upgradeDefault, withDefaults, MAX_PEG_TYPES, PAGE_OF, SPEC_FIELDS, specOf, PLINKO_FONTS, POWER_KINDS, TEMPLATE_PAGES, buildTheme, cutTemplate, cutTemplatePage, isTemplatePage, POWER_PAGE, cutSpace, trimToOutline, recutTheme, RECUT_VERSION, fontFamilyFor, themeVars, usePlinkoThemes,
   type CutResult, type FontChoice, type PegColor, type PlinkoColorKey, type PlinkoPower, type PlinkoTheme, type PowerDef, type PowerKind,
 } from '../../lib/plinkoThemes';
 
@@ -367,6 +367,25 @@ export default function PlinkoThemeBuilder() {
     catch (e) { setPdfStep(e instanceof Error ? e.message : 'That page could not be read.'); }
     void key;
   };
+  // Build Queue 358: every picture is formatted on the way in. A whole template page (or a photo of one) is cut to just
+  // its own space; a picture that still holds an outline is trimmed inside it; clean art goes in as it is.
+  const prep = async (f: File, key: string, round = false): Promise<File> => {
+    try {
+      const b = (await isTemplatePage(f)) ? await cutSpace(f, key) : await trimToOutline(f, round);
+      return b ? new File([b], `${key}.${b.type === 'image/png' ? 'png' : 'jpg'}`, { type: b.type }) : f;
+    } catch { return f; }
+  };
+  const upPic = async (key: string, f: File | undefined, done: (u: string) => void, round = false, region = key) => { if (f) await up(key, await prep(f, region, round), done); };
+  const draftId = useRef(draft.id); draftId.current = draft.id;
+  // Build Queue 358 (her words: "use the files that are already uploaded into the In the Sea them to reformat them"):
+  // a theme made before the outline cut has its pictures re-cut once, the first time it is opened here.
+  const recutting = useRef<string | null>(null);
+  useEffect(() => {
+    const t = themes.find((x) => x.id === draft.id);
+    if (!t || isDefault || (t.recut ?? 0) >= RECUT_VERSION || recutting.current === t.id) return;
+    recutting.current = t.id;
+    void recutTheme(t, setPdfStep).then((p) => { if (draftId.current !== t.id) { save(themes.map((x) => (x.id === t.id ? { ...x, ...p } : x))); return; } set(p); setPdfStep('Pictures re-cut to fit their spaces.'); }).catch(() => setPdfStep('Some pictures could not be re-cut.'));
+  }, [draft.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const fonts = draft.fonts ?? {};
   const setFont = (k: 'title' | 'header' | 'body', f?: FontChoice) => set({ fonts: { ...fonts, [k]: f } });
   const imagesSet = [draft.cover, draft.balls.length >= 5, draft.background, draft.title, draft.board, draft.panel].filter(Boolean).length;
@@ -456,19 +475,19 @@ export default function PlinkoThemeBuilder() {
           <div className="ptb-folds">
             <Fold title="Images" open meta={`${imagesSet} of 6`} info="Tap a card or drop a picture on it. Scan reads that part from a photo of its template page. Anything empty keeps the default look.">
               <div className="ptb-cards">
-                <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Theme cover image" hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} onView={draft.cover ? () => setLightbox({ images: [draft.cover!], start: 0, key: 'cover' }) : undefined} busy={busy === 'cover'} onFile={(f) => up('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
+                <ImageCard download={`${PG}page-${PAGE_OF.cover}.pdf`} page={PAGE_OF.cover} onScan={(f) => scanPage('cover', PAGE_OF.cover, f)} label="Theme cover image" hint="Square (1:1). Students see it when they pick a theme." value={draft.cover} onView={draft.cover ? () => setLightbox({ images: [draft.cover!], start: 0, key: 'cover' }) : undefined} busy={busy === 'cover'} onFile={(f) => upPic('cover', f[0], (u) => set({ cover: u }))} onClear={() => set({ cover: undefined })}>
                   {draft.cover ? <img src={draft.cover} alt="" className="sq" /> : <span>Tap or drop a picture</span>}
                 </ImageCard>
                 <ImageCard download={`${PG}balls.pdf`} page={PAGE_OF.balls} onScan={(f) => scanPage('balls', PAGE_OF.balls, f)} label="Balls" multiple hint="Square PNGs with see-through corners, up to 10. A theme with fewer gets plain solid color balls for the rest. Tap the balls to see them one at a time." count={`${draft.balls.length} of ${maxBalls}`} busy={busy === 'balls'}
-                  onFile={async (fl) => { const files = Array.from(fl).slice(0, maxBalls - draft.balls.length); const urls: string[] = []; for (const f of files) await up('balls', f, (u) => urls.push(u)); if (urls.length) set({ balls: [...draft.balls, ...urls].slice(0, maxBalls) }); }}
+                  onFile={async (fl) => { const files = Array.from(fl).slice(0, maxBalls - draft.balls.length); const urls: string[] = []; for (const [j, f] of files.entries()) await upPic('balls', f, (u) => urls.push(u), true, `ball${Math.min(10, draft.balls.length + j + 1)}`); if (urls.length) set({ balls: [...draft.balls, ...urls].slice(0, maxBalls) }); }}
                   onClear={() => set({ balls: [] })}>
                   {draft.balls.length ? <div className="ptb-balls">{draft.balls.map((b, i) => <span key={i} role="button" tabIndex={0} title={`See ball ${i + 1}`} onClick={(e) => { e.stopPropagation(); setLightbox({ images: draft.balls, start: i, round: true, key: 'balls' }); }}><img src={b} alt={`Ball ${i + 1}`} /></span>)}</div> : <span>Tap or drop pictures</span>}
                   <small className="ptb-count">{draft.balls.length} of {maxBalls}</small>
                 </ImageCard>
-                <ImageCard download={`${PG}page-${PAGE_OF.background}.pdf`} page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} onView={draft.background ? () => setLightbox({ images: [draft.background!], start: 0, key: 'background' }) : undefined} busy={busy === 'background'} onFile={(f) => up('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.title}.pdf`} page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} onView={draft.title ? () => setLightbox({ images: [draft.title!], start: 0, key: 'title' }) : undefined} busy={busy === 'title'} onFile={(f) => up('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.board}.pdf`} page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Game board" hint="Behind the pegs. Portrait or square." value={draft.board} onView={draft.board ? () => setLightbox({ images: [draft.board!], start: 0, key: 'board' }) : undefined} busy={busy === 'board'} onFile={(f) => up('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
-                <ImageCard download={`${PG}page-${PAGE_OF.panel}.pdf`} page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Score board background" hint="Behind the players and their scores. Keep the middle calm so the names stay easy to read." value={draft.panel} onView={draft.panel ? () => setLightbox({ images: [draft.panel!], start: 0, key: 'panel' }) : undefined} busy={busy === 'panel'} onFile={(f) => up('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.background}.pdf`} page={PAGE_OF.background} onScan={(f) => scanPage('background', PAGE_OF.background, f)} label="Background" hint="Fills the screen behind the game. Landscape, about 2048 x 1536." value={draft.background} onView={draft.background ? () => setLightbox({ images: [draft.background!], start: 0, key: 'background' }) : undefined} busy={busy === 'background'} onFile={(f) => upPic('background', f[0], (u) => set({ background: u }))} onClear={() => set({ background: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.title}.pdf`} page={PAGE_OF.title} onScan={(f) => scanPage('title', PAGE_OF.title, f)} label="Title" hint="The game name as a PNG with a see-through background." value={draft.title} onView={draft.title ? () => setLightbox({ images: [draft.title!], start: 0, key: 'title' }) : undefined} busy={busy === 'title'} onFile={(f) => upPic('title', f[0], (u) => set({ title: u }))} onClear={() => set({ title: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.board}.pdf`} page={PAGE_OF.board} onScan={(f) => scanPage('board', PAGE_OF.board, f)} label="Game board" hint="Behind the pegs. Portrait or square." value={draft.board} onView={draft.board ? () => setLightbox({ images: [draft.board!], start: 0, key: 'board' }) : undefined} busy={busy === 'board'} onFile={(f) => upPic('board', f[0], (u) => set({ board: u }))} onClear={() => set({ board: undefined })} />
+                <ImageCard download={`${PG}page-${PAGE_OF.panel}.pdf`} page={PAGE_OF.panel} onScan={(f) => scanPage('panel', PAGE_OF.panel, f)} label="Score board background" hint="Behind the players and their scores. Keep the middle calm so the names stay easy to read." value={draft.panel} onView={draft.panel ? () => setLightbox({ images: [draft.panel!], start: 0, key: 'panel' }) : undefined} busy={busy === 'panel'} onFile={(f) => upPic('panel', f[0], (u) => set({ panel: u }))} onClear={() => set({ panel: undefined })} />
               </div>
             </Fold>
 
@@ -557,7 +576,7 @@ export default function PlinkoThemeBuilder() {
                   const o = draft.powers[d.id as PlinkoPower] ?? {};
                   return (
                     <div key={d.id} className="ptb-power-row">
-                      <PowerPic img={o.img} fallback={DEFAULT_ICON[d.id]} magnet={d.id === 'magnet'} busy={busy === `p-${d.id}`} onFile={async (f) => { if (await isTemplatePage(f)) { await scanPage(`p-${d.id}`, POWER_PAGE[d.id as PlinkoPower], [f]); return; } up(`p-${d.id}`, f, (u) => setPower(d.id as PlinkoPower, { img: u })); }} onClear={o.img ? () => setPower(d.id as PlinkoPower, { img: '' }) : undefined} />
+                      <PowerPic img={o.img} fallback={DEFAULT_ICON[d.id]} magnet={d.id === 'magnet'} busy={busy === `p-${d.id}`} onFile={async (f) => { if (await isTemplatePage(f)) { await scanPage(`p-${d.id}`, POWER_PAGE[d.id as PlinkoPower], [f]); return; } upPic(`p-${d.id}`, f, (u) => setPower(d.id as PlinkoPower, { img: u }), false, `power_${d.id}`); }} onClear={o.img ? () => setPower(d.id as PlinkoPower, { img: '' }) : undefined} />
                       <label className="ptb-field">Name<input value={o.name ?? ''} placeholder={d.name} onChange={(e) => setPower(d.id as PlinkoPower, { name: e.target.value })} /></label>
                       <label className="ptb-field">Description<input value={o.does ?? ''} placeholder={d.does} onChange={(e) => setPower(d.id as PlinkoPower, { does: e.target.value })} /></label>
                       <div className="ptb-action"><small>Action</small><b>{kindText(d)}</b><Rules p={d} /></div>
@@ -566,7 +585,7 @@ export default function PlinkoThemeBuilder() {
                         <div className="ptb-twin wide">
                           <small>Its two balls</small>
                           {[0, 1].map((bi) => (
-                            <PowerPic key={bi} round img={o.balls?.[bi]} busy={busy === `tb-${bi}`} onFile={async (f) => { if (await isTemplatePage(f)) { await scanPage(`tb-${bi}`, POWER_PAGE.again, [f]); return; } up(`tb-${bi}`, f, (u) => { const b = [...(o.balls ?? [])]; b[bi] = u; setPower('again', { balls: b }); }); }}
+                            <PowerPic key={bi} round img={o.balls?.[bi]} busy={busy === `tb-${bi}`} onFile={async (f) => { if (await isTemplatePage(f)) { await scanPage(`tb-${bi}`, POWER_PAGE.again, [f]); return; } upPic(`tb-${bi}`, f, (u) => { const b = [...(o.balls ?? [])]; b[bi] = u; setPower('again', { balls: b }); }, true, `again_ball${bi + 1}`); }}
                               onClear={o.balls?.[bi] ? () => { const b = [...(o.balls ?? [])]; b[bi] = ''; setPower('again', { balls: b.filter(Boolean).length ? b : [] }); } : undefined} />
                           ))}
                         </div>
@@ -578,7 +597,7 @@ export default function PlinkoThemeBuilder() {
                   const k = POWER_KINDS.find((x) => x.kind === p.kind);
                   return (
                     <div key={p.id} className="ptb-power-row added">
-                      <PowerPic img={p.img} busy={busy === `c-${p.id}`} onFile={(f) => up(`c-${p.id}`, f, (u) => setCustom(i, { img: u }))} onClear={p.img ? () => setCustom(i, { img: undefined }) : undefined} />
+                      <PowerPic img={p.img} busy={busy === `c-${p.id}`} onFile={(f) => upPic(`c-${p.id}`, f, (u) => setCustom(i, { img: u }), false, 'power_new')} onClear={p.img ? () => setCustom(i, { img: undefined }) : undefined} />
                       <label className="ptb-field"><span>Name <span className="ptb-req">Required</span></span><input value={p.name} placeholder="Super Smell" onChange={(e) => setCustom(i, { name: e.target.value })} /></label>
                       <label className="ptb-field">Description<input value={p.does} placeholder="On the card" onChange={(e) => setCustom(i, { does: e.target.value })} /></label>
                       <label className="ptb-field">Action
