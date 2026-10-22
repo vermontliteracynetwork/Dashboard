@@ -535,13 +535,18 @@ export async function cutSpace(file: File, key: string): Promise<Blob | null> {
   if (key.startsWith('power_')) return res.powers[key.slice(6) as PlinkoPower] ?? null;
   return (res as unknown as Record<string, Blob | undefined>)[key] ?? null;
 }
-export const RECUT_VERSION = 1;
+export const RECUT_VERSION = 2; // Build Queue 359: 2 runs again on themes a first try could not finish
 // Goes through every picture a theme already has: a whole template page is cut into its spaces (the Double Ball Drop
 // page gives its cover and both balls), a picture with an outline in it is trimmed, and clean art stays. Returns only
 // the fields that changed, with the new pictures uploaded.
 export async function recutTheme(t: PlinkoTheme, onStep?: (msg: string) => void): Promise<Partial<PlinkoTheme>> {
-  const out: Partial<PlinkoTheme> = { recut: RECUT_VERSION };
-  const get = async (url?: string) => { if (!url) return null; try { const r = await fetch(url); return r.ok ? new File([await r.blob()], 'pic', { type: r.headers.get('content-type') ?? 'image/png' }) : null; } catch { return null; } };
+  const out: Partial<PlinkoTheme> = {};
+  let failed = 0;
+  const get = async (url?: string) => {
+    if (!url) return null;
+    try { const r = await fetch(url, { cache: 'no-store' }); if (r.ok) return new File([await r.blob()], 'pic', { type: r.headers.get('content-type') ?? 'image/png' }); } catch { /* counted below */ }
+    failed++; return null;
+  };
   // Returns the new url, or null when the picture is fine as it is.
   const fix = async (url: string | undefined, key: string, round: boolean): Promise<string | null> => {
     const f = await get(url); if (!f) return null;
@@ -572,6 +577,8 @@ export async function recutTheme(t: PlinkoTheme, onStep?: (msg: string) => void)
   const custom = (t.customPowers ?? []).slice(); let cChanged = false;
   for (let i = 0; i < custom.length; i++) { if (!custom[i].img) continue; step(); const u = await fix(custom[i].img, 'power_new', false); if (u) { custom[i] = { ...custom[i], img: u }; cChanged = true; } }
   if (cChanged) out.customPowers = custom;
+  // Only marked done when every picture could be read, so a try that could not load them runs again next time.
+  if (!failed) out.recut = RECUT_VERSION;
   return out;
 }
 // Pages scanned from one card (for example photos of a few ball pages).

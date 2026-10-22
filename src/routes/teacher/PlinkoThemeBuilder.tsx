@@ -380,12 +380,18 @@ export default function PlinkoThemeBuilder() {
   // Build Queue 358 (her words: "use the files that are already uploaded into the In the Sea them to reformat them"):
   // a theme made before the outline cut has its pictures re-cut once, the first time it is opened here.
   const recutting = useRef<string | null>(null);
+  const runRecut = (t: PlinkoTheme) => {
+    recutting.current = t.id;
+    void recutTheme(t, setPdfStep).then((p) => {
+      if (draftId.current !== t.id) { save(themes.map((x) => (x.id === t.id ? { ...x, ...p } : x))); return; }
+      set(p); setPdfStep(p.recut ? 'Pictures re-cut to fit their spaces.' : 'Some pictures could not be loaded. Tap Fix pictures to try again.');
+    }).catch(() => setPdfStep('Some pictures could not be re-cut. Tap Fix pictures to try again.'));
+  };
   useEffect(() => {
     const t = themes.find((x) => x.id === draft.id);
     if (!t || isDefault || (t.recut ?? 0) >= RECUT_VERSION || recutting.current === t.id) return;
-    recutting.current = t.id;
-    void recutTheme(t, setPdfStep).then((p) => { if (draftId.current !== t.id) { save(themes.map((x) => (x.id === t.id ? { ...x, ...p } : x))); return; } set(p); setPdfStep('Pictures re-cut to fit their spaces.'); }).catch(() => setPdfStep('Some pictures could not be re-cut.'));
-  }, [draft.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    runRecut(t);
+  }, [draft.id, themes.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const fonts = draft.fonts ?? {};
   const setFont = (k: 'title' | 'header' | 'body', f?: FontChoice) => set({ fonts: { ...fonts, [k]: f } });
   const imagesSet = [draft.cover, draft.balls.length >= 5, draft.background, draft.title, draft.board, draft.panel].filter(Boolean).length;
@@ -468,6 +474,8 @@ export default function PlinkoThemeBuilder() {
               <a className="btn btn-sm" href="/plinko/plinko-theme-template.pdf" download>Download</a>
               <label className="btn btn-sm btn-primary">Upload PDF or pictures<input type="file" accept="application/pdf,image/*" multiple hidden onChange={(e) => { importFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} /></label>
               <label className="btn btn-sm">Take photos<input type="file" accept="image/*" capture="environment" multiple hidden onChange={(e) => { importFiles(Array.from(e.target.files ?? [])); e.target.value = ''; }} /></label>
+              {/* Build Queue 359: re-cut this theme's pictures any time (it also runs on its own once per theme). */}
+              {!isDefault && themes.some((x) => x.id === draft.id) && <button type="button" className="btn btn-sm" onClick={() => { const t = themes.find((x) => x.id === draft.id); if (t) runRecut({ ...t, ...draft }); }}>Fix pictures</button>}
               {pdfStep && <span className="ptb-hint" role="status">{pdfStep}</span>}
             </div>
           </div>
