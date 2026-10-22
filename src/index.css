@@ -10348,3 +10348,9 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .wm-pad-read { min-height: 46px; }
 .wm-card { padding: 12px 12px 10px; gap: 6px; }
 .wm-stats { font-size: .92rem; gap: 2px; padding: 8px 12px; }
+/* Build Queue 370: her nature kit on the World Box map, standing on each square, drawn in rows so nearer things are in front. */
+.wm-deco { position: absolute; transform: translate(-50%, -100%); height: auto; pointer-events: none; user-select: none; filter: drop-shadow(0 4px 3px rgba(40,60,20,.25)); }
+.wm-deco.fade { opacity: .45; }
+.wm-grid > i { background: #a8cf7c; }
+.wm-grid > i:nth-child(odd) { background: #a3cb77; }
+.wm-grid > i.turf { background: #7cc04f repeating-linear-gradient(60deg, rgba(255,255,255,.07) 0 4px, transparent 4px 9px); }

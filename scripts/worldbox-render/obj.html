@@ -1,0 +1,32 @@
+<!doctype html><html><body style="margin:0;background:transparent">
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
+const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+r.setSize(320, 320); r.setClearColor(0x000000, 0); r.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(r.domElement);
+const COL = { Leaves: 0x7cc243, Leaves_NormalTree: 0x8fd14f, Leaves_TwistedTree: 0xb98cf0, Leaves_Pine: 0x3f8f3a, Bark_NormalTree: 0x7a5233, Bark_TwistedTree: 0x8a6a55, Bark_DeadTree: 0x6e6870, Rocks: 0xa9aeb2, PathRocks: 0xb8bcc0, Grass: 0x86c94a, Flowers: 0xff8fb0, Mushrooms: 0xf0a24a, Material: 0x9a9a9a };
+const names = (new URLSearchParams(location.search).get('n') || '').split(',');
+window.shots = {};
+const loader = new OBJLoader();
+(async () => {
+  const VAR = { autumn: 0xf07a2a, red: 0xd9362b, gold: 0xf2b33a };
+  for (const id of names) {
+    const [n, v] = id.split('@');
+    const obj = await loader.loadAsync(`/__render/OBJ/${n}.obj`);
+    obj.traverse((o) => { if (o.isMesh) { const mats = Array.isArray(o.material) ? o.material : [o.material]; o.material = mats.map((m) => new THREE.MeshToonMaterial({ color: v && m.name.startsWith('Leaves') ? VAR[v] : COL[m.name] ?? 0x999999, side: THREE.DoubleSide })); if (o.material.length === 1) o.material = o.material[0]; } });
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x556644, 1.6));
+    const sun = new THREE.DirectionalLight(0xfff2d6, 2.2); sun.position.set(3, 6, 4); scene.add(sun);
+    scene.add(obj);
+    const b = new THREE.Box3().setFromObject(obj), s = b.getSize(new THREE.Vector3()), m = b.getCenter(new THREE.Vector3());
+    const size = Math.max(s.x, s.y, s.z);
+    const cam = new THREE.OrthographicCamera(-size * 0.56, size * 0.56, size * 0.56, -size * 0.56, 0.01, size * 20);
+    cam.position.set(m.x + size * 1.2, m.y + size * 0.9, m.z + size * 1.6); cam.lookAt(m);
+    r.render(scene, cam);
+    window.shots[v ? `${n}_${v}` : n] = r.domElement.toDataURL('image/png');
+  }
+  window.done = true;
+})().catch((e) => { window.err = String(e); window.done = true; });
+</script></body></html>

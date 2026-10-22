@@ -15,6 +15,25 @@ import {
 // and the student predicts a measurement (area, perimeter, fence blocks, food). The outcome then plays out the same
 // whatever they guessed, the true value is shown with how to work it out, and close guesses earn coins.
 
+// Build Queue 370 and 372: her Stylized Nature Mega Kit, rendered from its 3D models into pictures
+// (scripts/worldbox-render). Every map square gets the same plant or rock each visit (a hash of where it is): trees,
+// pines, rocks and bushes in the wild, only small flowers and grass on the pack's turf, so claiming land clears it.
+const NATURE = '/games/worldbox/nature/';
+const WILD: [string, number][] = [
+  ['commontree_1', 1.5], ['commontree_2', 1.5], ['commontree_3', 1.5], ['commontree_4', 1.5], ['commontree_5', 1.5], ['commontree_2_autumn', 1.5], ['commontree_4_red', 1.5], ['commontree_5_gold', 1.5],
+  ['pine_1', 1.3], ['pine_2', 1.3], ['pine_3', 1.3], ['pine_4', 1.3], ['twistedtree_1', 1.6], ['twistedtree_2', 1.6], ['deadtree_1', 1.3],
+  ['rock_medium_1', 0.9], ['rock_medium_2', 0.9], ['rock_medium_3', 0.8], ['bush_common', 1], ['bush_common_flowers', 1], ['fern_1', 0.7], ['plant_1_big', 0.7], ['plant_7_big', 0.7],
+];
+const SMALL: [string, number][] = [['flower_3_group', 0.55], ['flower_4_group', 0.55], ['mushroom_common', 0.45], ['mushroom_laetiporus', 0.45], ['grass_common_tall', 0.5], ['grass_wispy_tall', 0.5], ['clover_1', 0.4], ['pebble_round_1', 0.35]];
+const hash = (x: number, y: number) => { let h = (x * 374761393 + y * 668265263) ^ 0x5bd1e995; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
+function decoFor(x: number, y: number, turf: boolean): [string, number] | null {
+  const h = hash(x, y), k = hash(y + 31, x + 7);
+  if (turf) return h < 0.12 ? SMALL[Math.floor(k * SMALL.length)] : null;
+  if (h < 0.3) return WILD[Math.floor(k * WILD.length)];
+  if (h < 0.48) return SMALL[Math.floor(k * SMALL.length)];
+  return null;
+}
+
 type Saved = { world?: World; coins?: number; right?: number; exact?: number; tries?: number };
 type Phase = 'watch' | 'predict' | 'reveal';
 const LISTEN = <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /></svg>;
@@ -159,10 +178,16 @@ export default function WildMeasures() {
         <section className="wm-board" aria-label={`The ${SPECIES.many}' land`}>
           <div className="wm-grid" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)`, gridTemplateRows: `repeat(${ROWS}, 1fr)` }}>
             {cells.map((c) => <i key={c} className={`${turf.has(c) ? 'turf' : ''}${ghost.has(c) ? ' ghost' : ''}${edge(c)}`} />)}
+            {cells.map((c) => {
+              const [x, y] = c.split(',').map(Number);
+              const d = decoFor(x, y, turf.has(c)); if (!d) return null;
+              return <img key={`d${c}`} className={`wm-deco${ghost.has(c) ? ' fade' : ''}`} src={`${NATURE}${d[0]}.webp`} alt="" draggable={false}
+                style={{ left: `${((x + 0.5) / COLS) * 100}%`, top: `${((y + 0.92) / ROWS) * 100}%`, width: `${(d[1] * 100) / COLS}%`, zIndex: y * 10 + 1 }} />;
+            })}
             {world.pack.map((c) => {
               const p = pos[c.id]; if (!p) return null;
               return (
-                <span key={c.id} className={`wm-critter${c.young ? ' young' : ''}`} style={{ left: `${(p.x / COLS) * 100}%`, top: `${(p.y / ROWS) * 100}%`, width: `${(c.size * 140) / COLS}%` }} title={c.name}>
+                <span key={c.id} className={`wm-critter${c.young ? ' young' : ''}`} style={{ left: `${(p.x / COLS) * 100}%`, top: `${(p.y / ROWS) * 100}%`, width: `${(c.size * 140) / COLS}%`, zIndex: Math.floor(p.y) * 10 + 5 }} title={c.name}>
                   <Burrowback alpha={c.id === alpha.id} young={c.young} dir={p.dir} />
                 </span>
               );

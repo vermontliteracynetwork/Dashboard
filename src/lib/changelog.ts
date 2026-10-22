@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-22-world-box-nature",
+    date: "2026-10-22",
+    icon: "🌳",
+    title: "World Box gets a forest",
+    body: "The World Box land is full of trees, pines, rocks, bushes, flowers and mushrooms. When the Burrowbacks claim land, they clear it for their turf.",
+  },
+  {
     id: "2026-10-22-wild-measures",
     date: "2026-10-22",
     icon: "📏",
