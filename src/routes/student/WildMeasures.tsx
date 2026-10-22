@@ -10,7 +10,7 @@ import {
   score, sideFor, stressed, unitShort, unitWords, type Cell, type Question, type World,
 } from '../../lib/wildMeasures';
 
-// Creator (Build Queue 369 and 370; first built as "Wild Measures"; her brief in docs/measure-wilds/BRIEF.md). The Burrowbacks run their own world: they
+// World Box (Build Queue 369 to 371; first built as "Wild Measures", then "Creator"; her brief in docs/measure-wilds/BRIEF.md). The Burrowbacks run their own world: they
 // scout, claim land, grow their pack, learn fire and tools, and fence their turf. Before each outcome the game pauses
 // and the student predicts a measurement (area, perimeter, fence blocks, food). The outcome then plays out the same
 // whatever they guessed, the true value is shown with how to work it out, and close guesses earn coins.
@@ -150,7 +150,7 @@ export default function WildMeasures() {
     <div className="wm">
       <header className="wm-head">
         <LeaveButton plain onLeave={() => back.go()} note="Your creatures keep their world, and your coins are saved." />
-        <h1>Creator</h1>
+        <h1>World Box</h1>
         <SfxToggle plain />
         <span className="wm-chip" aria-label={`${stats.coins} coins`}>🪙 {stats.coins}</span>
       </header>

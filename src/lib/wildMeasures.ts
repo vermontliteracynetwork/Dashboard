@@ -1,4 +1,4 @@
-// Wild Measures (Build Queue 369, her brief in docs/measure-wilds/BRIEF.md): a nature sandbox run by made-up creatures.
+// World Box (Build Queue 369, named in 371; her brief in docs/measure-wilds/BRIEF.md): a nature sandbox run by made-up creatures.
 // The student only watches and predicts measurements; predictions never change what the creatures do.
 // Phase 1 (her Build Notes): one habitat (Earth), one species, turf claiming with perimeter and area predictions,
 // coins for accurate predictions. Everything here is plain data so new question kinds plug in as one more entry in

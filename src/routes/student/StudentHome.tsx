@@ -450,10 +450,10 @@ export default function StudentHome() {
           <span className="widget-label">Music</span>
         </button>
         {showMusic && <MusicPicker onClose={() => setShowMusic(false)} />}
-        {/* Creator (Build Queue 369, named by her in 370): watch the Burrowbacks run their land and predict area, perimeter and more. */}
-        <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/creator')} aria-label="Creator">
+        {/* World Box (Build Queue 369, named by her in 371): watch the Burrowbacks run their land and predict area, perimeter and more. */}
+        <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/world-box')} aria-label="World Box">
           <span className="widget-icon">📏</span>
-          <span className="widget-label">Creator</span>
+          <span className="widget-label">World Box</span>
         </button>
         {/* Feelings (Build Queue 355, her words: "add a feelings wheel check in as computer app"): the same spinning
             Feelings Wheel check-in as login, any time, saved to the same SEL check-in report. */}
