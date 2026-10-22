@@ -14,7 +14,7 @@ import { formatMoney } from '../../lib/money';
 import { boardDate, recordBestGame, useBestGames } from '../../lib/personalBoard';
 import type { MCQuestion, QuestionSet } from '../../types';
 import {
-  DANGER_ROW, H, MAX_ROWS, MYSTERY, R, RAINBOW, SHOOTER, W, addMystery, colorOf, isStar, starsIn, center, clampAngle, colorsLeft, explodeAt, filled, laser, lowestRow, makeBoard, place, pushRow, rescue, rowLen, shotXp, shuffleColors, traceShot,
+  DANGER_ROW, H, MAX_ROWS, MYSTERY, R, RAINBOW, SHOOTER, W, addMystery, colorOf, isStar, starsIn, center, clampAngle, colorsLeft, explodeAt, filled, laser, lowestRow, makeBoard, DIFFICULTY, type Difficulty, place, pushRow, rescue, rowLen, shotXp, shuffleColors, traceShot,
   type ShotResult,
 } from '../../games/bubbleShooter/engine';
 import { sfx as SFX, startMusic, stopMusic } from '../../games/bubbleShooter/audio';
@@ -43,7 +43,7 @@ const BS_RANGES = { rounds: { min: 1, max: 10, def: 3 }, per: { min: 5, max: 15,
 // Teacher 2026-10-08: "rounds should last ... until the full board is cleared (on average 1-2 minutes)",
 // then "round time edit: 3 min max per round". A slow, gentle timer ring sits in the right column.
 const ROUND_SECONDS = 180;
-const PUSH_EVERY = 7; // shots without a pop before a new row slides in
+const PUSH_EVERY = 7; // shots without a pop before a new row slides in (Easy; see DIFFICULTY for Medium and Hard)
 const SPEED = 40; // world units a second
 const BIG_POP = 8; // bubbles in one shot that earn a bonus power-up
 const UI = '/chess'; // her Bubble Buttons pack, already cut into buttons for Slime Chess
@@ -137,6 +137,10 @@ export default function BubbleShooter() {
   };
 
   const readFlag = (k: string) => { try { return localStorage.getItem(k) !== '0'; } catch { return true; } };
+  // Build Queue 368 (her words: "add a main menu difficylty selecter easy, medium, hard"), remembered on the iPad.
+  const [level, setLevelState] = useState<Difficulty>(() => { try { const v = localStorage.getItem('bs-level'); return v === 'medium' || v === 'hard' ? v : 'easy'; } catch { return 'easy'; } });
+  const setLevel = (v: Difficulty) => { setLevelState(v); try { localStorage.setItem('bs-level', v); } catch { /* fine */ } };
+  const levelRef = useRef(level); levelRef.current = level;
   const [sound, setSound] = useState(() => readFlag('bs-sound'));
   const [music, setMusic] = useState(() => readFlag('bs-music'));
   useEffect(() => { try { localStorage.setItem('bs-sound', sound ? '1' : '0'); localStorage.setItem('bs-music', music ? '1' : '0'); } catch { /* fine */ } }, [sound, music]);
@@ -166,7 +170,7 @@ export default function BubbleShooter() {
   const [qDone, setQDone] = useState(0);
   const [reveal, setReveal] = useState<PowerId | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
-  const syncHud = () => setHud({ xp: g.current.xp, shotsLeft: PUSH_EVERY - g.current.shotsSince, combo: g.current.combo, loaded: g.current.loaded, time: Math.ceil(g.current.timeLeft), usedPower: g.current.usedPower, cleared: Math.max(0, Math.min(1, 1 - filled(g.current.board) / Math.max(1, g.current.startCount))) });
+  const syncHud = () => setHud({ xp: g.current.xp, shotsLeft: DIFFICULTY[levelRef.current].push - g.current.shotsSince, combo: g.current.combo, loaded: g.current.loaded, time: Math.ceil(g.current.timeLeft), usedPower: g.current.usedPower, cleared: Math.max(0, Math.min(1, 1 - filled(g.current.board) / Math.max(1, g.current.startCount))) });
   const gain = (p: PowerId, n = 1) => setInv((v) => ({ ...v, [p]: v[p] + n }));
 
   // Right answers pay like every native game, when the game ends or they leave.
@@ -189,7 +193,7 @@ export default function BubbleShooter() {
     return pool[Math.floor(Math.random() * pool.length)];
   };
   const newBoard = (n: number) => {
-    const { board, colors } = makeBoard(n, Math.random);
+    const { board, colors } = makeBoard(n, Math.random, levelRef.current);
     const gg = g.current;
     Object.assign(gg, { board, palette: Array.from({ length: colors }, (_, i) => i), flying: null, beam: null, shotsSince: 0, bits: [], rings: [], texts: [], combo: 0, loaded: 'ball', timeLeft: ROUND_SECONDS, ended: false, usedPower: false, startCount: filled(board) });
     setTimeUp(false);
@@ -303,7 +307,7 @@ export default function BubbleShooter() {
   };
   const afterShot = () => {
     const gg = g.current;
-    if (gg.shotsSince >= PUSH_EVERY) {
+    if (gg.shotsSince >= DIFFICULTY[levelRef.current].push) {
       gg.board = pushRow(gg.board, colorsLeft(gg.board).length ? colorsLeft(gg.board) : gg.palette, Math.random);
       gg.shotsSince = 0; gg.shake = 0.4; play(SFX.row); say('A new row slid in! Pop some bubbles to keep them away.');
     }
@@ -508,6 +512,13 @@ export default function BubbleShooter() {
             {lifetimeXp > 0 && <p className="bs-note">⭐ Your total XP: <b>{lifetimeXp}</b></p>}
             <RoundSettings ranges={BS_RANGES} roundsLabel="Rounds" perLabel="Questions before each round (5 or more)" rounds={roundSet.rounds} perRound={roundSet.perRound} onRounds={roundSet.setRounds} onPerRound={roundSet.setPerRound} locked={roundSet.locked} />
             {!activeGameplayTask && usableSets.length > 0 && <div className="bs-source"><QuestionSourcePicker questionSets={usableSets} value={questionMode} onChange={setQuestionMode} /></div>}
+            <div className="bs-row" role="radiogroup" aria-label="Difficulty">
+              {(['easy', 'medium', 'hard'] as Difficulty[]).map((d) => (
+                <button key={d} type="button" role="radio" aria-checked={level === d} className={`bs-chip${level === d ? ' on' : ''}`} onClick={() => setLevel(d)}>
+                  {d === 'easy' ? 'Easy' : d === 'medium' ? 'Medium' : 'Hard'}
+                </button>
+              ))}
+            </div>
             <div className="bs-row">
               <button type="button" className={`bs-chip${sound ? ' on' : ''}`} onClick={() => setSound((v) => !v)} aria-pressed={sound}>{sound ? '🔊 Sounds on' : '🔇 Sounds off'}</button>
               <button type="button" className={`bs-chip${music ? ' on' : ''}`} onClick={() => setMusic((v) => !v)} aria-pressed={music}>{music ? 'Music on' : 'Music off'}</button>

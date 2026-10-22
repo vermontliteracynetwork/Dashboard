@@ -46,13 +46,23 @@ export function emptyBoard(): Board {
 // A board for round n: a little bigger and more colorful as the rounds go on, with little clusters
 // so pops come often (a friendly start). Sized so a round takes about 1 to 2 minutes (her ask), with
 // a few star bubbles that earn a power-up when popped.
-export function makeBoard(round: number, rng: Rng): { board: Board; colors: number } {
-  const colors = Math.min(6, 2 + round);
-  const rowsFilled = Math.min(6, 3 + round);
+// Build Queue 368: the main menu's difficulty. Easy is the board as it always was. Medium mixes the colors much more
+// (far fewer same-color clumps, so matches take planning). Hard is about five times harder than Easy: every color from
+// the start, more rows, almost no clumps, and a new row slides in after 3 shots without a pop instead of 7.
+export type Difficulty = 'easy' | 'medium' | 'hard';
+export const DIFFICULTY: Record<Difficulty, { clump: number; colorsAdd: number; rowsAdd: number; push: number }> = {
+  easy: { clump: 0.55, colorsAdd: 0, rowsAdd: 0, push: 7 },
+  medium: { clump: 0.2, colorsAdd: 1, rowsAdd: 1, push: 6 },
+  hard: { clump: 0.05, colorsAdd: 6, rowsAdd: 3, push: 3 },
+};
+export function makeBoard(round: number, rng: Rng, level: Difficulty = 'easy'): { board: Board; colors: number } {
+  const d = DIFFICULTY[level];
+  const colors = Math.min(6, 2 + round + d.colorsAdd);
+  const rowsFilled = Math.min(9, 3 + round + d.rowsAdd);
   const b = emptyBoard();
   for (let r = 0; r < rowsFilled; r++) for (let c = 0; c < rowLen(b, r); c++) {
     const near = neighbors(b, r, c).map(([nr, nc]) => get(b, nr, nc)).filter((x): x is number => x !== null);
-    b.rows[r][c] = near.length && rng() < 0.55 ? colorOf(near[Math.floor(rng() * near.length)]) : Math.floor(rng() * colors);
+    b.rows[r][c] = near.length && rng() < d.clump ? colorOf(near[Math.floor(rng() * near.length)]) : Math.floor(rng() * colors);
   }
   for (let n = 0; n < 3; n++) {
     const r = Math.floor(rng() * rowsFilled), c = Math.floor(rng() * rowLen(b, r));

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-22-bubble-levels",
+    date: "2026-10-22",
+    icon: "🫧",
+    title: "Bubble Shooter levels",
+    body: "Pick Easy, Medium or Hard on the Bubble Shooter menu. Hard has more colors, more rows and new rows come faster.",
+  },
+  {
     id: "2026-10-22-plinko-sounds",
     date: "2026-10-22",
     icon: "🎯",
