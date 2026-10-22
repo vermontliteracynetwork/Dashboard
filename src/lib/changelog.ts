@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-22-wild-measures",
+    date: "2026-10-22",
+    icon: "📏",
+    title: "Creator",
+    body: "A new game on the computer. The Burrowbacks run their own land. Watch them claim turf, grow their pack and build fences, and predict the area, perimeter and food before it happens. Good guesses earn coins.",
+  },
+  {
     id: "2026-10-22-bubble-levels",
     date: "2026-10-22",
     icon: "🫧",

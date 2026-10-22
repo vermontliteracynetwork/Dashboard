@@ -10291,3 +10291,60 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .pkx.themed .pkx-theme.on { border-color: var(--pkx-go, #127FB5); }
 /* Build Queue 361: Double Ball Drop's first ball waits in its drop zone while the second is aimed. */
 .pk2-ball.aim.parked { animation: none; opacity: .9; }
+
+/* ---- Wild Measures (Build Queue 369): an observer's view of the Burrowbacks' land, iPad landscape first ---- */
+.wm { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; background: #e9e1c8 radial-gradient(circle at 20% 10%, #f5efd9, #d9cca5); color: #2d2a22; font-family: 'Nunito', system-ui, sans-serif; }
+.wm-head { display: flex; align-items: center; gap: 10px; padding: 10px 16px; }
+.wm-head h1 { margin: 0 auto 0 4px; font: 900 clamp(1.4rem, 2.6vw, 2rem) 'Baloo 2', 'Nunito', sans-serif; color: #3e5a1e; }
+.wm-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: #fff7d6; border: 2px solid #c9a74a; font-weight: 900; font-size: 1.1rem; }
+.wm-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 14px; padding: 0 16px 14px; }
+.wm-board { min-height: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
+.wm-grid { position: relative; display: grid; width: min(100%, calc((100dvh - 120px) * 1.6)); aspect-ratio: 16 / 10; margin: 0 auto; border-radius: 14px; overflow: hidden; border: 4px solid #6b4f2a; background: #a9c97f; box-shadow: 0 6px 0 rgba(80,60,30,.25); }
+.wm-grid > i { position: relative; background: #b7d38d; border: 1px solid rgba(70,90,40,.12); }
+.wm-grid > i:nth-child(odd) { background: #b1cf87; }
+.wm-grid > i.turf { background: #6fb24a repeating-linear-gradient(60deg, rgba(255,255,255,.06) 0 4px, transparent 4px 9px); border-color: rgba(30,70,20,.25); }
+.wm-grid > i.ghost { background: rgba(255,255,255,.35); outline: 3px dashed #fff; outline-offset: -4px; animation: wmGhost 1s ease-in-out infinite alternate; }
+.wm-grid > i.fn { box-shadow: inset 0 5px 0 #7a4b22; } .wm-grid > i.fs { box-shadow: inset 0 -5px 0 #7a4b22; }
+.wm-grid > i.fe { box-shadow: inset -5px 0 0 #7a4b22; } .wm-grid > i.fw { box-shadow: inset 5px 0 0 #7a4b22; }
+.wm-grid > i.fn.fe { box-shadow: inset 0 5px 0 #7a4b22, inset -5px 0 0 #7a4b22; } .wm-grid > i.fn.fw { box-shadow: inset 0 5px 0 #7a4b22, inset 5px 0 0 #7a4b22; }
+.wm-grid > i.fs.fe { box-shadow: inset 0 -5px 0 #7a4b22, inset -5px 0 0 #7a4b22; } .wm-grid > i.fs.fw { box-shadow: inset 0 -5px 0 #7a4b22, inset 5px 0 0 #7a4b22; }
+.wm-grid > i.fn.fs { box-shadow: inset 0 5px 0 #7a4b22, inset 0 -5px 0 #7a4b22; } .wm-grid > i.fe.fw { box-shadow: inset 5px 0 0 #7a4b22, inset -5px 0 0 #7a4b22; }
+@keyframes wmGhost { from { opacity: .55; } to { opacity: 1; } }
+.wm-critter { position: absolute; transform: translate(-50%, -60%); transition: left 2.2s ease-in-out, top 2.2s ease-in-out; pointer-events: none; z-index: 2; }
+.wm-bb { display: block; width: 100%; height: auto; filter: drop-shadow(0 3px 2px rgba(0,0,0,.25)); animation: wmBob .6s ease-in-out infinite alternate; transition: transform .3s; }
+@keyframes wmBob { from { translate: 0 0; } to { translate: 0 -6%; } }
+.wm-scale { display: flex; align-items: center; gap: 8px; justify-content: center; font-weight: 800; color: #4b3a1c; }
+.wm-scale-bar { display: inline-block; max-width: 60px; min-width: 30px; height: 10px; border: 2px solid #4b3a1c; border-top: 0; }
+.wm-side { min-height: 0; display: flex; flex-direction: column; gap: 10px; overflow: hidden; }
+.wm-stats { display: grid; gap: 4px; padding: 10px 12px; border-radius: 16px; background: #fffaf0; border: 2px solid #d8c79c; font-size: .98rem; }
+.wm-mood { justify-self: start; padding: 2px 10px; border-radius: 999px; background: #d9f2c6; color: #24531a; font-weight: 800; }
+.wm-mood.bad { background: #ffd9c7; color: #8a2d0c; }
+.wm-tier { position: relative; display: block; height: 26px; border-radius: 999px; background: #efe6cc; overflow: hidden; margin-top: 4px; }
+.wm-tier i { position: absolute; inset: 0 auto 0 0; background: #f2c14e; }
+.wm-tier em { position: relative; display: block; text-align: center; font: 800 .85rem/26px 'Nunito', sans-serif; font-style: normal; }
+.wm-card { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 14px 14px 12px; border-radius: 18px; background: #fff; border: 3px solid #6b4f2a; box-shadow: 0 5px 0 rgba(80,60,30,.25); overflow: auto; }
+.wm-card p { margin: 0; padding-right: 48px; font-size: 1.05rem; line-height: 1.35; }
+.wm-card.watch { justify-content: center; }
+.wm-say { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 12px; border: 2px solid #6b4f2a; background: #fff7d6; display: grid; place-items: center; color: #4b3a1c; }
+.wm-story { color: #4b5a2a; }
+.wm-ask { font-size: 1.15rem !important; }
+.wm-pad { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+.wm-pad-read { display: flex; align-items: baseline; justify-content: center; gap: 8px; min-height: 52px; border-radius: 12px; background: #f4efe0; border: 2px solid #d8c79c; }
+.wm-pad-read b { font: 900 2rem 'Baloo 2', sans-serif; } .wm-pad-read span { font-weight: 800; color: #6b5a3a; }
+.wm-pad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.wm-pad-keys button { min-height: 48px; border-radius: 12px; border: 2px solid #c9b78a; background: #fffaf0; font: 900 1.4rem 'Nunito', sans-serif; touch-action: manipulation; }
+.wm-pad-keys button:active { translate: 0 2px; }
+.wm-pad-keys .go, .wm-go { background: #4c9a2a; border-color: #2f6b16; color: #fff; }
+.wm-pad-keys .go:disabled { opacity: .5; }
+.wm-go { margin-top: auto; min-height: 52px; border-radius: 14px; border: 2px solid #2f6b16; font: 900 1.2rem 'Nunito', sans-serif; }
+.wm-result { font: 900 1.5rem 'Baloo 2', sans-serif !important; color: #2f6b16; }
+.wm-card.miss .wm-result { color: #8a5a1c; }
+.wm-hint { padding: 8px 10px !important; border-radius: 10px; background: #f4efe0; }
+.wm-news { font-weight: 800; color: #7a4b00; }
+.wm-foot { margin: 0; text-align: center; font-size: .85rem; font-weight: 700; color: #6b5a3a; }
+@media (max-width: 820px), (orientation: portrait) { .wm-main { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); } .wm-grid { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { .wm-critter { transition: none; } .wm-bb, .wm-grid > i.ghost { animation: none; } }
+.wm-pad-keys button { min-height: 44px; font-size: 1.25rem; }
+.wm-pad-read { min-height: 46px; }
+.wm-card { padding: 12px 12px 10px; gap: 6px; }
+.wm-stats { font-size: .92rem; gap: 2px; padding: 8px 12px; }

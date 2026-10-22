@@ -89,6 +89,7 @@ const ScienceLab = lazyFresh(() => import('./routes/student/ScienceLab'));
 const Supernature = lazyFresh(() => import('./routes/student/Supernature'));
 const Diary = lazyFresh(() => import('./routes/student/Diary'));
 const FeelingsApp = lazyFresh(() => import('./routes/student/FeelingsApp'));
+const WildMeasures = lazyFresh(() => import('./routes/student/WildMeasures'));
 const WorldEditor = lazyFresh(() => import('./routes/teacher/WorldEditor'));
 const StyleRoom = lazyFresh(() => import('./routes/teacher/StyleRoom'));
 const StudentStyle = lazyFresh(() => import('./routes/student/StudentStyle'));
@@ -213,6 +214,7 @@ export default function App() {
           <Route path="/student/science-lab" element={<Suspense fallback={<div className="app-shell center-screen"><p>Setting up the lab…</p></div>}><ScienceLab /></Suspense>} />
           <Route path="/student/diary" element={<Suspense fallback={null}><Diary /></Suspense>} />
           <Route path="/student/feelings" element={<Suspense fallback={null}><FeelingsApp /></Suspense>} />
+          <Route path="/student/creator" element={<Suspense fallback={null}><WildMeasures /></Suspense>} />
           <Route path="/student/supernature" element={<Suspense fallback={<div className="app-shell center-screen"><p>Opening the witch's house…</p></div>}><Supernature /></Suspense>} />
           <Route path="/student/alchemy" element={<Suspense fallback={<div className="app-shell center-screen"><p>Mixing the elements…</p></div>}><Alchemy /></Suspense>} />
           <Route path="/student/library" element={<Suspense fallback={<div className="app-shell center-screen"><p>Opening the Library…</p></div>}><GusLibrary /></Suspense>} />
