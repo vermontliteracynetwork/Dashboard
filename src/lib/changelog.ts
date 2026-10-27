@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-styloo-animals",
+    date: "2026-10-27",
+    icon: "🐄",
+    title: "New walking animals",
+    body: "Adopt the Spotted Pup or the Pink Nose Kitty, who really walk and run. A cow, chicken, giraffe, ladybug and butterfly joined the Town Square animals, and animals in Town Square wander around now.",
+  },
+  {
     id: "2026-10-27-pet-fix",
     date: "2026-10-27",
     icon: "🐕",

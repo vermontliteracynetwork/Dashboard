@@ -55,6 +55,11 @@ const RIGS: { test: RegExp; spec: RigSpec }[] = [
     reparent: [[/^FrontFoot\.?L$/, /^FrontLowLeg\.?L$/], [/^FrontFoot\.?R$/, /^FrontLowLeg\.?R$/], [/^BackFoot\.?L$/, /^BackLowLeg\.?L$/], [/^BackFoot\.?R$/, /^BackLowLeg\.?R$/]],
     dropTracks: /^(FrontFoot|BackFoot)\.?[LR]$/,
   } },
+  // Build Queue 398: the Styloo pack's dog, cat, cow and giraffe (a Blender Rigify skeleton; three drops the dots).
+  { test: /^DEF-front_thigh\.?L$/, spec: { bones: {
+    root: /^DEF-spine$/, spine: /^DEF-spine\.?002$/, neck: /^DEF-spine\.?004$/,
+    ...legs('DEF-front_thigh\\.?%', 'DEF-front_shin\\.?%', 'DEF-front_foot\\.?%', 'DEF-thigh\\.?%', 'DEF-shin\\.?%', 'DEF-foot\\.?%'),
+  } } },
   // Bicolor, Bengal, Maine Coon and Ragdoll cats (the "Wolf" rig).
   { test: /^Wolf_l_FrontLeg_Hip/, spec: { bones: {
     root: /^Wolf_ROOT/, spine: /^Wolf_Spine_03/, neck: /^Wolf_Neck_01/, head: /^Wolf_Head_Jaw/, tail1: /^Wolf_Tail_01_02/, tail2: /^Wolf_Tail_01_04/,

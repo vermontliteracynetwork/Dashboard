@@ -111,6 +111,16 @@ const PET_CATALOG_ALL: PetDef[] = [
   { id: 'pet-cat-maine-coon', name: 'Maine Coon', modelPath: '/world/models/pets/animal-cat-maine-coon.glb', priceCents: 30000, category: 'cat', targetHeight: 0.95 },
   { id: 'pet-cat-ragdoll', name: 'Ragdoll', modelPath: '/world/models/pets/animal-cat-ragdoll.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
   { id: 'pet-cat-bengal', name: 'Bengal', modelPath: '/world/models/pets/animal-cat-bengal.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
+  // Build Queue 398 (her words: "make sure that these animals are animated and can interact functionally"): the Styloo
+  // animal pack. The dog and cow keep their own Idle, Walk, Run and Jump; the cat, giraffe, chicken and ladybug got
+  // walk and idle moves made for their own skeletons, and the butterfly flies. The pup and kitty can be adopted.
+  { id: 'pet-styloo-pup', name: 'Spotted Pup', modelPath: '/world/models/pets-styloo/styloo-dog.glb', priceCents: 30000, category: 'dog', targetHeight: 1.0 },
+  { id: 'pet-styloo-kitty', name: 'Pink Nose Kitty', modelPath: '/world/models/pets-styloo/styloo-cat.glb', priceCents: 30000, category: 'cat', targetHeight: 0.85 },
+  { id: 'pet-styloo-cow', name: 'Cow', modelPath: '/world/models/pets-styloo/styloo-cow.glb', priceCents: 30000, category: 'farm', targetHeight: 1.4 },
+  { id: 'pet-styloo-chicken', name: 'Chicken', modelPath: '/world/models/pets-styloo/styloo-chicken.glb', priceCents: 20000, category: 'farm', targetHeight: 0.7 },
+  { id: 'pet-styloo-giraffe', name: 'Giraffe', modelPath: '/world/models/pets-styloo/styloo-giraffe.glb', priceCents: 40000, category: 'wild', targetHeight: 2.2 },
+  { id: 'pet-styloo-ladybug', name: 'Ladybug', modelPath: '/world/models/pets-styloo/styloo-ladybug.glb', priceCents: 13000, category: 'small', targetHeight: 0.3 },
+  { id: 'pet-styloo-butterfly', name: 'Butterfly', modelPath: '/world/models/pets-styloo/styloo-butterfly.glb', priceCents: 13000, category: 'small', targetHeight: 0.35 },
   // A future pet (her words: "keep as future pets: hamster"), not adoptable yet.
   { id: 'pet-hamster', name: 'Hamster', modelPath: '/world/models/pets/animal-hamster.glb', priceCents: 13000, category: 'small', targetHeight: 0.09 },
 ];
