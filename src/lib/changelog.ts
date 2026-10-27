@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-pet-fix",
+    date: "2026-10-27",
+    icon: "🐕",
+    title: "Pets walk on the ground",
+    body: "Cats and dogs stand on the ground now instead of sinking into it or floating. Huskies and Shiba Inus use their real resting and walking moves.",
+  },
+  {
     id: "2026-10-27-alchemy-count",
     date: "2026-10-27",
     icon: "⚗️",

@@ -1,4 +1,5 @@
 import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { footLiftFor, pickIdle, pickWalk } from '../../lib/petClips';
 import AfterschoolSettings from '../../components/AfterschoolSettings';
 import { withPersonality } from '../../lib/npcPersonality';
 import { MenuItems, openMainMenu } from '../../lib/mainMenu';
@@ -876,10 +877,12 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
     applyPetLook(c, tintColor);
     return c;
   }, [scene, tintColor]);
-  const scale = useMemo(() => {
-    const size = new THREE.Box3().setFromObject(scene).getSize(new THREE.Vector3());
-    if (!(size.y > 0) || !isFinite(size.y)) return 1;
-    return THREE.MathUtils.clamp(targetHeight / size.y, PET_SCALE_MIN, PET_SCALE_MAX);
+  const { scale, lift } = useMemo(() => {
+    const box = new THREE.Box3().setFromObject(scene), size = box.getSize(new THREE.Vector3());
+    if (!(size.y > 0) || !isFinite(size.y)) return { scale: 1, lift: 0 };
+    const k = THREE.MathUtils.clamp(targetHeight / size.y, PET_SCALE_MIN, PET_SCALE_MAX);
+    // Build Queue 397: feet exactly on the ground, so no pet walks through it or floats over it.
+    return { scale: k, lift: footLiftFor(box.min.y, k) };
   }, [scene, targetHeight]);
   const group = useRef<THREE.Group>(null);
   // Pets v2: real trick poses on the pet's skeleton (Buff Doge's tricks, on command).
@@ -893,8 +896,9 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
   const clipNames = useMemo(() => {
     const keys = Object.keys(actions);
     return {
-      idle: keys.find((k) => k.toLowerCase().includes('idle')),
-      walk: keys.find((k) => k.toLowerCase().includes('walk') || k.toLowerCase().includes('run')),
+      // Build Queue 397: the real idle and walk, never a hit reaction (src/lib/petClips.ts).
+      idle: pickIdle(keys),
+      walk: pickWalk(keys),
     };
   }, [actions]);
   const current = useRef<'idle' | 'walk'>('idle');
@@ -957,7 +961,7 @@ function PetCompanionModel({ path, floating, targetHeight, isMovingRef, tintColo
     <group ref={group}>
       <group ref={trickGroup}>
         <group ref={bobGroup}>
-          <primitive object={cloned} scale={scale} />
+          <primitive object={cloned} scale={scale} position-y={lift} />
         </group>
       </group>
     </group>

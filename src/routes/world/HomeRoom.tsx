@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { footLiftFor, pickIdle, pickWalk } from '../../lib/petClips';
 import { feedFromInventory } from '../../lib/petFood';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
@@ -724,14 +725,14 @@ function HomePetPresence({ pet, def, position, cue, onTap, roam, obstacles = [] 
   // there are pets in student homes stuck in the floor)"): a model whose body hangs below its own origin
   // is lifted so its lowest point sits on the floor.
   const footLift = useMemo(() => {
-    const min = new THREE.Box3().setFromObject(scene).min.y;
-    return isFinite(min) && min < 0 ? -min * scale : 0;
+    // Build Queue 397: lowered too when the model floats above its origin (the Great Dane hovered).
+    return footLiftFor(new THREE.Box3().setFromObject(scene).min.y, scale);
   }, [scene, scale]);
   const group = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
   const clipKeys = useMemo(() => {
     const keys = Object.keys(actions);
-    return { idle: keys.find((k) => k.toLowerCase().includes('idle')), walk: keys.find((k) => k.toLowerCase().includes('walk')) };
+    return { idle: pickIdle(keys), walk: pickWalk(keys) };
   }, [actions]);
   useEffect(() => {
     const idle = clipKeys.idle ? actions[clipKeys.idle] : undefined;

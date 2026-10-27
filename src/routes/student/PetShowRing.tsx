@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { pickIdle, pickWalk } from '../../lib/petClips';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -134,8 +135,8 @@ function ShowPet({ pet, cue, target, onArrive }: { pet: StudentPet; cue: { kind:
   const setup = usePoseSetup(model, animations);
   useEffect(() => {
     const clips = animations.filter((a) => a.tracks.length);
-    const idle = clips.find((a) => a.name === 'Idle') ?? clips.find((a) => /idle/i.test(a.name));
-    const walk = clips.find((a) => /walk|gallop|run/i.test(a.name));
+    const names = clips.map((a) => a.name), iN = pickIdle(names), wN = pickWalk(names);
+    const idle = clips.find((a) => a.name === iN), walk = clips.find((a) => a.name === wN);
     const ai = idle ? mixer.clipAction(idle) : null, aw = walk ? mixer.clipAction(walk) : null;
     ai?.play();
     (mixer as unknown as { _pair?: [THREE.AnimationAction | null, THREE.AnimationAction | null] })._pair = [ai, aw];
