@@ -311,6 +311,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // question sets fixes one part; three parts bring the land, its plants and the dens back.
   const [ruins, setRuins] = useState<Record<string, { kind: Disaster; done: number }>>((saved.ruins as Record<string, { kind: Disaster; done: number }>) ?? {});
   const [fixQ, setFixQ] = useState<MCQuestion | null>(null);
+  // Build Queue 390 ("creatures should also be able to team up"): two creatures in the same land can be a team.
+  // A teammate helps prey escape hunts and jumps into wild battles. Saved as pairs, both ways.
+  const [teams, setTeams] = useState<Record<string, string>>((saved.teams as Record<string, string>) ?? {});
   const [picked, setPicked] = useState<string[]>(saved.picked ?? []);
   const [book, setBook] = useState<string[]>(saved.book ?? []);
   const [card, setCard] = useState<{ id: string; first: boolean; note?: string } | null>(null);
@@ -681,6 +684,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const nextQ = (avoid?: string) => drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   const startTrain = (id: string, skill: SkillId, teach?: string) => { snSound('open'); setTrain({ id, skill, q: nextQ(), teach }); };
   // Build Queue 389: the top ranked creature in play (by its total skill levels) is the teacher.
+  const mateOf = (id: string) => { const m = teams[id]; const ml = m ? live.find((x) => x.c.id === m) : null; const me = live.find((x) => x.c.id === id); return ml && me && !ml.hide && count(m) > 0 && home(ml.c) === home(me.c) ? ml : null; };
+  const teamUp = (a: Creature, b: Creature | null) => {
+    snSound(b ? 'learned' : 'tap');
+    setTeams((t) => { const n = { ...t }; for (const id of [a.id, b?.id, t[a.id], b ? t[b.id] : undefined]) if (id) delete n[id]; if (b) { n[a.id] = b.id; n[b.id] = a.id; } return n; });
+    tell(b ? `${a.name} and ${b.name} are a team now! Teammates help each other escape hunters and jump into battles.` : `${a.name} is on its own again.`, true);
+  };
   const teacher = live.filter((l) => !l.hide && count(l.c.id) > 0).sort((a, b) => skillTotal(sk(b.c)) - skillTotal(sk(a.c)))[0];
   const trainRight = () => {
     if (!train?.skill) return;
@@ -895,8 +904,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { log, biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, asks: asks as unknown as SnHabitat['asks'], gone, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names, ruins };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${Object.entries(asks).map(([k, a]) => `${k}${a.step}`).join()}|${gone.join()}|${picked.length}|${book.length}|${JSON.stringify(names)}|${JSON.stringify(ruins)}`;
+  latest.current = { log, biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, asks: asks as unknown as SnHabitat['asks'], gone, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names, ruins, teams };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${Object.entries(asks).map(([k, a]) => `${k}${a.step}`).join()}|${gone.join()}|${picked.length}|${book.length}|${JSON.stringify(names)}|${JSON.stringify(ruins)}|${JSON.stringify(teams)}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1042,7 +1051,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       if (wb.turn === 'p') { const e = escapeChance(wb.p.id ? live.find((l) => l.c.id === wb.p.id)!.c : live[0].c, sk(live.find((l) => l.c.id === wb.p.id)!.c), live.find((l) => l.c.id === wb.h.id)!.c, sk(live.find((l) => l.c.id === wb.h.id)!.c), count(wb.p.id)); if (Math.random() < e.p * 0.25) { finish(false, `🏁 ${wb.p.name} ${HOW_ESCAPED[e.how]}! The prey wins!`); return; } }
       // Build Queue 387: a different action each turn (powers, tackles, skill tricks, nature surprises).
       const atkC = live.find((l) => l.c.id === atk.id)?.c;
-      const mv = wildMove(atk, def, { biome, night, k: atkC ? sk(atkC) : {}, family: count(atk.id), air: !!atkC && airborne(atkC), role: wb.turn });
+      const mv = wildMove(atk, def, { biome, night, k: atkC ? sk(atkC) : {}, family: count(atk.id), air: !!atkC && airborne(atkC), role: wb.turn, mate: mateOf(atk.id)?.c.name });
       const clean = (f: Fighter, tag: string) => ({ ...f, extra: f.extra.filter((x) => x !== tag) });
       if ('special' in mv) {
         const me2 = { ...clean(atk, 'Dazed'), ...mv.self, extra: [...clean(atk, 'Dazed').extra, ...(mv.selfTag ? [mv.selfTag] : [])] };
@@ -1087,12 +1096,13 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         if (inView) { natureSound('whoosh', 0.3); tell(`${h.c.name} is hunting! It ${airborne(h.c) ? 'swoops through the sky' : has(sk(h.c), 'sneak') ? 'sneaks up quietly' : 'runs fast'} toward ${p.c.name}.${airborne(h.c) ? ' Sky hunters only chase other fliers.' : ''}`); }
         window.setTimeout(() => {
           const e = escapeChance(p.c, sk(p.c), h.c, sk(h.c), count(p.c.id));
+          const pm = mateOf(p.c.id);
           if (count(p.c.id) <= 1) {
             setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'escaped', how: 'luck' }); setEscapedAt((m) => ({ ...m, [p.c.id]: Date.now() }));
             if (inView) { snSound('chime'); tell(`${p.c.name} is the last one in its family, so it hid safely in its den.`, true); }
-          } else if (Math.random() < e.p) {
+          } else if (Math.random() < e.p + (pm ? 0.15 : 0)) {
             setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'escaped', how: e.how }); setEscapedAt((m) => ({ ...m, [p.c.id]: Date.now() }));
-            if (inView) { snSound('chime'); tell(`${p.c.name} ${HOW_ESCAPED[e.how]}! ${e.how !== 'luck' ? `Its ${e.how === 'flying' || e.how === 'swimming' ? e.how : SKILL(e.how as SkillId).name.toLowerCase()} skill saved it.` : ''}`, true); }
+            if (inView) { snSound('chime'); tell(`${p.c.name} ${HOW_ESCAPED[e.how]}! ${e.how !== 'luck' ? `Its ${e.how === 'flying' || e.how === 'swimming' ? e.how : SKILL(e.how as SkillId).name.toLowerCase()} skill saved it.` : ''}${pm ? ` Its teammate ${pm.c.name} helped too.` : ''}`, true); }
           } else {
             setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'caught' });
             setEco((x) => ({ ...x, groups: { ...x.groups, [p.c.id]: Math.max(0, (x.groups[p.c.id] ?? startGroup(p.c.id)) - 1) } }));
@@ -1405,7 +1415,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <Fx k="potion" size={150} className="sn-critfx" />}
               {caughtFx.includes(l.c.id) && <Fx k="poof" size={150} className="sn-critfx" />}
-              <span className="sn-crit-name">{asks[l.c.id] && <b className="sn-ask-badge" aria-label={`Request ${asks[l.c.id].step} of 3`}>💬{asks[l.c.id].step}</b>}<i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>{rankOf(sk(l.c)).icon} Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
+              <span className="sn-crit-name">{asks[l.c.id] && <b className="sn-ask-badge" aria-label={`Request ${asks[l.c.id].step} of 3`}>💬{asks[l.c.id].step}</b>}<i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>{rankOf(sk(l.c)).icon} Lv {levels[l.c.id] ?? 1}</small>{mateOf(l.c.id) ? ' 🤝' : ''}{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
             </span>
@@ -1590,6 +1600,13 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               <div>{(Object.entries(sk(sel_.c)) as [SkillId, number][]).map(([id, n]) => <span key={id} className="sn-skill" title={SKILL(id).does}>{SKILL(id).icon} {SKILL(id).name} <i>{'●'.repeat(n)}{'○'.repeat(MAX_LEVEL - n)}</i></span>)}</div>
               <button type="button" className="sn-btn2 go" onClick={() => { snSound('open'); setTrain({ id: sel_.c.id, skill: null, q: null }); }}>📚 Train skills with questions</button>
             </div>
+            {(() => { const m = mateOf(sel_.c.id); const pals = live.filter((x) => x.c.id !== sel_.c.id && !x.hide && count(x.c.id) > 0 && home(x.c) === home(sel_.c) && !catches(x.c, sel_.c, sk(sel_.c)) && !catches(sel_.c, x.c, sk(x.c))); return (
+              <div className="sn-pop-team"><b>🤝 Team up</b>
+                {m ? <><span>Teammate: <b>{nameOf(m)}</b></span><button type="button" className="sn-chip-btn" onClick={() => teamUp(sel_.c, null)}>Split up</button></>
+                  : pals.length ? pals.map((x) => <button key={x.c.id} type="button" className="sn-chip-btn" onClick={() => teamUp(sel_.c, x.c)}><img src={art(x.c.id)} alt="" /> {nameOf(x)}</button>)
+                  : <span className="sn-small">No one in this land can team up with it (hunters and their prey never team up).</span>}
+              </div>
+            ); })()}
             <p className="sn-pop-seasons"><b>Level {levels[sel_.c.id] ?? 1}.</b> Live through all four seasons to level up: {SEASONS.map((x) => <span key={x} className={(seen[sel_.c.id] ?? []).includes(x) ? 'got' : ''}>{SEASON_ICON[x]}</span>)}</p>
             <p className="sn-small">{breedNote(sel_.c)}{(buffs[sel_.c.id] ?? []).length ? ` Potions on it: ${buffs[sel_.c.id].join(', ')}.` : ''}</p>
             <p className="sn-pop-status">{sel_.status ? STATUS[sel_.status] : 'Happy and healthy.'}

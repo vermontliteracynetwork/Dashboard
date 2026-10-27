@@ -10418,3 +10418,7 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 /* Build Queue 389: rank in the Train card. */
 .sn-rank { margin-left: 8px; font-size: 15px; font-weight: 800; color: #5b4a1c; }
 .sn-train-opt.teach { border-color: #c98a1c; background: #fff4d6; }
+/* Build Queue 390: team up row on a creature's card. */
+.sn-pop-team { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.sn-pop-team .sn-chip-btn { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.sn-pop-team .sn-chip-btn img { width: 28px; height: 28px; object-fit: contain; }

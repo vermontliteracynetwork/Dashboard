@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-team-up",
+    date: "2026-10-27",
+    icon: "🤝",
+    title: "Team up in Supernature",
+    body: "Tap a creature in the Habitat and pick a teammate that lives in the same land. Teammates help each other escape hunters and jump into wild battles together.",
+  },
+  {
     id: "2026-10-27-skill-ranks",
     date: "2026-10-27",
     icon: "🏆",

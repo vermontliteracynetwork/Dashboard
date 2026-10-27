@@ -138,7 +138,7 @@ export function preBattle(me: Fighter, them: Fighter, record: { w: number; l: nu
 // picks from many different actions instead of the same best move every time. The land matters (a home biome boosts
 // its own powers, and night boosts shadow), each side has its own skill tricks (prey hide, dash, trick or call the
 // family; hunters pounce, sniff, roar or dive from the sky), and now and then nature surprises them both.
-export type WildCtx = { biome: string; night: boolean; k: SkillSet; family: number; air: boolean; role: 'h' | 'p' };
+export type WildCtx = { biome: string; night: boolean; k: SkillSet; family: number; air: boolean; role: 'h' | 'p'; mate?: string };
 export type WildPick = { aff: Aff | 'tackle'; boost: number; note: string } | { special: string; self: Partial<Pick<Fighter, 'confidence' | 'health'>>; foe: Partial<Pick<Fighter, 'confidence'>>; selfTag?: string; foeTag?: string };
 const LAND_AFF: Record<string, Aff[]> = { grassland: ['wind', 'nature'], forest: ['nature', 'shadow'], desert: ['fire', 'earth'], snow: ['ice', 'wind'], swamp: ['water', 'nature'], ocean: ['water', 'storm'] };
 const NATURE_SURPRISE = [
@@ -152,6 +152,10 @@ export function wildMove(me: Fighter, foe: Fighter, ctx: WildCtx): WildPick {
   const r = Math.random();
   if (r < 0.06) { const n = pickOne(NATURE_SURPRISE); return { special: `🍃 ${n.text}`, self: { confidence: Math.min(100, me.confidence + n.self) }, foe: { confidence: Math.max(5, Math.min(100, foe.confidence + n.foe)) } }; }
   const tricks: WildPick[] = [];
+  // Build Queue 390: a teammate in the same land jumps in to help (twice as likely as any other trick).
+  if (ctx.mate) for (let i = 0; i < 2; i++) tricks.push(ctx.role === 'p'
+    ? { special: `🤝 ${me.name}'s teammate ${ctx.mate} jumps in to help! ${foe.name} backs up.`, self: { confidence: Math.min(100, me.confidence + 10) }, foe: { confidence: Math.max(5, foe.confidence - 8) }, selfTag: 'Hidden' }
+    : { special: `🤝 ${me.name} and its teammate ${ctx.mate} hunt together as a team.`, self: { confidence: Math.min(100, me.confidence + 10) }, foe: { confidence: Math.max(5, foe.confidence - 5) } });
   if (ctx.role === 'p') {
     if (has(ctx.k, 'camouflage')) tricks.push({ special: `🍃 ${me.name} blends into the ${ctx.biome === 'snow' ? 'snow' : ctx.biome === 'desert' ? 'sand' : 'leaves'} and is very hard to see!`, self: {}, foe: {}, selfTag: 'Hidden' });
     if (has(ctx.k, 'speed')) tricks.push({ special: `💨 ${me.name} zigzags away fast. ${foe.name} has to catch its breath.`, self: { confidence: Math.min(100, me.confidence + 5) }, foe: { confidence: Math.max(5, foe.confidence - 6) }, selfTag: 'Hidden' });
