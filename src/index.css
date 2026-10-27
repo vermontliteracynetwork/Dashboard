@@ -10415,3 +10415,6 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .sn-kin.age-baby { scale: 0.48; }
 .sn-kin.age-young { scale: 0.6; }
 .sn-kin.age-baby .sn-crit-name, .sn-kin.age-young .sn-crit-name { font-size: 18px; }
+/* Build Queue 389: rank in the Train card. */
+.sn-rank { margin-left: 8px; font-size: 15px; font-weight: 800; color: #5b4a1c; }
+.sn-train-opt.teach { border-color: #c98a1c; background: #fff4d6; }

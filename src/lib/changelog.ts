@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-skill-ranks",
+    date: "2026-10-27",
+    icon: "🏆",
+    title: "Creature ranks and teachers",
+    body: "Supernature creatures earn a rank from their skills: Rookie, Skilled, Expert and Master. The top ranked creature can teach its skills to the others, and learning from it takes only 2 right answers.",
+  },
+  {
     id: "2026-10-27-world-box-volume",
     date: "2026-10-27",
     icon: "📦",

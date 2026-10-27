@@ -11,6 +11,8 @@ git fetch origin main && git checkout main && git merge --ff-only origin/main \
 ```
 Every report says which items are on the preview and waiting for her approval to go to main.
 
+Preview link (the branch alias, always the newest push): https://independent-work-dashboard-git-cl-43837b-vermontliteracynetwork.vercel.app (it uses the same live data as production).
+
 Production (students): https://independent-work-dashboard.vercel.app (changes only when she approves).
 
 ## The development plan is the bible

@@ -11,6 +11,16 @@ import type { Creature } from './supernatureCreatures';
 import { tagsOf, type Tag } from './supernatureAdapt';
 
 export const MAX_SKILLS = 10, MAX_LEVEL = 5, LEARN_COST = 5, LEVEL_COST = 3;
+// Build Queue 389 (her words: "if creatures have skills, they should increase in the rank of total of that creature. that
+// high ranking creature, should be able to teach the other creatures skills"): a creature's rank comes from the total of
+// all its skill levels. The top ranked creature in play can teach a skill it knows to another creature, which takes
+// only TEACH_COST right answers instead of LEARN_COST.
+export const TEACH_COST = 2;
+export const RANKS = [
+  { at: 0, name: 'Rookie', icon: '🥉' }, { at: 8, name: 'Skilled', icon: '🥈' }, { at: 14, name: 'Expert', icon: '🥇' }, { at: 22, name: 'Master', icon: '🏆' },
+];
+export const skillTotal = (k: SkillSet) => Object.values(k).reduce((n, v) => n + (v ?? 0), 0);
+export const rankOf = (k: SkillSet) => [...RANKS].reverse().find((r) => skillTotal(k) >= r.at)!;
 export type SkillId =
   | 'swimming' | 'flying' | 'floating' | 'warmCoat' | 'desertBody' | 'toughHide' | 'fireBody' | 'nightEyes' | 'magicShield'
   | 'earthMagic' | 'quakeProof' | 'stormRider' | 'floodSafe' | 'smokeProof' | 'droughtSaver' | 'fishOutOfWater' | 'shadeSeeker'

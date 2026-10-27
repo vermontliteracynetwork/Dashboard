@@ -17,7 +17,7 @@ import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
 import { Fx, HIT_FX, ORB_FX, type FxKey } from './SupernatureFx';
 import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, wildMove, type Aff, type Fighter } from '../../lib/supernatureBattle';
 import {
-  HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, airborne, catches, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
+  HOW_ESCAPED, LEARN_COST, LEVEL_COST, TEACH_COST, rankOf, skillTotal, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, airborne, catches, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
 } from '../../lib/supernatureSkills';
 import { SEASONS, SEASON_ICON, groupCap, isGod, litterWord, startGroup, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
@@ -296,7 +296,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const [escapedAt, setEscapedAt] = useState<Record<string, number>>({});
   const [grewAt, setGrewAt] = useState<Record<string, number>>({});
   const [hungryIds, setHungryIds] = useState<string[]>([]);
-  const [train, setTrain] = useState<{ id: string; skill: SkillId | null; q: MCQuestion | null } | null>(null);
+  const [train, setTrain] = useState<{ id: string; skill: SkillId | null; q: MCQuestion | null; teach?: string } | null>(null);
   const [placing, setPlacing] = useState<{ id: string; mode: 'add' | 'remove' } | null>(null);
   const [outTray, setOutTray] = useState(false);
   // Plants, wild critters and the garden (Build Queue 135, 136).
@@ -679,18 +679,20 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // Training skills with questions (her words: "skills are earned over time through question sets.
   // adaptations and evolutions for creatures are gained by correct question answered").
   const nextQ = (avoid?: string) => drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
-  const startTrain = (id: string, skill: SkillId) => { snSound('open'); setTrain({ id, skill, q: nextQ() }); };
+  const startTrain = (id: string, skill: SkillId, teach?: string) => { snSound('open'); setTrain({ id, skill, q: nextQ(), teach }); };
+  // Build Queue 389: the top ranked creature in play (by its total skill levels) is the teacher.
+  const teacher = live.filter((l) => !l.hide && count(l.c.id) > 0).sort((a, b) => skillTotal(sk(b.c)) - skillTotal(sk(a.c)))[0];
   const trainRight = () => {
     if (!train?.skill) return;
     const c = live.find((l) => l.c.id === train.id)?.c; if (!c) return;
     const k = sk(c); const s = train.skill; const learning = !has(k, s);
-    const need = learning ? LEARN_COST : LEVEL_COST;
+    const need = learning ? (train.teach ? TEACH_COST : LEARN_COST) : LEVEL_COST;
     const got = (prog[c.id]?.[s] ?? 0) + 1;
     if (got >= need) {
       setSkills((m) => ({ ...m, [c.id]: { ...k, [s]: learning ? 1 : Math.min(MAX_LEVEL, (k[s] ?? 0) + 1) } }));
       setProg((m) => ({ ...m, [c.id]: { ...(m[c.id] ?? {}), [s]: 0 } }));
       setGrewAt((m) => ({ ...m, [c.id]: Date.now() })); sparkleOn(c.id); snSound('learned');
-      tell(learning ? `${c.name} adapted! It learned ${SKILL(s).name}: ${SKILL(s).does}` : `${c.name}'s ${SKILL(s).name} skill grew to level ${Math.min(MAX_LEVEL, (k[s] ?? 0) + 1)}!`, true);
+      tell(learning ? `${c.name} adapted! ${train.teach ? `${train.teach} taught it` : 'It learned'} ${SKILL(s).name}: ${SKILL(s).does}` : `${c.name}'s ${SKILL(s).name} skill grew to level ${Math.min(MAX_LEVEL, (k[s] ?? 0) + 1)}!`, true);
       setTrain({ id: c.id, skill: null, q: null });
       return;
     }
@@ -1403,7 +1405,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {l.hp === 0 && <img src={`${SN}energy/asleep.png`} alt="" className="sn-zz sn-smooth" />}
               {sparkle === l.c.id && <Fx k="potion" size={150} className="sn-critfx" />}
               {caughtFx.includes(l.c.id) && <Fx k="poof" size={150} className="sn-critfx" />}
-              <span className="sn-crit-name">{asks[l.c.id] && <b className="sn-ask-badge" aria-label={`Request ${asks[l.c.id].step} of 3`}>💬{asks[l.c.id].step}</b>}<i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
+              <span className="sn-crit-name">{asks[l.c.id] && <b className="sn-ask-badge" aria-label={`Request ${asks[l.c.id].step} of 3`}>💬{asks[l.c.id].step}</b>}<i className={`sn-zone ${feel.zone}`} title={`${ZONE_NAME[feel.zone]}: ${feel.word}`} />{count(l.c.id) === 0 ? '🧳 moved away' : <>{names[l.c.id]?.[0] ? `${names[l.c.id][0]} the ${l.c.name}` : l.c.name} <b>×{count(l.c.id)}</b> <small>{rankOf(sk(l.c)).icon} Lv {levels[l.c.id] ?? 1}</small>{l.status && l.status !== 'asleep' ? ` ${STATUS[l.status].split(' ')[0]}` : ''}</>}</span>
               <span className="sn-hearts" aria-hidden="true">{[0, 1, 2, 3, 4].map((h) => <i key={h} className={h < l.hp ? 'full' : ''} />)}</span>
             </button>
             </span>
@@ -1738,15 +1740,29 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           onCorrectAnswer={rebuildRight} onSkip={() => setFixQ(nextQ(fixQ.id))} onExit={() => setFixQ(null)} ttsSettings={ttsSettings} />
       )}
       {train && (() => { const l = live.find((x) => x.c.id === train.id); if (!l) return null; const k = sk(l.c); const full = Object.keys(k).length >= MAX_SKILLS; return train.skill && train.q ? (
-        <QuestionScreen key={`${train.q.id}-${prog[l.c.id]?.[train.skill] ?? 0}`} whoLabel={`Training ${l.c.name}: ${SKILL(train.skill).name} (${prog[l.c.id]?.[train.skill] ?? 0} of ${has(k, train.skill) ? LEVEL_COST : LEARN_COST})`} whoIcon={SKILL(train.skill).icon}
+        <QuestionScreen key={`${train.q.id}-${prog[l.c.id]?.[train.skill] ?? 0}`} whoLabel={`${train.teach ? `${train.teach} teaches` : 'Training'} ${l.c.name}: ${SKILL(train.skill).name} (${prog[l.c.id]?.[train.skill] ?? 0} of ${has(k, train.skill) ? LEVEL_COST : train.teach ? TEACH_COST : LEARN_COST})`} whoIcon={SKILL(train.skill).icon}
           prompt={train.q.prompt} typed={train.q.typed} choices={train.q.choices} correctIndex={train.q.correctIndex} imageUrl={train.q.imageUrl} imageAlt={train.q.imageAlt}
-          done={prog[l.c.id]?.[train.skill] ?? 0} total={has(k, train.skill) ? LEVEL_COST : LEARN_COST}
+          done={prog[l.c.id]?.[train.skill] ?? 0} total={has(k, train.skill) ? LEVEL_COST : train.teach ? TEACH_COST : LEARN_COST}
           onCorrectAnswer={trainRight} onSkip={() => setTrain({ ...train, q: nextQ(train.q?.id) })} onExit={() => setTrain({ ...train, skill: null, q: null })} ttsSettings={ttsSettings} />
       ) : (
         <div className="sn-modal snp-modal" role="dialog" aria-label={`Train ${l.c.name}`} onClick={() => setTrain(null)}>
           <PopCard className="sn-modal-card paper wide sn-train" title={`Train ${l.c.name}`} onClose={() => setTrain(null)}>
-            <div className="sn-row between" style={{ width: '100%' }}><h2><img src={art(l.c.id)} alt="" /> Train {l.c.name}</h2><button type="button" className="sn-ib small light" onClick={() => setTrain(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button></div>
+            <div className="sn-row between" style={{ width: '100%' }}><h2><img src={art(l.c.id)} alt="" /> Train {l.c.name} <small className="sn-rank">{rankOf(k).icon} {rankOf(k).name} · {skillTotal(k)} skill points</small></h2><button type="button" className="sn-ib small light" onClick={() => setTrain(null)} aria-label="Close"><Icon d="M6 6l12 12 M18 6L6 18" /></button></div>
             <p className="sn-small">Every right answer trains a skill. {LEVEL_COST} right answers raise a skill one level (up to {MAX_LEVEL}). {LEARN_COST} right answers teach a new skill, which is how a creature adapts. It can have {MAX_SKILLS} skills.</p>
+            {(() => {
+              const t = teacher && teacher.c.id !== l.c.id && skillTotal(sk(teacher.c)) > skillTotal(k) ? teacher : null;
+              if (!t) return teacher?.c.id === l.c.id ? <p className="sn-small">{rankOf(k).icon} {l.c.name} is the top ranked creature here, so it can teach the others. Open another creature's Train card to learn from it.</p> : null;
+              const tk = sk(t.c); const okIds = new Set(learnable(l.c, k).filter((x) => x.ok).map((x) => x.s.id));
+              const can = (Object.keys(tk) as SkillId[]).filter((id) => okIds.has(id));
+              return <>
+                <h3>{rankOf(tk).icon} Learn from {nameOf(t)}, the top ranked creature ({rankOf(tk).name}, {skillTotal(tk)} skill points)</h3>
+                {can.length ? <div className="sn-train-grid">{can.map((id) => (
+                  <button key={`t${id}`} type="button" className="sn-train-opt new teach" disabled={full} onClick={() => startTrain(l.c.id, id, nameOf(t))}>
+                    <span>{SKILL(id).icon}</span><b>{SKILL(id).name}</b><small>{nameOf(t)} teaches it: only {TEACH_COST} right answers</small><small>{prog[l.c.id]?.[id] ?? 0} of {TEACH_COST}</small>
+                  </button>
+                ))}</div> : <p className="sn-small">{l.c.name} already knows every skill {nameOf(t)} can teach.</p>}
+              </>;
+            })()}
             <h3>Make a skill stronger</h3>
             <div className="sn-train-grid">{(Object.entries(k) as [SkillId, number][]).map(([id, n]) => (
               <button key={id} type="button" className="sn-train-opt" disabled={n >= MAX_LEVEL} onClick={() => startTrain(l.c.id, id)}>
