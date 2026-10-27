@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T18:38:29.953Z",
+  "generatedAt": "2026-10-27T14:44:43.464Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3647,6 +3647,41 @@
       "category": "nature"
     },
     {
+      "path": "/world/models/pets-styloo/styloo-butterfly.glb",
+      "label": "Styloo Butterfly",
+      "category": "pets-styloo"
+    },
+    {
+      "path": "/world/models/pets-styloo/styloo-cat.glb",
+      "label": "Styloo Cat",
+      "category": "pets-styloo"
+    },
+    {
+      "path": "/world/models/pets-styloo/styloo-chicken.glb",
+      "label": "Styloo Chicken",
+      "category": "pets-styloo"
+    },
+    {
+      "path": "/world/models/pets-styloo/styloo-cow.glb",
+      "label": "Styloo Cow",
+      "category": "pets-styloo"
+    },
+    {
+      "path": "/world/models/pets-styloo/styloo-dog.glb",
+      "label": "Styloo Dog",
+      "category": "pets-styloo"
+    },
+    {
+      "path": "/world/models/pets-styloo/styloo-giraffe.glb",
+      "label": "Styloo Giraffe",
+      "category": "pets-styloo"
+    },
+    {
+      "path": "/world/models/pets-styloo/styloo-ladybug.glb",
+      "label": "Styloo Ladybug",
+      "category": "pets-styloo"
+    },
+    {
       "path": "/world/models/pets/animal-beagle.glb",
       "label": "Animal Beagle",
       "category": "pets"
@@ -3684,6 +3719,11 @@
     {
       "path": "/world/models/pets/animal-cat-ragdoll.glb",
       "label": "Animal Cat Ragdoll",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat-tuxedo.glb",
+      "label": "Animal Cat Tuxedo",
       "category": "pets"
     },
     {

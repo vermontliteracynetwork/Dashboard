@@ -16,6 +16,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-styloo-animals",
+    date: "2026-10-27",
+    icon: "🐄",
+    title: "New walking animals",
+    body: "Adopt the Spotted Pup, the Pink Nose Kitty or the Tuxedo Cat, who really walk. A cow, chicken, giraffe, ladybug and butterfly joined the Town Square animals, and animals in Town Square wander around now.",
+  },
+  {
+    id: "2026-10-27-pet-fix",
+    date: "2026-10-27",
+    icon: "🐕",
+    title: "Pets walk on the ground",
+    body: "Cats and dogs stand on the ground now instead of sinking into it or floating. Huskies and Shiba Inus use their real resting and walking moves.",
+  },
+  {
+    id: "2026-10-27-alchemy-count",
+    date: "2026-10-27",
+    icon: "⚗️",
+    title: "Alchemy counts only real mixes",
+    body: "In Alchemy, only mixes that make something count toward your next question break. Mixes that bounce apart do not count.",
+  },
+  {
     id: "2026-10-27-world-box-2",
     date: "2026-10-27",
     icon: "🗺️",

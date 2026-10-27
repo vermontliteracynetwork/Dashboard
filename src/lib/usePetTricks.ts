@@ -1,4 +1,5 @@
 import { useMemo, useRef } from 'react';
+import { pickIdle } from './petClips';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { setupPoseRig, markAnimated, applyPose, trickFrame, trickSeconds, lowestFootY, startFeetFollow, applyFeetFollow, stopFeetFollow, gaitAngles } from './petPoses';
@@ -12,7 +13,8 @@ export function usePoseSetup(model: THREE.Object3D, animations: THREE.AnimationC
   return useMemo(() => {
     const { rig } = setupPoseRig(model);
     const clips = animations.filter((a) => a.tracks.length);
-    const idle = clips.find((a) => a.name === 'Idle') ?? clips.find((a) => a.name.toLowerCase().includes('idle')) ?? clips[0] ?? null;
+    const idleName = pickIdle(clips.map((a) => a.name));
+    const idle = clips.find((a) => a.name === idleName) ?? null;
     if (rig) markAnimated(rig, idle);
     const restFoot = rig ? lowestFootY(rig, model) : 0;
     const hasWalk = clips.some((a) => /walk|run|gallop/i.test(a.name));

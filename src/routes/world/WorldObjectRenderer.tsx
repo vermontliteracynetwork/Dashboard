@@ -234,8 +234,10 @@ function groundUnder(x: number, z: number, floats: boolean, fishTall = 0): numbe
 // with a walk animation strolls around its spot and stops for idle breaks, never into water; a
 // fish swims slow loops, at mid-depth when it was put in a lake; an animal with no animation of
 // its own breathes, sways and looks around. Build Mode keeps them still so placing stays exact.
-const ANIMAL_NAME = /(^animal|(chicken|hen|rooster|cow|duck|pig|sheep|goat|horse|bird|birb|cat|dog|bunny|rabbit|frog|fox|deer|bear|owl|penguin|parrot|fish|shark|turtle|crab|monkey|panda|tiger|lion|pigeon|yeti|dino|dragon|bee))/i;
-const NOT_ANIMAL = /(coop|house|tank|rod|lure|bait|bath|box|bowl|feed|statue|sign|toy|bed|food|barn|kennel|cage|plush)/i;
+const ANIMAL_NAME = /(^animal\b|\b(chicken|hen|rooster|cow|duck|pig|sheep|goat|horse|bird|birb|cat|dog|bunny|rabbit|frog|fox|deer|bear|owl|penguin|parrot|fish|shark|turtle|crab|monkey|panda|tiger|lion|pigeon|yeti|dino|dragon|bee|giraffe|ladybug|butterfly)\b)/i;
+// Build Queue 398: these used to hold invisible backspace characters where \b belonged, so no unanimated animal ever
+// came to life in Town Square; the word edges are real again.
+const NOT_ANIMAL = /(coop|house|tank|rod|lure|bait|bath|box\b|bowl|feed|statue|sign|toy|bed\b|food|barn|kennel|cage|plush|pot\b|plane|soup)/i;
 const BAD_CLIP = /(death|attack|hit|out_of_water|static|punch|weapon|bite|no$|yes$)/i;
 const pickClip = (clips: THREE.AnimationClip[], re: RegExp) => clips.find((c) => re.test(c.name) && !BAD_CLIP.test(c.name));
 function AnimalLife({ root, clips, label, path, home, rotationY, scale, tall, baseGround, children }: {

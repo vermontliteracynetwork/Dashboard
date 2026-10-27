@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { pickIdle } from '../lib/petClips';
 import { Canvas } from '@react-three/fiber';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
@@ -40,7 +41,7 @@ function StagePet({ def, tintColor, cue }: { def: PetDef; tintColor?: string; cu
   const move = useRef<THREE.Group>(null);
   const { actions } = useAnimations(animations, group);
   useEffect(() => {
-    const k = Object.keys(actions).find((n) => n.toLowerCase().includes('idle'));
+    const k = pickIdle(Object.keys(actions));
     const a = k ? actions[k] : undefined;
     a?.reset().play();
     return () => { a?.stop(); };

@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { pickIdle, pickWalk } from '../../lib/petClips';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -63,8 +64,8 @@ function RescuePet({ path, height, trust, cue }: { path: string; height: number;
   const mixer = useMemo(() => new THREE.AnimationMixer(model), [model]);
   const acts = useMemo(() => {
     const clips = animations.filter((a) => a.tracks.length);
-    const idle = clips.find((a) => /idle/i.test(a.name)) ?? null;
-    const walk = clips.find((a) => /walk/i.test(a.name)) ?? clips.find((a) => /run|gallop|trot/i.test(a.name)) ?? null;
+    const names = clips.map((a) => a.name), iN = pickIdle(names), wN = pickWalk(names);
+    const idle = clips.find((a) => a.name === iN) ?? null, walk = clips.find((a) => a.name === wN) ?? null;
     const i = idle ? mixer.clipAction(idle) : null, w = walk ? mixer.clipAction(walk) : null;
     if (i) i.play();
     return { idle: i, walk: w };

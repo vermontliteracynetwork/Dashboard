@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { pickIdle } from '../lib/petClips';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -19,7 +20,8 @@ export function usePetPoser(scene: THREE.Object3D, animations: THREE.AnimationCl
     c.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.frustumCulled = false; });
     const { rig } = setupPoseRig(c);
     const clips = animations.filter((a) => a.tracks.length);
-    const clip = clips.find((a) => a.name === 'Idle') ?? clips.find((a) => a.name.toLowerCase().includes('idle')) ?? clips[0] ?? null;
+    const idleName = pickIdle(clips.map((a) => a.name));
+    const clip = clips.find((a) => a.name === idleName) ?? null;
     if (rig) markAnimated(rig, clip);
     const mixer = new THREE.AnimationMixer(c);
     if (clip) mixer.clipAction(clip).play();
