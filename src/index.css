@@ -10411,3 +10411,7 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 /* Build Queue 385: zoo pens on the World Box land. */
 .wm-pen-zone { position: absolute; box-sizing: border-box; border: 4px solid #8a5a2b; border-radius: 4px; background: rgba(255, 236, 180, .28) repeating-linear-gradient(90deg, transparent 0 12px, rgba(138, 90, 43, .12) 12px 14px); box-shadow: 0 3px 0 rgba(80, 50, 20, .3); pointer-events: none; }
 .wm-pen-zone b { position: absolute; left: 50%; top: 0; translate: -50% -60%; padding: 1px 8px; border-radius: 6px; background: #f6e3b8; border: 2px solid #8a5a2b; font: 900 .72rem 'Nunito', sans-serif; color: #5a3a17; white-space: nowrap; }
+/* Build Queue 386: a litter grows up together: babies this season, young next season, then grown. */
+.sn-kin.age-baby { scale: 0.48; }
+.sn-kin.age-young { scale: 0.6; }
+.sn-kin.age-baby .sn-crit-name, .sn-kin.age-young .sn-crit-name { font-size: 18px; }

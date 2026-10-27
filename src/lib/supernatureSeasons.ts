@@ -11,6 +11,16 @@ import { breedsIn } from './supernatureAdapt';
 // synced on devices. each season take 10 minutes. a day lasts 1 minutes ... a night lasts 1 minutes.
 // a season consists of 5 days (and five nights)"). Every device works the season out from the real
 // time, so all of a student's devices show the same season, day and sun at the same moment.
+// Build Queue 386 (her words: "breeding can happen with one species that can have a litter or group of creatures, aging
+// up together"): babies come as a litter (or a clutch of eggs for fliers and swimmers). Tiny, small or fast creatures
+// have 3 at a time, giants have 1, everyone else 2. The whole litter is born the same season and grows up together.
+export function litterOf(c: Creature): number {
+  const t = c.traits.join(' ').toLowerCase();
+  if (c.chapter === 'gods' || /giant|huge/.test(t)) return 1;
+  return /tiny|small|fast|mischievous/.test(t) ? 3 : 2;
+}
+export const litterWord = (c: Creature) => (c.move === 'fly' || c.move === 'swim' ? 'clutch' : 'litter');
+
 export const DAY_MS = 60_000, NIGHT_MS = 60_000, DAYS = 5, SEASON_MS = DAYS * (DAY_MS + NIGHT_MS);
 export function seasonClock(now = Date.now()) {
   const abs = Math.floor(now / SEASON_MS);
@@ -90,7 +100,7 @@ export function runSeason(eco: Eco, roster: Creature[], ctx: { biome: Biome; wea
       const f = fed[c.id] ?? 0;
       const food = c.food ?? (e === 'plants' ? 'plants' : 'food');
       const bs = breedsIn(c); const babies = !bs || bs === name || !!ctx.nest?.includes(c.id);
-      if (f >= 1 && liked && n < 10 && babies) { n = Math.min(10, n + (bs === name ? 2 : 1)); why = bs === name ? `It is its baby season: ${bs === 'Winter' ? 'babies were born in a snug den' : 'eggs hatched'}, and there was plenty to eat (${food}).` : ctx.nest?.includes(c.id) ? 'The Nidus nest helped: babies were born.' : `Plenty to eat (${food}), and it loves this land, so babies were born.`; }
+      if (f >= 1 && liked && n < 10 && babies) { n = Math.min(10, n + litterOf(c) + (bs === name ? 1 : 0)); why = bs === name ? `It is its baby season: ${bs === 'Winter' ? 'babies were born in a snug den' : 'eggs hatched'}, and there was plenty to eat (${food}).` : ctx.nest?.includes(c.id) ? 'The Nidus nest helped: babies were born.' : `Plenty to eat (${food}), and it loves this land, so babies were born.`; }
       else if (f >= 1 && liked && n < 10) why = `Well fed. It waits for ${bs!.toLowerCase()} to have babies.`;
       else if (f >= 1) why = liked ? 'Well fed, and the group is as big as it can get.' : 'Well fed, but this land is not its favorite.';
       else if (f >= 0.5) why = 'It found some food, but not a lot.';

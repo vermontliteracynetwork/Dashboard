@@ -20,7 +20,7 @@ import {
   HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, airborne, catches, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
 } from '../../lib/supernatureSkills';
-import { SEASONS, SEASON_ICON, groupCap, isGod, startGroup, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
+import { SEASONS, SEASON_ICON, groupCap, isGod, litterWord, startGroup, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
 import PopCard from './SupernaturePopCard';
 
 // The Habitat (out the OUTSIDE door), rebuilt from her asks (2026-10-13): only creatures the student
@@ -324,7 +324,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // the same creature to be placed in biomes (ex, more than one pheonix that can be individually named and
   // cared for. new generations should spawn and show a confrimation notification"). Up to 3 more family
   // members walk beside the first one, each with its own name (the family names list) and its own hearts.
-  const [kin, setKin] = useState<Record<string, { hp: number; born: number }[]>>(saved.kin ?? {});
+  const [kin, setKin] = useState<Record<string, { hp: number; born: number; bornAbs?: number; litter?: number }[]>>(saved.kin ?? {});
   const [kinSel, setKinSel] = useState<{ id: string; i: number } | null>(null);
   const [births, setBirths] = useState<{ id: string; n: number; placed: boolean }[]>([]);
   const [addAsk, setAddAsk] = useState<string | null>(null);
@@ -590,7 +590,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
 
   // Family members on screen follow the family size; a bigger family means a new generation was born.
-  const MAX_KIN = 3;
+  // Build Queue 386: up to 5 family members on screen, so a whole litter fits.
+  const MAX_KIN = 5;
   const prevGroups = useRef<Record<string, number> | null>(null);
   useEffect(() => {
     const prev = prevGroups.current; prevGroups.current = Object.fromEntries(live.map((l) => [l.c.id, count(l.c.id)]));
@@ -598,7 +599,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       let changed = false; const out = { ...k };
       for (const l of live) {
         const want = Math.max(0, Math.min(MAX_KIN, count(l.c.id) - 1)); const cur = out[l.c.id] ?? [];
-        if (cur.length !== want) { changed = true; out[l.c.id] = cur.length > want ? cur.slice(0, want) : [...cur, ...Array.from({ length: want - cur.length }, () => ({ hp: 5, born: Date.now() }))]; }
+        if (cur.length !== want) { changed = true; out[l.c.id] = cur.length > want ? cur.slice(0, want) : [...cur, ...Array.from({ length: want - cur.length }, () => ({ hp: 5, born: Date.now(), bornAbs: clk.abs, litter: want - cur.length }))]; }
       }
       return changed ? out : k;
     });
@@ -1365,13 +1366,13 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           const feel = feelFor(l);
           const style = behaviorOf(l.c).style;
           const kinRow = l.hide || count(l.c.id) === 0 ? [] : (kin[l.c.id] ?? []);
-          const OFF = [{ x: -78, y: 30 }, { x: 82, y: 34 }, { x: -24, y: 70 }];
+          const OFF = [{ x: -78, y: 30 }, { x: 82, y: 34 }, { x: -24, y: 70 }, { x: 40, y: 78 }, { x: -120, y: 66 }];
           const roam = !still && !l.hide && !hunting && !(wb && (wb.h.id === l.c.id || wb.p.id === l.c.id)) && hunt?.prey !== l.c.id && tp !== 'float' && tp !== 'zoom' && !['dive', 'land', 'sleep'].includes(reactions[l.c.id]?.pose ?? '');
           const wMain = wanderOf(l.c.id, pos.left, pos.top, roam);
           return (
             <span key={l.c.id} className="sn-family">
             {kinRow.map((m, j) => { const kl = Math.max(10, Math.min(W - 90, rest.left + OFF[j].x)), kt = Math.max(10, Math.min(H - 90, rest.top + OFF[j].y)); const wk = wanderOf(`${l.c.id}#${j}`, kl, kt, m.hp > 0 && !still); return (
-              <button key={`${l.c.id}#${j}`} type="button" className={`sn-crit sn-kin ${mv} st-${style}${m.hp === 0 ? ' still' : ''}${Date.now() - m.born < 20000 ? ' newborn' : ''} pose-none${wk.cls}`}
+              <button key={`${l.c.id}#${j}`} type="button" className={`sn-crit sn-kin ${mv} st-${style}${m.hp === 0 ? ' still' : ''}${Date.now() - m.born < 20000 ? ' newborn' : ''}${m.bornAbs === undefined ? '' : clk.abs - m.bornAbs <= 0 ? ' age-baby' : clk.abs - m.bornAbs === 1 ? ' age-young' : ''} pose-none${wk.cls}`}
                 style={{ left: kl, top: kt, zIndex: 3, ['--d' as string]: `${-sp.d * 0.6}px`, ['--t' as string]: `${(sp.t + j * 2) * (k || 1)}s`, animationDelay: `${-(i + j + 1) * 1.3}s`, ...wk.style }}
                 onClick={(e) => { e.stopPropagation(); snSound('tap'); setKinSel({ id: l.c.id, i: j }); setSel(null); }} aria-label={`${kinName(l.c, j)}, a ${l.c.name} in the family. ${m.hp} of 5 hearts. Tap to care for it.`}>
                 <img src={art(l.c.id)} alt="" />
@@ -1472,7 +1473,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         )}
 
 
-        {births[0] && (() => { const b = births[0]; const c = byId(b.id); if (!c) return null; const where = viewLabel(homes[b.id] ?? homeOf(c)).toLowerCase(); const text = b.placed ? `Another ${c.name} joined the family in the ${where}! The family has ${count(b.id)} now.` : `A new generation! ${b.n === 1 ? `A baby ${c.name} was` : `${b.n} baby ${c.name}s were`} born in the ${where}. The family has ${count(b.id)} now.`; return (
+        {births[0] && (() => { const b = births[0]; const c = byId(b.id); if (!c) return null; const where = viewLabel(homes[b.id] ?? homeOf(c)).toLowerCase(); const text = b.placed ? `Another ${c.name} joined the family in the ${where}! The family has ${count(b.id)} now.` : b.n === 1 ? `A new generation! A baby ${c.name} was born in the ${where}. The family has ${count(b.id)} now.` : `A new generation! A ${litterWord(c)} of ${b.n} baby ${c.name}s was born in the ${where}. They will grow up together: babies this season, young next season, then grown. The family has ${count(b.id)} now.`; return (
           <PopCard key={`birth-${b.id}-${births.length}`} className="sn-pop sn-leave sn-birth" style={{ left: (W - 420) / 2, top: 60 }} maxH={H - 80} title="New family member" onClose={() => setBirths((x) => x.slice(1))}>
             <div className="sn-pop-head"><img src={art(b.id)} alt="" /><h2>🐣 {text}</h2></div>
             <p className="sn-leave-help">Give {b.n === 1 ? 'it' : 'them'} a name, then tap {b.n === 1 ? 'it' : 'one'} in the Habitat to care for {b.n === 1 ? 'it' : 'it on its own'}.<button type="button" className="sn-listen" onClick={() => say(text)} aria-label="Listen"><Icon d={LISTEN} /></button></p>

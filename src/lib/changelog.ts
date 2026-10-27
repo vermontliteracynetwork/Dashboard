@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-litters",
+    date: "2026-10-27",
+    icon: "🐣",
+    title: "Litters of babies",
+    body: "In the Supernature Habitat, creatures now have a litter of babies (or a clutch of eggs) all at once. The babies grow up together: tiny this season, bigger next season, then grown.",
+  },
+  {
     id: "2026-10-27-world-box-zoo",
     date: "2026-10-27",
     icon: "🦓",
