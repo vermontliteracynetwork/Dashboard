@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-wild-battles",
+    date: "2026-10-27",
+    icon: "⚔️",
+    title: "Wilder wild battles",
+    body: "Supernature wild battles are full of surprises now. Prey can hide, zigzag, trick the hunter or call the family. Hunters can sneak, sniff, roar or circle in the sky. The land and the night make some powers stronger.",
+  },
+  {
     id: "2026-10-27-litters",
     date: "2026-10-27",
     icon: "🐣",

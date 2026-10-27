@@ -15,7 +15,7 @@ import type { MCQuestion } from '../../types';
 import { madePlantIds, CRITTERS, EFFECT_STATUS, SNAPJAW_STRIP, GROWN_MS, KIND_LABEL, PLANTS, PLANT, PLOTS, PLOT_N, SPROUT_MS, canGrow, loreRank, plantImg, wildSpots, type PlantPlace } from '../../lib/supernaturePlants';
 import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
 import { Fx, HIT_FX, ORB_FX, type FxKey } from './SupernatureFx';
-import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, type Aff, type Fighter } from '../../lib/supernatureBattle';
+import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, wildMove, type Aff, type Fighter } from '../../lib/supernatureBattle';
 import {
   HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, airborne, catches, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
@@ -1038,12 +1038,24 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       const atk = wb.turn === 'h' ? wb.h : wb.p; const def = wb.turn === 'h' ? wb.p : wb.h;
       // Prey can outsmart the hunter and slip away instead of fighting back.
       if (wb.turn === 'p') { const e = escapeChance(wb.p.id ? live.find((l) => l.c.id === wb.p.id)!.c : live[0].c, sk(live.find((l) => l.c.id === wb.p.id)!.c), live.find((l) => l.c.id === wb.h.id)!.c, sk(live.find((l) => l.c.id === wb.h.id)!.c), count(wb.p.id)); if (Math.random() < e.p * 0.25) { finish(false, `🏁 ${wb.p.name} ${HOW_ESCAPED[e.how]}! The prey wins!`); return; } }
-      const best = [...atk.aff].sort((x, y) => (def.aff.some((d) => AFF[x].beats.includes(d)) ? -1 : 0) - (def.aff.some((d) => AFF[y].beats.includes(d)) ? -1 : 0))[0] as Aff;
-      const r = attack(atk, def, best, 0.35 + 0.08 * atk.smarts);
-      const nd = { ...def, health: Math.max(0, def.health - r.dmg), confidence: Math.max(5, def.confidence - (r.hit ? 4 : 0)) };
-      const na = { ...atk, confidence: Math.min(100, Math.max(5, atk.confidence + (r.hit ? 4 : -4))) };
+      // Build Queue 387: a different action each turn (powers, tackles, skill tricks, nature surprises).
+      const atkC = live.find((l) => l.c.id === atk.id)?.c;
+      const mv = wildMove(atk, def, { biome, night, k: atkC ? sk(atkC) : {}, family: count(atk.id), air: !!atkC && airborne(atkC), role: wb.turn });
+      const clean = (f: Fighter, tag: string) => ({ ...f, extra: f.extra.filter((x) => x !== tag) });
+      if ('special' in mv) {
+        const me2 = { ...clean(atk, 'Dazed'), ...mv.self, extra: [...clean(atk, 'Dazed').extra, ...(mv.selfTag ? [mv.selfTag] : [])] };
+        const foe2 = { ...def, ...mv.foe, extra: [...def.extra, ...(mv.foeTag ? [mv.foeTag] : [])] };
+        setWb({ ...wb, h: wb.turn === 'h' ? me2 : foe2, p: wb.turn === 'h' ? foe2 : me2, turn: wb.turn === 'h' ? 'p' : 'h', line: mv.special, proj: null, boom: null });
+        if (wbSeen) snSound('chime');
+        return;
+      }
+      const best = (mv.aff === 'tackle' ? atk.aff[0] : mv.aff) as Aff;
+      const r0 = attack(atk, def, mv.aff, 0.35 + 0.08 * atk.smarts);
+      const r = { ...r0, dmg: Math.round(r0.dmg * mv.boost), text: `${r0.text}${r0.hit ? mv.note : ''}` };
+      const nd = { ...clean(def, 'Hidden'), health: Math.max(0, def.health - r.dmg), confidence: Math.max(5, def.confidence - (r.hit ? 4 : 0)) };
+      const na = { ...clean(atk, 'Dazed'), confidence: Math.min(100, Math.max(5, atk.confidence + (r.hit ? 4 : -4))) };
       const line = `${r.text}${r.hit ? ` ${def.name} loses ${r.dmg} health.` : ''}${atk.energy === 'very high' && !r.hit ? ' Too much energy!' : ''}`;
-      setWb({ ...wb, h: wb.turn === 'h' ? na : nd, p: wb.turn === 'h' ? nd : na, turn: wb.turn === 'h' ? 'p' : 'h', line, proj: { from: wb.turn, icon: AFF[best].icon, aff: best }, boom: null });
+      setWb({ ...wb, h: wb.turn === 'h' ? na : nd, p: wb.turn === 'h' ? nd : na, turn: wb.turn === 'h' ? 'p' : 'h', line, proj: { from: wb.turn, icon: mv.aff === 'tackle' ? '💥' : AFF[best].icon, aff: best }, boom: null });
       if (wbSeen) snSound(r.hit ? 'poof' : 'tap');
       const on = wb.turn === 'h' ? 'p' : 'h';
       window.setTimeout(() => setWb((w) => (w ? { ...w, proj: null, boom: { on, k: r.hit ? HIT_FX[best] : 'miss' } } : w)), 1100);

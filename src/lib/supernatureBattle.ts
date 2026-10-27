@@ -10,7 +10,7 @@ import type { Energy } from './supernature';
 import type { Creature } from './supernatureCreatures';
 import { CREATURES } from './supernatureCreatures';
 import { tagsOf } from './supernatureAdapt';
-import { canBeHunted, isHunter, lvl, startSkills, type SkillSet } from './supernatureSkills';
+import { canBeHunted, has, isHunter, lvl, startSkills, type SkillSet } from './supernatureSkills';
 
 export type Aff = 'fire' | 'water' | 'storm' | 'earth' | 'nature' | 'ice' | 'light' | 'shadow' | 'mind' | 'wind';
 export const AFF: Record<Aff, { icon: string; label: string; move: string; beats: Aff[] }> = {
@@ -109,8 +109,8 @@ export interface MoveResult { hit: boolean; dmg: number; text: string }
 // questions power the players. Magic, confidence, energy, smarts and speed all matter.
 export function attack(a: Fighter, d: Fighter, aff: Aff | 'tackle', focus: number): MoveResult {
   const e = ENERGY_FX[a.energy];
-  const dodge = Math.max(0.03, Math.min(0.4, 0.06 * d.smarts + 0.03 * (d.speed + ENERGY_FX[d.energy].speed) - 0.04 * a.smarts + (d.extra.includes('Aero') ? 0.15 : 0)));
-  const aim = 0.82 + e.aim + (focus - 0.5) * 0.2 + (a.confidence - 50) / 400;
+  const dodge = Math.max(0.03, Math.min(0.6, 0.06 * d.smarts + 0.03 * (d.speed + ENERGY_FX[d.energy].speed) - 0.04 * a.smarts + (d.extra.includes('Aero') ? 0.15 : 0) + (d.extra.includes('Hidden') ? 0.3 : 0)));
+  const aim = 0.82 + e.aim + (focus - 0.5) * 0.2 + (a.confidence - 50) / 400 - (a.extra.includes('Dazed') ? 0.25 : 0);
   const name = aff === 'tackle' ? 'Tackle' : AFF[aff].move;
   if (Math.random() > aim) return { hit: false, dmg: 0, text: `${a.name} tried ${name} but ${a.energy === 'very high' || a.energy === 'high' ? 'was too wiggly and missed' : a.energy === 'very low' || a.energy === 'low' ? 'was too sleepy and missed' : 'just missed'}!` };
   if (Math.random() < dodge) return { hit: false, dmg: 0, text: `${a.name} used ${name}, but ${d.name} ${d.smarts >= 4 ? 'outsmarted it and dodged' : 'dodged just in time'}!` };
@@ -132,4 +132,45 @@ export function preBattle(me: Fighter, them: Fighter, record: { w: number; l: nu
   if (them.hunter && me.preyable) { conf -= 15; lines.push(`Uh oh: ${them.species}s hunt creatures like ${me.species}s. ${me.name}'s knees are a little wobbly.`); }
   if (me.hunter && them.preyable) { conf += 5; lines.push(`${me.name} is a predator, and ${them.species}s are on its menu. It stands a little taller.`); }
   return { conf: Math.max(5, Math.min(100, conf)), lines };
+}
+
+// Build Queue 387 (her words: "preditor vs prey battles, need to have more varienciation"): each turn of a wild battle
+// picks from many different actions instead of the same best move every time. The land matters (a home biome boosts
+// its own powers, and night boosts shadow), each side has its own skill tricks (prey hide, dash, trick or call the
+// family; hunters pounce, sniff, roar or dive from the sky), and now and then nature surprises them both.
+export type WildCtx = { biome: string; night: boolean; k: SkillSet; family: number; air: boolean; role: 'h' | 'p' };
+export type WildPick = { aff: Aff | 'tackle'; boost: number; note: string } | { special: string; self: Partial<Pick<Fighter, 'confidence' | 'health'>>; foe: Partial<Pick<Fighter, 'confidence'>>; selfTag?: string; foeTag?: string };
+const LAND_AFF: Record<string, Aff[]> = { grassland: ['wind', 'nature'], forest: ['nature', 'shadow'], desert: ['fire', 'earth'], snow: ['ice', 'wind'], swamp: ['water', 'nature'], ocean: ['water', 'storm'] };
+const NATURE_SURPRISE = [
+  { text: 'A gust of wind blows a cloud of leaves between them. Everyone blinks!', self: 0, foe: 0 },
+  { text: 'A rainbow shines over the land. Both creatures feel a little calmer.', self: 6, foe: 6 },
+  { text: 'Thunder rumbles far away. Both creatures jump!', self: -4, foe: -4 },
+  { text: 'A butterfly lands on its nose. It giggles and feels braver.', self: 8, foe: 0 },
+];
+const pickOne = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
+export function wildMove(me: Fighter, foe: Fighter, ctx: WildCtx): WildPick {
+  const r = Math.random();
+  if (r < 0.06) { const n = pickOne(NATURE_SURPRISE); return { special: `🍃 ${n.text}`, self: { confidence: Math.min(100, me.confidence + n.self) }, foe: { confidence: Math.max(5, Math.min(100, foe.confidence + n.foe)) } }; }
+  const tricks: WildPick[] = [];
+  if (ctx.role === 'p') {
+    if (has(ctx.k, 'camouflage')) tricks.push({ special: `🍃 ${me.name} blends into the ${ctx.biome === 'snow' ? 'snow' : ctx.biome === 'desert' ? 'sand' : 'leaves'} and is very hard to see!`, self: {}, foe: {}, selfTag: 'Hidden' });
+    if (has(ctx.k, 'speed')) tricks.push({ special: `💨 ${me.name} zigzags away fast. ${foe.name} has to catch its breath.`, self: { confidence: Math.min(100, me.confidence + 5) }, foe: { confidence: Math.max(5, foe.confidence - 6) }, selfTag: 'Hidden' });
+    if (has(ctx.k, 'smarts')) tricks.push({ special: `🧠 ${me.name} plays a clever trick, and ${foe.name} looks the wrong way!`, self: {}, foe: { confidence: Math.max(5, foe.confidence - 8) }, foeTag: 'Dazed' });
+    if (ctx.family >= 3) tricks.push({ special: `👪 ${me.name}'s family all squeak and stomp together. ${foe.name} is not so sure now!`, self: { confidence: Math.min(100, me.confidence + 6) }, foe: { confidence: Math.max(5, foe.confidence - 10) } });
+    tricks.push({ special: `😮‍💨 ${me.name} takes a deep breath and gets a little energy back.`, self: { health: Math.min(me.maxHealth, me.health + 6) }, foe: {} });
+  } else {
+    if (has(ctx.k, 'sneak')) tricks.push({ special: `🐾 ${me.name} creeps closer without a sound...`, self: { confidence: Math.min(100, me.confidence + 8) }, foe: { confidence: Math.max(5, foe.confidence - 4) } });
+    if (has(ctx.k, 'keenNose')) tricks.push({ special: `👃 ${me.name} sniffs the air and finds where ${foe.name} is hiding.`, self: { confidence: Math.min(100, me.confidence + 5) }, foe: {} });
+    if (ctx.air) tricks.push({ special: `🦅 ${me.name} circles high in the sky, waiting for the right moment.`, self: { confidence: Math.min(100, me.confidence + 6) }, foe: { confidence: Math.max(5, foe.confidence - 5) } });
+    tricks.push({ special: `📣 ${me.name} lets out a big ROAR! ${foe.name}'s knees wobble.`, self: {}, foe: { confidence: Math.max(5, foe.confidence - 7) } });
+  }
+  if (r < 0.32 && tricks.length) return pickOne(tricks);
+  const land = LAND_AFF[ctx.biome] ?? [];
+  const opts: (Aff | 'tackle')[] = [...me.aff, 'tackle'];
+  const strong = me.aff.filter((a) => foe.aff.some((d) => AFF[a].beats.includes(d)));
+  const aff = strong.length && Math.random() < 0.45 ? pickOne(strong) : pickOne(opts);
+  let boost = 1; let note = '';
+  if (aff !== 'tackle' && land.includes(aff)) { boost = 1.25; note = ` The ${ctx.biome === 'swamp' ? 'swamp' : ctx.biome} makes its ${AFF[aff].label.toLowerCase()} power stronger!`; }
+  if (aff === 'shadow' && ctx.night) { boost = Math.max(boost, 1.3); note = ' Shadow powers are stronger at night!'; }
+  return { aff, boost, note };
 }
