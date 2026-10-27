@@ -1,11 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
-import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
-import { SfxToggle } from '../../lib/miniSfx';
-import { cafe, startCafeMusic, stopCafeMusic } from '../../lib/cafeSound';
+import { cafe, setCafeMusicVolume, setCafeSfxVolume, startCafeMusic, stopCafeMusic } from '../../lib/cafeSound';
+import { playClip, preloadClips } from '../../lib/miniSfx';
 import { MyBest, useVisitScore } from '../../components/MyBest';
 
 // Cupcake Tycoon (her student-favorite genres list, 2026-09-30: "the farm or bakery shop; answers boost a
@@ -39,7 +38,7 @@ const SHOWCASE = ['01-birthday_cake', '02-strawberry_pudding_cake', '03-blueberr
 const SHOWCASE_AT = [50, 300, 1500, 8000, 40000, 200000, 1000000, 5000000, 25000000, 100000000];
 const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Cake', 'Chocolate Cake', 'Orange Cake', 'Bubblegum Cake', 'Brownie Cake', 'Maple Popcorn Cake', 'Double Chocolate Cake', 'Jelly Cake'];
 interface Own { ovens: number; baker: boolean }
-interface Shop { coins: number; total: number; power: number; lines: Record<string, Own>; savedAt: number }
+interface Shop { coins: number; total: number; power: number; whisk?: number; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
 const AWAY_MAX_S = 600, TAP = 1;
 const STAR_AT = [0, 100, 1000, 10000, 100000];
@@ -53,10 +52,16 @@ const fmt = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `
 // fast); Golden Hour cakes fall across the screen now and then; and the bakery case groups matching treats like
 // Blooket's Factory, so a bigger group of the same treat earns more. No scrolling on an iPad.
 const STAGES = [{ name: 'Mixing', icon: '🥣', part: 0.3 }, { name: 'Baking', icon: '🔥', part: 0.45 }, { name: 'Selling', icon: '🛍️', part: 0.25 }];
+// Build Queue 404: her sounds, the sound and music sliders, and the whisk ladder.
+const SND = { bell: '/sounds/cupcake/bell.mp3', notify: '/sounds/cupcake/notify.mp3', click: '/sounds/cupcake/click.mp3', magic: '/sounds/cupcake/magic.mp3', star: '/sounds/cupcake/achievement.mp3' };
+const lsGet = (k: string, d: number) => { try { const v = localStorage.getItem(k); return v === null ? d : Number(v); } catch { return d; } };
+const lsSet = (k: string, v: number) => { try { localStorage.setItem(k, String(v)); } catch { /* private mode */ } };
+// Bronze (2 times as fast), then Silver (5 times) unlock in turn before the Golden Whisk (10 times), 20 seconds each.
+const WHISKS = [{ name: 'Bronze Whisk', mult: 2, cost: 20, color: 'bronze' }, { name: 'Silver Whisk', mult: 5, cost: 60, color: 'silver' }, { name: 'Golden Whisk', mult: 10, cost: 150, color: 'whisk' }];
 const POWER_PER_ANSWER = 10; // bakes of oven power from one round of questions
 type Run = { stage: number; t: number; wait?: boolean };
-type Buffs = { whisk: number; mixer: number; hot: number; golden: number; promo: { line: string; secs: number } | null };
-const NO_BUFFS: Buffs = { whisk: 0, mixer: 0, hot: 0, golden: 0, promo: null };
+type Buffs = { whisk: number; wmult: number; mixer: number; hot: number; golden: number; promo: { line: string; secs: number } | null };
+const NO_BUFFS: Buffs = { whisk: 0, wmult: 1, mixer: 0, hot: 0, golden: 0, promo: null };
 // The bakery case bonus: the more of one treat grouped together (its ovens), the more each batch earns.
 export const groupBonus = (ovens: number) => (ovens >= 10 ? 0.5 : ovens >= 5 ? 0.25 : ovens >= 3 ? 0.1 : 0);
 const groupName = (ovens: number) => (ovens >= 10 ? 'Mega group' : ovens >= 5 ? 'Big group' : ovens >= 3 ? 'Trio' : '');
@@ -66,13 +71,13 @@ const Coin = ({ size = 22 }: { size?: number }) => <img className="ty3-coin" src
 
 export default function IdleTycoon() {
   const back = useBack();
-  const { settings, ask, element, pay, student, asking } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon');
+  const { settingsPanel, ask, element, pay, student, asking, rounds } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon', { rounds: { min: 1, max: 20, def: 5 }, roundsLabel: 'Rounds of oven power', startCard: false });
   const visit = useVisitScore('idleTycoon');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';
   const savedShop = (styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Shop> | undefined) ?? {};
-  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, power: savedShop.power ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
+  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, power: savedShop.power ?? 0, whisk: savedShop.whisk ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
   const [shop, setShop] = useState<Shop>(load);
   const [runs, setRuns] = useState<Record<string, Run>>({});
   const [buffs, setBuffs] = useState<Buffs>(NO_BUFFS);
@@ -82,15 +87,31 @@ export default function IdleTycoon() {
   const [promoOffer, setPromoOffer] = useState<{ line: string; text: string } | null>(null);
   const [rain, setRain] = useState<{ id: number; x: number; d: number }[]>([]);
   const [note, setNote] = useState<string | null>(null);
+  // Build Queue 404: the start menu (continue or start over), the leave question, settings and rounds.
+  const [phase, setPhase] = useState<'menu' | 'play'>('menu');
+  const [confirmNew, setConfirmNew] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const [unlimited, setUnlimited] = useState(() => lsGet('ty-unlimited', 1) === 1);
+  const [sfxVol, setSfxVol] = useState(() => lsGet('ty-sfx', 4));
+  const [musicVol, setMusicVol] = useState(() => lsGet('ty-music', 3));
+  const [roundsDone, setRoundsDone] = useState(0);
+  const [closing, setClosing] = useState(false);
+  const sfxRef = useRef(sfxVol); sfxRef.current = sfxVol;
+  const clip = (k: keyof typeof SND, soft = false) => { if (sfxRef.current > 0) playClip(SND[k], (sfxRef.current / 5) * (soft ? 0.35 : 0.9)); };
+  const click = () => clip('click');
   const shopRef = useRef(shop); shopRef.current = shop;
   const buffRef = useRef(buffs); buffRef.current = buffs;
   const runsRef = useRef<Record<string, Run>>({});
+  const phaseRef = useRef<'menu' | 'play'>('menu');
   const popId = useRef(0);
+  // Progress is saved only when the student chooses to (Save and leave, or Save now).
   const save = () => { if (owner) mergeStyleRow(owner, { ...shopRef.current, savedAt: Date.now() }); };
   const setS = (next: Shop) => { shopRef.current = next; setShop(next); };
   const flash = (t: string) => { setNote(t); window.setTimeout(() => setNote((n) => (n === t ? null : n)), 3200); };
   const earn = (n: number, line: string) => {
-    setS({ ...shopRef.current, coins: shopRef.current.coins + n, total: shopRef.current.total + n }); visit.add(n);
+    const before = shopRef.current.total;
+    setS({ ...shopRef.current, coins: shopRef.current.coins + n, total: before + n }); visit.add(n);
+    if (STAR_AT.some((x) => before < x && before + n >= x) || SHOWCASE_AT.some((x) => before < x && before + n >= x)) clip('star');
     const id = ++popId.current;
     setPops((p) => [...p.slice(-6), { id, text: `+${fmt(n)}`, line }]);
     window.setTimeout(() => setPops((p) => p.filter((x) => x.id !== id)), 900);
@@ -121,6 +142,10 @@ export default function IdleTycoon() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cafe music while the bakery is open.
+  useEffect(() => { preloadClips(Object.values(SND)); }, []);
+  useEffect(() => { setCafeMusicVolume(musicVol); lsSet('ty-music', musicVol); }, [musicVol]);
+  useEffect(() => { lsSet('ty-sfx', sfxVol); setCafeSfxVolume(sfxVol); }, [sfxVol]);
+  useEffect(() => { lsSet('ty-unlimited', unlimited ? 1 : 0); }, [unlimited]);
   useEffect(() => { startCafeMusic(); return () => stopCafeMusic(); }, []);
 
   // The bakery runs ten ticks a second: mixing, then baking (uses one oven power), then selling.
@@ -128,7 +153,8 @@ export default function IdleTycoon() {
     const dt = 0.1;
     const t = window.setInterval(() => {
       const b = buffRef.current;
-      const nb: Buffs = { whisk: Math.max(0, b.whisk - dt), mixer: Math.max(0, b.mixer - dt), hot: Math.max(0, b.hot - dt), golden: Math.max(0, b.golden - dt), promo: b.promo && b.promo.secs > dt ? { ...b.promo, secs: b.promo.secs - dt } : null };
+      if (phaseRef.current !== 'play') return;
+      const nb: Buffs = { whisk: Math.max(0, b.whisk - dt), wmult: b.whisk - dt > 0 ? b.wmult : 1, mixer: Math.max(0, b.mixer - dt), hot: Math.max(0, b.hot - dt), golden: Math.max(0, b.golden - dt), promo: b.promo && b.promo.secs > dt ? { ...b.promo, secs: b.promo.secs - dt } : null };
       if (b.whisk || b.mixer || b.hot || b.golden || b.promo) { buffRef.current = nb; setBuffs(nb); }
       const p = { ...runsRef.current };
       for (const l of LINES) {
@@ -139,19 +165,18 @@ export default function IdleTycoon() {
           if (shopRef.current.power > 0) { setS({ ...shopRef.current, power: shopRef.current.power - 1 }); p[l.id] = { stage: 1, t: 0 }; }
           continue;
         }
-        const speed = (b.whisk > 0 ? 10 : 1) * (r.stage === 0 && b.mixer > 0 ? 3 : 1) * (r.stage === 1 && b.hot > 0 ? 3 : 1) * (r.stage === 2 && b.promo?.line === l.id ? 2 : 1);
+        const speed = (b.whisk > 0 ? b.wmult : 1) * (r.stage === 0 && b.mixer > 0 ? 3 : 1) * (r.stage === 1 && b.hot > 0 ? 3 : 1) * (r.stage === 2 && b.promo?.line === l.id ? 2 : 1);
         const nt = r.t + (dt * speed) / (l.time * STAGES[r.stage].part);
         if (nt < 1) { p[l.id] = { ...r, t: nt }; continue; }
         if (r.stage === 0) {
           if (shopRef.current.power > 0) { setS({ ...shopRef.current, power: shopRef.current.power - 1 }); p[l.id] = { stage: 1, t: 0 }; }
           else p[l.id] = { stage: 0, t: 1, wait: true };
-        } else if (r.stage === 1) { cafe.ding(o.baker); setDone((d) => ({ ...d, [l.id]: Date.now() })); p[l.id] = { stage: 2, t: 0 }; }
+        } else if (r.stage === 1) { clip('bell', o.baker); setDone((d) => ({ ...d, [l.id]: Date.now() })); p[l.id] = { stage: 2, t: 0 }; }
         else { earn(batchValue(l, b), l.id); cafe.cash(o.baker); if (o.baker) p[l.id] = { stage: 0, t: 0 }; else delete p[l.id]; }
       }
       runsRef.current = p; setRuns(p);
     }, 100);
-    const autosave = window.setInterval(save, 20000);
-    return () => { clearInterval(t); clearInterval(autosave); save(); };
+    return () => { clearInterval(t); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A new silly sale is offered every 45 seconds, for one of the open counters.
@@ -182,21 +207,27 @@ export default function IdleTycoon() {
   };
   const run = (l: Line) => {
     if (runsRef.current[l.id]) return;
-    runsRef.current = { ...runsRef.current, [l.id]: { stage: 0, t: 0 } }; setRuns(runsRef.current); cafe.mix();
+    runsRef.current = { ...runsRef.current, [l.id]: { stage: 0, t: 0 } }; setRuns(runsRef.current); click(); cafe.mix();
     if (shopRef.current.power <= 0) flash('Your ovens need power to bake. Tap Power the ovens and answer questions.');
   };
-  const powerUp = () => ask('⚡ Answer to power the ovens!', () => { setS({ ...shopRef.current, power: shopRef.current.power + POWER_PER_ANSWER }); save(); cafe.power(); flash(`The ovens have power for ${POWER_PER_ANSWER} more bakes!`); });
-  const tapCupcake = () => { earn(TAP * (buffs.whisk > 0 ? 10 : 1), 'tap'); cafe.tap(); };
+  const powerUp = () => { click(); ask('⚡ Answer to power the ovens!', () => {
+    setS({ ...shopRef.current, power: shopRef.current.power + POWER_PER_ANSWER }); clip('magic'); flash(`The ovens have power for ${POWER_PER_ANSWER} more bakes!`);
+    const d = roundsDone + 1; setRoundsDone(d);
+    if (!unlimited && d >= rounds) window.setTimeout(() => setClosing(true), 1500);
+  }); };
+  const tapCupcake = () => { earn(TAP * (buffs.whisk > 0 ? buffs.wmult : 1), 'tap'); click(); };
   const ips = perSec();
-  const price = { whisk: Math.max(150, Math.round(ips * 150)), mixer: Math.max(25, Math.round(ips * 30)), hot: Math.max(25, Math.round(ips * 30)), promo: Math.max(30, Math.round(ips * 40)) };
+  const tier = Math.min(2, shop.whisk ?? 0), W = WHISKS[tier];
+  const price = { whisk: Math.max(W.cost, Math.round(ips * W.cost)), mixer: Math.max(25, Math.round(ips * 30)), hot: Math.max(25, Math.round(ips * 30)), promo: Math.max(30, Math.round(ips * 40)) };
   const buy = (k: 'whisk' | 'mixer' | 'hot' | 'promo') => {
     if (k === 'promo' && !promoOffer) return;
     if (!spend(price[k], (s) => s)) return;
-    const nb: Buffs = k === 'promo' ? { ...buffRef.current, promo: { line: promoOffer!.line, secs: 60 } } : { ...buffRef.current, [k]: k === 'whisk' ? 20 : 60 };
-    buffRef.current = nb; setBuffs(nb); cafe.sparkle(); if (k === 'whisk') playCheer();
-    flash(k === 'whisk' ? 'Golden Whisk! The whole bakery is 10 times as fast!' : k === 'mixer' ? 'Turbo Mixer: mixing is 3 times as fast.' : k === 'hot' ? 'Extra Hot Oven: baking is 3 times as fast.' : `${promoOffer!.text} Those sell for double!`);
+    const nb: Buffs = k === 'promo' ? { ...buffRef.current, promo: { line: promoOffer!.line, secs: 60 } } : k === 'whisk' ? { ...buffRef.current, whisk: 20, wmult: W.mult } : { ...buffRef.current, [k]: 60 };
+    buffRef.current = nb; setBuffs(nb); clip('notify');
+    if (k === 'whisk') { if (tier === 2) playCheer(); setS({ ...shopRef.current, whisk: Math.max(shopRef.current.whisk ?? 0, Math.min(2, tier + 1)) }); }
+    flash(k === 'whisk' ? `${W.name}! The whole bakery is ${W.mult} times as fast!${tier < 2 ? ` The ${WHISKS[tier + 1].name} is unlocked.` : ''}` : k === 'mixer' ? 'Turbo Mixer: mixing is 3 times as fast.' : k === 'hot' ? 'Extra Hot Oven: baking is 3 times as fast.' : `${promoOffer!.text} Those sell for double!`);
   };
-  const catchGold = () => { setRain([]); const nb = { ...buffRef.current, golden: 30 }; buffRef.current = nb; setBuffs(nb); cafe.sparkle(); playCheer(); flash('Golden Hour! Everything sells for 3 times as much for 30 seconds!'); };
+  const catchGold = () => { setRain([]); const nb = { ...buffRef.current, golden: 30 }; buffRef.current = nb; setBuffs(nb); clip('magic'); playCheer(); flash('Golden Hour! Everything sells for 3 times as much for 30 seconds!'); };
   const open = LINES.filter((l) => shop.lines[l.id]);
   const nextLocked = LINES.find((l) => !shop.lines[l.id]);
   const busy = buffs.whisk > 0 || buffs.golden > 0;
@@ -204,10 +235,10 @@ export default function IdleTycoon() {
   return (
     <div className={`ty ty3${buffs.whisk > 0 ? ' boosted' : ''}${buffs.golden > 0 ? ' golden' : ''}`}>
       <header className="fd-head ty-head">
-        <LeaveButton onLeave={() => { save(); pay(); back.go(); }} />
+        <button type="button" className="btn" onClick={() => { click(); setLeaving(true); }}>✕ Leave</button>
+        <button type="button" className="btn" onClick={() => { click(); save(); clip('notify'); flash('Your bakery is saved.'); }}>💾 Save</button>
         <h1>Cupcake Tycoon</h1>
-        <SfxToggle />
-        {settings}
+        <button type="button" className="btn" onClick={() => { click(); setPhase('menu'); phaseRef.current = 'menu'; }} aria-label="Menu and settings">☰ Bakery menu</button>
         <MyBest game="idleTycoon" unit="coins earned" />
         <span className="mc-hud ty3-hud"><Coin /> {fmt(shop.coins)}</span>
       </header>
@@ -225,9 +256,11 @@ export default function IdleTycoon() {
             {pops.filter((p) => p.line === 'tap').map((p) => <i key={p.id} className="ty2-pop" aria-hidden>{p.text}</i>)}
           </button>
           <div className="ty3-shop" aria-label="Power-ups">
-            <button type="button" className={`ty3-pu whisk${buffs.whisk > 0 ? ' on' : ''}`} disabled={buffs.whisk > 0} onClick={() => buy('whisk')}>
-              <b>✨ Golden Whisk</b><small>{buffs.whisk > 0 ? `${Math.ceil(buffs.whisk)}s: everything 10 times as fast!` : 'Everything 10 times as fast, 20s'}</small><em><Coin size={16} /> {fmt(price.whisk)}</em>
-            </button>
+            <div className="ty3-whisks">{WHISKS.map((w, i) => { const locked = i > tier, owned = i < tier, cur = i === tier; return (
+              <button key={w.name} type="button" className={`ty3-pu ${w.color}${buffs.whisk > 0 && cur ? ' on' : ''}`} disabled={!cur || buffs.whisk > 0} onClick={() => buy('whisk')} aria-label={`${w.name}: everything ${w.mult} times as fast for 20 seconds${locked ? ', locked' : ''}`}>
+                <b>{locked ? '🔒' : '✨'} {w.name}</b><small>{locked ? `Buy the ${WHISKS[i - 1].name} first` : owned && !cur ? 'Upgraded!' : buffs.whisk > 0 && cur ? `${Math.ceil(buffs.whisk)}s left` : `${w.mult} times as fast, 20s`}</small>{cur && <em><Coin size={16} /> {fmt(price.whisk)}</em>}
+              </button>
+            ); })}</div>
             <button type="button" className={`ty3-pu${buffs.mixer > 0 ? ' on' : ''}`} disabled={buffs.mixer > 0} onClick={() => buy('mixer')}><b>🥣 Turbo Mixer</b><small>{buffs.mixer > 0 ? `${Math.ceil(buffs.mixer)}s left` : 'Mixing 3 times as fast'}</small><em><Coin size={16} /> {fmt(price.mixer)}</em></button>
             <button type="button" className={`ty3-pu${buffs.hot > 0 ? ' on' : ''}`} disabled={buffs.hot > 0} onClick={() => buy('hot')}><b>🔥 Extra Hot Oven</b><small>{buffs.hot > 0 ? `${Math.ceil(buffs.hot)}s left` : 'Baking 3 times as fast'}</small><em><Coin size={16} /> {fmt(price.hot)}</em></button>
             <button type="button" className={`ty3-pu sale${buffs.promo ? ' on' : ''}`} disabled={!!buffs.promo || !promoOffer} onClick={() => buy('promo')}><b>📣 {buffs.promo ? 'Sale running' : 'Sale idea'}</b><small>{buffs.promo ? `${Math.ceil(buffs.promo.secs)}s: ${LINES.find((l) => l.id === buffs.promo!.line)?.name} sell for double` : promoOffer?.text ?? 'Open a counter first'}</small><em><Coin size={16} /> {fmt(price.promo)}</em></button>
@@ -278,7 +311,7 @@ export default function IdleTycoon() {
         </section>
       </main>
       {note && <p className="ty3-note" role="status">{note}</p>}
-      {busy && <span className="ty3-busy" aria-hidden>{buffs.golden > 0 ? `🌟 Golden Hour ${Math.ceil(buffs.golden)}s` : `✨ Golden Whisk ${Math.ceil(buffs.whisk)}s`}</span>}
+      {busy && <span className="ty3-busy" aria-hidden>{buffs.golden > 0 ? `🌟 Golden Hour ${Math.ceil(buffs.golden)}s` : `✨ ${buffs.wmult} times as fast ${Math.ceil(buffs.whisk)}s`}</span>}
       {rain.map((r) => <button key={r.id} type="button" className="ty3-gold" style={{ left: `${r.x}%`, animationDelay: `${r.d}s` }} onClick={catchGold} aria-label="A golden cake! Tap it for Golden Hour"><img src={`${ART}showcase/01-birthday_cake.png`} alt="" /></button>)}
       {away !== null && (
         <div className="pf-overlay">
@@ -287,6 +320,51 @@ export default function IdleTycoon() {
             <h2>Welcome back!</h2>
             <p>While you were away, your bakers kept baking and earned <b><Coin /> {fmt(away)}</b> coins.</p>
             <button type="button" className="btn btn-primary btn-lg" onClick={() => setAway(null)}>Open the bakery</button>
+          </div>
+        </div>
+      )}
+      {phase === 'menu' && (
+        <div className="pf-overlay ty3-menu-wrap">
+          <div className="pf-panel ty3-menu">
+            <h2>🧁 Cupcake Tycoon</h2>
+            <div className="ty3-menu-row">
+              {savedShop.total ? <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); setS(load()); setPhase('play'); phaseRef.current = 'play'; }}>▶ Continue my bakery <small>(<Coin size={14} /> {fmt(savedShop.total)} earned)</small></button>
+                : <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); setPhase('play'); phaseRef.current = 'play'; }}>▶ Open my bakery</button>}
+              {!!savedShop.total && <button type="button" className="btn btn-lg" onClick={() => { click(); setConfirmNew(true); }}>🔄 Start a new bakery</button>}
+            </div>
+            {confirmNew && <div className="ty3-confirm"><p>Start over? Your saved bakery, counters and coins will be gone.</p>
+              <button type="button" className="btn btn-primary" onClick={() => { click(); const f = fresh(); setS(f); runsRef.current = {}; setRuns({}); if (owner) mergeStyleRow(owner, { ...f, savedAt: Date.now() }); setConfirmNew(false); setRoundsDone(0); setPhase('play'); phaseRef.current = 'play'; }}>Yes, start over</button>
+              <button type="button" className="btn" onClick={() => { click(); setConfirmNew(false); }}>No, keep it</button></div>}
+            <h3>Settings</h3>
+            {settingsPanel}
+            <label className="ty3-check"><input type="checkbox" checked={unlimited} onChange={(e) => { click(); setUnlimited(e.target.checked); }} /> Unlimited rounds (play until you are done)</label>
+            <label className="ty3-slider">🔊 Sound effects <input type="range" min={0} max={5} step={1} value={sfxVol} onChange={(e) => setSfxVol(Number(e.target.value))} onPointerUp={() => clip('click')} /> <b>{sfxVol}</b></label>
+            <label className="ty3-slider">🎵 Music <input type="range" min={0} max={5} step={1} value={musicVol} onChange={(e) => setMusicVol(Number(e.target.value))} /> <b>{musicVol}</b></label>
+          </div>
+        </div>
+      )}
+      {leaving && (
+        <div className="pf-overlay">
+          <div className="pf-panel ty3-menu">
+            <h2>Leaving the bakery?</h2>
+            <p>Do you want to save your progress first? You can continue from your save the next time you play.</p>
+            <div className="ty3-menu-row">
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); save(); pay(); back.go(); }}>💾 Save and leave</button>
+              <button type="button" className="btn btn-lg" onClick={() => { click(); pay(); back.go(); }}>Leave without saving</button>
+              <button type="button" className="btn btn-lg" onClick={() => { click(); setLeaving(false); }}>Keep playing</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {closing && (
+        <div className="pf-overlay">
+          <div className="pf-panel ty3-menu">
+            <h2>🔔 Closing time!</h2>
+            <p>You finished your {rounds} {rounds === 1 ? 'round' : 'rounds'} of oven power. Great baking!</p>
+            <div className="ty3-menu-row">
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); setClosing(false); setLeaving(true); }}>Finish</button>
+              <button type="button" className="btn btn-lg" onClick={() => { click(); setClosing(false); setRoundsDone(0); }}>Play more rounds</button>
+            </div>
           </div>
         </div>
       )}

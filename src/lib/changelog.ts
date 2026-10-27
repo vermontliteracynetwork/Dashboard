@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-cupcake-menu",
+    date: "2026-10-27",
+    icon: "💾",
+    title: "Save your bakery",
+    body: "Cupcake Tycoon has a menu: continue your saved bakery or start a new one, and choose your questions, rounds, sound and music. Save before you leave. Climb from the Bronze Whisk to the Silver Whisk to the Golden Whisk!",
+  },
+  {
     id: "2026-10-27-doc-voice",
     date: "2026-10-27",
     icon: "🎣",

@@ -11,8 +11,12 @@ const ac = () => {
   if (ctx.state === 'suspended') void ctx.resume();
   return ctx;
 };
+// Build Queue 404: the sound effects slider (0 to 5); the music has its own.
+let sfxScale = 0.8;
+export const setCafeSfxVolume = (step: number) => { sfxScale = Math.max(0, Math.min(5, step)) / 5; };
 function note(freq: number, at: number, dur: number, type: OscillatorType, vol: number, dest?: AudioNode) {
   const c = ac(); if (!c) return;
+  if (!dest) { if (sfxScale <= 0) return; vol *= sfxScale; }
   const o = c.createOscillator(), g = c.createGain();
   o.type = type; o.frequency.setValueAtTime(freq, at);
   g.gain.setValueAtTime(0.0001, at); g.gain.exponentialRampToValueAtTime(vol, at + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
@@ -20,6 +24,7 @@ function note(freq: number, at: number, dur: number, type: OscillatorType, vol: 
 }
 function noise(at: number, dur: number, vol: number, hp: number, dest?: AudioNode) {
   const c = ac(); if (!c) return;
+  if (!dest) { if (sfxScale <= 0) return; vol *= sfxScale; }
   const b = c.createBuffer(1, Math.ceil(c.sampleRate * dur), c.sampleRate), d = b.getChannelData(0);
   for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
   const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
@@ -48,15 +53,17 @@ export const cafe = {
 const CHORDS = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]];
 const BASS = [[41, 45, 48, 45], [40, 43, 47, 43], [38, 41, 45, 41], [36, 40, 43, 40]];
 const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12);
-let timer: number | null = null, bus: GainNode | null = null, beat = 0, next = 0;
+let timer: number | null = null, bus: GainNode | null = null, beat = 0, next = 0, musicVol = 0.5;
+// Build Queue 404: the music slider (0 to 5).
+export const setCafeMusicVolume = (step: number) => { musicVol = (Math.max(0, Math.min(5, step)) / 5) * 0.8; if (bus) bus.gain.value = musicVol; };
 export function startCafeMusic() {
   const c = ac(); if (!c || timer !== null) return;
-  bus = c.createGain(); bus.gain.value = 0.5; bus.connect(c.destination);
+  bus = c.createGain(); bus.gain.value = musicVol; bus.connect(c.destination);
   beat = 0; next = c.currentTime + 0.1;
   const spb = 60 / 92;
   timer = window.setInterval(() => {
     const cc = ac(); if (!cc || !bus) return;
-    bus.gain.value = sfxOn() ? 0.5 : 0;
+    bus.gain.value = musicVol;
     while (next < cc.currentTime + 0.6) {
       const bar = Math.floor(beat / 4) % 4, b = beat % 4, ch = CHORDS[bar];
       if (b === 0 || b === 2) ch.forEach((m) => note(hz(m + 12), next + (b === 2 ? spb * 0.33 : 0), spb * 1.6, 'triangle', 0.012, bus!));

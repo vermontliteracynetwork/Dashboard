@@ -10543,3 +10543,15 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
   .ty3-lines { grid-column: 1; } .ty3-case { grid-column: 2; }
 }
 @media (prefers-reduced-motion: reduce) { .ty3-gold { animation-duration: 12s; } .ty3-power.empty { animation: none; } }
+/* Build Queue 404: Cupcake Tycoon menu, whisk ladder. */
+.ty3-menu { max-width: 520px; display: grid; gap: 10px; max-height: 92dvh; overflow: auto; }
+.ty3-menu h2 { margin: 0; font-family: 'PixCon', 'Baloo 2', sans-serif; } .ty3-menu h3 { margin: 4px 0 0; }
+.ty3-menu-row { display: flex; flex-wrap: wrap; gap: 8px; } .ty3-menu-row .btn { flex: 1 1 180px; min-height: 56px; }
+.ty3-confirm { background: #fff1f1; border: 2px solid #d63a6a; border-radius: 12px; padding: 8px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.ty3-confirm p { margin: 0; flex: 1 1 100%; font-weight: 700; } .ty3-confirm .btn { min-height: 48px; }
+.ty3-check, .ty3-slider { display: flex; align-items: center; gap: 10px; font-weight: 800; min-height: 44px; }
+.ty3-check input { width: 26px; height: 26px; } .ty3-slider input { flex: 1; height: 32px; accent-color: #d63a6a; } .ty3-slider b { width: 18px; }
+.ty3-whisks { display: grid; gap: 4px; }
+.ty3-pu.bronze { border-color: #b8743a; background: linear-gradient(135deg, #fbe2c8, #e9b483); }
+.ty3-pu.silver { border-color: #8e99a6; background: linear-gradient(135deg, #f4f6f9, #cfd6de); }
+.ty3-pu.whisk:disabled:not(.on), .ty3-pu.silver:disabled:not(.on), .ty3-pu.bronze:disabled:not(.on) { opacity: .5; }
