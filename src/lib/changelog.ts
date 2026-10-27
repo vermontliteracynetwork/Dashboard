@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-rebuild",
+    date: "2026-10-27",
+    icon: "🔨",
+    title: "Rebuild after a disaster",
+    body: "In the Supernature Habitat, an earthquake, fire, flood or storm now breaks the land. Tap Rebuild and answer questions to fill the cracks, fix the dens and replant the plants, so the creatures can find food again.",
+  },
+  {
     id: "2026-10-27-sky-hunters",
     date: "2026-10-27",
     icon: "🦅",

@@ -305,6 +305,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // Disasters change the vegetation of a biome (Build Queue 143): burnt, washed away or dried until the
   // next season, frozen until spring.
   const [veg, setVeg] = useState<Record<string, { kind: 'burnt' | 'washed' | 'dried' | 'frozen'; abs: number }>>(saved.veg ?? {});
+  // Build Queue 383 (her words: "when a natural disastter happens, (such as earquake) habitats and other elements such as
+  // plants will need to be rebuild or question sets should fuel to get it back to functionsasl"): a disaster leaves its
+  // land broken (cracks, ash, mud, fallen trees, snow) until the student rebuilds it. Each right answer from the
+  // question sets fixes one part; three parts bring the land, its plants and the dens back.
+  const [ruins, setRuins] = useState<Record<string, { kind: Disaster; done: number }>>((saved.ruins as Record<string, { kind: Disaster; done: number }>) ?? {});
+  const [fixQ, setFixQ] = useState<MCQuestion | null>(null);
   const [picked, setPicked] = useState<string[]>(saved.picked ?? []);
   const [book, setBook] = useState<string[]>(saved.book ?? []);
   const [card, setCard] = useState<{ id: string; first: boolean; note?: string } | null>(null);
@@ -690,6 +696,29 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     setProg((m) => ({ ...m, [c.id]: { ...(m[c.id] ?? {}), [s]: got } }));
     setTrain({ ...train, q: nextQ(train.q?.id) });
   };
+  const rebuildSteps = (k: Disaster) => k === 'earthquake' || k === 'avalanche' ? ['Fill the cracks in the ground', 'Rebuild the dens', 'Replant the plants']
+    : k === 'wildfire' ? ['Clear away the ash', 'Plant new seeds', 'Rebuild the dens']
+    : k === 'flood' || k === 'tsunami' || k === 'hurricane' || k === 'whirlpool' ? ['Drain the water and mud', 'Rebuild the dens', 'Replant the plants']
+    : k === 'drought' || k === 'duststorm' ? ['Bring the water back', 'Replant the plants', 'Fix the dens']
+    : k === 'blizzard' || k === 'noreaster' ? ['Dig out the snow', 'Rebuild the dens', 'Warm up the plants']
+    : ['Pick up the fallen trees', 'Rebuild the dens', 'Replant the plants'];
+  const startRebuild = () => { snSound('open'); setMenu(null); setFixQ(nextQ()); };
+  const rebuildRight = () => {
+    const r = ruins[biome]; if (!r) { setFixQ(null); return; }
+    const steps = rebuildSteps(r.kind); const done = r.done + 1;
+    if (done >= steps.length) {
+      setRuins((m) => { const n = { ...m }; delete n[biome]; return n; });
+      setVeg((v) => { const n = { ...v }; delete n[place_]; return n; });
+      setPlots((m) => ({ ...m, [place_]: (m[place_] ?? []).map((pl) => (!pl || pl.dead ? null : pl.frozenAt ? { plant: pl.plant, at: pl.at + (Date.now() - pl.frozenAt) } : pl)) }));
+      setEco((x) => ({ ...x, plants: Math.min(12, x.plants + 3) }));
+      setFixQ(null); snSound('learned');
+      tell(`You rebuilt the ${viewLabel(biome).toLowerCase()}! The ground, the dens and the plants are back, and the creatures can find food again.`, true);
+      return;
+    }
+    setRuins((m) => ({ ...m, [biome]: { ...r, done } }));
+    snSound('chime'); tell(`${steps[r.done]}: done! Next: ${steps[done].toLowerCase()}.`);
+    setFixQ(nextQ(fixQ?.id));
+  };
   // Would this skill help with what is happening right now?
   const helpsNow = (c: Creature, s: SkillId) => { const k = { ...sk(c), [s]: 1 }; const now = reactions[c.id]; if (!now?.hit) return false; return react(c, { weather: wx, disaster: active, night, biome: home(c), season }, { tags: skillTags(k), skills: Object.keys(k) }).hit === 0; };
   // Taking creatures out of the Habitat and putting them back (her rule: a confirmation that says they
@@ -728,11 +757,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   // Plants and critters (Build Queue 135, 136).
   const place_ = biome as PlantPlace;
   const vg = veg[place_];
-  const lost = vg && (vg.kind === 'frozen' || vg.abs === clk.abs) ? vg.kind : null;
+  const ruin = ruins[biome];
+  const lost = vg && (vg.kind === 'frozen' || vg.abs === clk.abs || ruin) ? vg.kind : null;
   // Real survivors: swamp and sea plants handle floods, desert plants handle drought, winter plants handle ice.
   const survives = (id: string, kind: Disaster | 'burnt' | 'washed' | 'dried' | 'frozen') => { const p = PLANT(id); if (!p) return false; return kind === 'flood' || kind === 'washed' ? p.where.includes('swamp') || p.where.includes('ocean') : kind === 'drought' || kind === 'dried' ? p.where.includes('desert') : kind === 'blizzard' || kind === 'frozen' ? !!p.winter : false; };
   const day = Math.floor(now / 86_400_000);
-  const wild = wildSpots(place_, clk.abs, day).filter((w) => !picked.includes(w.key) && (!lost || lost === 'frozen' ? true : !!w.plant && survives(w.plant, lost)));
+  const wild = wildSpots(place_, clk.abs, day).filter((w, i) => !picked.includes(w.key) && (!lost || lost === 'frozen' ? true : !!w.plant && survives(w.plant, lost)) && (!ruin || i % 2 === 0));
   const myPlots = [...(plots[place_] ?? []), ...Array(PLOT_N).fill(null)].slice(0, PLOT_N) as (Plot | null)[];
   const stage = (pl: Plot) => { if (pl.dead) return 'dead'; const t = (pl.frozenAt ?? now) - pl.at; return t >= GROWN_MS ? 'grown' : t >= SPROUT_MS ? 'sprout' : 'seed'; };
   const names_ = (ids: string[]) => [...new Set(ids.map((id) => PLANT(id)?.name).filter(Boolean))].join(', ');
@@ -862,8 +892,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
 
   // Save hearts and the land a few seconds after they change, and when leaving.
   const latest = useRef<SnHabitat>({});
-  latest.current = { log, biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, asks: asks as unknown as SnHabitat['asks'], gone, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names };
-  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${Object.entries(asks).map(([k, a]) => `${k}${a.step}`).join()}|${gone.join()}|${picked.length}|${book.length}|${JSON.stringify(names)}`;
+  latest.current = { log, biome, health: Object.fromEntries(live.map((l) => [l.c.id, l.hp])), season: eco.season, plants: eco.plants, mush: eco.mush, groups: eco.groups, levels, abs: lastAbs.current, seen, faded, buffs, homes, skills, train: prog, out, plots, veg, kin, asks: asks as unknown as SnHabitat['asks'], gone, picked: picked.filter((k) => k.startsWith(`${clk.abs}:`)), book, names, ruins };
+  const saveKey = `${biome}|${live.map((l) => `${l.c.id}${l.hp}`).join(',')}|${eco.season}|${lastAbs.current}|${JSON.stringify(buffs)}|${Object.keys(faded).join()}|${JSON.stringify(homes)}|${JSON.stringify(skills)}|${JSON.stringify(prog)}|${out.join()}|${JSON.stringify(plots)}|${JSON.stringify(veg)}|${JSON.stringify(kin)}|${Object.entries(asks).map(([k, a]) => `${k}${a.step}`).join()}|${gone.join()}|${picked.length}|${book.length}|${JSON.stringify(names)}|${JSON.stringify(ruins)}`;
   useEffect(() => { const t = window.setTimeout(() => onSave(latest.current), 4000); return () => window.clearTimeout(t); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [saveKey]);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -892,7 +922,14 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         if (dis.kind === 'tornado' || dis.kind === 'hurricane' || dis.kind === 'duststorm' || dis.kind === 'avalanche') natureSound('whoosh', 0.7);
         if (dis.kind === 'hurricane') natureSound('thunder', 0.5);
         tell(`The ${DISASTERS[dis.kind].label.toLowerCase()} is here!`);
-      } else if (dis.phase === 'active') { setDis({ kind: dis.kind, phase: 'after', left: 2 }); tell(DISASTERS[dis.kind].after, true); if (dis.kind === 'drought') setWeather(biome === 'desert' ? 'clear' : 'rain'); }
+      } else if (dis.phase === 'active') {
+        setDis({ kind: dis.kind, phase: 'after', left: 2 }); if (dis.kind === 'drought') setWeather(biome === 'desert' ? 'clear' : 'rain');
+        if (DIS_WHERE[dis.kind].includes(biome)) {
+          setRuins((r) => ({ ...r, [biome]: { kind: dis.kind, done: 0 } }));
+          if (!['wildfire', 'flood', 'drought', 'blizzard'].includes(PLANT_HIT[dis.kind])) setEco((x) => ({ ...x, plants: Math.max(1, x.plants - 2) }));
+          tell(`${DISASTERS[dis.kind].after} The ${DISASTERS[dis.kind].label.toLowerCase()} broke the ${viewLabel(biome).toLowerCase()}. Tap Rebuild and answer questions to fix it.`, true);
+        } else tell(DISASTERS[dis.kind].after, true);
+      }
       else setDis(null);
     }
     // Weather changes the gardens too (Build Queue 143): rain waters them (twice as fast), a rainbow storm
@@ -1274,6 +1311,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         </button>
         </>}
 
+        {ruin && <div className={`sn-veg ruined ${ruin.kind}`} aria-hidden="true">{Array.from({ length: 3 - ruin.done }, (_, i) => <i key={i} style={{ left: 160 + i * 330, top: 330 + ((i * 71) % 120) }} />)}</div>}
         {lost && <div className={`sn-veg ${lost}`} aria-hidden="true">{lost === 'burnt' && Array.from({ length: 7 }, (_, i) => <i key={i} style={{ left: 90 + i * 150, top: 300 + ((i * 53) % 160) }} />)}</div>}
         {wild.map((w) => (
           <button key={w.key} type="button" className={`sn-wild${w.critter ? ' critter' : ''}${lost === 'frozen' && w.plant && !survives(w.plant, 'frozen') ? ' frozen' : ''}`} style={{ left: w.x, top: w.y }} onClick={(e) => { e.stopPropagation(); collect(w); }}
@@ -1680,6 +1718,12 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           </PopCard>
         </div>
       ); })()}
+      {fixQ && ruin && (
+        <QuestionScreen key={`${fixQ.id}-${ruin.done}`} whoLabel={`Rebuild the ${viewLabel(biome).toLowerCase()}: ${rebuildSteps(ruin.kind)[ruin.done]}`} whoIcon="🔨"
+          prompt={fixQ.prompt} typed={fixQ.typed} choices={fixQ.choices} correctIndex={fixQ.correctIndex} imageUrl={fixQ.imageUrl} imageAlt={fixQ.imageAlt}
+          done={ruin.done} total={rebuildSteps(ruin.kind).length}
+          onCorrectAnswer={rebuildRight} onSkip={() => setFixQ(nextQ(fixQ.id))} onExit={() => setFixQ(null)} ttsSettings={ttsSettings} />
+      )}
       {train && (() => { const l = live.find((x) => x.c.id === train.id); if (!l) return null; const k = sk(l.c); const full = Object.keys(k).length >= MAX_SKILLS; return train.skill && train.q ? (
         <QuestionScreen key={`${train.q.id}-${prog[l.c.id]?.[train.skill] ?? 0}`} whoLabel={`Training ${l.c.name}: ${SKILL(train.skill).name} (${prog[l.c.id]?.[train.skill] ?? 0} of ${has(k, train.skill) ? LEVEL_COST : LEARN_COST})`} whoIcon={SKILL(train.skill).icon}
           prompt={train.q.prompt} typed={train.q.typed} choices={train.q.choices} correctIndex={train.q.correctIndex} imageUrl={train.q.imageUrl} imageAlt={train.q.imageAlt}
@@ -1835,6 +1879,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           <button type="button" className={`sn-wtile${menu === 'time' ? ' on' : ''}`} onClick={() => setMenu(menu === 'time' ? null : 'time')}><span>{night ? '🌙' : '☀️'}</span><b>Time</b><small>{timeMode === 'auto' ? 'on the clock' : `${timeMode} only`}</small></button>
           <button type="button" className={`sn-wtile${menu === 'weather' ? ' on' : ''}`} onClick={() => setMenu(menu === 'weather' ? null : 'weather')}>{weathers.find((w) => w.id === weather)!.img ? <img src={weathers.find((w) => w.id === weather)!.img} alt="" /> : <span>{weathers.find((w) => w.id === weather)!.icon}</span>}<b>Weather</b><small>{weathers.find((w) => w.id === weather)!.label.replace(' (magic)', '')}</small></button>
           <button type="button" className={`sn-wtile${menu === 'disaster' ? ' on' : ''}${dis ? ' busy' : ''}`} onClick={() => !dis && setMenu(menu === 'disaster' ? null : 'disaster')}><span>⚠️</span><b>Disaster</b><small>{dis ? DISASTERS[dis.kind].label : 'pick one'}</small></button>
+          {ruin && <button type="button" className="sn-wtile rebuild" onClick={startRebuild}><span>🔨</span><b>Rebuild</b><small>{ruin.done} of {rebuildSteps(ruin.kind).length} fixed</small></button>}
           <button type="button" className={`sn-wtile${surprise ? ' on2' : ''}`} aria-pressed={surprise} onClick={() => { setSurprise(!surprise); tell(surprise ? 'Surprises are off. Only you change things.' : 'Surprises are on. Weather and events can change on their own.'); }}><span>🎲</span><b>Surprises</b><small>{surprise ? 'on' : 'off'}</small></button>
         </div>
         <div className="sn-hotbar" role="toolbar" aria-label="Potions">
