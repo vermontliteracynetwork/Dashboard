@@ -21,7 +21,7 @@
   ],
   "git": {
     "deploymentEnabled": {
-      "claude/*": false
+      "claude/*": true
     }
   }
 }
