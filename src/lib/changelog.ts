@@ -16,6 +16,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-world-box-tame",
+    date: "2026-10-27",
+    icon: "🐾",
+    title: "Tame your Burrowbacks",
+    body: "In World Box, tap Tame and upgrade. Solve a measuring question about a pen, a track, a den or a garden to tame a Burrowback, then make it faster, stronger and smarter, up to level 3. Tame ones wear a red bandana.",
+  },
+  {
+    id: "2026-10-27-world-box-biomes",
+    date: "2026-10-27",
+    icon: "🏜️",
+    title: "World Box grows, with new biomes",
+    body: "The World Box land is bigger, and it keeps growing as the pack spreads. Find the desert with cactus, the snowfield, the forest, the wetland and the rocky hills. Each biome grows a different amount of food. Tap Whole world to see everything.",
+  },
+  {
+    id: "2026-10-27-afterschool",
+    date: "2026-10-27",
+    icon: "🏠",
+    title: "Afterschool mode",
+    body: "A grown-up can turn on Afterschool mode in Settings with a code. Then World Box plays at home without questions.",
+  },
+  {
     id: "2026-10-22-world-box-nature",
     date: "2026-10-22",
     icon: "🌳",

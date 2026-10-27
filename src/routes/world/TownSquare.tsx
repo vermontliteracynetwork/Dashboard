@@ -1,4 +1,5 @@
 import { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import AfterschoolSettings from '../../components/AfterschoolSettings';
 import { withPersonality } from '../../lib/npcPersonality';
 import { MenuItems, openMainMenu } from '../../lib/mainMenu';
 import GroundPatchMesh from './GroundPatchMesh';
@@ -5882,6 +5883,8 @@ export default function TownSquare() {
                 />
                 Vehicle sound (engine, splash, wind)
               </label>
+
+              <AfterschoolSettings studentId={student.id} />
 
               <button className="btn btn-primary btn-lg" onClick={() => setSettingsOpen(false)} autoFocus>
                 Done

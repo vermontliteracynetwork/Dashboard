@@ -10299,10 +10299,12 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .wm-chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: #fff7d6; border: 2px solid #c9a74a; font-weight: 900; font-size: 1.1rem; }
 .wm-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 380px); gap: 14px; padding: 0 16px 14px; }
 .wm-board { min-height: 0; display: flex; flex-direction: column; gap: 6px; justify-content: center; }
-.wm-grid { position: relative; display: grid; width: min(100%, calc((100dvh - 120px) * 1.6)); aspect-ratio: 16 / 10; margin: 0 auto; border-radius: 14px; overflow: hidden; border: 4px solid #6b4f2a; background: #a9c97f; box-shadow: 0 6px 0 rgba(80,60,30,.25); }
-.wm-grid > i { position: relative; background: #b7d38d; border: 1px solid rgba(70,90,40,.12); }
-.wm-grid > i:nth-child(odd) { background: #b1cf87; }
-.wm-grid > i.turf { background: #6fb24a repeating-linear-gradient(60deg, rgba(255,255,255,.06) 0 4px, transparent 4px 9px); border-color: rgba(30,70,20,.25); }
+.wm-grid { position: relative; display: block; margin: 0 auto; border-radius: 14px; overflow: hidden; border: 4px solid #6b4f2a; background: #a9c97f; box-shadow: 0 6px 0 rgba(80,60,30,.25); }
+/* Build Queue 378 and 379: the biome ground is one smooth canvas; grid lines sit over it; turf blocks are tinted on top. */
+.wm-ground { position: absolute; image-rendering: auto; pointer-events: none; }
+.wm-lines { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, rgba(60,70,30,.13) 1px, transparent 1px), linear-gradient(to bottom, rgba(60,70,30,.13) 1px, transparent 1px); }
+.wm-grid > i { position: absolute; box-sizing: border-box; }
+.wm-grid > i.turf { background: rgba(98,170,60,.42) repeating-linear-gradient(60deg, rgba(255,255,255,.08) 0 4px, transparent 4px 9px); border: 1px solid rgba(30,70,20,.25); }
 .wm-grid > i.ghost { background: rgba(255,255,255,.35); outline: 3px dashed #fff; outline-offset: -4px; animation: wmGhost 1s ease-in-out infinite alternate; }
 .wm-grid > i.fn { box-shadow: inset 0 5px 0 #7a4b22; } .wm-grid > i.fs { box-shadow: inset 0 -5px 0 #7a4b22; }
 .wm-grid > i.fe { box-shadow: inset -5px 0 0 #7a4b22; } .wm-grid > i.fw { box-shadow: inset 5px 0 0 #7a4b22; }
@@ -10354,3 +10356,40 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .wm-grid > i { background: #a8cf7c; }
 .wm-grid > i:nth-child(odd) { background: #a3cb77; }
 .wm-grid > i.turf { background: #7cc04f repeating-linear-gradient(60deg, rgba(255,255,255,.07) 0 4px, transparent 4px 9px); }
+
+/* Build Queue 381: Afterschool mode in Settings. */
+.as-set { display: grid; gap: 8px; padding: 12px; border-radius: 14px; background: #f4f7ff; border: 2px solid #c5cff0; }
+.as-set p { margin: 0; line-height: 1.35; }
+.as-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 1.1rem; }
+.as-pill { padding: 2px 12px; border-radius: 999px; background: #e3e6ee; color: #3d4560; font-weight: 800; }
+.as-pill.on { background: #d4f3c4; color: #1f5a14; }
+.as-set .btn { min-height: 48px; }
+.as-pad { display: grid; gap: 8px; justify-items: center; }
+.as-dots { display: flex; gap: 12px; padding: 6px; }
+.as-dots i { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #5b6b8a; }
+.as-dots i.full { background: #5b6b8a; }
+.as-wrong { color: #9a2a10; font-weight: 800; }
+.as-keys { display: grid; grid-template-columns: repeat(3, 64px); gap: 8px; }
+.as-keys button { min-height: 56px; border-radius: 14px; border: 2px solid #c5cff0; background: #fff; font: 900 1.4rem 'Nunito', sans-serif; color: #2b3350; touch-action: manipulation; }
+.as-keys button:active { translate: 0 2px; }
+
+/* Build Queue 378 to 380: World Box zoom, biome key, taming. */
+.wm-scale { flex-wrap: wrap; }
+.wm-zoom, .wm-tamebtn { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 2px solid #6b4f2a; background: #fff7d6; font: 900 1rem 'Nunito', sans-serif; color: #4b3a1c; touch-action: manipulation; }
+.wm-chip.as { background: #e6f0ff; border-color: #7f9bd6; font-size: .95rem; }
+.wm-biomes { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.wm-biomes em { display: inline-flex; align-items: center; gap: 5px; font-style: normal; font-weight: 700; font-size: .88rem; }
+.wm-biomes i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid rgba(0,0,0,.25); }
+.wm-card.watch .wm-tamebtn { align-self: center; margin-top: 6px; }
+.wm-row { display: flex; gap: 8px; margin-top: auto; }
+.wm-row .wm-go { flex: 1; margin-top: 0; }
+.wm-card h2 { margin: 0; padding-right: 48px; font: 900 1.3rem 'Baloo 2', sans-serif; color: #3e5a1e; }
+.wm-tame-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; overflow: auto; min-height: 0; }
+.wm-tame-list li { display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 12px; background: #fffaf0; border: 2px solid #e4d6ae; }
+.wm-tame-pic { width: 56px; flex: none; }
+.wm-tame-list small { font-weight: 800; color: #6b5a3a; }
+.wm-traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.wm-traits button { min-height: 44px; padding: 0 10px; border-radius: 10px; border: 2px solid #c9b78a; background: #fff; font: 800 .92rem 'Nunito', sans-serif; touch-action: manipulation; }
+.wm-traits button:disabled { opacity: .5; }
+.wm-pen { display: block; max-width: 100%; max-height: 110px; margin: 0 auto; }
+.wm-lv { position: absolute; left: 50%; top: -8%; translate: -50% 0; padding: 0 5px; border-radius: 999px; background: #ffcf3f; color: #5a3d00; font: 900 .7rem 'Nunito', sans-serif; white-space: nowrap; }

@@ -5,6 +5,7 @@ import { OPEN_AZALEA, OPEN_MAIN_MENU, useRegisteredMenuItems, type MenuItem } fr
 import { openStreakView } from './StreakLayer';
 import { useStreak } from '../lib/streak';
 import { Icon } from './Icon';
+import AfterschoolSettings from './AfterschoolSettings';
 
 // The one main menu (Build Queue 224, 225): a single draggable button on every student screen (drag it like the
 // streak meter; a tap opens it). It opens a pie menu with Town Square, the computer, My Streak, Report (Azalea),
@@ -24,6 +25,7 @@ export default function MainMenu() {
   const streak = useStreak(role === 'student' ? studentId : null);
   const registered = useRegisteredMenuItems();
   const [open, setOpen] = useState(false);
+  const [settings, setSettings] = useState(false);
   const [page, setPage] = useState(0);
   const [pos, setPos] = useState(load);
   const el = useRef<HTMLButtonElement | null>(null);
@@ -65,6 +67,8 @@ export default function MainMenu() {
     ...(pathname.startsWith('/world/town') ? [] : [{ id: 'town', icon: '🌳', label: 'Town Square', bg: '#2f8f6b', order: 0, onSelect: go('/world/town') }]),
     { id: 'arcade', icon: '🕹️', label: 'Arcade', bg: '#7c3aed', order: 13, onSelect: go('/student/games') },
     { id: 'piggybank', icon: '🐷', label: 'Piggy Bank', bg: '#e0709a', order: 14, onSelect: go('/student/piggy-bank') },
+    // Build Queue 381: Settings, with Afterschool mode (Town Square keeps its own Settings, which also has it).
+    ...(pathname.startsWith('/world/town') ? [] : [{ id: 'settings', icon: '⚙️', label: 'Settings', bg: '#5b6b8a', order: 15, onSelect: () => setSettings(true) }]),
     ...(pathname === '/student/home' ? [] : [{ id: 'computer', icon: '💻', label: 'Computer', bg: '#3e6b7c', order: pathname.startsWith('/world') ? 21 : 3, onSelect: go('/student/home') }]),
   ];
   const ids = new Set(base.map((b) => b.id));
@@ -132,6 +136,17 @@ export default function MainMenu() {
             })}
           </div>
           <button type="button" className="main-menu-cancel" onClick={() => setOpen(false)}><Icon name="close" size={14} fallback="✕" /> Close</button>
+        </div>
+      )}
+      {settings && studentId && (
+        <div className="overlay-backdrop" role="dialog" aria-modal="true" aria-label="Settings" onClick={() => setSettings(false)}>
+          <div className="overlay-panel chrome-frame" style={{ padding: 24, maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ gap: 16 }}>
+              <h2 style={{ margin: 0 }}>⚙️ Settings</h2>
+              <AfterschoolSettings studentId={studentId} />
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => setSettings(false)}>Done</button>
+            </div>
+          </div>
         </div>
       )}
     </>
