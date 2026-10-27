@@ -459,6 +459,8 @@ Not in this run (waiting on her): Tappy Plane (her "go"), the quest-only pets an
 383. 🌋 **Supernature: natural disasters (such as an earthquake) break habitats and plants, and answering questions rebuilds them** QUEUED 2026-10-27 (same message as 382, part 2: "when a natural disastter happens, (such as earquake) habitats and other elements such as plants will need to be rebuild or question sets should fuel to get it back to functionsasl")
 384. 🧪 **Supernature potions: making more than one, or a double batch (doubling the recipe), gives more than one potion** QUEUED 2026-10-27 (her words, verbatim): "in supernature in potions if a stduent makes more than one or makes a double batch (doubling the recipie) students can have moret than one"
 385. 🦓 **World Box: domestication works like the Habitat, such as zoos** QUEUED 2026-10-27 (her words, verbatim): "world box, lets make the domestication similar to in habitation such as zoos"
+386. 🐣 **Supernature breeding: one species can have a litter or group of babies that age up together** QUEUED 2026-10-27 (her words, verbatim): "in supernature, breeding can happen with one species that can have a litter or group of creatures, aging up together. preditor vs prey battles, need to have more varienciation"
+387. ⚔️ **Supernature predator vs prey battles need more variation** QUEUED 2026-10-27 (same message as 386, part 2: "preditor vs prey battles, need to have more varienciation")
 284. ❌ **"279 no"** DONE 2026-10-20 (her words, verbatim): "279 no" Item 279 closed; Construction Site stays removed.
 285. 🔑 **Vercel steps for the voices key, once more** ANSWERED 2026-10-20 (her words, verbatim): "give me vercel steps here agin" Answered in chat in 8 steps.
 
