@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-cupcake-rework",
+    date: "2026-10-27",
+    icon: "🧁",
+    title: "A new Cupcake Tycoon",
+    body: "Answer questions to power the ovens. Every treat is mixed, baked and sold. Buy the Golden Whisk to make everything 10 times as fast, catch falling golden cakes for Golden Hour, and group matching treats in the bakery case to earn more. Now with cafe music!",
+  },
+  {
     id: "2026-10-27-styloo-animals",
     date: "2026-10-27",
     icon: "🐄",

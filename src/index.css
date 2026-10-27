@@ -10479,3 +10479,67 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .receipts h2 { margin: 0 0 8px; font-size: 1.2rem; }
 .receipts h2 small { display: block; font-size: .8rem; font-weight: 600; opacity: .7; }
 .receipts .inbox-row { align-items: center; }
+
+/* Build Queue 403: Cupcake Tycoon rework. Everything fits one iPad screen: no scrolling. */
+.ty.ty3 { overflow: hidden; display: flex; flex-direction: column; }
+.ty3 .ty-head { flex: none; }
+.ty3-coin { image-rendering: pixelated; vertical-align: -3px; display: inline-block; }
+.ty3-hud { display: inline-flex; align-items: center; gap: 6px; font-weight: 900; }
+.ty3-main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(230px, 280px) minmax(0, 1fr) minmax(200px, 250px); gap: 10px; padding: 0 12px max(10px, env(safe-area-inset-bottom)); box-sizing: border-box; }
+.ty3-left, .ty3-lines, .ty3-case { min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.ty3-sign { background: #fffaf3; border: 3px solid #d63a6a; border-radius: 14px; padding: 4px 8px; text-align: center; font-size: 1.05rem; display: grid; }
+.ty3-sign small { font-size: .78rem; font-weight: 700; color: #6b4a3a; }
+.ty3-power { display: grid; gap: 4px; background: #fff; border: 3px solid #4a7ad8; border-radius: 14px; padding: 6px 8px; }
+.ty3-power.empty { border-color: #c0362c; animation: ty3Pulse 1.2s ease-in-out infinite alternate; }
+.ty3-power small { font-weight: 800; color: #3a4a6b; }
+.ty3-meter { height: 12px; border-radius: 6px; background: #e3e9f6; overflow: hidden; }
+.ty3-meter i { display: block; height: 100%; background: linear-gradient(90deg, #4ad8ff, #4a7ad8); }
+.ty3-powerbtn { min-height: 48px; font-weight: 900; }
+.ty3-big { width: 100px; height: 100px; align-self: center; }
+.ty3-big .ty2-big-img { width: 60px; height: 60px; }
+.ty3-shop { display: grid; gap: 6px; min-height: 0; }
+.ty3-pu { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 6px; min-height: 48px; padding: 4px 8px; border-radius: 12px; border: 3px solid #f0a8c4; background: #fffaf3; text-align: left; font: inherit; color: inherit; touch-action: manipulation; }
+.ty3-pu b { font-size: .92rem; } .ty3-pu small { grid-column: 1; font-size: .72rem; color: #6b4a3a; line-height: 1.15; } .ty3-pu em { grid-column: 2; grid-row: 1 / span 2; font-style: normal; font-weight: 900; white-space: nowrap; }
+.ty3-pu.whisk { border-color: #e0a800; background: linear-gradient(135deg, #fff6c8, #ffe08a); box-shadow: 0 0 0 2px #fff3 inset, 0 3px 0 #b88a00; }
+.ty3-pu.on { border-color: #2f9a5a; background: #e2f7e8; }
+.ty3-pu:disabled:not(.on) { opacity: .55; }
+.ty3-lines { overflow: hidden; justify-content: flex-start; }
+.ty3-line { display: flex; gap: 6px; align-items: stretch; background: #fffaf3; border: 3px solid #f0a8c4; border-radius: 14px; padding: 4px; flex: 0 1 auto; min-height: 0; }
+.ty3-line.done { border-color: #f0a030; box-shadow: 0 0 0 3px #ffe08a; }
+.ty3-line.locked { align-items: center; border-style: dashed; opacity: .9; } .ty3-line.locked b { flex: 1; }
+.ty3-run { position: relative; flex: 1; display: flex; align-items: center; gap: 8px; min-height: 52px; background: #fff; border: 2px solid #f0a8c4; border-radius: 10px; padding: 2px 8px; font: inherit; color: inherit; text-align: left; touch-action: manipulation; }
+.ty3-run.wait { border-color: #4a7ad8; background: #eef3ff; }
+.ty3-run .ty2-icon { width: 44px; height: 44px; }
+.ty3-run .ty2-info > small { font-size: .78rem; }
+.ty3-group { margin-left: 6px; font-style: normal; font-size: .7rem; font-weight: 900; color: #fff; background: #d63a6a; border-radius: 999px; padding: 0 6px; }
+.ty3-stages { display: grid; grid-template-columns: 3fr 4.5fr 2.5fr; gap: 3px; }
+.ty3-stages span { position: relative; height: 14px; border-radius: 7px; background: #f3e1d0; overflow: hidden; font-size: 10px; line-height: 14px; text-align: center; }
+.ty3-stages span i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #f0a030, #d63a6a); }
+.ty3-stages span:nth-child(1) i { background: #f6c86a; } .ty3-stages span:nth-child(2) i { background: #f07a30; } .ty3-stages span:nth-child(3) i { background: #3ab36a; }
+.ty3-stages span { isolation: isolate; } .ty3-stages span i { z-index: -1; }
+.ty3-buy { min-height: 52px; padding: 0 8px; font-weight: 800; white-space: nowrap; font-size: .85rem; display: inline-flex; align-items: center; gap: 3px; }
+.ty3-case { background: linear-gradient(#fff6ee, #f7e1cf); border: 4px solid #b5683a; border-radius: 16px; padding: 8px; box-sizing: border-box; overflow: hidden; }
+.ty3-case h2 { margin: 0; font: 900 1.05rem 'PixCon', 'Baloo 2', sans-serif; color: #7a3b1c; }
+.ty3-small { margin: 0; font-size: .72rem; line-height: 1.25; color: #6b4a3a; }
+.ty3-shelves { display: grid; gap: 4px; min-height: 0; overflow: hidden; }
+.ty3-shelf { display: flex; align-items: center; gap: 4px; padding: 2px 4px; border-bottom: 4px solid #e2b48f; }
+.ty3-shelf.grouped { background: #fff1c8; border-radius: 8px 8px 0 0; }
+.ty3-treats { display: flex; flex-wrap: wrap; gap: 0; flex: 1; } .ty3-treats img { width: 22px; height: 22px; image-rendering: pixelated; margin-right: -6px; }
+.ty3-shelf em { font-style: normal; font-size: .66rem; font-weight: 900; color: #d63a6a; }
+.ty3-cakes { display: flex; flex-wrap: wrap; gap: 2px; margin-top: auto; } .ty3-cakes img { width: 30px; height: 30px; image-rendering: pixelated; filter: brightness(0) opacity(.2); } .ty3-cakes img.got { filter: none; }
+.ty3-note { position: fixed; left: 50%; bottom: 18px; translate: -50% 0; margin: 0; padding: 8px 16px; border-radius: 999px; background: #3a2414; color: #fff; font-weight: 800; z-index: 30; max-width: 90vw; text-align: center; }
+.ty3-busy { position: fixed; top: 70px; left: 50%; translate: -50% 0; padding: 4px 14px; border-radius: 999px; background: #ffe08a; border: 3px solid #e0a800; font-weight: 900; z-index: 20; pointer-events: none; }
+.ty3.boosted { background: linear-gradient(#fff6c8, #ffd0e2); }
+.ty3.golden { background: linear-gradient(#ffe9a8, #ffcf6a); }
+.ty3-gold { position: fixed; top: -80px; width: 72px; height: 72px; border: 0; background: none; padding: 0; z-index: 40; animation: ty3Fall 6s linear forwards; touch-action: manipulation; filter: drop-shadow(0 0 10px #ffd84a) sepia(1) saturate(4) hue-rotate(-10deg) brightness(1.15); }
+.ty3-gold img { width: 100%; height: 100%; image-rendering: pixelated; }
+@keyframes ty3Fall { to { transform: translateY(calc(100dvh + 120px)) rotate(200deg); } }
+@keyframes ty3Pulse { to { box-shadow: 0 0 0 4px rgba(192, 54, 44, .35); } }
+@media (orientation: portrait), (max-width: 900px) {
+  .ty3-main { grid-template-columns: 1fr 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .ty3-left { grid-column: 1 / span 2; display: grid; grid-template-columns: 1fr 1fr; align-items: start; }
+  .ty3-big { display: none; }
+  .ty3-shop { grid-column: 1 / span 2; grid-template-columns: 1fr 1fr; }
+  .ty3-lines { grid-column: 1; } .ty3-case { grid-column: 2; }
+}
+@media (prefers-reduced-motion: reduce) { .ty3-gold { animation-duration: 12s; } .ty3-power.empty { animation: none; } }
