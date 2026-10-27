@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-double-batch",
+    date: "2026-10-27",
+    icon: "🧪",
+    title: "Double and triple batches",
+    body: "In the Supernature Cauldron, pick 2× Double or 3× Triple before you brew. You use 2 or 3 of each magic item and get 2 or 3 times the bottles.",
+  },
+  {
     id: "2026-10-27-rebuild",
     date: "2026-10-27",
     icon: "🔨",

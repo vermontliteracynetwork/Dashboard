@@ -76,7 +76,7 @@ export function Bottle({ shape, color, size = 48, bubbly = false }: { shape: Sha
   );
 }
 
-type Result = { key: string; name: string; label: string; strong: boolean; traced?: boolean; missing: string[]; why: string; used: string[]; n: number; shape: Shape; color: string; spell: string; awarded: boolean };
+type Result = { key: string; name: string; label: string; strong: boolean; traced?: boolean; missing: string[]; why: string; used: string[]; n: number; batch?: number; shape: Shape; color: string; spell: string; awarded: boolean };
 type Card = { items: string[]; act: Action | null; name: string; purpose: Purpose | null; auto: Purpose | null; sentence: string; wrote: boolean; traced: boolean; near?: string; inks?: Ink[]; spellInk?: Ink };
 type Trace = { words: string[]; i: number; title: string; then: (inks: Ink[]) => void; inks?: Ink[] };
 type Hand = { words: string[]; ink: Ink[]; at: string };
@@ -131,6 +131,10 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   const [actFx, setActFx] = useState<{ a: Action; key: number } | null>(null);
   const [fail, setFail] = useState<{ how: 'smoke' | 'overflow'; key: number; color: string } | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  // Build Queue 384 (her words: "in supernature in potions if a stduent makes more than one or makes a double batch
+  // (doubling the recipie) students can have moret than one"): a Single, Double or Triple batch. A bigger batch uses that
+  // many of each magic item from the pantry (the elements are free) and makes that many times the bottles.
+  const [batch, setBatch] = useState(1);
   const [card, setCard] = useState<Card | null>(null);
   const [trace, setTrace] = useState<Trace | null>(null);
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -240,7 +244,11 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   };
 
   // Magic items from the pantry are used up only when a potion is made, so a fail never costs anything.
-  const spend = (items: string[]) => { const np = { ...pantry }; for (const id of items) if (!isEl(id)) { const g = ING(id); if (g.tier !== 'free' && !(g.earnedAs && earned.includes(g.earnedAs))) np[id] = Math.max(0, (np[id] ?? 0) - 1); } return np; };
+  const paid = (id: string) => { if (isEl(id)) return false; const g = ING(id); return g.tier !== 'free' && !(g.earnedAs && earned.includes(g.earnedAs)); };
+  const spend = (items: string[], times = 1) => { const np = { ...pantry }; for (const id of items) if (paid(id)) np[id] = Math.max(0, (np[id] ?? 0) - times); return np; };
+  const BATCH_WORD = ['', 'Single', 'Double', 'Triple'];
+  // The first magic item there is not enough of for this batch size.
+  const shortFor = (items: string[], times: number) => items.find((id) => paid(id) && (pantry[id] ?? 0) < times);
   const fizzle = (how: 'smoke' | 'overflow', why: string) => {
     setFail({ how, key: Date.now(), color: tint ?? '#9fd34e' });
     snSound(how === 'smoke' ? 'poof' : 'fizzle'); if (how === 'overflow') natureSound('splash', 0.5);
@@ -250,11 +258,13 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
   const doBrew = () => {
     if (trace || card || quiz || result) return;
     if (!pot.length) { setMsg('Put something in the pot first. Drag an element from the shelf.'); return; }
+    const short = batch > 1 ? shortFor(pot, batch) : undefined;
+    if (short) { snSound('fizzle'); const t = `A ${BATCH_WORD[batch].toLowerCase()} batch needs ${batch} of each magic item. You have ${pantry[short] ?? 0} ${ING(short).name}. Buy more in the Shop, or make a smaller batch.`; setNeed(short); setMsg(t); say(t); return; }
     if (customGoal) {
       if (!sameBrew(pot, customGoal.items) || act !== customGoal.act) return fizzle('smoke', `Puff of smoke! That is not the ${customGoal.name} recipe. Check your card: ${listText(customGoal.items.map(nameOf))}, then ${actLabel(customGoal.act)}.`);
       const lk = customLook(customGoal);
       snSound('brewed'); setMixing((n) => n + 1);
-      setResult({ key: `c:${customGoal.id}`, name: lk.base, label: customGoal.name, strong: true, missing: [], why: `Your own recipe card worked! It works like a ${lk.base} potion.`, used: pot, n: 1, shape: lk.shape, color: lk.color, spell: customGoal.name, awarded: false });
+      setResult({ key: `c:${customGoal.id}`, name: lk.base, label: customGoal.name, strong: true, missing: [], why: `Your own recipe card worked! It works like a ${lk.base} potion.`, used: pot, n: batch, batch, shape: lk.shape, color: lk.color, spell: customGoal.name, awarded: false });
       setMsg(`It worked! Now write the spell name to bottle your ${customGoal.name}.`); return;
     }
     const v = brew(pot, act, locked ? null : goal, (name) => { const r = RECIPE_BY.get(name); return !!r && magicFor(r).every((m) => pot.includes(m)); });
@@ -262,8 +272,10 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     if (v.kind === 'potion') {
       const s = SCIENCE[v.name]; const missNames = v.missing.map((m) => (isEl(m) ? nameOf(m) : m));
       snSound('brewed'); setMixing((n) => n + 1);
-      setResult({ key: v.name, name: v.name, label: v.name, strong: v.strong, missing: missNames, why: v.why, used: pot, n: v.strong ? 2 : 1, shape: s.shape, color: s.color, spell: spellOf(v.name), awarded: false });
-      const t = v.strong ? `A strong ${v.name} potion! ${v.why} Write the spell name to bottle it.` : `A weak ${v.name} potion. It still works, but you only get 1 bottle. For a strong one, add ${listText(missNames)}. Write the spell name to bottle it.`;
+      const each = v.strong ? 2 : 1;
+      setResult({ key: v.name, name: v.name, label: v.name, strong: v.strong, missing: missNames, why: v.why, used: pot, n: each * batch, batch, shape: s.shape, color: s.color, spell: spellOf(v.name), awarded: false });
+      const big = batch > 1 ? ` ${BATCH_WORD[batch]} batch: ${batch} × ${each} = ${each * batch} bottles!` : '';
+      const t = v.strong ? `A strong ${v.name} potion! ${v.why}${big} Write the spell name to bottle it.` : `A weak ${v.name} potion. It still works, but you only get ${each * batch} ${each * batch === 1 ? 'bottle' : 'bottles'}.${big} For a strong one, add ${listText(missNames)}. Write the spell name to bottle it.`;
       setMsg(t); say(t); return;
     }
     // Your own potion: make its recipe card.
@@ -276,7 +288,7 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     if (!result) return;
     setTrace({ words: [result.spell], i: 0, title: 'Write the spell name', then: () => {
       const unlocks = RECIPES.filter((x) => x.unlock === result.name && !brewed.includes(result.name));
-      patch({ potions: [...potions, ...Array(result.n).fill(result.name)], pantry: spend(result.used), brewed: brewed.includes(result.name) ? brewed : [...brewed, result.name] });
+      patch({ potions: [...potions, ...Array(result.n).fill(result.name)], pantry: spend(result.used, result.batch ?? 1), brewed: brewed.includes(result.name) ? brewed : [...brewed, result.name] });
       setResult({ ...result, awarded: true }); setCheer(Date.now()); snSound('done');
       const t = `Poof! +${result.n} ${result.label} ${result.n === 1 ? 'bottle' : 'bottles'}.${unlocks.length ? ` You discovered a secret recipe: ${unlocks.map((x) => x.name).join(', ')}!` : ''}`;
       setMsg(t); say(t);
@@ -306,9 +318,9 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
     if (!card || !nameOk || !card.purpose || !card.wrote) return;
     const cp: CustomPotion = { id: Date.now().toString(36), name: card.name.trim(), purpose: card.purpose, items: card.items, act: card.act, sentence: card.sentence.trim() || undefined, traced: card.traced || undefined, at: new Date().toISOString() };
     const lk = customLook(cp);
-    const n = card.traced ? 2 : 1;
+    const n = (card.traced ? 2 : 1) * batch;
     const hand: Hand | null = card.traced && card.inks?.length ? { words: cardWords(card), ink: card.inks, at: cp.at } : card.spellInk ? { words: [cp.name], ink: [card.spellInk], at: cp.at } : null;
-    patch({ alchemy: { ...(save.alchemy ?? {}), custom: [...cards, cp].slice(-MAX_CARDS), ...(hand ? { hand: { ...hands, [`c:${cp.id}`]: hand } } : {}) }, potions: [...potions, ...Array(n).fill(lk.base)], pantry: spend(card.items) });
+    patch({ alchemy: { ...(save.alchemy ?? {}), custom: [...cards, cp].slice(-MAX_CARDS), ...(hand ? { hand: { ...hands, [`c:${cp.id}`]: hand } } : {}) }, potions: [...potions, ...Array(n).fill(lk.base)], pantry: spend(card.items, batch) });
     setCard(null); clearPot(); setCheer(Date.now()); snSound('done'); if (hand) setHandView(`c:${cp.id}`);
     const t = `Your ${cp.name} recipe card is in your Recipe book, and you made ${n} ${n === 1 ? 'bottle' : 'bottles'}! It works like a ${lk.base} potion.`;
     setMsg(t); say(t);
@@ -415,7 +427,10 @@ export default function SupernatureCauldron({ bar, say, save, patch, start, goHa
               <button type="button" className="sn-btn2" onClick={() => startQuiz(result.key, result.label)} disabled={(power[result.key] ?? 0) >= 3}>⚡ {(power[result.key] ?? 0) >= 3 ? 'Max' : `${POWER_QS[power[result.key] ?? 0]} Qs to ${POWER_LEVELS[(power[result.key] ?? 0) + 1]}`}</button>
               {R?.where.startsWith('Habitat') && <button type="button" className="sn-btn2" onClick={goHabitat}>🌿 Take it outside</button>}
             </> : <>
-              <button type="button" className="sn-btn2 go big" onClick={doBrew} disabled={!pot.length || !!fail}>🪄 Brew!</button>
+              <span className="sn-seg cz-batch" role="radiogroup" aria-label="Batch size">
+                {[1, 2, 3].map((b) => <button key={b} type="button" role="radio" aria-checked={batch === b} className={batch === b ? 'on' : ''} onClick={() => { snSound('tap'); setBatch(b); setMsg(b === 1 ? 'Single batch: the recipe one time.' : `${BATCH_WORD[b]} batch: the recipe ${b} times, so ${b} of each magic item and ${b} times the bottles.`); }}>{b === 1 ? '1×' : b === 2 ? '2× Double' : '3× Triple'}</button>)}
+              </span>
+              <button type="button" className="sn-btn2 go big" onClick={doBrew} disabled={!pot.length || !!fail}>🪄 Brew{batch > 1 ? ` ${batch}×` : ''}!</button>
               <button type="button" className="sn-btn2" onClick={() => { snSound('poof'); clearPot(); setMsg(nextHint([], null)); }} disabled={!pot.length}>🧹 Empty</button>
             </>}
         </div>
