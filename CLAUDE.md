@@ -1,32 +1,32 @@
 # Standing instructions for this repo
 
-## Deploy policy — pushing to main has resumed
-As of 2026-09-23, the teacher gave the explicit go-ahead ("i give permission. do it and merge") and everything queued on `claude/new-session-nwv821` was merged into `main` in one go. The earlier pause is lifted; back to the normal per-change habit below. (If she ever asks to pause again, that instruction overrides this one — most recent instruction always wins.)
+## Deploy policy: preview first, main only with her approval
+Direct teacher rule (2026-10-27): "have edits push to preview edit link rather than main. i will approve main pushes to allow students to play freely". This overrides the earlier per-change merge habit (most recent instruction always wins).
 
-Normal habit: commit and push every change to `claude/new-session-nwv821`, then merge into `main` the same way, per change:
+Habit now: commit and push every change to `claude/new-session-nwv821` only (`git push -u origin claude/new-session-nwv821`). Vercel builds a preview of that branch, which is her edit/test link. **Never merge into `main` or push `main` until she approves** (for example "approve", "push to main", "ship it"); then merge the whole branch into `main` in one go:
 ```
-git push -u origin claude/new-session-nwv821
 git fetch origin main && git checkout main && git merge --ff-only origin/main \
   && git merge claude/new-session-nwv821 -m "Merge claude/new-session-nwv821: <summary>" \
   && git push origin main && git checkout claude/new-session-nwv821
 ```
+Every report says which items are on the preview and waiting for her approval to go to main.
 
-Production: https://independent-work-dashboard.vercel.app (receiving pushes again as of 2026-09-23)
+Production (students): https://independent-work-dashboard.vercel.app (changes only when she approves).
 
 ## The development plan is the bible
 `docs/DEVELOPMENT_PLAN.md` is the single living record of the whole platform: every shipped feature (game, educational, ABA/SEL, platform/other), the open backlog, and future plans. Keep it accurate and comprehensive as part of every change, not as a separate task. See `.claude/agents/claudia.md` for the full standard she reviews against, including the Intake Protocol for routing teacher feedback (praise, change requests, student-relayed ideas, half-formed ideas) into the plan so nothing goes undeveloped.
 
-**Direct standing rule (2026-09-30): the dev plan updates every time `main` gets pushed to, no exceptions.** Every push to `main` carries a `docs/DEVELOPMENT_PLAN.md` update in the same commit (or the immediately preceding one in the same push), covering:
+**Direct standing rule (2026-09-30): the dev plan updates every time `main` gets pushed to, no exceptions.** (Since 2026-10-27 this applies to every push to the preview branch too.) Every push carries a `docs/DEVELOPMENT_PLAN.md` update in the same commit (or the immediately preceding one in the same push), covering:
 - **What just shipped** — folded into Part A (or the relevant Part B entry marked done), not left only in the commit message.
 - **What's in progress / ongoing** — anything mid-build gets a real status note (not silently omitted) so the next session or the teacher can see exactly where it stands, not just what's finished.
 - **Every idea she says** — the moment she raises a new idea, a change request, a half-formed thought, or feedback (praise or otherwise) about any future development, it goes into the dev plan that same turn, via Claudia's Intake Protocol if it needs shaping, or directly if it's already concrete. Never hold an idea in conversation only, waiting for "later" — if it's not in the dev plan, it doesn't exist for planning purposes.
 This is not a separate pass to remember to do — treat "did the dev plan update ship in this push" as part of "is this change done," the same way `tsc`/`build` verification already is.
 
 ## Build Queue: always add, always work through it
-Direct teacher rule (2026-10-09): "claudia, continue with all queued items, always add items to a queue list and work through them until completed". The list is `docs/DEVELOPMENT_PLAN.md` → "🧱 BUILD QUEUE". Every new request, idea or "queue:" message goes on it the same turn. Work top to bottom, ship each item on its own (dev plan + What's New + push to main), move it to Done with the date, then start the next without waiting to be asked. Items that need her answer move to "Waiting on the teacher" instead of blocking the line.
+Direct teacher rule (2026-10-09): "claudia, continue with all queued items, always add items to a queue list and work through them until completed". The list is `docs/DEVELOPMENT_PLAN.md` → "🧱 BUILD QUEUE". Every new request, idea or "queue:" message goes on it the same turn. Work top to bottom, ship each item on its own (dev plan + What's New + push to the preview branch; main only after her approval), move it to Done with the date, then start the next without waiting to be asked. Items that need her answer move to "Waiting on the teacher" instead of blocking the line.
 
 ### Live Build Queue page
-Direct teacher rule (2026-10-15): "keep queue updted and presentable to me so i can keep track". After every push to `main`, run `python3 scripts/build-queue-page.py <scratchpad>/build-queue.html` and republish it to her Build Queue artifact (https://claude.ai/artifact/Xj955Dv7fySwuXA4emGxAe; from a new session pass that URL as `url`). It reads the BUILD QUEUE section, so keep each item's status words (QUEUED, IN PROGRESS, WAITING ON THE TEACHER, SHIPPED/DONE/DELIVERED/ANSWERED with the date) accurate.
+Direct teacher rule (2026-10-15): "keep queue updted and presentable to me so i can keep track". After every push (preview branch or `main`), run `python3 scripts/build-queue-page.py <scratchpad>/build-queue.html` and republish it to her Build Queue artifact (https://claude.ai/artifact/Xj955Dv7fySwuXA4emGxAe; from a new session pass that URL as `url`). It reads the BUILD QUEUE section, so keep each item's status words (QUEUED, IN PROGRESS, WAITING ON THE TEACHER, SHIPPED/DONE/DELIVERED/ANSWERED with the date) accurate.
 
 ### Queue checklist in every chat reply
 Direct teacher rule (2026-10-20): "Always keep a queue visable in this chat (checklist style)." Repeated 2026-10-20: "always show me the active ongoing queue here like you did last thursday": also show the checklist in mid-work status notes, not only the final report. And: "not a list that i have to request, but a queue that is continuous": keep every open queue item in the session task list (TaskCreate/TaskUpdate), which stays visible in chat; mark each in progress when starting and completed when shipped, and add new requests to it the moment they arrive. Every final report ends with a `## Queue` checklist: `- [x]` for items shipped this session, `- [ ]` for in progress, queued and waiting on her (with queue number and a few words of status).
