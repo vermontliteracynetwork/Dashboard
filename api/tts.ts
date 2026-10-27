@@ -10,6 +10,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const VOICES: Record<string, { voice: string; instructions: string }> = {
   reader: { voice: 'coral', instructions: 'Read clearly and warmly at a calm, steady pace, like a kind teacher reading aloud to a middle school student. Natural and human, never robotic.' },
   doc: { voice: 'ash', instructions: 'You are Doc Fishing, a friendly fishing guide from Australia and the host of a kids fishing game. Speak with a natural, smooth Australian accent: relaxed, warm and easygoing, like a real person chatting on a sunny dock. Smooth and human, never robotic.' },
+  // Build Queue 395 (her words: "model docs voice as closely as possible in sound, tone, kadence, etc. to the file i uploaded
+  // from the voice actor"). Measured from her clips: a high, very bouncy voice (middle about 220 Hz, swinging from about 120 to
+  // 350 Hz) at a quick, punchy pace. This is a stock voice styled to match that sound, not a copy of the actor. A new key
+  // ('doc2') so the old Australian lines saved by the CDN are not replayed.
+  doc2: { voice: 'verse', instructions: 'You are Doc, the host of a kids fishing game: a high-energy, excitable old adventurer. Speak with a bright, slightly raspy voice pitched a little high, with big bouncy swings up and down in pitch, quick punchy pacing in short bursts, dramatic emphasis on key words, little gasps of excitement and an eager, cheeky, larger-than-life cartoon delivery. General American accent. Always warm and friendly, never scary.' },
   country: { voice: 'ash', instructions: 'Friendly, upbeat country voice with a light Southern accent.' },
   posh: { voice: 'fable', instructions: 'A small, prim, slightly posh and playful British voice.' },
   deep: { voice: 'onyx', instructions: 'Deep, calm and steady.' },

@@ -45,7 +45,8 @@ export const NPC_VOICE_PRESETS: Record<string, NpcVoiceProfile> = {
   // Doc Fishing (teacher 2026-10-13: "smooth, hymabn austrailian man voice for doc fishing"; this replaces
   // the slow Southern drawl from 2026-10-12). A natural pitch and pace, an Australian male voice where the
   // device has one (Lee, Gordon, or Microsoft's William and Darren), the human voice service's 'doc' style.
-  'doc-drawl': { label: '🎣 Smooth Australian', pitch: 1, rate: 0.96, hints: ['lee', 'gordon', 'william', 'darren', 'duncan', 'neil', 'evan', 'nathan', 'aaron'], human: true, cloud: 'doc', lang: 'en-AU' },
+  // Build Queue 395: restyled to match her uploaded voice clips (high, bouncy, quick); 'doc2' is the matching human voice.
+  'doc-drawl': { label: '🎣 Doc (excited adventurer)', pitch: 1.05, rate: 1.12, hints: ['aaron', 'evan', 'nathan', 'tom', 'alex', 'guy', 'davis', 'tony'], human: true, cloud: 'doc2', lang: 'en-US' },
   // Grammar Gus (teacher 2026-10-07: "silly but a little pretentious"):
   // a small, prim, slightly posh voice, British where the device has one.
   'gus-posh': { label: '🧐 Prim & Proper', pitch: 1.35, rate: 0.95, hints: ['daniel', 'arthur', 'oliver', 'uk english male', 'en-gb', 'male'], cloud: 'posh' },

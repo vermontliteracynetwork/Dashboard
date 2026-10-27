@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-doc-voice",
+    date: "2026-10-27",
+    icon: "🎣",
+    title: "Doc has a new voice",
+    body: "Doc at the Fishing Dock sounds like an excited old adventurer now: bright, bouncy and quick.",
+  },
+  {
     id: "2026-10-27-cupcake-rework",
     date: "2026-10-27",
     icon: "🧁",
