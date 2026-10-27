@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { sendReceiptEmail } from '../lib/prizeReceipts';
 import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
 import { todayISO, streakContinues, currentDayOfWeek } from '../lib/dates';
@@ -1223,6 +1224,8 @@ export const useStore = create<AppState>()(
         const kindLabel = { font: 'New font', color: 'New color', voice: 'New voice', prize: 'Prize', furniture: 'New home item' }[item.kind];
         const txKind = { font: 'purchase-font', color: 'purchase-color', voice: 'purchase-voice', prize: 'purchase-prize', furniture: 'purchase-furniture' }[item.kind] as TransactionKind;
         get().recordTransaction(studentId, -item.price, `${kindLabel}: ${item.name}`, item.icon, txKind, false, needsWants);
+        // Build Queue 394: a prize is real life, so email its receipt to the grown-ups (it is in the Inbox too).
+        if (item.kind === 'prize') { const tx = get().transactions[0]; if (tx?.kind === 'purchase-prize') sendReceiptEmail(tx, student.name); }
         return true;
       },
 

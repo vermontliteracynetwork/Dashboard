@@ -10475,3 +10475,7 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .wb-mine li button { min-height: 44px; border-radius: 10px; border: 2px solid #c98a1c; background: #fff4d6; font-weight: 800; padding: 0 10px; }
 .wb .wm-card { overflow: auto; }
 @media (prefers-reduced-motion: reduce) { .wb-animal { transition: none; } .wb-mark { animation: none; } }
+/* Build Queue 394: prize receipts in the teacher Inbox. */
+.receipts h2 { margin: 0 0 8px; font-size: 1.2rem; }
+.receipts h2 small { display: block; font-size: .8rem; font-weight: 600; opacity: .7; }
+.receipts .inbox-row { align-items: center; }

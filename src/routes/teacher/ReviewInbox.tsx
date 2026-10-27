@@ -6,6 +6,7 @@ import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 import { resolveGameReport, useAllGameReports, type GameReport } from '../../lib/gameReports';
 import { formatMoney } from '../../lib/money';
 import AzaleaLog from '../../components/AzaleaLog';
+import { RECEIPT_TO, isPrizeReceipt, mailtoFor } from '../../lib/prizeReceipts';
 
 type InboxItem =
   | { kind: 'help'; id: string; studentId: string; timestamp: string; done: boolean }
@@ -65,6 +66,13 @@ export default function ReviewInbox() {
   const resolveQuizStruggle = useStore((s) => s.resolveQuizStruggle);
   const resolveSelCheckIn = useStore((s) => s.resolveSelCheckIn);
   const gameReports = useAllGameReports();
+  // Build Queue 394: prize receipts (real-life prizes a grown-up hands over), newest first, with a Given check.
+  const transactions = useStore((s) => s.transactions);
+  const styleLooks = useStore((s) => s.styleLooks);
+  const mergeStyleRow = useStore((s) => s.mergeStyleRow);
+  const given = ((styleLooks.find((r) => r.ownerId === 'prize-receipts')?.look as { given?: string[] } | undefined)?.given) ?? [];
+  const receipts = transactions.filter(isPrizeReceipt).slice(0, 40);
+  const toggleGiven = (id: string) => mergeStyleRow('prize-receipts', { given: given.includes(id) ? given.filter((x) => x !== id) : [...given, id] });
 
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
@@ -134,6 +142,24 @@ export default function ReviewInbox() {
           <button type="button" role="tab" aria-selected={view === 'azalea'} className={view === 'azalea' ? 'on' : ''} onClick={() => setView('azalea')}>🐱 Azalea's log (bugs and ideas)</button>
         </div>
         {view === 'azalea' ? <AzaleaLog nameFor={nameFor} onPhoto={setZoomedPhoto} /> : <>
+        {receipts.length > 0 && (
+          <section className="receipts" aria-label="Prize receipts">
+            <h2>🧾 Prize receipts <small>real-life prizes to hand over · also emailed to {RECEIPT_TO.join(' and ')}</small></h2>
+            <div className="inbox-list">
+              {receipts.map((t) => { const done = given.includes(t.id); return (
+                <div key={t.id} className={`inbox-row ${done ? 'inbox-row-done' : ''}`}>
+                  <span className="inbox-avatar"><StylePortrait studentId={t.studentId} size={40} /></span>
+                  <div className="inbox-body">
+                    <div className="inbox-subject">{t.icon && !t.icon.startsWith('/') ? `${t.icon} ` : ''}{nameFor(t.studentId)} bought {t.description.replace(/^Prize: /, '')} for {formatMoney(Math.abs(t.amountCents))}</div>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.75 }}>{new Date(t.createdAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })} · receipt {t.id}</div>
+                  </div>
+                  <a className="btn btn-sm" href={mailtoFor(t, nameFor(t.studentId))}>✉️ Email</a>
+                  <button type="button" className={`btn btn-sm${done ? '' : ' btn-primary'}`} onClick={() => toggleGiven(t.id)}>{done ? '✓ Given' : 'Mark given'}</button>
+                </div>
+              ); })}
+            </div>
+          </section>
+        )}
         {items.length === 0 ? (
           <p style={{ opacity: 0.7 }}>Nothing here yet.</p>
         ) : (
