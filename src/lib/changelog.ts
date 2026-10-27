@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-world-box-zoo",
+    date: "2026-10-27",
+    icon: "🦓",
+    title: "Build a World Box zoo",
+    body: "Tap My zoo in World Box. Build a fenced pen to tame a Burrowback, then make its pen bigger and train it. Zoo visitors pay you coins every day.",
+  },
+  {
     id: "2026-10-27-double-batch",
     date: "2026-10-27",
     icon: "🧪",

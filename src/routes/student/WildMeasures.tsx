@@ -8,7 +8,7 @@ import { playCheer } from '../../lib/petSounds';
 import { useAfterschoolGame } from '../../lib/afterschool';
 import {
   BIOMES, COLS, ROWS, FENCE_IQ, MAX_LV, SPECIES, TIERS, TRAITS, alphaOf, areaBlocks, biomeAt, bounds, fenceWhole, foodNeed, foodPerDay, lvOf, migrate, newWorld,
-  nextQuestion, passDay, perimeterBlocks, score, sideFor, stressed, tameQuestion, unitShort, unitWords, upgrade, xy,
+  nextQuestion, passDay, penSize, perimeterBlocks, score, sideFor, stressed, tameQuestion, unitShort, unitWords, xy, zooCoins,
   type BiomeId, type Cell, type Creature, type Question, type Rect, type TameQuestion, type Trait, type World,
 } from '../../lib/wildMeasures';
 
@@ -57,7 +57,7 @@ function decoFor(biome: BiomeId, x: number, y: number, turf: boolean): Deco | nu
 function viewOf(w: World, zoom: 'close' | 'world'): Rect {
   const m = w.map;
   if (zoom === 'world') return m;
-  const b = bounds(w.turf);
+  const b = bounds([...w.turf, ...w.pack.filter((c) => c.pen).flatMap((c) => [`${c.pen!.x0},${c.pen!.y0}`, `${c.pen!.x1},${c.pen!.y1}`])]);
   const fit = (a0: number, a1: number, min: number, lo: number, hi: number): [number, number] => {
     a0 = Math.max(a0, lo); a1 = Math.min(a1, hi);
     while (a1 - a0 + 1 < min && (a0 > lo || a1 < hi)) { if (a0 > lo) a0--; if (a1 - a0 + 1 < min && a1 < hi) a1++; }
@@ -191,8 +191,9 @@ export default function WildMeasures() {
     const move = () => setPos((old) => {
       const out: typeof old = {};
       for (const c of world.pack) {
-        const cell = world.turf[Math.floor(Math.random() * world.turf.length)];
-        const [cx, cy] = xy(cell);
+        // Build Queue 385: a tame creature walks around its zoo pen; the wild pack roams the turf.
+        const pn = c.tame ? c.pen : undefined;
+        const [cx, cy] = pn ? [pn.x0 + Math.floor(Math.random() * penSize(pn).w), pn.y0 + Math.floor(Math.random() * penSize(pn).h)] : xy(world.turf[Math.floor(Math.random() * world.turf.length)]);
         const x = cx + 0.15 + Math.random() * 0.7, y = cy + 0.15 + Math.random() * 0.7;
         const prev = old[c.id];
         out[c.id] = { x, y, dir: prev ? (x >= prev.x ? 1 : -1) : 1 };
@@ -242,8 +243,13 @@ export default function WildMeasures() {
     if (tier) setNews(`You unlocked ${tier.name}! ${tier.does}`);
   };
   const keepWatching = () => {
-    const { world: w, news: n } = passDay(world);
-    setWorld(w); save(w, stats); setQ(null); setResult(null);
+    const { world: w, news: n0 } = passDay(world);
+    // Build Queue 385: zoo visitors pay to see the tame creatures each day.
+    const zc = zooCoins(w);
+    const s2 = zc ? { ...stats, coins: stats.coins + zc } : stats;
+    const n = [n0, zc ? `Zoo visitors came to see your tame ${SPECIES.many}: +${zc} ${zc === 1 ? 'coin' : 'coins'}.` : null].filter(Boolean).join(' ') || null;
+    if (zc) { setStats(s2); sfx.coin(); }
+    setWorld(w); save(w, s2); setQ(null); setResult(null);
     setNews(n ?? (stressed(w) ? `The ${SPECIES.many} are hungry and stressed. They will scout for more land.` : null));
     if (n) speak(n, tts);
     setPhase('watch');
@@ -255,7 +261,7 @@ export default function WildMeasures() {
   const startTame = (c: Creature, trait: Trait | null) => {
     sfx.tick();
     if (free) {
-      const w = upgrade(world, c.id, trait);
+      const w = tameQuestion(world, c, trait).apply(world);
       setWorld(w); save(w, stats); playCheer();
       speak(trait ? `${c.name} ${TRAITS[trait].does}. ${TRAITS[trait].name} is now level ${lvOf(c, trait) + 1}.` : `${c.name} is tamed!`, tts);
       return;
@@ -323,7 +329,13 @@ export default function WildMeasures() {
               const [x, y] = xy(c);
               return <i key={c} className={`${turf.has(c) ? 'turf' : ''}${ghost.has(c) ? ' ghost' : ''}${edge(c)}`} style={{ left: L(x), top: T(y), width: `${100 / vw}%`, height: `${100 / vh}%` }} />;
             })}
-            {decos.map(({ x, y, d, c }) => (
+            {/* Build Queue 385: each tame creature's zoo pen, fenced, with its name sign. */}
+            {world.pack.filter((c) => c.tame && c.pen).map((c) => { const p = c.pen!; const { w: pw, h: ph } = penSize(p); return (
+              <span key={`pen${c.id}`} className="wm-pen-zone" style={{ left: L(p.x0), top: T(p.y0), width: `${(pw / vw) * 100}%`, height: `${(ph / vh) * 100}%`, zIndex: (p.y0 - view.y0) * 10 }}>
+                <b>{c.name}</b>
+              </span>
+            ); })}
+            {decos.filter(({ x, y }) => !world.pack.some((c) => c.tame && c.pen && x >= c.pen.x0 && x <= c.pen.x1 && y >= c.pen.y0 && y <= c.pen.y1)).map(({ x, y, d, c }) => (
               <img key={`d${c}`} className={`wm-deco${ghost.has(c) && !turf.has(c) ? ' fade' : ''}`} src={`${NATURE}${d[0]}.webp`} alt="" draggable={false}
                 style={{ left: L(x + 0.5), top: T(y + 0.92), width: `${(d[1] * 100) / vw}%`, zIndex: (y - view.y0) * 10 + 1 }} />
             ))}
@@ -369,7 +381,7 @@ export default function WildMeasures() {
             <div className="wm-card watch">
               <button type="button" className="wm-say" onClick={say} aria-label="Listen">{LISTEN}</button>
               <p>{news ?? `The ${SPECIES.many} are busy. Watch what they decide to do...`}</p>
-              <button type="button" className="wm-tamebtn" onClick={openTame}>🐾 Tame and upgrade</button>
+              <button type="button" className="wm-tamebtn" onClick={openTame}>🦓 My zoo</button>
             </div>
           )}
 
@@ -391,7 +403,7 @@ export default function WildMeasures() {
               <p>{q.after}</p>
               {news && <p className="wm-news">{news}</p>}
               <div className="wm-row">
-                <button type="button" className="wm-tamebtn" onClick={openTame}>🐾 Tame</button>
+                <button type="button" className="wm-tamebtn" onClick={openTame}>🦓 Zoo</button>
                 <button type="button" className="wm-go" onClick={keepWatching}>Keep watching</button>
               </div>
             </div>
@@ -399,16 +411,16 @@ export default function WildMeasures() {
 
           {phase === 'tame' && !tame && (
             <div className="wm-card tame">
-              <h2>🐾 Tame and upgrade</h2>
-              <p>{free ? 'Afterschool mode: tap to tame or upgrade.' : 'Answer a measuring question exactly to tame a creature or upgrade it (up to level 3).'}</p>
+              <h2>🦓 My zoo</h2>
+              <p>{free ? 'Afterschool mode: tap to bring a creature into the zoo or upgrade it.' : 'Build a zoo pen to tame a creature, then upgrade it (up to level 3). Answer each measuring question exactly. Visitors pay coins every day to see your zoo.'}</p>
               <ul className="wm-tame-list">
                 {world.pack.map((c) => (
                   <li key={c.id}>
                     <span className="wm-tame-pic"><Burrowback alpha={c.id === alpha.id} young={c.young} tame={c.tame} dir={1} /></span>
                     <div>
-                      <b>{c.name}</b> <small>{c.tame ? 'Tame' : 'Wild'}</small>
+                      <b>{c.name}</b> <small>{c.tame ? (c.pen ? `In the zoo · pen ${penSize(c.pen).w} × ${penSize(c.pen).h}` : 'Tame') : 'Wild'}</small>
                       <div className="wm-traits">
-                        {!c.tame ? <button type="button" onClick={() => startTame(c, null)}>🤝 Tame {c.name}</button>
+                        {!c.tame ? <button type="button" onClick={() => startTame(c, null)}>🦓 Build a pen for {c.name}</button>
                           : TRAIT_IDS.map((t) => (
                             <button key={t} type="button" disabled={lvOf(c, t) >= MAX_LV} onClick={() => startTame(c, t)} aria-label={`${TRAITS[t].name} level ${lvOf(c, t)} of ${MAX_LV}`}>
                               {TRAITS[t].icon} {TRAITS[t].name} {lvOf(c, t)}/{MAX_LV}

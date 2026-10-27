@@ -72,7 +72,9 @@ export const FENCE_IQ = 5; // intelligence points before they can build a fence
 
 // Build Queue 380 (domestication): a creature the student has tamed, and how far each of its traits is upgraded.
 export type Trait = 'speed' | 'strength' | 'smarts';
-export interface Creature { id: string; name: string; size: number; power: number; smart: number; young?: boolean; tame?: boolean; lv?: Partial<Record<Trait, number>> }
+// Build Queue 385 ("make the domestication similar to in habitation such as zoos"): a tame creature lives in its own
+// fenced zoo pen on the land, beside the wild pack's turf.
+export interface Creature { id: string; name: string; size: number; power: number; smart: number; young?: boolean; tame?: boolean; lv?: Partial<Record<Trait, number>>; pen?: Rect }
 export interface World {
   turf: Cell[]; side: number; unit: LengthUnit; pack: Creature[]; iq: number; fenced: string | null;
   day: number; milestones: string[]; log: string[];
@@ -140,7 +142,7 @@ export interface Question {
 
 // A strip of new turf on one side: the creatures choose where to scout.
 function strip(w: World): { cells: Cell[]; dir: string } | null {
-  const b = bounds(w.turf), s = new Set(w.turf), m = w.map;
+  const b = bounds(w.turf), s = new Set([...w.turf, ...penCells(w)]), m = w.map;
   const opts: { cells: Cell[]; dir: string }[] = [];
   const depth = rnd(1, 2);
   const span = (a: number, z: number) => { const len = z - a + 1; const take = Math.random() < 0.6 ? len : rnd(Math.max(1, Math.ceil(len / 2)), len); const start = a + rnd(0, len - take); return [start, start + take - 1]; };
@@ -247,6 +249,26 @@ export const TIERS = [
 // Bigger blocks once the student is ready, so multiplication joins counting.
 export const sideFor = (exact: number) => (exact >= 14 ? 5 : exact >= 6 ? 2 : 1);
 
+// ---- Build Queue 385: zoo pens ----
+export const rectCells = (r: Rect): Cell[] => { const out: Cell[] = []; for (let y = r.y0; y <= r.y1; y++) for (let x = r.x0; x <= r.x1; x++) out.push(key(x, y)); return out; };
+export const penCells = (w: World, skip?: string) => w.pack.filter((c) => c.pen && c.id !== skip).flatMap((c) => rectCells(c.pen!));
+export const penSize = (r: Rect) => ({ w: r.x1 - r.x0 + 1, h: r.y1 - r.y0 + 1 });
+// A free spot for a pen pw by ph: outside the turf (with a gap of one block), away from other pens, inside the land.
+export function findPen(w: World, pw: number, ph: number, skip?: string, near?: Rect): Rect | null {
+  const turf = new Set(w.turf), taken = new Set(penCells(w, skip)), m = w.map, b = near ?? bounds(w.turf);
+  const ok = (r: Rect) => r.x0 >= m.x0 && r.y0 >= m.y0 && r.x1 <= m.x1 && r.y1 <= m.y1 && rectCells({ x0: r.x0 - 1, y0: r.y0 - 1, x1: r.x1 + 1, y1: r.y1 + 1 }).every((c) => !turf.has(c) && !taken.has(c));
+  for (let ring = 0; ring < 30; ring++) {
+    const spots: Rect[] = [];
+    for (let x = b.x0 - ring - pw; x <= b.x1 + ring + 1; x++) for (const y of [b.y0 - ring - ph, b.y1 + ring + 1]) spots.push({ x0: x, y0: y, x1: x + pw - 1, y1: y + ph - 1 });
+    for (let y = b.y0 - ring - ph; y <= b.y1 + ring + 1; y++) for (const x of [b.x0 - ring - pw, b.x1 + ring + 1]) spots.push({ x0: x, y0: y, x1: x + pw - 1, y1: y + ph - 1 });
+    const good = spots.filter(ok);
+    if (good.length) return near ? good[0] : pick(good);
+  }
+  return null;
+}
+// Zoo visitors come each day to see the tame creatures: 1 coin for each one, plus 1 for each upgrade level.
+export const zooCoins = (w: World) => w.pack.filter((c) => c.tame).reduce((n, c) => n + 1 + TRAIT_LIST.reduce((k, t) => k + lvOf(c, t), 0), 0);
+
 // ---- Build Queue 380: domestication ----
 // Her words: "add domestication (upgrading animals by answering questions)". The student tames a creature by building
 // it a pen, then upgrades its Speed, Strength and Smarts up to 3 levels each. Every step is one measurement question
@@ -258,33 +280,49 @@ export const TRAITS: Record<Trait, { name: string; icon: string; does: string }>
   smarts: { name: 'Smarts', icon: '💡', does: 'gets 2 more smarts and gives the pack 1 intelligence point' },
 };
 export const lvOf = (c: Creature, t: Trait) => c.lv?.[t] ?? 0;
+const TRAIT_LIST: Trait[] = ['speed', 'strength', 'smarts'];
 // The pen or track the question is about, drawn as a small grid on the card.
 export interface TameQuestion extends Question { pen: { w: number; h: number } }
 
-export function upgrade(w: World, id: string, trait: Trait | null): World {
+export function upgrade(w: World, id: string, trait: Trait | null, pen?: Rect | null): World {
   return { ...w, iq: w.iq + (trait === 'smarts' ? 1 : 0), pack: w.pack.map((c) => {
     if (c.id !== id) return c;
-    if (!trait) return { ...c, tame: true };
+    if (!trait) return { ...c, tame: true, pen: pen ?? c.pen };
+    if (trait === 'strength' && pen) c = { ...c, pen };
     const lv = { ...c.lv, [trait]: lvOf(c, trait) + 1 };
     return { ...c, lv, power: c.power + (trait === 'strength' ? 2 : 0), smart: c.smart + (trait === 'smarts' ? 2 : 0) };
   }), log: [...w.log, `Day ${w.day}: ${w.pack.find((c) => c.id === id)?.name} ${trait ? `went up a level in ${TRAITS[trait].name}` : 'was tamed'}.`] };
 }
 
+// A bigger pen for a Strength upgrade: one block longer if there is room, or one block wider.
+function biggerPen(w: World, c: Creature): Rect | null {
+  const p = c.pen; if (!p) return null;
+  const { w: pw, h: ph } = penSize(p);
+  for (const r of [{ ...p, x1: p.x1 + 1 }, { ...p, x0: p.x0 - 1 }, { ...p, y1: p.y1 + 1 }, { ...p, y0: p.y0 - 1 }]) {
+    const turf = new Set(w.turf), taken = new Set(penCells(w, c.id)), m = w.map;
+    if (r.x0 >= m.x0 && r.y0 >= m.y0 && r.x1 <= m.x1 && r.y1 <= m.y1 && rectCells(r).every((x) => !turf.has(x) && !taken.has(x))) return r;
+  }
+  return findPen(w, pw + 1, ph, c.id, p);
+}
+
 export function tameQuestion(w: World, c: Creature, trait: Trait | null): TameQuestion {
-  const lv = trait ? lvOf(c, trait) : 0;
-  const pw = rnd(2, 3 + lv * 2), ph = rnd(2, 3 + lv), s = w.side, u = L(w);
-  const apply = (x: World) => upgrade(x, c.id, trait);
+  const lv = trait ? lvOf(c, trait) : 0, s = w.side, u = L(w);
+  let pen: Rect | null = c.pen ?? null;
+  if (!trait) pen = findPen(w, rnd(3, 4), rnd(2, 3));
+  if (trait === 'strength') pen = biggerPen(w, c) ?? pen;
+  const { w: pw, h: ph } = pen ? penSize(pen) : { w: rnd(3, 4), h: rnd(2, 3) };
+  const apply = (x: World) => upgrade(x, c.id, trait, pen);
   const per = 2 * (pw + ph);
-  if (!trait) return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} is still wild. Build ${c.name} a pen ${pw} blocks long and ${ph} blocks wide so they feel safe with you.`,
+  if (!trait) return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} is ready to move into your zoo. You are building ${c.name} a pen ${pw} blocks long and ${ph} blocks wide, next to the pack.`,
     ask: 'One fence block covers one block edge. How many fence blocks go all the way around the pen?', answer: { value: per, unit: 'blocks' },
-    hint: `${pw} + ${ph} + ${pw} + ${ph} = ${per}.`, apply, after: `${c.name} trusts you now. ${c.name} is tamed!` };
-  if (trait === 'speed') return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} trains on a running track ${pw} blocks long and ${ph} blocks wide. Each block side is ${sideText(w)}.`,
-    ask: `How far is one lap all the way around the track?`, answer: { value: per * s, unit: w.unit },
+    hint: `${pw} + ${ph} + ${pw} + ${ph} = ${per}.`, apply, after: `${c.name} moved into the zoo. ${c.name} is tamed! Zoo visitors will come to see ${c.name} every day.` };
+  if (trait === 'speed') return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} trains by running laps along the fence of the zoo pen, ${pw} blocks long and ${ph} blocks wide. Each block side is ${sideText(w)}.`,
+    ask: 'How far is one lap all the way around the pen?', answer: { value: per * s, unit: w.unit },
     hint: s === 1 ? `${pw} + ${ph} + ${pw} + ${ph} = ${per} ${u}.` : `${per} block edges, each ${s} ${u}: ${per} × ${s} = ${per * s}.`, apply, after: `${c.name} ran the lap. Speed is now level ${lv + 1}!` };
-  if (trait === 'strength') return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} digs a big den floor ${pw} blocks long and ${ph} blocks wide. Each block is ${sideText(w)} on each side.`,
-    ask: 'What is the area of the den floor?', answer: { value: pw * ph * s * s, unit: `sq ${w.unit}` },
-    hint: s === 1 ? `${pw} × ${ph} = ${pw * ph} square ${u}.` : `${pw} × ${ph} = ${pw * ph} blocks, each ${s * s} square ${u}: ${pw * ph} × ${s * s} = ${pw * ph * s * s}.`, apply, after: `${c.name} dug it all. Strength is now level ${lv + 1}!` };
-  return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} is learning to plan. They want to fill a garden ${pw} blocks long and ${ph} blocks wide with seeds, one seed a block.`,
-    ask: 'How many seeds does the garden need?', answer: { value: pw * ph, unit: 'blocks' },
-    hint: `${pw} rows of ${ph}: ${pw} × ${ph} = ${pw * ph}.`, apply, after: `${c.name} planned it perfectly. Smarts is now level ${lv + 1}!` };
+  if (trait === 'strength') return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} is getting bigger, so the zoo pen grows to ${pw} blocks long and ${ph} blocks wide. Each block is ${sideText(w)} on each side.`,
+    ask: 'What is the area of the new pen?', answer: { value: pw * ph * s * s, unit: `sq ${w.unit}` },
+    hint: s === 1 ? `${pw} × ${ph} = ${pw * ph} square ${u}.` : `${pw} × ${ph} = ${pw * ph} blocks, each ${s * s} square ${u}: ${pw * ph} × ${s * s} = ${pw * ph * s * s}.`, apply, after: `${c.name} has a bigger pen. Strength is now level ${lv + 1}!` };
+  return { kind: 'tame', pen: { w: pw, h: ph }, story: `${c.name} is learning to plan. ${c.name} hides one treat on every block of the zoo pen, ${pw} blocks long and ${ph} blocks wide.`,
+    ask: 'How many treats does it take to cover the pen?', answer: { value: pw * ph, unit: 'blocks' },
+    hint: `${pw} rows of ${ph}: ${pw} × ${ph} = ${pw * ph}.`, apply, after: `${c.name} found every treat. Smarts is now level ${lv + 1}!` };
 }
