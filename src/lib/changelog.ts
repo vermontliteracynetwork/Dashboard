@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-alchemy-count",
+    date: "2026-10-27",
+    icon: "⚗️",
+    title: "Alchemy counts only real mixes",
+    body: "In Alchemy, only mixes that make something count toward your next question break. Mixes that bounce apart do not count.",
+  },
+  {
     id: "2026-10-27-world-box-2",
     date: "2026-10-27",
     icon: "🗺️",

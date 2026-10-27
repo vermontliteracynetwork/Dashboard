@@ -106,7 +106,8 @@ export default function Alchemy() {
     }
     return drawQuestion(questionSets, avoid) ?? generateAutoQuestion();
   };
-  // Every combination counts as a play; after "every" plays comes a break of "count" questions.
+  // Every combination that works counts as a play (a mix that does not combine never counts, Build Queue 396);
+  // after "every" plays comes a break of "count" questions.
   const countPlay = () => {
     if (mode !== 'play') return;
     const n = sinceQ + 1;
@@ -157,10 +158,12 @@ export default function Alchemy() {
     if (d.length === ELEMENTS.length) window.setTimeout(() => say('🎉 You discovered everything!'), 2600);
   };
   const combine = (a: Tile, b: Tile) => {
-    countPlay();
     const rs = R[key(a.id, b.id)];
     const r = rs ? (rs.find((x) => !disc.includes(x)) ?? rs[0]) : undefined;
     if (r) {
+      // Build Queue 396 (her words: "if objects dont combine that should not count as a combination in their total moves
+      // to make before a question appears"): only a real combination counts toward the next question break.
+      countPlay();
       const p = clamp((a.x + b.x) / 2, (a.y + b.y) / 2);
       setTiles((ts) => [...ts.filter((t) => t.uid !== a.uid && t.uid !== b.uid), { uid: nextUid.current++, id: r, x: p.x, y: p.y, fx: 'pop' }]);
       discover(r);
