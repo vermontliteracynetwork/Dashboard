@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-world-box-2",
+    date: "2026-10-27",
+    icon: "🗺️",
+    title: "A brand new World Box",
+    body: "World Box is a top-down map now, with mountains, lakes, deserts, snow and forests. Real animals roam it. Build fences, barns, coops, zoo pens and stone walls, explore more land, and add and name your own animals. Every build is a math question about perimeter, area or volume.",
+  },
+  {
     id: "2026-10-27-team-up",
     date: "2026-10-27",
     icon: "🤝",

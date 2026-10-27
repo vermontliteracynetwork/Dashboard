@@ -10422,3 +10422,56 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .sn-pop-team { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
 .sn-pop-team .sn-chip-btn { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
 .sn-pop-team .sn-chip-btn img { width: 28px; height: 28px; object-fit: contain; }
+
+/* Build Queue 391 and 392: World Box v2, a top-down blocky map with buildings and real animals. */
+.wb-grid { position: relative; display: block; margin: 0 auto; border-radius: 12px; overflow: hidden; border: 4px solid #4b3a1c; background: #7cbd4f; box-shadow: 0 6px 0 rgba(60,45,20,.3); touch-action: manipulation; cursor: pointer; }
+.wb-grid.placing { cursor: crosshair; }
+.wb-ground { position: absolute; image-rendering: pixelated; image-rendering: crisp-edges; pointer-events: none; }
+.wb-lines { position: absolute; inset: 0; pointer-events: none; background-image: linear-gradient(to right, rgba(0,0,0,.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,.08) 1px, transparent 1px); }
+.wb-b { position: absolute; box-sizing: border-box; pointer-events: none; display: flex; align-items: flex-start; justify-content: center; }
+.wb-b b { translate: 0 -55%; padding: 0 6px; border-radius: 6px; background: #fff8e6; border: 2px solid #6b4f2a; font: 900 .7rem 'Nunito', sans-serif; color: #4b3a1c; white-space: nowrap; }
+.wb-b.pasture { border: 3px dashed #7a4b22; background: rgba(160, 220, 110, .25); }
+.wb-b.zoo { border: 4px solid #8a5a2b; background: rgba(255, 236, 180, .3) repeating-linear-gradient(90deg, transparent 0 10px, rgba(138,90,43,.15) 10px 12px); }
+.wb-b.barn { background: #b8322a repeating-linear-gradient(0deg, transparent 0 6px, rgba(0,0,0,.12) 6px 7px); border: 3px solid #6e1c16; box-shadow: inset 0 0 0 2px #e8d5b0; }
+.wb-b.barn::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 3px; background: #e8d5b0; }
+.wb-b.coop { background: #e08a2e repeating-linear-gradient(90deg, transparent 0 5px, rgba(0,0,0,.12) 5px 6px); border: 3px solid #8a4b12; }
+.wb-b.wall { background: #8d8d92 repeating-linear-gradient(90deg, #9a9aa0 0 8px, #7c7c82 8px 9px); border: 2px solid #55555a; }
+.wb-mark { position: absolute; box-sizing: border-box; pointer-events: none; outline: 3px dashed #fff; outline-offset: -3px; background: rgba(255,255,255,.18); animation: wmGhost 1s ease-in-out infinite alternate; }
+.wb-mark.box { outline-width: 4px; }
+.wb-ghost { position: absolute; box-sizing: border-box; pointer-events: none; border: 3px dashed #1f6fd6; background: rgba(80, 150, 255, .3); }
+.wb-ghost.bad { border-color: #c0362c; background: rgba(240, 80, 60, .3); }
+.wb-animal { position: absolute; translate: -50% -50%; font-size: calc(var(--cell) * .82); line-height: 1; transition: left 2.2s ease-in-out, top 2.2s ease-in-out; pointer-events: none; filter: drop-shadow(0 2px 1px rgba(0,0,0,.3)); display: flex; flex-direction: column; align-items: center; }
+.wb-animal em { position: absolute; top: -40%; font: 900 .55rem 'Nunito', sans-serif; font-style: normal; background: #ffcf3f; color: #5a3d00; border-radius: 999px; padding: 0 3px; }
+.wb-animal small { font: 800 .55rem 'Nunito', sans-serif; background: rgba(255,255,255,.85); border-radius: 4px; padding: 0 3px; color: #2b2410; white-space: nowrap; }
+.wb-pan { display: inline-flex; gap: 4px; }
+.wb-pan button { min-width: 44px; min-height: 44px; border-radius: 10px; border: 2px solid #6b4f2a; background: #fff7d6; font-size: 1rem; }
+.wb-tools { gap: 8px; }
+.wb-tabs { align-self: stretch; }
+.wb-toolgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.wb-toolgrid button, .wb-species button, .wb-dirs button, .wb-list button { min-height: 48px; border-radius: 12px; border: 2px solid #c9b78a; background: #fffaf0; font: 800 .92rem 'Nunito', sans-serif; display: flex; align-items: center; gap: 6px; padding: 4px 8px; text-align: left; touch-action: manipulation; }
+.wb-toolgrid button.on { border-color: #2f6b16; background: #e2f5d2; }
+.wb-toolgrid span, .wb-species span { font-size: 1.4rem; }
+.wb-dirs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.wb-size { display: grid; gap: 6px; }
+.wb-size > div { display: flex; align-items: center; gap: 8px; }
+.wb-size > div span { width: 64px; font-weight: 800; }
+.wb-size > div button { min-width: 48px; min-height: 44px; border-radius: 10px; border: 2px solid #c9b78a; background: #fff; font: 900 1.3rem 'Nunito', sans-serif; }
+.wb-size > div b { min-width: 28px; text-align: center; font: 900 1.3rem 'Baloo 2', sans-serif; }
+.wb-size p { margin: 0; padding: 0 !important; font-weight: 700; }
+.wb-bad { color: #a3271c; }
+.wb-mini { min-height: 36px; min-width: 36px; border-radius: 10px; border: 2px solid #c9b78a; background: #fff; }
+.wb-mini.wide { min-height: 44px; font-weight: 800; }
+.wb-species { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.wb-species button { flex-direction: column; align-items: center; text-align: center; gap: 0; }
+.wb-species small { font-weight: 700; color: #6b5a3a; }
+.wb-tools h3 { margin: 4px 0 0; font: 900 1rem 'Baloo 2', sans-serif; color: #3e5a1e; }
+.wb-list { display: grid; gap: 6px; }
+.wb-list button:disabled { opacity: .5; }
+.wb-name { display: flex; align-items: center; gap: 8px; font-weight: 800; }
+.wb-name input { flex: 1; min-height: 44px; border-radius: 10px; border: 2px solid #c9b78a; padding: 0 10px; font: 700 1rem 'Nunito', sans-serif; }
+.wb-mine { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.wb-mine li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 10px; background: #fffaf0; border: 2px solid #e4d6ae; }
+.wb-mine li span { font-size: 1.4rem; } .wb-mine li small { margin-right: auto; color: #6b5a3a; font-weight: 700; }
+.wb-mine li button { min-height: 44px; border-radius: 10px; border: 2px solid #c98a1c; background: #fff4d6; font-weight: 800; padding: 0 10px; }
+.wb .wm-card { overflow: auto; }
+@media (prefers-reduced-motion: reduce) { .wb-animal { transition: none; } .wb-mark { animation: none; } }
