@@ -96,6 +96,12 @@ export function learnable(c: Creature, k: SkillSet): { s: Skill; ok: boolean; wh
 // a creature with Earth magic tunnels underground where nothing can reach it.
 export const isHunter = (c: Creature) => c.eats === 'meat' || c.eats === 'both';
 export const canBeHunted = (c: Creature, k: SkillSet) => c.chapter !== 'gods' && !has(k, 'earthMagic') && ['plants', 'both', 'leftovers', 'magic'].includes(c.eats ?? 'magic');
+// Build Queue 382 (her words: "we need airborne predators that get airbone prey (not land based)"): sky hunters
+// (Dragon, Thunderbird, Griffin, and any made creature that flies) catch only flying prey (Pegasus, Fairy, Raven,
+// Phoenix, Siren...), and land and sea hunters catch only creatures on the ground or in the water.
+export const airborne = (c: Creature) => c.move === 'fly';
+export const sameSky = (h: Creature, p: Creature) => airborne(h) === airborne(p);
+export const catches = (h: Creature, p: Creature, pk: SkillSet) => isHunter(h) && canBeHunted(p, pk) && sameSky(h, p);
 export function escapeChance(prey: Creature, pk: SkillSet, _hunter: Creature, hk: SkillSet, preyGroup: number): { p: number; how: SkillId | 'luck' } {
   let p = 0.3; let best: SkillId | 'luck' = 'luck'; let bestV = 0;
   for (const s of ['speed', 'camouflage', 'smarts', 'keenNose'] as SkillId[]) { const v = lvl(pk, s) * 0.09; p += v; if (v > bestV) { bestV = v; best = s; } }

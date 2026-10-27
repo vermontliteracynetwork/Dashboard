@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-sky-hunters",
+    date: "2026-10-27",
+    icon: "🦅",
+    title: "Sky hunters in Supernature",
+    body: "In the Habitat, flying predators like the Dragon, Thunderbird and Griffin now hunt only flying prey, like Pegasus, the Fairy and the Raven. Hunters on the ground hunt only creatures that do not fly.",
+  },
+  {
     id: "2026-10-27-world-box-tame",
     date: "2026-10-27",
     icon: "🐾",

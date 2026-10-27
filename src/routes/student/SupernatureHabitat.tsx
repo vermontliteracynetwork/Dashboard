@@ -17,7 +17,7 @@ import { behaviorOf, type Act } from '../../lib/supernatureBehaviors';
 import { Fx, HIT_FX, ORB_FX, type FxKey } from './SupernatureFx';
 import { AFF, affOf, attack, confidenceOf, healthOf, magicOf, makeFighter, type Aff, type Fighter } from '../../lib/supernatureBattle';
 import {
-  HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, canBeHunted, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
+  HOW_ESCAPED, LEARN_COST, LEVEL_COST, MAX_LEVEL, MAX_SKILLS, SKILL, ZONE_NAME, airborne, catches, escapeChance, feelingOf, feelingSentence, has, isHunter, learnable,
   skillTags, startSkills, type SkillId, type SkillSet,
 } from '../../lib/supernatureSkills';
 import { SEASONS, SEASON_ICON, groupCap, isGod, startGroup, runSeason, seasonClock, seasonName, type Eco, type SeasonResult } from '../../lib/supernatureSeasons';
@@ -496,7 +496,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     for (const [id, a] of Object.entries(asks)) {
       const l = live.find((x) => x.c.id === id); if (!l) continue;
       const fixed = a.reason === 'tired' ? l.hp >= 3 : a.reason === 'homesick' ? l.status !== 'homesick'
-        : a.reason === 'last' ? count(id) > 1 || !live.some((h) => h !== l && !h.hide && isHunter(h.c) && home(h.c) === home(l.c) && canBeHunted(l.c, sk(l.c))) : false;
+        : a.reason === 'last' ? count(id) > 1 || !live.some((h) => h !== l && !h.hide && home(h.c) === home(l.c) && catches(h.c, l.c, sk(l.c))) : false;
       if (fixed) { resolveAsk(id, `${nameOf(l)} feels better now. Thank you for helping! It is staying.`); continue; }
       if (a.step === 2 && a.skill && has(sk(l.c), a.skill)) { resolveAsk(id, `${nameOf(l)} learned ${SKILL(a.skill).name}. Now it can handle it. It is staying!`); continue; }
       if (tick >= a.until) escalate(id, false);
@@ -504,7 +504,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     for (const l of live) {
       if (l.hide || count(l.c.id) === 0) continue;
       if (l.hp === 0) warnOf(l.c.id, 'tired', `${l.hp === 0 ? 'it has no hearts left' : 'it has only 1 heart left'}. If it has no hearts when ${season.toLowerCase()} ends, it will fade away until spring`, 'Give it a Vita or Herba potion, or move it to a land it likes so it can rest and get its hearts back.', ['vita', 'herba', 'move']);
-      if (count(l.c.id) === 1 && live.some((h) => h !== l && !h.hide && isHunter(h.c) && home(h.c) === home(l.c) && canBeHunted(l.c, sk(l.c)))) warnOf(l.c.id, 'last', 'it is the last one in its family, and predators live in its land', 'It will hide safely, but its family cannot grow with predators around. Move it to a land without predators, or train Camouflage or Fast runner.', ['move', 'train']);
+      if (count(l.c.id) === 1 && live.some((h) => h !== l && !h.hide && home(h.c) === home(l.c) && catches(h.c, l.c, sk(l.c)))) warnOf(l.c.id, 'last', 'it is the last one in its family, and predators live in its land', 'It will hide safely, but its family cannot grow with predators around. Move it to a land without predators, or train Camouflage or Fast runner.', ['move', 'train']);
       if (l.status === 'homesick' && l.hp <= 2) warnOf(l.c.id, 'homesick', `it misses the land it loves (the ${likesOf(l.c)})`, `Move it to the ${likesOf(l.c)}.`, ['move']);
     }
     // A minute and a half before the season ends, look ahead: who would move away to find food?
@@ -565,10 +565,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       const c = byId(id); const from = cur[id]; if (!c || !from) continue;
       const near = (v: View) => live.filter((l) => l.c.id !== id && cur[l.c.id] === v && !nextHomes[l.c.id]).map((l) => l.c);
       if (isHunter(c)) {
-        const p = near(to).filter((x) => canBeHunted(x, sk(x))); if (p.length) lines.push(`🐾 ${p.map((x) => x.name).join(', ')} in the ${viewLabel(to).toLowerCase()} could be hunted by ${c.name} now.`);
-        const safe = near(from).filter((x) => canBeHunted(x, sk(x))); if (safe.length) lines.push(`🛡️ ${safe.map((x) => x.name).join(', ')} in the ${viewLabel(from).toLowerCase()} are safer now.`);
+        const p = near(to).filter((x) => catches(c, x, sk(x))); if (p.length) lines.push(`🐾 ${p.map((x) => x.name).join(', ')} in the ${viewLabel(to).toLowerCase()} could be hunted by ${c.name} now.`);
+        const safe = near(from).filter((x) => catches(c, x, sk(x))); if (safe.length) lines.push(`🛡️ ${safe.map((x) => x.name).join(', ')} in the ${viewLabel(from).toLowerCase()} are safer now.`);
       } else {
-        const h = near(to).filter((x) => isHunter(x) && canBeHunted(c, sk(c))); if (h.length) lines.push(`⚠️ ${h.map((x) => x.name).join(', ')} in the ${viewLabel(to).toLowerCase()} could hunt ${c.name}.`);
+        const h = near(to).filter((x) => catches(x, c, sk(c))); if (h.length) lines.push(`⚠️ ${h.map((x) => x.name).join(', ')} in the ${viewLabel(to).toLowerCase()} could hunt ${c.name}.`);
       }
     }
     setRipple({ title: change, lines: lines.length ? lines : ['No other creature is affected. 👍'] });
@@ -578,7 +578,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const keepByPlants = (l: Live) => { doneWarn(); resolveAsk(l.c.id); const ne = { ...eco, plants: Math.min(12, eco.plants + 4) }; showRipple(l.c, `Growing more plants for ${nameOf(l)}`, ne, {}); setEco(ne); snSound('pickup'); };
   const keepByHunters = (l: Live) => {
     const m: Record<string, View> = {};
-    for (const h of live) if (h !== l && isHunter(h.c) && home(h.c) === home(l.c)) { const v = likedElsewhere(h); if (v) m[h.c.id] = v; }
+    for (const h of live) if (h !== l && catches(h.c, l.c, sk(l.c)) && home(h.c) === home(l.c)) { const v = likedElsewhere(h); if (v) m[h.c.id] = v; }
     if (!Object.keys(m).length) { tell('The predators here have nowhere else they like to live, so they stay. Try another change.', true); return; }
     doneWarn(); resolveAsk(l.c.id); showRipple(l.c, `Moving the predators away from ${nameOf(l)}`, eco, m); setHomes((h) => ({ ...h, ...m })); snSound('pickup');
   };
@@ -718,9 +718,9 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     const where = mode === 'add' ? (biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome) : home(c);
     const near = live.filter((l) => l.c.id !== id && home(l.c) === where).map((l) => l.c);
     const lines: string[] = [];
-    if (isHunter(c)) { const prey = near.filter((p) => canBeHunted(p, sk(p))); if (prey.length) lines.push(mode === 'add' ? `${prey.map((p) => p.name).join(', ')} could be hunted by ${c.name}.` : `${prey.map((p) => p.name).join(', ')} will be safer: one less predator.`); }
+    if (isHunter(c)) { const prey = near.filter((p) => catches(c, p, sk(p))); if (prey.length) lines.push(mode === 'add' ? `${prey.map((p) => p.name).join(', ')} could be hunted by ${c.name}.` : `${prey.map((p) => p.name).join(', ')} will be safer: one less predator.`); }
     if (c.eats === 'plants' || c.eats === 'both') lines.push(mode === 'add' ? 'Plants will be eaten faster.' : 'More plants will be left for the plant eaters.');
-    const hunters = near.filter((h) => isHunter(h) && canBeHunted(c, startSkills(c)));
+    const hunters = near.filter((h) => catches(h, c, startSkills(c)));
     if (hunters.length) lines.push(mode === 'add' ? `${hunters.map((h) => h.name).join(', ')} will have more food to catch.` : `${hunters.map((h) => h.name).join(', ')} will have less food to catch.`);
     if (!lines.length) lines.push(mode === 'add' ? 'It will share the biome with the creatures there.' : 'The other creatures there will have a little more room.');
     return lines;
@@ -1017,7 +1017,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
       const pairs: [Live, Live][] = [];
       for (const h of live) {
         if (!isHunter(h.c) || h.hp === 0 || h.hide || count(h.c.id) === 0 || reactions[h.c.id]?.pose === 'sleep') continue;
-        for (const p of live) if (p !== h && home(p.c) === home(h.c) && p.hp > 0 && !p.hide && count(p.c.id) > 0 && canBeHunted(p.c, sk(p.c))) pairs.push([h, p]);
+        for (const p of live) if (p !== h && home(p.c) === home(h.c) && p.hp > 0 && !p.hide && count(p.c.id) > 0 && catches(h.c, p.c, sk(p.c))) pairs.push([h, p]);
       }
       const inSight = pairs.filter(([h]) => home(h.c) === biome);
       const pool = inSight.length ? inSight : pairs;
@@ -1032,7 +1032,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           return;
         }
         setHunt({ hunter: h.c.id, prey: p.c.id, phase: 'chase' });
-        if (inView) { natureSound('whoosh', 0.3); tell(`${h.c.name} is hunting! It ${has(sk(h.c), 'sneak') ? 'sneaks up quietly' : 'runs fast'} toward ${p.c.name}.`); }
+        if (inView) { natureSound('whoosh', 0.3); tell(`${h.c.name} is hunting! It ${airborne(h.c) ? 'swoops through the sky' : has(sk(h.c), 'sneak') ? 'sneaks up quietly' : 'runs fast'} toward ${p.c.name}.${airborne(h.c) ? ' Sky hunters only chase other fliers.' : ''}`); }
         window.setTimeout(() => {
           const e = escapeChance(p.c, sk(p.c), h.c, sk(h.c), count(p.c.id));
           if (count(p.c.id) <= 1) {
