@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T14:36:20.091Z",
+  "generatedAt": "2026-10-27T14:44:43.464Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -3719,6 +3719,11 @@
     {
       "path": "/world/models/pets/animal-cat-ragdoll.glb",
       "label": "Animal Cat Ragdoll",
+      "category": "pets"
+    },
+    {
+      "path": "/world/models/pets/animal-cat-tuxedo.glb",
+      "label": "Animal Cat Tuxedo",
       "category": "pets"
     },
     {

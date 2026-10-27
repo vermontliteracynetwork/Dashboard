@@ -114,6 +114,8 @@ const PET_CATALOG_ALL: PetDef[] = [
   // Build Queue 398 (her words: "make sure that these animals are animated and can interact functionally"): the Styloo
   // animal pack. The dog and cow keep their own Idle, Walk, Run and Jump; the cat, giraffe, chicken and ladybug got
   // walk and idle moves made for their own skeletons, and the butterfly flies. The pup and kitty can be adopted.
+  // Her own walking cat (cat.fbx with her catskin.png picture, 2026-10-27).
+  { id: 'pet-cat-tuxedo', name: 'Tuxedo Cat', modelPath: '/world/models/pets/animal-cat-tuxedo.glb', priceCents: 30000, category: 'cat', targetHeight: 0.8725 },
   { id: 'pet-styloo-pup', name: 'Spotted Pup', modelPath: '/world/models/pets-styloo/styloo-dog.glb', priceCents: 30000, category: 'dog', targetHeight: 1.0 },
   { id: 'pet-styloo-kitty', name: 'Pink Nose Kitty', modelPath: '/world/models/pets-styloo/styloo-cat.glb', priceCents: 30000, category: 'cat', targetHeight: 0.85 },
   { id: 'pet-styloo-cow', name: 'Cow', modelPath: '/world/models/pets-styloo/styloo-cow.glb', priceCents: 30000, category: 'farm', targetHeight: 1.4 },
