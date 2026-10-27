@@ -3,7 +3,10 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import LeaveButton from '../../components/LeaveButton';
 import { speak } from '../../components/ReadAloud';
-import { sfx, SfxToggle } from '../../lib/miniSfx';
+import { playClip, preloadClips, sfx, SfxToggle } from '../../lib/miniSfx';
+
+// Build Queue 388: her sounds for a right answer and a wrong one.
+const RIGHT = '/sounds/worldbox/right.mp3', WRONG = '/sounds/worldbox/wrong.mp3';
 import { playCheer } from '../../lib/petSounds';
 import { useAfterschoolGame } from '../../lib/afterschool';
 import {
@@ -182,7 +185,7 @@ export default function WildMeasures() {
   const [tick, setTick] = useState(0);
   const timers = useRef<number[]>([]);
   const tts = student?.ttsSettings;
-  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+  useEffect(() => { preloadClips([RIGHT, WRONG]); return () => timers.current.forEach(clearTimeout); }, []);
 
   const save = (w: World, s: typeof stats) => mergeStyleRow(owner, { world: w, ...s });
 
@@ -237,7 +240,7 @@ export default function WildMeasures() {
     const s = { coins: stats.coins + r.coins, right: stats.right + (r.label !== 'miss' ? 1 : 0), exact: stats.exact + (r.label === 'exact' ? 1 : 0), tries: stats.tries + 1 };
     const tier = TIERS.find((t) => stats.right < t.at && s.right >= t.at);
     setResult({ ...r, guess: g }); setStats(s); setWorld(nextWorld); setPhase('reveal'); save(nextWorld, s);
-    if (r.label === 'exact') { sfx.coin(); playCheer(); } else if (r.label === 'close') sfx.coin(); else sfx.pop();
+    playClip(r.label === 'miss' ? WRONG : RIGHT);
     const said = r.label === 'exact' ? `Spot on! ${q.answer.value} ${unitWords(q.answer.unit)}. Plus 3 coins.` : r.label === 'close' ? `So close! It was ${q.answer.value} ${unitWords(q.answer.unit)}. Plus 1 coin.` : `It was ${q.answer.value} ${unitWords(q.answer.unit)}. ${q.hint}`;
     speak(`${said} ${q.after}${tier ? ` You unlocked ${tier.name}!` : ''}`, tts);
     if (tier) setNews(`You unlocked ${tier.name}! ${tier.does}`);
@@ -278,8 +281,9 @@ export default function WildMeasures() {
     const w = exact ? tame.q.apply(world) : world;
     setStats(s); setWorld(w); save(w, s);
     setTame({ ...tame, result: { label: r.label, guess: g } });
-    if (exact) { sfx.coin(); playCheer(); speak(`Spot on! Plus 3 coins. ${tame.q.after}`, tts); }
-    else { sfx.pop(); speak(`It was ${tame.q.answer.value} ${unitWords(tame.q.answer.unit)}. ${tame.q.hint} Try another one.`, tts); }
+    playClip(exact ? RIGHT : WRONG);
+    if (exact) { speak(`Spot on! Plus 3 coins. ${tame.q.after}`, tts); }
+    else { speak(`It was ${tame.q.answer.value} ${unitWords(tame.q.answer.unit)}. ${tame.q.hint} Try another one.`, tts); }
   };
 
   const view = viewOf(world, zoom);
@@ -370,6 +374,7 @@ export default function WildMeasures() {
             <span>{world.pack.length} {SPECIES.many} · alpha {alpha.name}</span>
             <span className={`wm-mood${stressed(world) ? ' bad' : ''}`}>{stressed(world) ? 'Stressed: not enough food' : 'Calm and fed'}</span>
             <span>Food: {food} a day · they eat {need}</span>
+            {(world.dens || world.water) ? <span>Dens dug {world.dens ?? 0} · water stored {world.water ?? 0} m³</span> : null}
             <span className="wm-biomes" aria-label="Biomes found">{world.biomes.map((b: BiomeId) => (
               <em key={b}><i style={{ background: `rgb(${BIOMES[b].ground.join(',')})` }} />{BIOMES[b].name} {BIOMES[b].food} food</em>
             ))}</span>

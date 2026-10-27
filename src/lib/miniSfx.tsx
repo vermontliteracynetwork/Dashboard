@@ -142,3 +142,18 @@ export function SfxToggle({ plain = false }: { plain?: boolean } = {}) {
 const gameMusic = new Set<HTMLAudioElement>();
 export const registerGameMusic = (a: HTMLAudioElement) => { gameMusic.add(a); return a; };
 export const stopGameMusic = () => { gameMusic.forEach((a) => { try { a.pause(); a.currentTime = 0; } catch { /* fine */ } }); gameMusic.clear(); };
+
+// A whole sound clip (not cut short like peg sounds), through Web Audio so it plays on iPads. Build Queue 388: World Box
+// plays her success sound for a right answer and her "dats wrong" sound for a wrong one.
+export const preloadClips = (urls: string[]) => urls.forEach((u) => { if (!buffers.has(u)) loadBuffer(u); });
+export function playClip(url: string, vol = 0.8) {
+  if (!sfxOn() || level <= 0) return;
+  const c = ac(), buf = buffers.get(url);
+  if (c && buf instanceof AudioBuffer) {
+    const src = c.createBufferSource(), g = c.createGain();
+    src.buffer = buf; g.gain.value = vol * level; src.connect(g); g.connect(c.destination); src.start();
+    return;
+  }
+  if (buf !== 'loading') loadBuffer(url);
+  try { const a = new Audio(url); a.volume = Math.min(1, vol * level); void a.play().catch(() => {}); } catch { /* no audio */ }
+}

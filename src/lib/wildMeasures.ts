@@ -9,9 +9,9 @@ export const UNIT_NAME: Record<LengthUnit, { one: string; many: string }> = {
   m: { one: 'meter', many: 'meters' }, ft: { one: 'foot', many: 'feet' }, yd: { one: 'yard', many: 'yards' },
 };
 // A measured value with its unit: "blocks" for counts on the grid, a length unit, or that unit squared.
-export type Measure = { value: number; unit: 'blocks' | 'food' | LengthUnit | `sq ${LengthUnit}` };
-export const unitWords = (u: Measure['unit']) => (u === 'blocks' ? 'blocks' : u === 'food' ? 'food' : u.startsWith('sq ') ? `square ${UNIT_NAME[u.slice(3) as LengthUnit].many}` : UNIT_NAME[u as LengthUnit].many);
-export const unitShort = (u: Measure['unit']) => (u.startsWith('sq ') ? `${u.slice(3)}²` : u);
+export type Measure = { value: number; unit: 'blocks' | 'cubes' | 'food' | LengthUnit | `sq ${LengthUnit}` | `cu ${LengthUnit}` };
+export const unitWords = (u: Measure['unit']) => (u === 'blocks' ? 'blocks' : u === 'cubes' ? 'cubic blocks' : u === 'food' ? 'food' : u.startsWith('sq ') ? `square ${UNIT_NAME[u.slice(3) as LengthUnit].many}` : u.startsWith('cu ') ? `cubic ${UNIT_NAME[u.slice(3) as LengthUnit].many}` : UNIT_NAME[u as LengthUnit].many);
+export const unitShort = (u: Measure['unit']) => (u.startsWith('sq ') ? `${u.slice(3)}²` : u.startsWith('cu ') ? `${u.slice(3)}³` : u === 'cubes' ? 'cubic blocks' : u);
 
 // Build Queue 378 ("make space (grid expandable and bigger in size)"): the land is no longer a fixed 16 by 10 box.
 // It starts 24 by 16 and grows by 6 blocks on a side whenever the pack's turf comes near that edge, up to 72 by 48.
@@ -78,7 +78,7 @@ export interface Creature { id: string; name: string; size: number; power: numbe
 export interface World {
   turf: Cell[]; side: number; unit: LengthUnit; pack: Creature[]; iq: number; fenced: string | null;
   day: number; milestones: string[]; log: string[];
-  seed: number; map: Rect; biomes: BiomeId[];
+  seed: number; map: Rect; biomes: BiomeId[]; dens?: number; water?: number;
 }
 const NAMES = ['Pip', 'Moss', 'Tumble', 'Fern', 'Dusk', 'Clover', 'Burr', 'Rook', 'Sorrel', 'Wren', 'Thistle', 'Nib', 'Bramble', 'Hazel', 'Pebble', 'Sprout'];
 const rnd = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1));
@@ -213,14 +213,59 @@ const birthQ = (w: World): Question | null => {
     after: `${name} joined the pack. They need ${need} food a day now.` };
 };
 
+// ---- Build Queue 388: volume, and area and perimeter worked backward ----
+// Her words: "world box is used to teach area, perimeter, volume ... make sure questions are changed in the world box game".
+const denQ = (w: World): Question => {
+  const l = rnd(2, 4), d = rnd(2, 3), h = rnd(1, 3), v = l * d * h;
+  const cubic = w.side === 1;
+  return { kind: 'volume', story: `The pack digs a new den under the ground. It is ${l} blocks long, ${d} blocks wide and ${h} ${h === 1 ? 'block' : 'blocks'} deep.`,
+    ask: `How much dirt do they dig out?${cubic ? ' Each block is 1 cubic meter.' : ''}`, answer: { value: v, unit: cubic ? `cu ${w.unit}` : 'cubes' },
+    hint: `Volume = length × width × depth: ${l} × ${d} × ${h} = ${v}.`,
+    apply: (x) => ({ ...x, dens: (x.dens ?? 0) + 1, log: [...x.log, `Day ${x.day}: the pack dug a den of ${v} cubic blocks.`] }),
+    after: `They dug out ${v} ${cubic ? `cubic ${L(w)}` : 'cubic blocks'} of dirt. The den is ready for winter.` };
+};
+const troughQ = (w: World): Question => {
+  const l = rnd(2, 5), d = rnd(1, 2), h = rnd(1, 2), v = l * d * h;
+  return { kind: 'volume', story: `It is hot and dry. ${alphaOf(w).name} digs a water hole ${l} meters long, ${d} ${d === 1 ? 'meter' : 'meters'} wide and ${h} ${h === 1 ? 'meter' : 'meters'} deep, and rain fills it to the top.`,
+    ask: 'How many cubic meters of water does the water hole hold?', answer: { value: v, unit: 'cu m' },
+    hint: `${l} × ${d} × ${h} = ${v} cubic meters.`,
+    apply: (x) => ({ ...x, water: (x.water ?? 0) + v, log: [...x.log, `Day ${x.day}: the pack filled a water hole with ${v} cubic meters of water.`] }),
+    after: `The water hole holds ${v} cubic meters of water. Everyone gets a drink.` };
+};
+const sideQ = (w: World): Question => {
+  const l = rnd(3, 8), d = rnd(2, 6), a = l * d;
+  return { kind: 'side', story: `The pack wants a sunny napping patch shaped like a rectangle. It must cover ${a} square ${L(w)}, and one side is ${l} ${L(w)} long.`,
+    ask: 'How long is the other side?', answer: { value: d, unit: w.unit },
+    hint: `Area = length × width, so width = area ÷ length: ${a} ÷ ${l} = ${d}.`,
+    apply: (x) => x, after: `The napping patch is ${l} by ${d}. Everyone fits for a nap in the sun.` };
+};
+const lapQ = (w: World): Question => {
+  const l = rnd(3, 9), d = rnd(2, 6), p = 2 * (l + d);
+  return { kind: 'side', story: `The young ones race around a rectangle of grass. One lap is ${p} ${L(w)}, and the long side is ${l} ${L(w)}.`,
+    ask: 'How long is the short side?', answer: { value: d, unit: w.unit },
+    hint: `Two long sides are ${l} + ${l} = ${2 * l}. ${p} - ${2 * l} = ${p - 2 * l}, and half of that is ${d}.`,
+    apply: (x) => x, after: `The short side is ${d} ${L(w)}. What a race!` };
+};
+
+let lastKind = '';
 // The creatures choose what happens next: hungry packs scout for land, fed packs grow, smart packs fence.
+// Build Queue 388: the same kind of question never comes twice in a row, and volume and working-backward
+// questions are in the mix.
 export function nextQuestion(w: World): Question {
+  for (let i = 0; i < 6; i++) { const q = chooseQuestion(w); if (q.kind !== lastKind || i === 5) { lastKind = q.kind; return q; } }
+  return foodQ(w);
+}
+function chooseQuestion(w: World): Question {
   if (areaBlocks(w.turf) < 10) return expandQ(w) ?? foodQ(w); // a new pack claims land first
   const f = fenceQ(w); if (f && Math.random() < 0.6) return f;
   if (stressed(w)) return expandQ(w) ?? foodQ(w);
   const r = Math.random();
-  if (r < 0.4) return birthQ(w) ?? expandQ(w) ?? foodQ(w);
-  if (r < 0.8) return expandQ(w) ?? foodQ(w);
+  if (r < 0.22) return birthQ(w) ?? expandQ(w) ?? foodQ(w);
+  if (r < 0.48) return expandQ(w) ?? foodQ(w);
+  if (r < 0.62) return denQ(w);
+  if (r < 0.72) return troughQ(w);
+  if (r < 0.8) return sideQ(w);
+  if (r < 0.88) return lapQ(w);
   return foodQ(w);
 }
 

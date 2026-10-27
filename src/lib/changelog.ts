@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-27-world-box-volume",
+    date: "2026-10-27",
+    icon: "📦",
+    title: "World Box volume questions",
+    body: "World Box asks new kinds of questions: how much dirt a den holds, how much water fills a water hole, and finding a missing side from the area or the distance around. New sounds tell you right or wrong.",
+  },
+  {
     id: "2026-10-27-wild-battles",
     date: "2026-10-27",
     icon: "⚔️",
