@@ -1,6 +1,6 @@
 # Builds the teacher's live Build Queue page (Build Queue 202, her words 2026-10-15: "keep queue updted and presentable to me so i can keep track")
 # from docs/DEVELOPMENT_PLAN.md. Run: python3 scripts/build-queue-page.py <out.html>, then publish that file to the
-# Build Queue artifact (https://claude.ai/artifact/Xj955Dv7fySwuXA4emGxAe) after every push to main.
+# Build Queue artifact (https://claude.ai/artifact/Xj955Dv7fySwuXA4emGxAe) after every push (preview branch or main).
 import re, html, datetime
 SRC='/home/user/Dashboard/docs/DEVELOPMENT_PLAN.md'
 import sys
@@ -26,11 +26,12 @@ def parse(n,b):
         mm=re.match(r'~~(.+?)~~',b); title=mm.group(1) if mm else b[:80]
     up=b.upper()
     if re.search(r'WAITING ON THE TEACHER',b): st='waiting'
+    elif 'ON PREVIEW' in b and not b.startswith('~~'): st='preview'
     elif 'IN PROGRESS' in b and not b.startswith('~~'): st='progress'
     elif 'QUEUED' in b and not b.startswith('~~'): st='queued'
     elif b.startswith('~~') or re.search(r'\b(SHIPPED|DONE|DELIVERED|ANSWERED)\b',b): st='done'
     else: st='other'
-    dm=re.search(r'(SHIPPED|DONE|DELIVERED|ANSWERED|QUEUED|IN PROGRESS|WAITING ON THE TEACHER)[^0-9]{0,30}(20\d\d-\d\d-\d\d)',b)
+    dm=re.search(r'(ON PREVIEW|SHIPPED|DONE|DELIVERED|ANSWERED|QUEUED|IN PROGRESS|WAITING ON THE TEACHER)[^0-9]{0,30}(20\d\d-\d\d-\d\d)',b)
     date=dm.group(2) if dm else ''
     q=re.search(r'verbatim[^)]*\):\s*(".*?")(?=\s*(\(|\*\*|$|\. \*\*|Also:|\. ))',b)
     words=q.group(1) if q else ''
@@ -40,12 +41,12 @@ def parse(n,b):
         if mm: notes.append((k.rstrip(':'),mm.group(1)))
     return dict(n=n,title=title,st=st,date=date,words=words,notes=notes)
 all_items=[parse(n,b) for n,b in sorted(items.items())]
-today='2026-10-15'
-show=[i for i in all_items if i['n']>=191 or i['st'] in ('progress','queued','waiting')]
-groups=[('progress','Working on now'),('queued','Up next, in order'),('waiting','Waiting on you'),('done','Done today')]
+today=datetime.date.today().isoformat()
+show=[i for i in all_items if i['n']>=191 or i['st'] in ('progress','queued','waiting','preview')]
+groups=[('progress','Working on now'),('preview','On the preview link: waiting for your OK to go to students'),('queued','Up next, in order'),('waiting','Waiting on you'),('done','Done today')]
 counts={g:len([i for i in show if i['st']==g and (g!='done' or i['date']==today)]) for g,_ in groups}
 def card(i):
-    pill={'progress':'In progress','queued':'Queued','waiting':'Needs your answer','done':'Done'}.get(i['st'],'')
+    pill={'progress':'In progress','preview':'On preview','queued':'Queued','waiting':'Needs your answer','done':'Done'}.get(i['st'],'')
     notes=''.join(f'<p class="note"><b>{esc(k)}:</b> {esc(v)}</p>' for k,v in i['notes'])
     words=f'<details><summary>Your words</summary><p class="words">{esc(i["words"])}</p></details>' if i['words'] else ''
     return f'<article class="item {i["st"]}"><header><span class="num">#{i["n"]}</span><h3>{esc(i["title"])}</h3><span class="pill">{pill}</span></header>{notes}{words}</article>'
@@ -76,7 +77,7 @@ h1{{font:800 clamp(1.6rem,4vw,2.2rem)/1.15 var(--display);margin:0 0 4px;text-wr
 h2{{font:800 1.15rem var(--display);margin:26px 0 10px;display:flex;align-items:center;gap:8px}}
 .count{{font:600 .8rem var(--display);color:var(--soft);border:2px solid var(--line);border-radius:999px;padding:0 8px}}
 .item{{background:var(--panel);border:2px solid var(--line);border-left:6px solid var(--c);border-radius:14px;padding:12px 14px;margin:0 0 10px}}
-.item.progress{{--c:var(--prog)}}.item.queued{{--c:var(--queue)}}.item.waiting{{--c:var(--wait)}}.item.done{{--c:var(--done)}}
+.item.progress{{--c:var(--prog)}}.item.preview{{--c:#0e7490}}.item.queued{{--c:var(--queue)}}.item.waiting{{--c:var(--wait)}}.item.done{{--c:var(--done)}}
 .item header{{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}}
 .num{{font:800 .85rem var(--display);color:var(--soft);font-variant-numeric:tabular-nums}}
 h3{{font:600 1.02rem/1.3 var(--display);margin:0;flex:1 1 260px;min-width:0}}
