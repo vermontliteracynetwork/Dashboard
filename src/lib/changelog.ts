@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-28-sn-dragons",
+    date: "2026-10-28",
+    icon: "🐉",
+    title: "Dragons and magic folk in Supernature",
+    body: "Fifteen baby and grown dragons, fire, water and earth spirits, pixies, fairies, walking trees, golems, trolls and a hobbit now live in the Habitat biomes. Spot them all for your Plant and Critter Book!",
+  },
+  {
     id: "2026-10-28-sn-critters",
     date: "2026-10-28",
     icon: "🦉",
