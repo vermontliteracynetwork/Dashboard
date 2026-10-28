@@ -3,7 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
 import { playCheer } from '../../lib/petSounds';
-import { cafe, setCafeMusicVolume, setCafeSfxVolume, startCafeMusic, stopCafeMusic } from '../../lib/cafeSound';
+import { setCafeMusicVolume, setCafeSfxVolume, startCafeMusic, stopCafeMusic } from '../../lib/cafeSound';
 import { playClip, preloadClips } from '../../lib/miniSfx';
 import { MyBest, useVisitScore } from '../../components/MyBest';
 
@@ -32,13 +32,15 @@ const LINES: Line[] = [
   { id: 'waffle', name: 'Waffles', icon: `${ART}treats/waffles.png`, open: 300000, base: 300000, income: 22000, time: 18, baker: 1500000 },
   { id: 'pancake', name: 'Pancakes', icon: `${ART}treats/pancakes.png`, open: 2500000, base: 2500000, income: 160000, time: 22, baker: 12000000 },
   { id: 'fancy', name: 'Fancy Treats', icon: `${ART}treats/fancy.png`, open: 20000000, base: 20000000, income: 1200000, time: 28, baker: 90000000 },
+  // Build Queue 418: a bread counter from her bakery sprites pack.
+  { id: 'bread', name: 'Breads', icon: `${ART}menu/bs-baguette.png`, open: 150000000, base: 150000000, income: 9000000, time: 32, baker: 700000000 },
 ];
 // The display case: one of her big cakes for every milestone of shop coins earned in all.
 const SHOWCASE = ['01-birthday_cake', '02-strawberry_pudding_cake', '03-blueberry_cake', '04-chocolate_cake', '05-orange_cake', '06-bubblegum_cake', '07-brownie_cake', '08-maple-popcorn-cake', '09-chocolate_cake2', '10-jell-o_cake'];
 const SHOWCASE_AT = [50, 300, 1500, 8000, 40000, 200000, 1000000, 5000000, 25000000, 100000000];
 const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Cake', 'Chocolate Cake', 'Orange Cake', 'Bubblegum Cake', 'Brownie Cake', 'Maple Popcorn Cake', 'Double Chocolate Cake', 'Jelly Cake'];
 interface Own { ovens: number; baker: boolean }
-interface Shop { coins: number; total: number; power: number; whisk?: number; tap?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
+interface Shop { coins: number; total: number; power: number; whisk?: number; tap?: number; oven?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
 const AWAY_MAX_S = 600, TAP = 1;
 const STAR_AT = [0, 100, 1000, 10000, 100000];
@@ -51,9 +53,25 @@ const fmt = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `
 // Mixer, the Extra Hot Oven and silly real-world sales), with the Golden Whisk as the big prize (everything 10 times as
 // fast); Golden Hour cakes fall across the screen now and then; and the bakery case groups matching treats like
 // Blooket's Factory, so a bigger group of the same treat earns more. No scrolling on an iPad.
-const STAGES = [{ name: 'Mixing', icon: '🥣', part: 0.3 }, { name: 'Baking', icon: '🔥', part: 0.45 }, { name: 'Selling', icon: '🛍️', part: 0.25 }];
+const STAGES = [{ name: 'Mixing', icon: '🥣', part: 0.3, art: '/games/cupcake-tycoon/factory/mixer.png' }, { name: 'Baking', icon: '🔥', part: 0.45, art: '/games/cupcake-tycoon/shop/oven.png' }, { name: 'Selling', icon: '🛍️', part: 0.25, art: '/games/cupcake-tycoon/shop/display.png' }];
 // Build Queue 404: her sounds, the sound and music sliders, and the whisk ladder.
-const SND = { bell: '/sounds/cupcake/bell.mp3', notify: '/sounds/cupcake/notify.mp3', click: '/sounds/cupcake/click.mp3', magic: '/sounds/cupcake/magic.mp3', star: '/sounds/cupcake/achievement.mp3' };
+const SND = { bell: '/sounds/cupcake/bell.mp3', notify: '/sounds/cupcake/notify.mp3', click: '/sounds/cupcake/click.mp3', magic: '/sounds/cupcake/magic.mp3', star: '/sounds/cupcake/achievement.mp3',
+  // Build Queue 418: her Cozy Cafe SFX pack (Bramble & Byte), for everything her own five clips do not already cover.
+  cash: '/sounds/cupcake/cc-cash-register.mp3', coins: '/sounds/cupcake/cc-coins.mp3', whisk: '/sounds/cupcake/cc-whisk.mp3', ovenIn: '/sounds/cupcake/cc-oven-close.mp3', error: '/sounds/cupcake/lo-negative.mp3',
+  door: '/sounds/cupcake/cc-door-bell.mp3', menuOpen: '/sounds/cupcake/cc-menu-open.mp3', menuClose: '/sounds/cupcake/cc-menu-close.mp3', recipe: '/sounds/cupcake/cc-recipe-unlocked.mp3', tip: '/sounds/cupcake/cc-tip-jar.mp3',
+  open: '/sounds/cupcake/cc-jingle-cafe-open.mp3', close: '/sounds/cupcake/cc-jingle-cafe-close.mp3', earnings: '/sounds/cupcake/cc-jingle-day-earnings.mp3', gold: '/sounds/cupcake/cc-jingle-perfect-order.mp3',
+  // Build Queue 420: lolurio's Free Cozy Game UI SFX (CC BY 4.0, credited in Settings).
+  confirm: '/sounds/cupcake/lo-confirm.mp3', saved: '/sounds/cupcake/lo-save.mp3', pauseOpen: '/sounds/cupcake/lo-pause-open.mp3', pauseClose: '/sounds/cupcake/lo-pause-close.mp3',
+  alert: '/sounds/cupcake/lo-alert.mp3', positive: '/sounds/cupcake/lo-positive.mp3', glock: '/sounds/cupcake/lo-glock.mp3', marimba: '/sounds/cupcake/lo-marimba.mp3' };
+const AMBIENCE = '/sounds/cupcake/cc-ambience-kitchen.mp3';
+const FX = `${ART}factory/`;
+// Build Queue 421 (her words: "one central design for all the ovens, just upgraded"): one oven bakes for every counter, and
+// each upgrade makes the Baking stage faster. Upgrades cost powers of ten (100, 1,000, 10,000...), a quiet place-value pattern.
+const OVEN_LV = [
+  { name: 'Steel oven', mult: 1, cost: 0 }, { name: 'Copper oven', mult: 1.5, cost: 100 }, { name: 'Ice blue oven', mult: 2, cost: 1000 },
+  { name: 'Pink oven', mult: 3, cost: 10000 }, { name: 'Purple oven', mult: 4, cost: 100000 }, { name: 'Golden oven', mult: 5, cost: 1000000 },
+];
+const ovenImg = (lv: number) => `${FX}oven${lv + 1}.png`;
 const lsGet = (k: string, d: number) => { try { const v = localStorage.getItem(k); return v === null ? d : Number(v); } catch { return d; } };
 const lsSet = (k: string, v: number) => { try { localStorage.setItem(k, String(v)); } catch { /* private mode */ } };
 // Bronze (2 times as fast), then Silver (5 times) unlock in turn before the Golden Whisk (10 times), 20 seconds each.
@@ -84,14 +102,15 @@ interface Flavor { id: string; name: string; img: string }
 const MN = `${ART}menu/`;
 const fl = (id: string, name: string, img?: string): Flavor => ({ id, name, img: img ?? `${MN}${id}.png` });
 const FLAVORS: Record<string, Flavor[]> = {
-  cupcake: [fl('vanilla-cupcake', 'Vanilla cupcakes', `${ART}treats/cupcakes.png`), fl('strawberry-cupcake', 'Strawberry cupcakes'), fl('blueberry-cupcake', 'Blueberry cupcakes'), fl('mint-cupcake', 'Mint cupcakes'), fl('lemon-cupcake', 'Lemon cupcakes')],
-  cookie: [fl('chip-cookie', 'Chocolate chip cookies', `${ART}treats/cookies.png`), fl('choc-sandwich-cookie', 'Sandwich cookies'), fl('jam-cookie', 'Jam cookies'), fl('macarons', 'Macarons')],
-  donut: [fl('glazed-donut', 'Glazed donuts', `${ART}treats/donuts.png`), fl('choc-donut', 'Chocolate donuts'), fl('funfetti-donut', 'Funfetti donuts'), fl('lemon-donut', 'Lemon donuts'), fl('strawberry-donut', 'Strawberry donuts'), fl('sprinkle-donut', 'Sprinkle donuts')],
-  pie: [fl('classic-pie', 'Classic pie', `${ART}treats/pies.png`), fl('apple-pie', 'Apple pie'), fl('berry-tart', 'Berry tart'), fl('peach-tart', 'Peach tart'), fl('bakewell-tart', 'Cherry almond tart')],
-  cake: [fl('layer-cake', 'Layer cake', `${ART}treats/cakes.png`), fl('choc-cake', 'Chocolate cake'), fl('lemon-cake', 'Lemon cake'), fl('vanilla-cake', 'Vanilla cake'), fl('red-velvet-cake', 'Red velvet cake'), fl('carrot-cake', 'Carrot cake'), fl('shortcake', 'Strawberry shortcake'), fl('cheesecake', 'Cheesecake')],
-  waffle: [fl('butter-waffles', 'Butter waffles', `${ART}treats/waffles.png`), fl('berry-waffles', 'Berry waffles'), fl('strawberry-waffles', 'Strawberry waffles'), fl('icecream-waffles', 'Ice cream waffles'), fl('plain-waffles', 'Square waffles')],
-  pancake: [fl('stack-pancakes', 'Pancake stack', `${ART}treats/pancakes.png`), fl('berry-pancakes', 'Berry pancakes'), fl('choc-pancakes', 'Chocolate pancakes'), fl('banana-pancakes', 'Banana pancakes'), fl('cream-pancakes', 'Cream pancakes'), fl('mint-pancakes', 'Mint chocolate pancakes')],
-  fancy: [fl('rainbow-cake', 'Rainbow cake', `${ART}treats/fancy.png`), fl('rainbow-slice', 'Rainbow slice'), fl('french-fancies', 'French fancies'), fl('swiss-roll', 'Swiss roll'), fl('tiramisu', 'Tiramisu'), fl('profiteroles', 'Cream puffs'), fl('cinnamon-roll', 'Cinnamon roll'), fl('jam-cream-puff', 'Cream scone')],
+  cupcake: [fl('vanilla-cupcake', 'Cherry cupcakes', `${ART}treats/cupcakes.png`), fl('strawberry-cupcake', 'Pistachio cupcakes'), fl('blueberry-cupcake', 'Blueberry cupcakes'), fl('mint-cupcake', 'Grape cupcakes'), fl('lemon-cupcake', 'Orange cupcakes'), fl('bs-cupcake', 'Frosted cupcakes'), fl('bs-muffin', 'Muffins')],
+  cookie: [fl('chip-cookie', 'Chocolate chip cookies', `${ART}treats/cookies.png`), fl('choc-sandwich-cookie', 'Sandwich cookies'), fl('jam-cookie', 'Jam cookies'), fl('macarons', 'Macarons'), fl('bs-cookie', 'Sugar cookies'), fl('bs-gingerbread-man', 'Gingerbread cookies'), fl('bs-fortune-cookie', 'Fortune cookies'), fl('bs-macaron', 'Vanilla macarons')],
+  donut: [fl('glazed-donut', 'Glazed donuts', `${ART}treats/donuts.png`), fl('choc-donut', 'Chocolate donuts'), fl('funfetti-donut', 'Funfetti donuts'), fl('lemon-donut', 'Lemon donuts'), fl('strawberry-donut', 'Strawberry donuts'), fl('sprinkle-donut', 'Sprinkle donuts'), fl('bs-doughnut', 'Ring donuts'), fl('bs-doughnut-balls', 'Donut holes'), fl('bs-apple-fritter', 'Apple fritters'), fl('bs-long-john', 'Long johns'), fl('bs-bearclaw', 'Bear claws')],
+  pie: [fl('classic-pie', 'Classic pie', `${ART}treats/pies.png`), fl('apple-pie', 'Apple pie'), fl('berry-tart', 'Berry tart'), fl('peach-tart', 'Peach tart'), fl('bakewell-tart', 'Cherry almond tart'), fl('bs-poptart', 'Toaster tarts')],
+  cake: [fl('layer-cake', 'Layer cake', `${ART}treats/cakes.png`), fl('choc-cake', 'Chocolate cake'), fl('lemon-cake', 'Lemon cake'), fl('vanilla-cake', 'Vanilla cake'), fl('red-velvet-cake', 'Red velvet cake'), fl('carrot-cake', 'Carrot cake'), fl('shortcake', 'Strawberry shortcake'), fl('cheesecake', 'Cheesecake'), fl('bs-cake', 'Frosted cake'), fl('bs-cheesecake', 'Cheesecake slice'), fl('bs-brownie', 'Brownies'), fl('bs-tiramisu', 'Tiramisu squares')],
+  waffle: [fl('butter-waffles', 'Butter waffles', `${ART}treats/waffles.png`), fl('berry-waffles', 'Berry waffles'), fl('strawberry-waffles', 'Strawberry waffles'), fl('icecream-waffles', 'Ice cream waffles'), fl('plain-waffles', 'Square waffles'), fl('bs-waffle', 'Golden waffles')],
+  pancake: [fl('stack-pancakes', 'Pancake stack', `${ART}treats/pancakes.png`), fl('berry-pancakes', 'Berry pancakes'), fl('choc-pancakes', 'Chocolate pancakes'), fl('banana-pancakes', 'Banana pancakes'), fl('cream-pancakes', 'Cream pancakes'), fl('mint-pancakes', 'Mint chocolate pancakes'), fl('bs-crepe', 'Crepes')],
+  fancy: [fl('rainbow-cake', 'Rainbow cake', `${ART}treats/fancy.png`), fl('rainbow-slice', 'Rainbow slice'), fl('french-fancies', 'French fancies'), fl('swiss-roll', 'Swiss roll'), fl('tiramisu', 'Tiramisu'), fl('profiteroles', 'Cream puffs'), fl('cinnamon-roll', 'Cinnamon roll'), fl('jam-cream-puff', 'Cream scone'), fl('bs-funnel-cake', 'Funnel cake'), fl('bs-dessert-taco', 'Dessert tacos'), fl('bs-cinnamon-bun', 'Cinnamon buns'), fl('bs-croissant', 'Croissants')],
+  bread: [fl('bs-baguette', 'Baguettes'), fl('bs-brioche', 'Brioche'), fl('bs-cornbread', 'Cornbread'), fl('bs-toast', 'Toast'), fl('bs-breadstick', 'Breadsticks'), fl('bs-pretzel', 'Pretzels'), fl('bs-hot-cross-bun', 'Hot cross buns'), fl('bs-cream-cheese-bagel', 'Bagels'), fl('bs-hot-pocket', 'Hand pies')],
 };
 const MENU_MAX = 3;
 const beltPct = (r?: Run) => (r ? Math.round((STAGE_START[r.stage] + Math.min(1, r.t) * STAGES[r.stage].part) * 100) : 0);
@@ -105,7 +124,7 @@ export default function IdleTycoon() {
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';
   const savedShop = (styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Shop> | undefined) ?? {};
-  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, power: savedShop.power ?? 0, whisk: savedShop.whisk ?? 0, tap: savedShop.tap ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
+  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, power: savedShop.power ?? 0, whisk: savedShop.whisk ?? 0, tap: savedShop.tap ?? 0, oven: savedShop.oven ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
   const [shop, setShop] = useState<Shop>(load);
   const [runs, setRuns] = useState<Record<string, Run>>({});
   const [buffs, setBuffs] = useState<Buffs>(NO_BUFFS);
@@ -135,6 +154,7 @@ export default function IdleTycoon() {
   const runsRef = useRef<Record<string, Run>>({});
   const phaseRef = useRef<'menu' | 'play'>('menu');
   const popId = useRef(0);
+  const lastCash = useRef(0);
   // Progress is saved only when the student chooses to (Save and leave, or Save now).
   const save = () => { if (owner) mergeStyleRow(owner, { ...shopRef.current, savedAt: Date.now() }); };
   const setS = (next: Shop) => { shopRef.current = next; setShop(next); };
@@ -175,7 +195,7 @@ export default function IdleTycoon() {
     const secs = Math.min(AWAY_MAX_S, Math.max(0, (Date.now() - savedShop.savedAt) / 1000));
     let power = savedShop.power ?? 0, got = 0;
     for (const l of LINES) { const o = savedShop.lines?.[l.id]; if (!o?.baker) continue; const n = Math.min(power, Math.floor(secs / l.time)); power -= n; got += n * l.income * o.ovens; }
-    if (got > 0) { setS({ ...shopRef.current, power }); earn(got, 'away'); setAway(got); }
+    if (got > 0) { setS({ ...shopRef.current, power }); earn(got, 'away'); setAway(got); window.setTimeout(() => clip('earnings'), 300); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cafe music while the bakery is open.
@@ -184,6 +204,13 @@ export default function IdleTycoon() {
   useEffect(() => { lsSet('ty-sfx', sfxVol); setCafeSfxVolume(sfxVol); }, [sfxVol]);
   useEffect(() => { lsSet('ty-unlimited', unlimited ? 1 : 0); }, [unlimited]);
   useEffect(() => { startCafeMusic(); return () => stopCafeMusic(); }, []);
+  // Her kitchen ambience loop under the music, on the music slider.
+  const amb = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    try { const a = new Audio(AMBIENCE); a.loop = true; amb.current = a; } catch { /* no audio */ }
+    return () => { amb.current?.pause(); amb.current = null; };
+  }, []);
+  useEffect(() => { const a = amb.current; if (!a) return; a.volume = Math.min(1, (musicVol / 5) * 0.35); if (phase === 'play' && musicVol > 0) void a.play().catch(() => {}); else a.pause(); }, [musicVol, phase]);
 
   // The bakery runs ten ticks a second: mixing, then baking (uses one oven power), then selling.
   useEffect(() => {
@@ -202,14 +229,14 @@ export default function IdleTycoon() {
           if (shopRef.current.power > 0) { setS({ ...shopRef.current, power: shopRef.current.power - 1 }); p[l.id] = { stage: 1, t: 0, f: r.f }; }
           continue;
         }
-        const speed = (b.whisk > 0 ? b.wmult : 1) * (r.stage === 0 && b.mixer > 0 ? 3 : 1) * (r.stage === 1 && b.hot > 0 ? 3 : 1) * (r.stage === 2 && b.promo?.line === l.id ? 2 : 1);
+        const speed = (b.whisk > 0 ? b.wmult : 1) * (r.stage === 0 && b.mixer > 0 ? 3 : 1) * (r.stage === 1 && b.hot > 0 ? 3 : 1) * (r.stage === 1 ? OVEN_LV[Math.min(OVEN_LV.length - 1, shopRef.current.oven ?? 0)].mult : 1) * (r.stage === 2 && b.promo?.line === l.id ? 2 : 1);
         const nt = r.t + (dt * speed) / (l.time * STAGES[r.stage].part);
         if (nt < 1) { p[l.id] = { ...r, t: nt }; continue; }
         if (r.stage === 0) {
-          if (shopRef.current.power > 0) { setS({ ...shopRef.current, power: shopRef.current.power - 1 }); p[l.id] = { stage: 1, t: 0, f: r.f }; }
+          if (shopRef.current.power > 0) { setS({ ...shopRef.current, power: shopRef.current.power - 1 }); p[l.id] = { stage: 1, t: 0, f: r.f }; if (!o.baker) clip('ovenIn', true); }
           else p[l.id] = { stage: 0, t: 1, wait: true, f: r.f };
         } else if (r.stage === 1) { clip('bell', o.baker); setDone((d) => ({ ...d, [l.id]: Date.now() })); p[l.id] = { stage: 2, t: 0, f: r.f }; }
-        else { earn(batchValue(l, b), l.id); cafe.cash(o.baker); if (o.baker) p[l.id] = { stage: 0, t: 0, f: nextFlavor(l.id) }; else delete p[l.id]; }
+        else { earn(batchValue(l, b), l.id); { const now = Date.now(); if (now - lastCash.current > 400) { lastCash.current = now; clip(o.baker ? 'coins' : 'cash', o.baker); } } if (o.baker) p[l.id] = { stage: 0, t: 0, f: nextFlavor(l.id) }; else delete p[l.id]; }
       }
       runsRef.current = p; setRuns(p);
     }, 100);
@@ -239,18 +266,18 @@ export default function IdleTycoon() {
   const stars = STAR_AT.filter((x) => shop.total >= x).length;
   const nextStar = STAR_AT.find((x) => shop.total < x);
   const spend = (c: number, change: (s: Shop) => Shop) => {
-    if (shopRef.current.coins < c) { cafe.nope(); return false; }
+    if (shopRef.current.coins < c) { clip('error'); return false; }
     setS(change({ ...shopRef.current, coins: shopRef.current.coins - c })); save(); return true;
   };
   const run = (l: Line) => {
     if (runsRef.current[l.id]) return;
-    runsRef.current = { ...runsRef.current, [l.id]: { stage: 0, t: 0, f: nextFlavor(l.id) } }; setRuns(runsRef.current); click(); cafe.mix();
-    if (shopRef.current.power <= 0) flash('Your ovens need power to bake. Tap Power the ovens and answer questions.');
+    runsRef.current = { ...runsRef.current, [l.id]: { stage: 0, t: 0, f: nextFlavor(l.id) } }; setRuns(runsRef.current); clip('whisk');
+    if (shopRef.current.power <= 0) { clip('alert'); } if (shopRef.current.power <= 0) flash('Your ovens need power to bake. Tap Power the ovens and answer questions.');
   };
-  const powerUp = () => { click(); ask('⚡ Answer to power the ovens!', () => {
+  const powerUp = () => { clip('confirm'); ask('⚡ Answer to power the ovens!', () => {
     setS({ ...shopRef.current, power: shopRef.current.power + POWER_PER_ANSWER }); clip('magic'); flash(`The ovens have power for ${POWER_PER_ANSWER} more bakes!`);
     const d = roundsDone + 1; setRoundsDone(d);
-    if (!unlimited && d >= rounds) window.setTimeout(() => setClosing(true), 1500);
+    if (!unlimited && d >= rounds) window.setTimeout(() => { setClosing(true); clip('close'); }, 1500);
   }); };
   const bowl = Math.min(BOWLS.length - 1, shop.tap ?? 0);
   const tapBy = TAP * BOWLS[bowl] * (buffs.whisk > 0 ? buffs.wmult : 1);
@@ -258,19 +285,24 @@ export default function IdleTycoon() {
     earn(tapBy, 'tap'); click();
     const same = count && count.by === tapBy, n = same ? count.n + 1 : 1;
     setCount({ n, by: tapBy, vals: [...(same ? count.vals : []), shopRef.current.coins].slice(-4) });
-    if (n % 10 === 0) cafe.sparkle();
+    if (n % 10 === 0) clip('marimba');
     window.clearTimeout(countTimer.current);
     countTimer.current = window.setTimeout(() => setCount(null), 3000);
   };
   const toggleFlavor = (line: string, f: string) => {
     const cur = shopRef.current.menu?.[line] ?? menuOf(line), has = cur.includes(f);
-    if (has && cur.length <= 1) { cafe.nope(); flash('Every counter needs at least 1 treat on the menu.'); return; }
-    if (!has && cur.length >= MENU_MAX) { cafe.nope(); flash(`Up to ${MENU_MAX} on each counter. Take one off first.`); return; }
-    click(); setS({ ...shopRef.current, menu: { ...(shopRef.current.menu ?? {}), [line]: has ? cur.filter((x) => x !== f) : [...cur, f] } }); save();
+    if (has && cur.length <= 1) { clip('error'); flash('Every counter needs at least 1 treat on the menu.'); return; }
+    if (!has && cur.length >= MENU_MAX) { clip('error'); flash(`Up to ${MENU_MAX} on each counter. Take one off first.`); return; }
+    clip(has ? 'click' : 'recipe'); setS({ ...shopRef.current, menu: { ...(shopRef.current.menu ?? {}), [line]: has ? cur.filter((x) => x !== f) : [...cur, f] } }); save();
+  };
+  const ovenLv = Math.min(OVEN_LV.length - 1, shop.oven ?? 0), nextOven = OVEN_LV[ovenLv + 1];
+  const upgradeOven = () => {
+    if (!nextOven) return;
+    if (spend(nextOven.cost, (s) => ({ ...s, oven: ovenLv + 1 }))) { clip('positive'); flash(`${nextOven.name}! Baking is now ${nextOven.mult} times as fast.`); }
   };
   const buyBowl = () => {
     if (bowl >= BOWLS.length - 1) return;
-    if (spend(bowlCost(bowl), (s) => ({ ...s, tap: bowl + 1 }))) { clip('notify'); setCount(null); flash(`Bigger bowl! Every tap now makes ${BOWLS[bowl + 1]}. Count by ${BOWLS[bowl + 1]}s!`); }
+    if (spend(bowlCost(bowl), (s) => ({ ...s, tap: bowl + 1 }))) { clip('glock'); setCount(null); flash(`Bigger bowl! Every tap now makes ${BOWLS[bowl + 1]}. Count by ${BOWLS[bowl + 1]}s!`); }
   };
   const ips = perSec();
   const tier = Math.min(2, shop.whisk ?? 0), W = WHISKS[tier];
@@ -279,11 +311,11 @@ export default function IdleTycoon() {
     if (k === 'promo' && !promoOffer) return;
     if (!spend(price[k], (s) => s)) return;
     const nb: Buffs = k === 'promo' ? { ...buffRef.current, promo: { line: promoOffer!.line, secs: 60 } } : k === 'whisk' ? { ...buffRef.current, whisk: 20, wmult: W.mult } : { ...buffRef.current, [k]: 60 };
-    buffRef.current = nb; setBuffs(nb); clip('notify');
+    buffRef.current = nb; setBuffs(nb); clip(k === 'promo' ? 'tip' : 'notify');
     if (k === 'whisk') { if (tier === 2) playCheer(); setS({ ...shopRef.current, whisk: Math.max(shopRef.current.whisk ?? 0, Math.min(2, tier + 1)) }); }
     flash(k === 'whisk' ? `${W.name}! The whole bakery is ${W.mult} times as fast!${tier < 2 ? ` The ${WHISKS[tier + 1].name} is unlocked.` : ''}` : k === 'mixer' ? 'Turbo Mixer: mixing is 3 times as fast.' : k === 'hot' ? 'Extra Hot Oven: baking is 3 times as fast.' : `${promoOffer!.text} Those sell for double!`);
   };
-  const catchGold = () => { setRain([]); const nb = { ...buffRef.current, golden: 30 }; buffRef.current = nb; setBuffs(nb); clip('magic'); playCheer(); flash('Golden Hour! Everything sells for 3 times as much for 30 seconds!'); };
+  const catchGold = () => { setRain([]); const nb = { ...buffRef.current, golden: 30 }; buffRef.current = nb; setBuffs(nb); clip('gold'); flash('Golden Hour! Everything sells for 3 times as much for 30 seconds!'); };
   const open = LINES.filter((l) => shop.lines[l.id]);
   const nextLocked = LINES.find((l) => !shop.lines[l.id]);
   const busy = buffs.whisk > 0 || buffs.golden > 0;
@@ -292,13 +324,13 @@ export default function IdleTycoon() {
     <div className={`ty ty3 ty4${buffs.whisk > 0 ? ' boosted' : ''}${buffs.golden > 0 ? ' golden' : ''}`}>
       <header className="ty4-head">
         <button type="button" className="btn" onClick={() => { click(); setLeaving(true); }}>✕ Leave</button>
-        <button type="button" className="btn" onClick={() => { click(); save(); clip('notify'); flash('Your bakery is saved.'); }}>💾 Save</button>
+        <button type="button" className="btn" onClick={() => { save(); clip('saved'); flash('Your bakery is saved.'); }}>💾 Save</button>
         <h1>Bakery Tycoon</h1>
         {busy && <span className="ty4-busy">{buffs.golden > 0 ? `🌟 Golden Hour ${Math.ceil(buffs.golden)}s` : `✨ ${buffs.wmult} times as fast ${Math.ceil(buffs.whisk)}s`}</span>}
         <span className="ty4-stars" aria-label={`${stars} of 5 stars`}>{'★'.repeat(stars)}<span>{'★'.repeat(STAR_AT.length - stars)}</span></span>
         <span className="ty4-coins"><Coin /> {fmt(shop.coins)}</span>
-        <button type="button" className="btn" onClick={() => { click(); setMenuOpen(true); }}>📋 My menu</button>
-        <button type="button" className="btn" onClick={() => { click(); setPhase('menu'); phaseRef.current = 'menu'; }} aria-label="Pause, settings and start over">⏸ Settings</button>
+        <button type="button" className="btn" onClick={() => { clip('menuOpen'); setMenuOpen(true); }}>📋 My menu</button>
+        <button type="button" className="btn" onClick={() => { clip('pauseOpen'); setPhase('menu'); phaseRef.current = 'menu'; }} aria-label="Pause, settings and start over">⏸ Settings</button>
       </header>
       <main className="ty3-main ty4-main">
         <section className="ty3-left">
@@ -331,6 +363,11 @@ export default function IdleTycoon() {
         </section>
 
         <section className="ty3-lines ty4-lines" aria-label="Counters">
+          <div className="ty4-oven">
+            <img src={ovenImg(ovenLv)} alt="" />
+            <span><b>{OVEN_LV[ovenLv].name}</b><small>The big oven bakes for every counter{ovenLv ? `, ${OVEN_LV[ovenLv].mult} times as fast` : ''}.</small></span>
+            {nextOven ? <button type="button" className="btn ty3-buy" disabled={shop.coins < nextOven.cost} onClick={upgradeOven}><img src={ovenImg(ovenLv + 1)} alt="" />Upgrade: {nextOven.mult} times as fast <Coin size={13} /> {nextOven.cost.toLocaleString()}</button> : <em>Best oven in town!</em>}
+          </div>
           {open.map((l) => {
             const o = shop.lines[l.id], r = runs[l.id], c = ovenCost(l, o.ovens);
             const fresh = Date.now() - (done[l.id] ?? 0) < 1200;
@@ -340,14 +377,14 @@ export default function IdleTycoon() {
             return (
               <div key={l.id} className={`ty4-line${fresh ? ' done' : ''}${r?.wait ? ' wait' : ''}`}>
                 <button type="button" className="ty4-run" onClick={() => run(l)} aria-label={`${l.name}: ${status}. ${o.ovens} ovens, ${batchValue(l)} coins a batch.`}>
-                  <img className="ty4-icon" src={fv.img} alt="" />
+                  <span className="ty4-who"><img className="ty4-icon" src={fv.img} alt="" />{o.baker && <i className="ty4-baker" style={{ backgroundImage: `url(${FX}baker${(LINES.indexOf(l) % 4) + 1}.png)` }} aria-hidden />}</span>
                   <span className="ty4-name">
                     <b>{l.name}</b>
                     <small>{o.ovens} × {fmt(l.income)} = {fmt(o.ovens * l.income)} <Coin size={12} />{bonus2 > 0 && <em> +{Math.round(bonus2 * 100)}%</em>}</small>
                     <small className="ty4-status">{status}</small>
                   </span>
                   <span className="ty4-belt" aria-hidden>
-                    <span className="ty4-stations">{STAGES.map((st, i) => <span key={st.name} className={r && !r.wait && r.stage === i ? 'now' : r && (r.stage > i || r.wait) ? 'past' : ''}>{st.icon} {st.name}</span>)}</span>
+                    <span className="ty4-stations">{STAGES.map((st, i) => <span key={st.name} className={r && !r.wait && r.stage === i ? 'now' : r && (r.stage > i || r.wait) ? 'past' : ''}><img src={i === 1 ? ovenImg(ovenLv) : st.art} alt="" />{st.name}</span>)}</span>
                     <span className={`ty4-track${r && !r.wait ? ' moving' : ''}`}>{r && <img className="ty4-item" style={{ left: `${pct}%` }} src={fv.img} alt="" />}</span>
                     <span className="ty4-prog"><i style={{ width: `${pct}%` }} /></span>
                   </span>
@@ -364,7 +401,7 @@ export default function IdleTycoon() {
             <div className="ty4-line locked">
               <img className="ty4-icon" src={nextLocked.icon} alt="" />
               <b>{nextLocked.name} counter</b>
-              <button type="button" className="btn ty3-buy" disabled={shop.coins < nextLocked.open} onClick={() => { if (spend(nextLocked.open, (s) => ({ ...s, lines: { ...s.lines, [nextLocked.id]: { ovens: 1, baker: false } } }))) cafe.sparkle(); }}>Open <Coin size={13} /> {fmt(nextLocked.open)}</button>
+              <button type="button" className="btn ty3-buy" disabled={shop.coins < nextLocked.open} onClick={() => { if (spend(nextLocked.open, (s) => ({ ...s, lines: { ...s.lines, [nextLocked.id]: { ovens: 1, baker: false } } }))) clip('door'); }}>Open <Coin size={13} /> {fmt(nextLocked.open)}</button>
             </div>
           )}
         </section>
@@ -387,7 +424,7 @@ export default function IdleTycoon() {
       {note && <p className="ty3-note" role="status">{note}</p>}
       {rain.map((r) => <button key={r.id} type="button" className="ty3-gold" style={{ left: `${r.x}%`, animationDelay: `${r.d}s` }} onClick={catchGold} aria-label="A golden cake! Tap it for Golden Hour"><img src={`${ART}showcase/01-birthday_cake.png`} alt="" /></button>)}
       {menuOpen && (
-        <div className="pf-overlay" onClick={() => setMenuOpen(false)}>
+        <div className="pf-overlay" onClick={() => { clip('menuClose'); setMenuOpen(false); }}>
           <div className="pf-panel ty3-menu ty4-menued" onClick={(e) => e.stopPropagation()}>
             <h2>📋 My bakery menu</h2>
             <p className="ty3-small">Pick up to {MENU_MAX} treats for each counter. Each counter bakes them in turn, and every extra flavor adds 5%.</p>
@@ -401,7 +438,7 @@ export default function IdleTycoon() {
                 ); })}</div>
               </section>
             ); })}
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); setMenuOpen(false); }}>Done</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={() => { clip('menuClose'); setMenuOpen(false); }}>Done</button>
           </div>
         </div>
       )}
@@ -420,8 +457,8 @@ export default function IdleTycoon() {
           <div className="pf-panel ty3-menu">
             <h2>🧁 Bakery Tycoon</h2>
             <div className="ty3-menu-row">
-              {savedShop.total ? <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); setS(load()); setPhase('play'); phaseRef.current = 'play'; }}>▶ Continue my bakery <small>(<Coin size={14} /> {fmt(savedShop.total)} earned)</small></button>
-                : <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); setPhase('play'); phaseRef.current = 'play'; }}>▶ Open my bakery</button>}
+              {savedShop.total ? <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); setS(load()); clip('open'); setPhase('play'); phaseRef.current = 'play'; }}>▶ Continue my bakery <small>(<Coin size={14} /> {fmt(savedShop.total)} earned)</small></button>
+                : <button type="button" className="btn btn-primary btn-lg" onClick={() => { click(); clip('open'); setPhase('play'); phaseRef.current = 'play'; }}>▶ Open my bakery</button>}
               {!!savedShop.total && <button type="button" className="btn btn-lg" onClick={() => { click(); setConfirmNew(true); }}>🔄 Start a new bakery</button>}
             </div>
             {confirmNew && <div className="ty3-confirm"><p>Start over? Your saved bakery, counters and coins will be gone.</p>
@@ -432,7 +469,8 @@ export default function IdleTycoon() {
             {settingsPanel}
             <label className="ty3-check"><input type="checkbox" checked={unlimited} onChange={(e) => { click(); setUnlimited(e.target.checked); }} /> Unlimited rounds (play until you are done)</label>
             <label className="ty3-slider">🔊 Sound effects <input type="range" min={0} max={5} step={1} value={sfxVol} onChange={(e) => setSfxVol(Number(e.target.value))} onPointerUp={() => clip('click')} /> <b>{sfxVol}</b></label>
-            <label className="ty3-slider">🎵 Music <input type="range" min={0} max={5} step={1} value={musicVol} onChange={(e) => setMusicVol(Number(e.target.value))} /> <b>{musicVol}</b></label>
+            <label className="ty3-slider">🎵 Music and kitchen sounds <input type="range" min={0} max={5} step={1} value={musicVol} onChange={(e) => setMusicVol(Number(e.target.value))} /> <b>{musicVol}</b></label>
+            <p className="ty3-small">Sounds: Cozy Cafe SFX by Bramble &amp; Byte; Cozy Game UI SFX by lolurio (CC BY 4.0). Art: Little Factory, Pastel UI and her bakery packs.</p>
           </div>
         </div>
       )}

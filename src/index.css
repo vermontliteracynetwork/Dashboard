@@ -10710,3 +10710,53 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ty4-mtile img { width: 44px; height: 44px; image-rendering: pixelated; object-fit: contain; }
 .ty4-mtile.on { border-color: #c2456e; background: #fbe8ee; }
 .ty4-mtile b { position: absolute; top: 4px; right: 6px; color: #c2456e; }
+/* Build Queue 419: Bakery Tycoon in her pink, purple and cyan, laid out as a playful kitchen factory. A purple header bar,
+   a checkered pink and lilac kitchen floor under the production lines, her Little Factory conveyor belt rolling under every
+   treat, machine art over each station, and her hard-hat bakers working the counters they run. */
+.ty.ty4 { --c-ground: #fdf2fb; --c-card: #ffffff; --c-line: #e7d3f5; --c-ink: #2e2152; --c-soft: #6c5d8c; --c-accent: #e2479a; --c-purple: #7a52e0; --c-cyan: #22bfd3; --c-belt: #d9cbe9;
+  background: radial-gradient(circle at 15% 0%, #e6fbff 0 20%, transparent 21%), linear-gradient(#fdf2fb, #f3eaff); }
+.ty4.boosted { background: linear-gradient(#fff6fb, #e6fbff); } .ty4.golden { background: linear-gradient(#fff8e3, #ffe9f5); }
+.ty4-head { background: linear-gradient(90deg, #7a52e0, #b34fd1 60%, #e2479a); color: #fff; padding-bottom: 8px; margin-bottom: 8px; box-shadow: 0 3px 0 #5b3cb3; }
+.ty4-head h1 { color: #fff; text-shadow: 2px 2px 0 #5b3cb3; }
+.ty4-head .btn { background: #fff; color: var(--c-ink); border-color: #fff; }
+.ty4-stars span { color: #ffffff66; } .ty4-stars { color: #ffe066; }
+.ty4-coins { color: var(--c-ink); border-color: #fff; }
+.ty4-busy { color: var(--c-ink); }
+.ty4-card { border-color: var(--c-line); box-shadow: 0 3px 0 #e7d3f5; }
+.ty4-power { border-color: #9fe6ef; box-shadow: 0 3px 0 #9fe6ef; } .ty4-power b { color: #137d8c; }
+.ty4 .ty3-meter { background: #e2f7fa; } .ty4 .ty3-meter i { background: linear-gradient(90deg, #7fe7f2, var(--c-cyan)); }
+.ty4 .ty3-powerbtn { background: var(--c-cyan); border-color: #129fb2; color: #fff; }
+.ty4-clicker { border-color: #f7bfdc; box-shadow: 0 3px 0 #f7bfdc; }
+.ty4-bowl { border-color: var(--c-accent); background: radial-gradient(circle, #fff 0 58%, #ffe0f0 59%); box-shadow: 0 4px 0 #c13a83; }
+.ty4-chips em.now { background: #ffe0f0; } .ty4-chips em.ten { background: #e0fbff; color: #137d8c; }
+.ty4 .ty3-pu { border-color: var(--c-line); }
+.ty4 .ty3-pu.on { border-color: var(--c-cyan); background: #e6fbff; }
+.ty4-lines { padding: 6px; border-radius: 16px; background-color: #ffe9f5; background-image: conic-gradient(#f3e6ff 25%, transparent 0 50%, #f3e6ff 0 75%, transparent 0); background-size: 40px 40px; border: 3px solid #e7d3f5; }
+.ty4-line { border-color: #d9c4f3; box-shadow: 0 3px 0 #d9c4f3; }
+.ty4-line.done { border-color: var(--c-accent); box-shadow: 0 3px 0 #f7bfdc; } .ty4-line.wait { border-color: var(--c-cyan); }
+.ty4-who { position: relative; display: grid; place-items: center; }
+.ty4-baker { position: absolute; right: -10px; bottom: -6px; width: 24px; height: 24px; background-size: 48px 24px; background-repeat: no-repeat; image-rendering: pixelated; animation: ty4Baker .9s steps(2) infinite; }
+@keyframes ty4Baker { to { background-position: -48px 0; } }
+.ty4-stations span { display: flex; align-items: center; gap: 3px; border-left-color: #e7d3f5; color: #b3a6cc; }
+.ty4-stations img { width: 16px; height: 18px; object-fit: contain; image-rendering: pixelated; opacity: .6; }
+.ty4-stations span.now { color: var(--c-purple); } .ty4-stations span.now img { opacity: 1; animation: ty4Bob .5s ease-in-out infinite alternate; }
+.ty4-stations span.past { color: #18a3b5; } .ty4-stations span.past img { opacity: .9; }
+@keyframes ty4Bob { to { transform: translateY(-2px); } }
+.ty4-track { height: 24px; border-radius: 4px; background: url('/games/cupcake-tycoon/factory/belt.png') repeat-x 0 0 / auto 100%; image-rendering: pixelated; box-shadow: none; }
+.ty4-track.moving { animation: ty4BeltImg .6s linear infinite; }
+@keyframes ty4BeltImg { to { background-position: 24px 0; } }
+.ty4-item { bottom: 8px; }
+.ty4-prog { background: #f1e8fb; } .ty4-prog i { background: linear-gradient(90deg, var(--c-cyan), var(--c-purple), var(--c-accent)); }
+.ty4-case { border-color: #e7d3f5; box-shadow: 0 3px 0 #e7d3f5; }
+.ty4-mtile.on { border-color: var(--c-accent); background: #ffe9f5; } .ty4-mtile b { color: var(--c-accent); }
+.ty4-monitor em { background: #ff8c1a; }
+@media (prefers-reduced-motion: reduce) { .ty4-baker, .ty4-stations span.now img, .ty4-track.moving { animation: none; } }
+/* Build Queue 420 and 421: Pastel UI frames on the cards, and the one central oven. */
+.ty4-power { border: 10px solid transparent; border-image: url('/games/cupcake-tycoon/ui/panel-blue.png') 10 fill / 10px stretch; image-rendering: pixelated; box-shadow: none; padding: 2px 4px; }
+.ty4-clicker { border: 10px solid transparent; border-image: url('/games/cupcake-tycoon/ui/panel-pink.png') 10 fill / 10px stretch; image-rendering: pixelated; box-shadow: none; padding: 2px 4px; }
+.ty4-menued { border: 14px solid transparent; border-image: url('/games/cupcake-tycoon/ui/panel-pink.png') 10 fill / 14px stretch; image-rendering: pixelated; background: none; }
+.ty4-oven { flex: none; display: flex; align-items: center; gap: 10px; padding: 4px 8px; border-radius: 14px; background: linear-gradient(90deg, #e6fbff, #f3eaff); border: 2px solid #b8eef5; }
+.ty4-oven > img { width: 40px; height: 46px; image-rendering: pixelated; }
+.ty4-oven span { flex: 1; display: grid; } .ty4-oven span small { font-size: .76rem; font-weight: 700; color: var(--c-soft); }
+.ty4-oven .ty3-buy img { width: 18px; height: 20px; image-rendering: pixelated; }
+.ty4-oven em { font-style: normal; font-weight: 900; color: var(--c-purple); }

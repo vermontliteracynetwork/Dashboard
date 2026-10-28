@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-28-bakery-factory",
+    date: "2026-10-28",
+    icon: "🏭",
+    title: "The Bakery Tycoon factory kitchen",
+    body: "Bakery Tycoon has a new pink, purple and cyan kitchen factory! Treats roll down real conveyor belts, bakers in hard hats work the counters you hire them for, and the big oven can be upgraded from steel to copper, ice blue, pink, purple and golden to bake faster. Look for 32 new treats on the menu and a new Breads counter, with cozy kitchen sounds.",
+  },
+  {
     id: "2026-10-28-bakery-tycoon",
     date: "2026-10-28",
     icon: "🍰",
