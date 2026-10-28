@@ -596,7 +596,7 @@ export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   wordSearch: '🔤 Word Search',
   plinkoDrop: '🎯 Plinko Drop',
   crossyHopper: '🐔 Crossy Road Hopper',
-  idleTycoon: '🧁 Cupcake Tycoon',
+  idleTycoon: '🧁 Bakery Tycoon',
   dinerDash: '🍔 Diner Dash',
 };
 

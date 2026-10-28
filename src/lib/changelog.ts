@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-28-bakery-tycoon",
+    date: "2026-10-28",
+    icon: "🍰",
+    title: "Bakery Tycoon: make your own menu",
+    body: "Cupcake Tycoon is now Bakery Tycoon! Tap My menu to pick up to 3 treats for every counter, like chocolate donuts, berry tarts or red velvet cake. Every extra flavor sells for more, and the bakery money counter counts up each time you tap the cake.",
+  },
+  {
     id: "2026-10-28-tycoon-belt",
     date: "2026-10-28",
     icon: "🧁",

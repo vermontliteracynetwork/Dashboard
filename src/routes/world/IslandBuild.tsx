@@ -344,7 +344,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'pet-gym', label: `Buff Doge's Gym → ${ROLE_VIEWS['pet-gym']}` },
   { value: 'pet-show', label: `Pet Show Ring → ${ROLE_VIEWS['pet-show']}` },
   { value: 'diner-dash', label: `Diner Dash → ${ROLE_VIEWS['diner-dash']}` },
-  { value: 'idle-tycoon', label: `Cupcake Tycoon → ${ROLE_VIEWS['idle-tycoon']}` },
+  { value: 'idle-tycoon', label: `Bakery Tycoon → ${ROLE_VIEWS['idle-tycoon']}` },
   { value: 'crossy-hopper', label: `Crossy Road Hopper → ${ROLE_VIEWS['crossy-hopper']}` },
   { value: 'plinko-drop', label: `Plinko Drop → ${ROLE_VIEWS['plinko-drop']}` },
   { value: 'word-search', label: `Word Search → ${ROLE_VIEWS['word-search']}` },

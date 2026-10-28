@@ -10699,3 +10699,14 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
   .ty4-run { grid-template-columns: auto minmax(100px, 0.8fr) minmax(0, 1.6fr); }
 }
 @media (prefers-reduced-motion: reduce) { .ty4-track.moving { animation: none; } .ty4-item, .ty4-prog i { transition: none; } }
+/* Build Queue 417: Bakery Tycoon, the Scratch-style money monitor and the menu picker. */
+.ty4-monitor { display: inline-flex; align-items: center; gap: 6px; width: max-content; padding: 3px 4px 3px 8px; border-radius: 6px; background: #e9eef2; border: 1px solid #c7d0d9; font-size: .78rem; }
+.ty4-monitor b { font-weight: 700; color: #4b5563; } .ty4-monitor em { font-style: normal; font-weight: 900; color: #fff; background: #ff8c1a; border-radius: 4px; padding: 1px 8px; font-size: 1rem; font-variant-numeric: tabular-nums; min-width: 48px; text-align: center; }
+.ty4-menued { max-width: 760px; width: calc(100vw - 32px); }
+.ty4-mgroup h3 { margin: 4px 0; font-size: 1rem; } .ty4-mgroup h3 small { font-weight: 700; color: var(--c-soft, #7a645b); margin-left: 6px; }
+.ty4-mgroup.later { opacity: .75; }
+.ty4-mtiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 6px; }
+.ty4-mtile { position: relative; display: grid; justify-items: center; gap: 2px; min-height: 84px; padding: 6px 4px; border-radius: 12px; border: 2px solid #ead7d0; background: #fffdfb; font: inherit; font-size: .78rem; font-weight: 800; color: #3a2a24; cursor: pointer; touch-action: manipulation; }
+.ty4-mtile img { width: 44px; height: 44px; image-rendering: pixelated; object-fit: contain; }
+.ty4-mtile.on { border-color: #c2456e; background: #fbe8ee; }
+.ty4-mtile b { position: absolute; top: 4px; right: 6px; color: #c2456e; }
