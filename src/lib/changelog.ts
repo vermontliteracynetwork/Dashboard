@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: "2026-10-28",
     icon: "🏭",
     title: "The Bakery Tycoon factory kitchen",
-    body: "Bakery Tycoon has a new pink, purple and cyan kitchen factory! Treats roll down real conveyor belts, bakers in hard hats work the counters you hire them for, and the big oven can be upgraded from steel to copper, ice blue, pink, purple and golden to bake faster. Look for 32 new treats on the menu and a new Breads counter, with cozy kitchen sounds.",
+    body: "Bakery Tycoon has a new pink, purple and cyan kitchen factory! Treats roll down real conveyor belts, bakers in hard hats work the counters you hire them for, and the big oven can be upgraded from steel to copper, ice blue, pink, purple and golden to bake faster. Look for 32 new treats on the menu and a new Breads counter, with cozy kitchen sounds. A Next goal card tells you what to save up for, and 🔊 reads it to you.",
   },
   {
     id: "2026-10-28-bakery-tycoon",

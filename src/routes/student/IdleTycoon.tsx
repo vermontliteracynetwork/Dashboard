@@ -6,6 +6,7 @@ import { playCheer } from '../../lib/petSounds';
 import { setCafeMusicVolume, setCafeSfxVolume, startCafeMusic, stopCafeMusic } from '../../lib/cafeSound';
 import { playClip, preloadClips } from '../../lib/miniSfx';
 import { MyBest, useVisitScore } from '../../components/MyBest';
+import { speak } from '../../components/ReadAloud';
 
 // Cupcake Tycoon (her student-favorite genres list, 2026-09-30: "the farm or bakery shop; answers boost a
 // running business"). Rebuilt 2026-10-12 so it is a different game from Diner Dash, not the same one
@@ -72,6 +73,17 @@ const OVEN_LV = [
   { name: 'Pink oven', mult: 3, cost: 10000 }, { name: 'Purple oven', mult: 4, cost: 100000 }, { name: 'Golden oven', mult: 5, cost: 1000000 },
 ];
 const ovenImg = (lv: number) => `${FX}oven${lv + 1}.png`;
+// Build Queue 422: big numbers in words for the goal card (place value help, Claudia's 208 review: "big numbers shown without help").
+const ONES = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen'];
+const TENS = ['', '', 'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'];
+const under1000 = (n: number): string => { const h = Math.floor(n / 100), r = n % 100; const rest = r < 20 ? (r ? ONES[r] : '') : `${TENS[Math.floor(r / 10)]}${r % 10 ? ` ${ONES[r % 10]}` : ''}`; return [h ? `${ONES[h]} hundred` : '', rest].filter(Boolean).join(' '); };
+const numberWords = (n: number): string => {
+  n = Math.floor(n); if (n === 0) return 'zero';
+  const parts: string[] = [];
+  for (const [v, w] of [[1e9, 'billion'], [1e6, 'million'], [1e3, 'thousand']] as const) { if (n >= v) { parts.push(`${under1000(Math.floor(n / v))} ${w}`); n %= v; } }
+  if (n) parts.push(under1000(n));
+  return parts.join(' ');
+};
 const lsGet = (k: string, d: number) => { try { const v = localStorage.getItem(k); return v === null ? d : Number(v); } catch { return d; } };
 const lsSet = (k: string, v: number) => { try { localStorage.setItem(k, String(v)); } catch { /* private mode */ } };
 // Bronze (2 times as fast), then Silver (5 times) unlock in turn before the Golden Whisk (10 times), 20 seconds each.
@@ -194,7 +206,13 @@ export default function IdleTycoon() {
     if (!savedShop.savedAt || !savedShop.lines) return;
     const secs = Math.min(AWAY_MAX_S, Math.max(0, (Date.now() - savedShop.savedAt) / 1000));
     let power = savedShop.power ?? 0, got = 0;
-    for (const l of LINES) { const o = savedShop.lines?.[l.id]; if (!o?.baker) continue; const n = Math.min(power, Math.floor(secs / l.time)); power -= n; got += n * l.income * o.ovens; }
+    const openCount = LINES.filter((l) => savedShop.lines?.[l.id]).length;
+    for (const l of LINES) {
+      const o = savedShop.lines?.[l.id]; if (!o?.baker) continue;
+      const n = Math.min(power, Math.floor(secs / l.time)); power -= n;
+      const flavors = Math.max(1, Math.min(MENU_MAX, savedShop.menu?.[l.id]?.length ?? 1));
+      got += Math.round(n * l.income * o.ovens * (1 + groupBonus(o.ovens) + (openCount >= 5 ? 0.1 : 0) + (flavors - 1) * 0.05));
+    }
     if (got > 0) { setS({ ...shopRef.current, power }); earn(got, 'away'); setAway(got); window.setTimeout(() => clip('earnings'), 300); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -296,6 +314,15 @@ export default function IdleTycoon() {
     clip(has ? 'click' : 'recipe'); setS({ ...shopRef.current, menu: { ...(shopRef.current.menu ?? {}), [line]: has ? cur.filter((x) => x !== f) : [...cur, f] } }); save();
   };
   const ovenLv = Math.min(OVEN_LV.length - 1, shop.oven ?? 0), nextOven = OVEN_LV[ovenLv + 1];
+  // The goal card: always one clear next step, with the subtraction to get there.
+  const anyRun = Object.keys(runs).length > 0;
+  const coinsNow = Math.floor(shop.coins);
+  const goalFor = (what: string, cost: number) => coinsNow >= cost ? `You have enough to ${what} now! Tap it.` : `Save ${cost.toLocaleString()} coins (${numberWords(cost)}) to ${what}. You have ${coinsNow.toLocaleString()}, so ${(cost - coinsNow).toLocaleString()} more to go.`;
+  const goal = shop.power <= 0 && !anyRun ? 'Tap Power the ovens and answer a question, so the ovens can bake.'
+    : !shop.lines.cupcake?.baker && !shop.lines.cookie ? goalFor('hire a cupcake baker', LINES[0].baker)
+    : LINES.find((l) => !shop.lines[l.id]) ? goalFor(`open the ${LINES.find((l) => !shop.lines[l.id])!.name} counter`, LINES.find((l) => !shop.lines[l.id])!.open)
+    : nextOven ? goalFor(`upgrade to the ${nextOven.name}`, nextOven.cost)
+    : 'Your bakery has every counter and the best oven. Keep growing your groups for bigger bonuses!';
   const upgradeOven = () => {
     if (!nextOven) return;
     if (spend(nextOven.cost, (s) => ({ ...s, oven: ovenLv + 1 }))) { clip('positive'); flash(`${nextOven.name}! Baking is now ${nextOven.mult} times as fast.`); }
@@ -336,7 +363,7 @@ export default function IdleTycoon() {
         <section className="ty3-left">
           <div className={`ty4-card ty4-power${shop.power <= 0 ? ' empty' : ''}`}>
             <b>⚡ Oven power <small>{shop.power > 0 ? `${shop.power} bakes left` : 'No power yet'}</small></b>
-            <span className="ty3-meter"><i style={{ width: `${Math.min(100, shop.power * 5)}%` }} /></span>
+            <span className="ty3-meter"><i style={{ width: `${Math.min(100, shop.power * 2)}%` }} /></span>
             <button type="button" className="btn btn-primary ty3-powerbtn" onClick={powerUp}>⚡ Power the ovens</button>
           </div>
           <div className="ty4-card ty4-clicker">
@@ -363,6 +390,10 @@ export default function IdleTycoon() {
         </section>
 
         <section className="ty3-lines ty4-lines" aria-label="Counters">
+          <div className="ty4-goal" role="status">
+            <b>🎯 Next goal</b><span>{goal}</span>
+            <button type="button" className="btn ty4-listen" onClick={() => speak(`Next goal. ${goal}`, student.ttsSettings)} aria-label="Listen to the next goal">🔊</button>
+          </div>
           <div className="ty4-oven">
             <img src={ovenImg(ovenLv)} alt="" />
             <span><b>{OVEN_LV[ovenLv].name}</b><small>The big oven bakes for every counter{ovenLv ? `, ${OVEN_LV[ovenLv].mult} times as fast` : ''}.</small></span>
@@ -426,7 +457,7 @@ export default function IdleTycoon() {
       {menuOpen && (
         <div className="pf-overlay" onClick={() => { clip('menuClose'); setMenuOpen(false); }}>
           <div className="pf-panel ty3-menu ty4-menued" onClick={(e) => e.stopPropagation()}>
-            <h2>📋 My bakery menu</h2>
+            <h2>📋 My bakery menu <button type="button" className="btn ty4-listen" onClick={() => speak(`My bakery menu. Pick up to ${MENU_MAX} treats for each counter. Each counter bakes them in turn, and every extra flavor adds 5 percent.`, student.ttsSettings)} aria-label="Listen">🔊</button></h2>
             <p className="ty3-small">Pick up to {MENU_MAX} treats for each counter. Each counter bakes them in turn, and every extra flavor adds 5%.</p>
             {LINES.map((l) => { const m = menuOf(l.id, shop), isOpen = !!shop.lines[l.id]; return (
               <section key={l.id} className={`ty4-mgroup${isOpen ? '' : ' later'}`}>

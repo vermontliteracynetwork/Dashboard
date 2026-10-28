@@ -10760,3 +10760,7 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ty4-oven span { flex: 1; display: grid; } .ty4-oven span small { font-size: .76rem; font-weight: 700; color: var(--c-soft); }
 .ty4-oven .ty3-buy img { width: 18px; height: 20px; image-rendering: pixelated; }
 .ty4-oven em { font-style: normal; font-weight: 900; color: var(--c-purple); }
+/* Build Queue 422: the goal card. */
+.ty4-goal { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 14px; background: #fff; border: 2px dashed #f7bfdc; font-size: .85rem; font-weight: 700; }
+.ty4-goal b { white-space: nowrap; color: var(--c-accent); } .ty4-goal span { flex: 1; min-width: 0; }
+.ty4-listen { min-height: 44px; min-width: 44px; padding: 0 8px; }
