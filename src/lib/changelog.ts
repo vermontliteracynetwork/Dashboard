@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-28-world-box-3",
+    date: "2026-10-28",
+    icon: "🌍",
+    title: "World Box comes alive",
+    body: "World Box has seasons, day and night, storms, migrations, rival packs, dens, evolution and goals. Design your own animal! Every right answer earns XP and $1 for your bank. Reach Explorer, Ranger and World Builder.",
+  },
+  {
     id: "2026-10-27-cupcake-menu",
     date: "2026-10-27",
     icon: "💾",

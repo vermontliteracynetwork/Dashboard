@@ -10555,3 +10555,59 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ty3-pu.bronze { border-color: #b8743a; background: linear-gradient(135deg, #fbe2c8, #e9b483); }
 .ty3-pu.silver { border-color: #8e99a6; background: linear-gradient(135deg, #f4f6f9, #cfd6de); }
 .ty3-pu.whisk:disabled:not(.on), .ty3-pu.silver:disabled:not(.on), .ty3-pu.bronze:disabled:not(.on) { opacity: .5; }
+
+/* Build Queue 407: World Box Phase A to F. */
+.wb-xp { background: #fff3c4; border-color: #e0a800; }
+.wb-sound { min-width: 44px; min-height: 44px; }
+.wb-goal { padding: 8px 10px; border-radius: 14px; background: #fff6d8; border: 2px solid #e0a800; font-weight: 800; display: flex; align-items: center; gap: 6px; }
+.wb-goal b { color: #7a5200; }
+.wb-tierbar { position: relative; display: block; height: 24px; border-radius: 999px; background: #efe6cc; overflow: hidden; }
+.wb-tierbar i { position: absolute; inset: 0 auto 0 0; background: #f2c14e; }
+.wb-tierbar em { position: relative; display: block; text-align: center; font: 800 .78rem/24px 'Nunito', sans-serif; font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 8px; }
+.wb-keys { grid-template-columns: repeat(3, 1fr); }
+.wb-keys .wb-check { grid-column: span 2; }
+.wb-choices { display: grid; gap: 8px; margin-top: auto; }
+.wb-choices button { min-height: 56px; border-radius: 14px; border: 3px solid #6b4f2a; background: #fffaf0; font: 800 1.05rem 'Nunito', sans-serif; text-align: left; padding: 6px 12px; touch-action: manipulation; }
+.wb-fix { min-height: 48px; border-radius: 12px; border: 2px solid #c0362c; background: #fff0ec; font: 800 .95rem 'Nunito', sans-serif; touch-action: manipulation; }
+.wb-fix.design { border-color: #7c3aed; background: #f3ecff; }
+.wb-icons { display: flex; flex-wrap: wrap; gap: 6px; }
+.wb-icons button { min-width: 48px; min-height: 48px; border-radius: 12px; border: 2px solid #c9b78a; background: #fffaf0; font: 800 1.2rem 'Nunito', sans-serif; padding: 0 8px; }
+.wb-icons button:not(:has(*)) { font-size: 1.3rem; }
+.wb-icons button.on { border-color: #2f6b16; background: #e2f5d2; }
+.wb-row2 { display: flex; gap: 8px; } .wb-row2 .wm-go { flex: 1; margin-top: 0; } .wm-go.ghost { background: #fff; color: #2f4a1a; }
+.wb-world h3 { margin: 6px 0 2px; }
+.wb-packs { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.wb-packs li { display: flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 10px; background: #fffaf0; border: 1px solid #e4d6ae; flex-wrap: wrap; }
+.wb-packs li span { font-size: 1.3rem; } .wb-packs li small { flex-basis: 100%; color: #6b5a3a; font-weight: 700; }
+/* life on the map */
+.wb-animal { animation: wbBob 2.4s ease-in-out infinite; }
+.wb-animal .wb-body { display: block; font-style: normal; animation: wbHop .5s ease-out; }
+.wb-animal.swim::after { content: ''; position: absolute; left: 50%; top: 60%; width: 140%; height: 40%; translate: -50% 0; border: 2px solid rgba(255,255,255,.7); border-radius: 50%; animation: wbRipple 1.8s ease-out infinite; pointer-events: none; }
+.wb-crown, .wb-evo { position: absolute; text-decoration: none; font-size: .5em; top: -55%; } .wb-crown { left: 10%; } .wb-evo { right: 0; }
+.wb-b.fresh { animation: wbRise .9s cubic-bezier(.2,1.4,.4,1) both; }
+.wb-b.wall.fresh { animation: wbStack 1.4s steps(6) both; transform-origin: bottom; }
+.wb-b.den { background: radial-gradient(ellipse at 50% 55%, #2a1a0e 0 35%, #6b4423 36% 62%, #8a5a2b 63%); border-radius: 40%; border: 2px solid #4a2e15; }
+.wb-b.gapped { animation: wbGap 1s ease-in-out infinite alternate; }
+.wb-gap { position: absolute; right: -6px; top: -10px; font-style: normal; font: 900 .7rem 'Nunito', sans-serif; background: #ffd9c7; border: 2px solid #c0362c; border-radius: 999px; padding: 0 4px; }
+.wb-winter { position: absolute; inset: 0; background: rgba(235, 244, 255, .45); pointer-events: none; mix-blend-mode: screen; }
+.wb-daynight { position: absolute; inset: 0; pointer-events: none; animation: wbDay 240s linear infinite; }
+.wb-sky { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.wb-sky i { position: absolute; width: 22%; height: 16%; border-radius: 50%; background: rgba(0, 0, 0, .12); filter: blur(10px); animation: wbCloud 70s linear infinite; }
+.wb-sky i:nth-child(1) { top: 10%; animation-delay: -10s; } .wb-sky i:nth-child(2) { top: 45%; animation-delay: -35s; animation-duration: 90s; } .wb-sky i:nth-child(3) { top: 75%; animation-delay: -60s; animation-duration: 80s; }
+.wb-flock { position: absolute; top: 20%; left: -20%; font-size: calc(var(--cell) * .9); pointer-events: none; animation: wbFlock 9s linear forwards; letter-spacing: .3em; }
+.wb-weather { position: absolute; inset: 0; pointer-events: none; opacity: .6; }
+.wb-weather.snow { background-image: radial-gradient(#fff 1.5px, transparent 2px), radial-gradient(#fff 1px, transparent 1.5px); background-size: 40px 40px, 25px 25px; animation: wbSnow 8s linear infinite; }
+.wb-weather.rain { background-image: linear-gradient(170deg, transparent 0 46%, rgba(120,170,230,.5) 47% 50%, transparent 51%); background-size: 22px 30px; animation: wbRain .7s linear infinite; opacity: .35; }
+@keyframes wbBob { 0%, 100% { translate: -50% -50%; } 50% { translate: -50% -58%; } }
+@keyframes wbHop { 0% { transform-origin: bottom; scale: 1 .8; } 40% { scale: .95 1.1; } 100% { scale: 1; } }
+@keyframes wbRipple { from { opacity: .9; scale: .5; } to { opacity: 0; scale: 1.4; } }
+@keyframes wbRise { from { opacity: 0; scale: .2; } to { opacity: 1; scale: 1; } }
+@keyframes wbStack { from { clip-path: inset(100% 0 0 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes wbGap { to { box-shadow: 0 0 0 3px rgba(192,54,44,.6); } }
+@keyframes wbDay { 0%, 60% { background: transparent; } 68% { background: rgba(255, 140, 60, .18); } 76%, 94% { background: rgba(20, 30, 80, .38); } 100% { background: transparent; } }
+@keyframes wbCloud { from { left: -30%; } to { left: 110%; } }
+@keyframes wbFlock { from { left: -20%; top: 25%; } to { left: 110%; top: 10%; } }
+@keyframes wbSnow { from { background-position: 0 0, 0 0; } to { background-position: 40px 400px, -25px 250px; } }
+@keyframes wbRain { from { background-position: 0 0; } to { background-position: -6px 30px; } }
+@media (prefers-reduced-motion: reduce) { .wb-animal, .wb-animal .wb-body, .wb-animal.swim::after, .wb-b.fresh, .wb-sky i, .wb-flock, .wb-weather, .wb-daynight, .wb-b.gapped { animation: none !important; } .wb-flock, .wb-weather { display: none; } }
+.wb .wb-tabs { position: sticky; top: -12px; z-index: 3; background: #fff; }

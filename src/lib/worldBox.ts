@@ -94,21 +94,25 @@ export const SPECIES: Species[] = [
   { id: 'sheep', name: 'Sheep', many: 'Sheep', icon: '🐑', wild: false, home: ['meadow'], space: 2, lives: 'pasture', price: 4, fact: 'A sheep grows a new wool coat every year.' },
   { id: 'chicken', name: 'Chicken', many: 'Chickens', icon: '🐓', wild: false, home: ['meadow'], space: 1, lives: 'coop', price: 2, fact: 'Chickens can remember over 100 faces.' },
 ];
-export const SP = (id: string) => SPECIES.find((s) => s.id === id)!;
+export const SP = (id: string) => SPECIES.find((s) => s.id === id) ?? SPECIES[0];
+// Build Queue 407 (Phase E): animals the student designs join the species list for this world.
+export const addCustomSpecies = (list: Species[] = []) => { for (const c of list) if (!SPECIES.some((s) => s.id === c.id)) SPECIES.push(c); };
 export const NAMES = ['Pip', 'Moss', 'Fern', 'Dusk', 'Clover', 'Rook', 'Wren', 'Hazel', 'Pebble', 'Sprout', 'Maple', 'Juniper', 'Biscuit', 'Daisy', 'Pepper', 'Willow', 'Acorn', 'Blue', 'Sunny', 'Cocoa', 'Ziggy', 'Luna', 'Thistle', 'Nutmeg'];
-export interface Animal { id: string; kind: string; name: string; x: number; y: number; tame?: boolean; at?: string; lv?: number }
+export interface Animal { id: string; kind: string; name: string; x: number; y: number; tame?: boolean; at?: string; lv?: number; power?: number; dir?: number }
 
 // ---- buildings ----
-export type BuildType = 'pasture' | 'barn' | 'coop' | 'zoo' | 'wall';
+export type BuildType = 'pasture' | 'barn' | 'coop' | 'zoo' | 'wall' | 'den';
 export const BUILD: Record<BuildType, { name: string; icon: string; holds: string; minW: number; maxW: number; minH: number; maxH: number }> = {
   pasture: { name: 'Fenced pasture', icon: '🪵', holds: 'sheep, cows and horses', minW: 2, maxW: 10, minH: 2, maxH: 8 },
   barn: { name: 'Barn', icon: '🏚️', holds: 'cows, horses and pigs', minW: 2, maxW: 8, minH: 2, maxH: 6 },
   coop: { name: 'Chicken coop', icon: '🐓', holds: 'chickens', minW: 1, maxW: 4, minH: 1, maxH: 3 },
   zoo: { name: 'Zoo enclosure', icon: '🦓', holds: 'tamed wild animals', minW: 2, maxW: 10, minH: 2, maxH: 8 },
   wall: { name: 'Stone wall', icon: '🧱', holds: 'nothing: it keeps wild animals out', minW: 2, maxW: 14, minH: 1, maxH: 4 },
+  // Build Queue 407 (Phase B): a den dug into the ground, measured in volume; wild animals shelter in it in storms.
+  den: { name: 'Den', icon: '🕳️', holds: 'wild animals sheltering from storms', minW: 1, maxW: 5, minH: 1, maxH: 4 },
 };
 // A wall is one block thick; its "h" is how many blocks high it is stacked, so it covers a single row of the map.
-export interface Building { id: string; type: BuildType; r: Rect; high?: number; name: string }
+export interface Building { id: string; type: BuildType; r: Rect; high?: number; name: string; depth?: number; gaps?: number; wild?: string }
 export const holdsIn = (t: BuildType, s: Species) => (t === 'zoo' ? s.wild : t === 'pasture' ? ['sheep', 'cow', 'horse'].includes(s.id) : t === 'barn' ? ['cow', 'horse', 'pig'].includes(s.id) : t === 'coop' ? s.id === 'chicken' : false);
 export const areaOf = (b: Building) => rectW(b.r) * rectH(b.r);
 export const usedSpace = (w: World, b: Building) => w.animals.filter((a) => a.at === b.id).reduce((n, a) => n + SP(a.kind).space, 0);
@@ -116,11 +120,18 @@ export const usedSpace = (w: World, b: Building) => w.animals.filter((a) => a.at
 export interface World {
   v: 2; seed: number; map: Rect; day: number; side: number; unit: LengthUnit;
   animals: Animal[]; buildings: Building[]; paint: Record<Cell, BiomeId>; found: BiomeId[]; log: string[];
+  // Build Queue 407: packs (intelligence, skills), evolved traits, designed animals, the goal reached so far.
+  packs?: Record<string, { iq: number; skills: string[]; milestones: string[] }>; evolved?: Record<string, string[]>; custom?: Species[]; goal?: number;
 }
+// Seasons: five days each (Phase C).
+export const SEASONS = ['Spring', 'Summer', 'Fall', 'Winter'] as const;
+export type Season = typeof SEASONS[number];
+export const seasonOf = (day: number): Season => SEASONS[Math.floor((day - 1) / 5) % 4];
+export const SEASON_ICON: Record<Season, string> = { Spring: '🌷', Summer: '☀️', Fall: '🍂', Winter: '❄️' };
 export const biomeAt = (w: Pick<World, 'seed' | 'paint'>, x: number, y: number): BiomeId => w.paint[key(x, y)] ?? natureAt(w.seed, x, y);
 export const walkable = (w: World, x: number, y: number, s?: Species) => {
   const b = biomeAt(w, x, y);
-  return x >= w.map.x0 && x <= w.map.x1 && y >= w.map.y0 && y <= w.map.y1 && (BIOMES[b].walk || (b === 'lake' && !!s?.swims) || (b === 'mountain' && !!s?.climbs));
+  return x >= w.map.x0 && x <= w.map.x1 && y >= w.map.y0 && y <= w.map.y1 && (BIOMES[b].walk || (b === 'lake' && (!!s?.swims || seasonOf(w.day) === 'Winter')) || (b === 'mountain' && !!s?.climbs));
 };
 const inRect = (r: Rect, x: number, y: number) => x >= r.x0 && x <= r.x1 && y >= r.y0 && y <= r.y1;
 export const buildingAt = (w: World, x: number, y: number) => w.buildings.find((b) => inRect(b.r, x, y));
@@ -138,7 +149,7 @@ function spawnWild(w: World, r: Rect): Animal[] {
   const out: Animal[] = [];
   for (const s of SPECIES.filter((x) => x.wild)) {
     const spots = cellsOf(w, s.home, r); if (spots.length < 4) continue;
-    for (let i = 0; i < rnd(2, 3); i++) { const [x, y] = pick(spots); out.push({ id: id('a'), kind: s.id, name: '', x, y }); }
+    for (let i = 0; i < rnd(2, 3); i++) { const [x, y] = pick(spots); out.push({ id: id('a'), kind: s.id, name: '', x, y, power: rnd(2, 9) }); }
   }
   return out;
 }
@@ -159,7 +170,7 @@ export function wander(w: World): Animal[] {
     if (!opts.length) return a;
     const home = opts.filter(([x, y]) => s.home.includes(biomeAt(w, x, y)));
     const [x, y] = !b && home.length && Math.random() < 0.8 ? pick(home) : pick(opts);
-    return { ...a, x, y };
+    return { ...a, x, y, dir: x > a.x ? 1 : x < a.x ? -1 : a.dir };
   });
 }
 
@@ -168,7 +179,8 @@ export interface Question {
   kind: string; story: string; ask: string; answer: Measure; hint: string; after: string;
   apply: (w: World) => World; // the outcome, the same whatever the student answered
   mark?: Rect | Cell[]; // the part of the map the question is about, outlined while they answer
-  shape?: { w: number; h: number; d?: number }; // a small diagram on the card
+  shape?: { w: number; h: number; d?: number; layers?: [number, number][] }; // a small diagram on the card
+  choices?: string[]; // a choice question (the answer value is the right choice's number)
 }
 const L = (w: World) => UNIT_NAME[w.unit].many;
 const sideText = (w: World) => `${w.side} ${w.side === 1 ? UNIT_NAME[w.unit].one : L(w)}`;
@@ -183,6 +195,14 @@ export function buildQuestion(w: World, type: BuildType, r: Rect, high = 1): Que
     const len = Math.max(bw, bh), v = len * high;
     return { kind: 'volume', mark: r, shape: { w: len, h: high, d: 1 }, story: `You are building a stone wall ${len} blocks long, ${high} ${high === 1 ? 'block' : 'blocks'} high and 1 block thick. Each stone is one cubic block.`,
       ask: 'How many stone cubes does the wall need?', answer: { value: v, unit: 'cubes' }, hint: `Volume = length × height × thickness: ${len} × ${high} × 1 = ${v}.`, apply, after: `The wall is up: ${v} stone cubes. Wild animals walk around it.` };
+  }
+  if (type === 'den') {
+    const d = Math.max(1, high), v = bw * bh * d, cubic = s === 1 ? 1 : s * s * s;
+    b.depth = d;
+    return { kind: 'volume', mark: r, shape: { w: bw, h: bh, d }, story: `You are digging a den ${bw} blocks long, ${bh} ${bh === 1 ? 'block' : 'blocks'} wide and ${d} ${d === 1 ? 'block' : 'blocks'} deep. Each block is ${sideText(w)} on each side.`,
+      ask: s === 1 ? 'How many cubic meters of dirt come out?' : `How many cubic ${u} of dirt come out?`, answer: { value: v * cubic, unit: `cu ${w.unit}` },
+      hint: s === 1 ? `Volume = length × width × depth: ${bw} × ${bh} × ${d} = ${v}.` : `${bw} × ${bh} × ${d} = ${v} blocks, each ${s} × ${s} × ${s} = ${cubic}: ${v} × ${cubic} = ${v * cubic}.`, apply,
+      after: `The den holds ${v} cubic blocks. Wild animals will shelter in it when a storm comes.` };
   }
   if (type === 'pasture') return { kind: 'perimeter', mark: r, shape: { w: bw, h: bh }, story: `You are fencing a pasture ${bw} blocks long and ${bh} blocks wide. Each fence piece covers one block edge.`,
     ask: 'How many fence pieces go all the way around?', answer: { value: per, unit: 'blocks' }, hint: `${bw} + ${bh} + ${bw} + ${bh} = ${per}.`, apply, after: `The pasture has ${per} fence pieces. Sheep, cows and horses can graze in it.` };
@@ -319,12 +339,195 @@ function sideQ(w: World): Question {
   return { kind: 'side', shape: { w: l, h: d }, story: `Horses run laps around a rectangle field. One lap is ${p} ${L(w)}, and the long side is ${l} ${L(w)}.`, ask: 'How long is the short side?', answer: { value: d, unit: w.unit },
     hint: `Two long sides: ${l} + ${l} = ${2 * l}. ${p} - ${2 * l} = ${p - 2 * l}, and half of that is ${d}.`, apply: (q) => q, after: `The short side is ${d} ${L(w)}.` };
 }
+
+// ---- Build Queue 407: everything from the plan's section 9 ----
+const groupOf = (w: World, kind: string) => w.animals.filter((a) => a.kind === kind && !a.at);
+const wildKinds = (w: World, n = 2) => SPECIES.filter((sp) => sp.wild && groupOf(w, sp.id).length >= n);
+// Phase B: volume. A storm comes and animals shelter in a den: how many fit?
+function denShelterQ(w: World): Question | null {
+  const dens = w.buildings.filter((b) => b.type === 'den'); if (!dens.length) return null;
+  const d = pick(dens), sp = pick(wildKinds(w, 1).length ? wildKinds(w, 1) : SPECIES.filter((x) => x.wild));
+  const v = rectW(d.r) * rectH(d.r) * (d.depth ?? 1), fits = Math.floor(v / sp.space);
+  return { kind: 'volume', mark: d.r, shape: { w: rectW(d.r), h: rectH(d.r), d: d.depth ?? 1 }, story: `A storm is coming! ${sp.many} ${sp.icon} hurry to ${d.name.toLowerCase()}, ${rectW(d.r)} by ${rectH(d.r)} by ${d.depth ?? 1} blocks deep. Each ${sp.name.toLowerCase()} needs ${sp.space} cubic ${sp.space === 1 ? 'block' : 'blocks'} of space.`,
+    ask: `How many ${sp.many.toLowerCase()} can shelter in the den?`, answer: { value: fits, unit: 'animals' },
+    hint: `Volume ${rectW(d.r)} × ${rectH(d.r)} × ${d.depth ?? 1} = ${v}. ${v} ÷ ${sp.space} = ${fits}${v % sp.space ? `, with ${v % sp.space} left over` : ''}.`, apply: (q) => q, after: `${fits} ${sp.many.toLowerCase()} stay safe and dry until the storm passes.` };
+}
+// Fall: a food store for winter must hold the right volume (hibernation).
+function hibernateQ(w: World): Question {
+  const sp = pick(SPECIES.filter((x) => x.id === 'bear' || x.id === 'rabbit' || x.id === 'fox' || x.id === 'goat'));
+  const n = Math.max(2, Math.min(6, groupOf(w, sp.id).length || rnd(2, 5))), each = rnd(2, 4), l = rnd(2, 4), wd = rnd(1, 3);
+  const need = n * each, area = l * wd, depth = Math.ceil(need / area);
+  return { kind: 'volume', shape: { w: l, h: wd, d: depth }, story: `Fall is here. ${n} ${sp.many.toLowerCase()} ${sp.icon} each need ${each} cubic blocks of food stored for winter. Their store is ${l} blocks long and ${wd} ${wd === 1 ? 'block' : 'blocks'} wide.`,
+    ask: 'How many blocks deep must the store be to hold all the food? (Round up.)', answer: { value: depth, unit: 'blocks' },
+    hint: `Food needed: ${n} × ${each} = ${need}. Floor of the store: ${l} × ${wd} = ${area}. ${need} ÷ ${area} = ${(need / area).toFixed(2).replace(/\.00$/, '')}, round up to ${depth}.`,
+    apply: (q) => q, after: `A store ${depth} ${depth === 1 ? 'block' : 'blocks'} deep holds ${area * depth} cubic blocks: enough for the winter.` };
+}
+// Stepped mountains: add the volume of each layer (rectangular prisms).
+function mountainQ(): Question {
+  const a = rnd(5, 8), b = rnd(4, 6), c = a - 2, d = b - 1, e = c - 2, f = Math.max(1, d - 2);
+  const layers: [number, number][] = [[a, b], [c, d], [e, f]], v = a * b + c * d + e * f;
+  return { kind: 'volume', shape: { w: a, h: 3, layers }, story: `Mountain goats 🐐 live on a stepped mountain. It has 3 layers, each 1 block tall: ${a} by ${b}, then ${c} by ${d}, then ${e} by ${f} on top.`,
+    ask: 'What is the volume of the whole mountain in cubic blocks?', answer: { value: v, unit: 'cubes' },
+    hint: `Add each layer: ${a} × ${b} = ${a * b}, ${c} × ${d} = ${c * d}, ${e} × ${f} = ${e * f}. ${a * b} + ${c * d} + ${e * f} = ${v}.`, apply: (q) => q, after: `The mountain is ${v} cubic blocks of rock for the goats to climb.` };
+}
+// Water depth zones and sky space.
+function waterSkyQ(w: World): Question {
+  if (Math.random() < 0.5) {
+    const l = rnd(4, 9), wd = rnd(3, 6), top = 1, mid = rnd(2, 3), v = l * wd * mid;
+    return { kind: 'volume', shape: { w: l, h: wd, d: mid }, story: `The lake has depth zones. Ducks 🦆 paddle in the top ${top} meter. Fish swim in the middle zone, ${mid} meters deep, under a surface ${l} meters by ${wd} meters.`,
+      ask: 'How many cubic meters of water are in the fish zone?', answer: { value: v, unit: 'cu m' }, hint: `${l} × ${wd} × ${mid} = ${v}.`, apply: (q) => q, after: `The fish zone holds ${v} cubic meters of water.` };
+  }
+  const l = rnd(4, 10), wd = rnd(3, 8), h = rnd(2, 5), v = l * wd * h;
+  return { kind: 'volume', shape: { w: l, h: wd, d: h }, story: `A flock of birds 🐦 claims a piece of sky over the ${pick(w.found.filter((b) => BIOMES[b].walk))} ${l} blocks long, ${wd} blocks wide and ${h} blocks high.`,
+    ask: 'How much sky space (in cubic blocks) does the flock claim?', answer: { value: v, unit: 'cubes' }, hint: `Air volume = ${l} × ${wd} × ${h} = ${v}.`, apply: (q) => q, after: `The flock has ${v} cubic blocks of sky to swoop in.` };
+}
+// Phase C: migration across the scaled map (distance and time).
+function migrationQ(w: World): Question | null {
+  const kinds = wildKinds(w, 2); if (!kinds.length) return null;
+  const sp = pick(kinds), herd = groupOf(w, sp.id);
+  const dx = pick([-1, 1]) * rnd(6, 14), dy = rnd(-3, 3), blocks = Math.abs(dx) + Math.abs(dy);
+  const sideM = Math.max(w.side, 5), dist = blocks * sideM, speed = pick([1, 2, 5]);
+  const timeQ = Math.random() < 0.5 && dist % speed === 0;
+  const dir = dx > 0 ? 'east' : 'west';
+  const apply = (q: World): World => ({ ...q, animals: q.animals.map((a) => { if (!herd.some((h) => h.id === a.id)) return a; const nx = Math.max(q.map.x0, Math.min(q.map.x1, a.x + dx)), ny = Math.max(q.map.y0, Math.min(q.map.y1, a.y + dy)); return walkable(q, nx, ny, sp) ? { ...a, x: nx, y: ny, dir: dx > 0 ? 1 : -1 } : a; }), log: [...q.log, `Day ${q.day}: the ${sp.many.toLowerCase()} migrated ${dir}.`] });
+  return timeQ
+    ? { kind: 'migration', story: `The ${sp.many.toLowerCase()} ${sp.icon} are migrating ${dir} ${dist} meters to find food. They travel ${speed} ${speed === 1 ? 'meter' : 'meters'} every second.`, ask: 'How many seconds will the trip take?', answer: { value: dist / speed, unit: 'blocks' },
+      hint: `Time = distance ÷ speed: ${dist} ÷ ${speed} = ${dist / speed} seconds.`, apply, after: `They arrive after ${dist / speed} seconds.` }
+    : { kind: 'migration', story: `The ${sp.many.toLowerCase()} ${sp.icon} are migrating ${Math.abs(dx)} blocks ${dir}${dy ? ` and ${Math.abs(dy)} blocks ${dy > 0 ? 'south' : 'north'}` : ''}. On this map, each block is ${sideM} meters.`, ask: 'How many meters will they walk?', answer: { value: dist, unit: 'm' },
+      hint: `${Math.abs(dx)}${dy ? ` + ${Math.abs(dy)}` : ''} = ${blocks} blocks. ${blocks} × ${sideM} = ${dist} meters.`, apply, after: `They walked ${dist} meters to their new home.` };
+}
+// Unit conversion: within a system first, then between metric and customary.
+function convertQ(w: World): Question {
+  const sp = pick(SPECIES.filter((x) => x.wild));
+  const opts: (() => Question)[] = [
+    () => { const m = rnd(2, 9) * (pick([1, 10]) as number); return { kind: 'convert', story: `The ${sp.name.toLowerCase()} ${sp.icon} trail is ${m} meters long.`, ask: 'How many centimeters is that?', answer: { value: m * 100, unit: 'blocks' }, hint: `1 meter = 100 centimeters. ${m} × 100 = ${m * 100}.`, apply: (q) => q, after: `${m} m = ${m * 100} cm.` }; },
+    () => { const km = rnd(2, 9); return { kind: 'convert', story: `A herd walks ${km} kilometers in a day.`, ask: 'How many meters is that?', answer: { value: km * 1000, unit: 'm' }, hint: `1 kilometer = 1,000 meters. ${km} × 1,000 = ${km * 1000}.`, apply: (q) => q, after: `${km} km = ${km * 1000} m.` }; },
+    () => { const m = rnd(3, 9) * 500; return { kind: 'convert', story: `The ducks flew ${m.toLocaleString('en-US')} meters to the lake.`, ask: 'How many kilometers is that? (Use a decimal point if you need one.)', answer: { value: m / 1000, unit: 'blocks' }, hint: `1,000 meters = 1 kilometer. ${m} ÷ 1,000 = ${m / 1000}.`, apply: (q) => q, after: `${m} m = ${m / 1000} km.` }; },
+    () => { const ft = rnd(2, 9); return { kind: 'convert', story: `The fence is ${ft} feet tall.`, ask: 'How many inches is that?', answer: { value: ft * 12, unit: 'blocks' }, hint: `1 foot = 12 inches. ${ft} × 12 = ${ft * 12}.`, apply: (q) => q, after: `${ft} ft = ${ft * 12} in.` }; },
+    () => { const yd = rnd(2, 12); return { kind: 'convert', story: `The pasture is ${yd} yards long.`, ask: 'How many feet is that?', answer: { value: yd * 3, unit: 'ft' }, hint: `1 yard = 3 feet. ${yd} × 3 = ${yd * 3}.`, apply: (q) => q, after: `${yd} yd = ${yd * 3} ft.` }; },
+    () => { const inch = rnd(2, 10) * 5; const cm = Math.round(inch * 2.54); return { kind: 'convert', story: `A baby ${sp.name.toLowerCase()} ${sp.icon} is ${inch} inches long.`, ask: 'About how many centimeters is that? (1 inch is about 2.54 cm. Round to a whole number.)', answer: { value: cm, unit: 'blocks' }, hint: `${inch} × 2.54 = ${(inch * 2.54).toFixed(1)}, about ${cm}.`, apply: (q) => q, after: `${inch} in is about ${cm} cm.` }; },
+    () => { const mi = rnd(2, 12) * 5; const km = mi * 1.6; return { kind: 'convert', story: `The geese migrate ${mi} miles south.`, ask: 'About how many kilometers is that? (1 mile is about 1.6 km.)', answer: { value: km, unit: 'blocks' }, hint: `${mi} × 1.6 = ${km}.`, apply: (q) => q, after: `${mi} mi is about ${km} km.` }; },
+  ];
+  void w;
+  return pick(opts)();
+}
+// Phase D: packs, alphas, intelligence and rivals.
+const SKILLS: [string, number][] = [['Teamwork', 5], ['Swift feet', 5], ['Keen nose', 3], ['Night vision', 2], ['Medic', 1], ['Fire trick', 1]];
+const rollSkill = (have: string[]) => { const pool = SKILLS.filter(([n]) => !have.includes(n)); if (!pool.length) return null; const tot = pool.reduce((t, [, w]) => t + w, 0); let r = Math.random() * tot; for (const [n, wt] of pool) { r -= wt; if (r <= 0) return n; } return pool[0][0]; };
+export const alphaOf = (w: World, kind: string) => groupOf(w, kind).reduce<Animal | null>((a, b) => (!a || (b.power ?? 0) > (a.power ?? 0) ? b : a), null);
+function rivalQ(w: World): Question | null {
+  const kinds = SPECIES.filter((sp) => sp.wild && groupOf(w, sp.id).length >= 2);
+  if (kinds.length < 2) return null;
+  const a = pick(kinds), b = pick(kinds.filter((k) => k.id !== a.id));
+  const na = groupOf(w, a.id).length, nb = groupOf(w, b.id).length, sa = rnd(2, 5), sb = rnd(2, 5);
+  const ta = na * sa + (w.packs?.[a.id]?.skills.length ?? 0) * 3, tb = nb * sb + (w.packs?.[b.id]?.skills.length ?? 0) * 3;
+  const win = ta >= tb ? a : b, lose = win === a ? b : a;
+  return { kind: 'rival', story: `A border dispute! ${na} ${a.many.toLowerCase()} ${a.icon} (strength ${sa} each) and ${nb} ${b.many.toLowerCase()} ${b.icon} (strength ${sb} each) both want the same patch of land. Pack skills add 3 each.`,
+    ask: `What is the total strength of the ${a.many.toLowerCase()}?`, answer: { value: ta, unit: 'blocks' },
+    hint: `${na} × ${sa} = ${na * sa}${w.packs?.[a.id]?.skills.length ? ` plus ${w.packs[a.id].skills.length} skills × 3` : ''} = ${ta}. The ${b.many.toLowerCase()} have ${tb}.`,
+    apply: (q) => { const packs = { ...(q.packs ?? {}) }; const p = packs[win.id] ?? { iq: 0, skills: [], milestones: [] }; const sk = Math.random() < 0.6 ? rollSkill(p.skills) : null; packs[win.id] = { ...p, skills: sk ? [...p.skills, sk] : p.skills };
+      return { ...q, packs, animals: q.animals.map((x) => (x.kind === lose.id && !x.at ? { ...x, ...nudgeAway(q, x) } : x)), log: [...q.log, `Day ${q.day}: the ${win.many.toLowerCase()} held the land${sk ? ` and learned ${sk}` : ''}.`] }; },
+    after: `The ${win.many.toLowerCase()} held the land. The ${lose.many.toLowerCase()} trotted off to find somewhere else. Nobody was hurt.` };
+}
+function nudgeAway(w: World, a: Animal) { for (let d = 4; d < 14; d++) { const x = a.x + pick([-d, d]), y = a.y; if (walkable(w, x, y, SP(a.kind)) && !buildingAt(w, x, y)) return { x, y }; } return { x: a.x, y: a.y }; }
+function iqQ(w: World): Question | null {
+  const kinds = wildKinds(w, 2); if (!kinds.length) return null;
+  const sp = pick(kinds), p = w.packs?.[sp.id] ?? { iq: 0, skills: [], milestones: [] };
+  const steps: [string, string, number][] = [['tools', 'learned to dig with sticks and stones', 2], ['shelter', 'learned to build a shelter from branches', 2], ['fire', 'learned to keep warm by a fire (with help from a friendly ranger)', 3], ['fence', 'are smart enough to build a fence around their land', 0]];
+  const next = steps.find(([k]) => !p.milestones.includes(k)); if (!next) return null;
+  const alpha = alphaOf(w, sp.id);
+  if (next[0] === 'fence') {
+    if (p.iq < 5) return null;
+    const bw = rnd(3, 6), bh = rnd(3, 5), per = 2 * (bw + bh);
+    return { kind: 'perimeter', shape: { w: bw, h: bh }, story: `The ${sp.many.toLowerCase()} ${sp.icon} have ${p.iq} intelligence points: enough to fence their land, ${bw} by ${bh} blocks.${alpha ? ' Their alpha leads the way.' : ''}`,
+      ask: 'How many fence pieces go all the way around their land?', answer: { value: per, unit: 'blocks' }, hint: `${bw} + ${bh} + ${bw} + ${bh} = ${per}.`,
+      apply: (q) => ({ ...q, packs: { ...(q.packs ?? {}), [sp.id]: { ...p, milestones: [...p.milestones, 'fence'] } } }), after: `The ${sp.many.toLowerCase()} built a ${per} piece fence. A complete fence keeps rivals out.` };
+  }
+  const n = groupOf(w, sp.id).length, gain = next[2] * n;
+  return { kind: 'iq', story: `The ${sp.many.toLowerCase()} ${sp.icon} ${next[1]}! Each of the ${n} in the pack earns ${next[2]} intelligence points.`, ask: 'How many intelligence points does the pack earn in all?', answer: { value: gain, unit: 'blocks' }, hint: `${n} × ${next[2]} = ${gain}.`,
+    apply: (q) => ({ ...q, packs: { ...(q.packs ?? {}), [sp.id]: { ...p, iq: p.iq + next[2], milestones: [...p.milestones, next[0]] } } }), after: `The pack is smarter now: ${p.iq + next[2]} intelligence points for the species.` };
+}
+// A storm knocks pieces out of a fence: gaps let wild animals slip in until it is fixed.
+function stormFenceQ(w: World): Question | null {
+  const fenced = w.buildings.filter((b) => (b.type === 'pasture' || b.type === 'zoo') && !b.gaps); if (!fenced.length) return null;
+  const b = pick(fenced), per = 2 * (rectW(b.r) + rectH(b.r)), k = rnd(1, Math.min(4, per - 1));
+  return { kind: 'perimeter', mark: b.r, shape: { w: rectW(b.r), h: rectH(b.r) }, story: `A windstorm knocked ${k} ${k === 1 ? 'piece' : 'pieces'} out of the fence around ${b.name.toLowerCase()} (${rectW(b.r)} by ${rectH(b.r)} blocks). Gaps let wild animals slip in!`,
+    ask: 'How many fence pieces are still standing?', answer: { value: per - k, unit: 'blocks' }, hint: `All the way around: ${rectW(b.r)} + ${rectH(b.r)} + ${rectW(b.r)} + ${rectH(b.r)} = ${per}. ${per} - ${k} = ${per - k}.`,
+    apply: (q) => ({ ...q, buildings: q.buildings.map((x) => (x.id === b.id ? { ...x, gaps: k } : x)) }), after: `${per - k} pieces still stand. Tap the 🔧 Fix the fence button to close the ${k === 1 ? 'gap' : 'gaps'}.` };
+}
+export function repairQuestion(w: World, b: Building): Question {
+  const per = 2 * (rectW(b.r) + rectH(b.r)), k = b.gaps ?? 0, s = w.side;
+  return { kind: 'perimeter', mark: b.r, shape: { w: rectW(b.r), h: rectH(b.r) }, story: `${k} fence ${k === 1 ? 'piece is' : 'pieces are'} missing from ${b.name.toLowerCase()}. Each piece is ${s} ${s === 1 ? UNIT_NAME[w.unit].one : L(w)} long.`,
+    ask: `How many ${L(w)} of new fence do you need?`, answer: { value: k * s, unit: w.unit }, hint: `${k} × ${s} = ${k * s}. (The whole fence is ${per * s} ${L(w)}.)`,
+    apply: (q) => ({ ...q, buildings: q.buildings.map((x) => (x.id === b.id ? { ...x, gaps: 0 } : x)) }), after: 'The fence is whole again. Nothing can slip in.' };
+}
+// Phase E: evolution predictions (a choice question). The adaptation happens whatever the student picks.
+const ADAPT: Partial<Record<BiomeId, [string, string[]]>> = {
+  snow: ['Thicker, whiter fur', ['Bigger ears to stay cool', 'Webbed feet']],
+  desert: ['Bigger ears to let out heat', ['Thicker fur', 'Webbed feet']],
+  wetland: ['Webbed feet for swimming', ['Thicker fur', 'Longer neck']],
+  lake: ['Waterproof feathers or fur', ['Bigger ears', 'Sharper claws']],
+  forest: ['Sharper claws for climbing trees', ['Webbed feet', 'Lighter, sand-colored coat']],
+  mountain: ['Grippy hooves for steep rocks', ['Webbed feet', 'Bigger ears']],
+  hills: ['Stronger legs for hills', ['Webbed feet', 'Thicker fur']],
+  meadow: ['A grass-colored coat to hide', ['Webbed feet', 'Thicker fur']],
+};
+function evolveQ(w: World): Question | null {
+  const kinds = wildKinds(w, 2).filter((sp) => { const b = biomeAt(w, groupOf(w, sp.id)[0].x, groupOf(w, sp.id)[0].y); return !!ADAPT[b] && !(w.evolved?.[sp.id] ?? []).includes(ADAPT[b]![0]); });
+  if (!kinds.length) return null;
+  const sp = pick(kinds), g = groupOf(w, sp.id)[0], b = biomeAt(w, g.x, g.y), [right, wrong] = ADAPT[b]!;
+  const choices = [right, ...wrong].sort(() => Math.random() - 0.5);
+  return { kind: 'evolve', choices, story: `Many seasons pass. The ${sp.many.toLowerCase()} ${sp.icon} living in the ${BIOMES[b].word} slowly change to fit their home.`,
+    ask: 'Predict: how will they adapt?', answer: { value: choices.indexOf(right), unit: 'blocks' }, hint: `In the ${BIOMES[b].word}, the helpful change is: ${right.toLowerCase()}.`,
+    apply: (q) => ({ ...q, evolved: { ...(q.evolved ?? {}), [sp.id]: [...(q.evolved?.[sp.id] ?? []), right] }, log: [...q.log, `Day ${q.day}: the ${sp.many.toLowerCase()} adapted: ${right.toLowerCase()}.`] }),
+    after: `Over many generations the ${sp.many.toLowerCase()} grew ${right.toLowerCase()}. Your prediction never speeds evolution up: it happens on its own.` };
+}
+// Phase E: designing a new animal. Trait amounts scale with size (ratios).
+export const DESIGN_ICONS = ['🦔', '🦡', '🦦', '🦥', '🦘', '🦩', '🦚', '🦙', '🐊', '🦏', '🐘', '🦫', '🦨', '🦤'];
+export function designQuestion(size: number, trait: 'courage' | 'wings' | 'energy', perSize: number): Question {
+  const word = trait === 'courage' ? 'courage (lion units)' : trait === 'wings' ? 'wing strength (flamingo units)' : 'energy units';
+  return { kind: 'design', story: `A size 1 animal needs ${perSize} ${word} to be as ${trait === 'courage' ? 'brave as a lion' : trait === 'wings' ? 'strong a flier as a flamingo' : 'lively as a rabbit'}. Your new animal is size ${size}, so it needs the same amount for every size step.`,
+    ask: `How many ${word} does your size ${size} animal need?`, answer: { value: size * perSize, unit: 'blocks' }, hint: `${size} × ${perSize} = ${size * perSize}. The ratio stays ${perSize} to 1.`, apply: (q) => q, after: `Your animal has ${size * perSize} ${word}.` };
+}
+export function makeSpecies(name: string, icon: string, home: BiomeId, size: number): Species {
+  const sid = `custom-${name.toLowerCase().replace(/[^a-z]/g, '')}-${Date.now().toString(36)}`;
+  return { id: sid, name, many: `${name}s`, icon, wild: true, home: [home], space: size * 2, lives: 'zoo', price: 0, swims: home === 'lake' || home === 'wetland', climbs: home === 'mountain', fact: `A brand new animal designed by you, at home in the ${BIOMES[home].word}.` };
+}
+export function spawnDesigned(w: World, s: Species): World {
+  const spots = cellsOf(w, s.home.includes('lake') ? ['wetland'] : s.home);
+  const born = Array.from({ length: 3 }, () => { const [x, y] = spots.length ? pick(spots) : [0, 0]; return { id: id('a'), kind: s.id, name: '', x, y, power: rnd(3, 9) }; });
+  return { ...w, custom: [...(w.custom ?? []), s], animals: [...w.animals, ...born], log: [...w.log, `Day ${w.day}: a new species, the ${s.name}, appeared.`] };
+}
+
+// Phase F: XP. Right answers earn XP; the three tiers (10, 25 and 45 right answers) give big XP bonuses.
+export const XP_FOR = { exact: 10, close: 5 } as const;
+export const XP_TIERS = [{ at: 10, xp: 50, title: 'Explorer' }, { at: 25, xp: 100, title: 'Ranger' }, { at: 45, xp: 200, title: 'World Builder' }];
+export const levelOf = (xp: number) => 1 + Math.floor(xp / 100);
+
+// Goals: always one next step on screen (Phase A).
+export const GOALS: { text: string; done: (w: World, right: number) => boolean }[] = [
+  { text: 'Build a fenced pasture', done: (w) => w.buildings.some((b) => b.type === 'pasture') },
+  { text: 'Add 2 sheep to your pasture', done: (w) => w.animals.filter((a) => a.kind === 'sheep' && a.at).length >= 2 },
+  { text: 'Explore the map in any direction', done: (w) => rectW(w.map) * rectH(w.map) > rectW(START_MAP) * rectH(START_MAP) },
+  { text: 'Build a barn', done: (w) => w.buildings.some((b) => b.type === 'barn') },
+  { text: 'Build a zoo enclosure and tame a wild animal', done: (w) => w.animals.some((a) => a.at && SP(a.kind).wild) },
+  { text: 'Dig a den for storms', done: (w) => w.buildings.some((b) => b.type === 'den') },
+  { text: 'Build a stone wall', done: (w) => w.buildings.some((b) => b.type === 'wall') },
+  { text: 'Train an animal to level 1', done: (w) => w.animals.some((a) => (a.lv ?? 0) >= 1) },
+  { text: 'Design your own animal', done: (w) => (w.custom ?? []).length > 0 },
+  { text: 'Find all 8 biomes', done: (w) => w.found.length >= 8 },
+  { text: 'Answer 45 questions right to become a World Builder', done: (_w, r) => r >= 45 },
+];
 let lastKind = '';
 export function eventQuestion(w: World): Question {
-  for (let i = 0; i < 8; i++) {
+  const season = seasonOf(w.day);
+  for (let i = 0; i < 10; i++) {
     const r = Math.random();
-    const q = r < 0.25 ? patchQ(w) : r < 0.45 ? spreadQ(w) : r < 0.62 ? shareQ(w) : r < 0.8 ? volumeQ(w) : sideQ(w);
-    if (q && (q.kind !== lastKind || i === 7)) { lastKind = q.kind; return q; }
+    const q = season === 'Fall' && r < 0.12 ? hibernateQ(w)
+      : r < 0.1 ? patchQ(w) : r < 0.18 ? spreadQ(w) : r < 0.25 ? shareQ(w) : r < 0.31 ? volumeQ(w) : r < 0.36 ? sideQ(w)
+      : r < 0.43 ? denShelterQ(w) : r < 0.48 ? mountainQ() : r < 0.54 ? waterSkyQ(w) : r < 0.62 ? migrationQ(w) : r < 0.72 ? convertQ(w)
+      : r < 0.78 ? rivalQ(w) : r < 0.84 ? iqQ(w) : r < 0.9 ? stormFenceQ(w) : evolveQ(w);
+    if (q && (q.kind !== lastKind || i === 9)) { lastKind = q.kind; return q; }
   }
   return volumeQ(w);
 }
@@ -339,21 +542,23 @@ export function trainQuestion(w: World, a: Animal): Question {
 export function passDay(w: World): { world: World; news: string | null } {
   let news: string | null = null;
   const x: World = { ...w, day: w.day + 1 };
+  if (seasonOf(x.day) !== seasonOf(w.day)) news = `${SEASON_ICON[seasonOf(x.day)]} ${seasonOf(x.day)} is here!${seasonOf(x.day) === 'Winter' ? ' The lakes freeze over, so animals can walk across them.' : seasonOf(x.day) === 'Spring' ? ' Lots of babies are born in spring.' : seasonOf(x.day) === 'Fall' ? ' Animals get ready for winter.' : ''}`;
+  const gap = x.buildings.find((b) => b.gaps); if (gap && !news && Math.random() < 0.5) news = `A wild animal slipped in through the gap in ${gap.name.toLowerCase()}! Fix the fence to keep it out.`;
   // Now and then wild animals have babies near each other (up to 6 of a kind).
-  if (Math.random() < 0.35) {
+  if (Math.random() < (seasonOf(x.day) === 'Spring' ? 0.6 : 0.3)) {
     const s = pick(SPECIES.filter((sp) => sp.wild));
     const mine = x.animals.filter((a) => a.kind === s.id && !a.at);
-    if (mine.length >= 2 && mine.length < 6) { const p = pick(mine); x.animals = [...x.animals, { id: id('a'), kind: s.id, name: '', x: p.x, y: p.y }]; news = `A baby ${s.name.toLowerCase()} ${s.icon} was born!`; }
+    if (mine.length >= 2 && mine.length < 6) { const p = pick(mine); x.animals = [...x.animals, { id: id('a'), kind: s.id, name: '', x: p.x, y: p.y, power: rnd(2, 10) }]; news = news ?? `A baby ${s.name.toLowerCase()} ${s.icon} was born!`; }
   }
   return { world: x, news };
 }
-// Zoo visitors and farm sales: 1 coin a day for each tame animal, plus its level.
-export const dailyCoins = (w: World) => w.animals.filter((a) => a.tame).reduce((n, a) => n + 1 + (a.lv ?? 0), 0);
 
-export function score(guess: number, truth: number): { coins: number; label: 'exact' | 'close' | 'miss' } {
-  if (guess === truth) return { coins: 3, label: 'exact' };
-  if (Math.abs(guess - truth) <= Math.max(1, truth * 0.1)) return { coins: 1, label: 'close' };
-  return { coins: 0, label: 'miss' };
+// Exact, close (within a tenth) or a miss. Build Queue 407: no coins any more; XP and Class Cash instead.
+export function score(guess: number, truth: number, choice = false): { label: 'exact' | 'close' | 'miss' } {
+  if (Math.abs(guess - truth) < 1e-9) return { label: 'exact' };
+  if (!choice && Math.abs(guess - truth) <= Math.max(1, Math.abs(truth) * 0.1)) return { label: 'close' };
+  return { label: 'miss' };
 }
 // Bigger blocks once the student is ready, so multiplication joins counting.
-export const sideFor = (exact: number) => (exact >= 16 ? 5 : exact >= 7 ? 2 : 1);
+// Upper elementary and middle grades (her answer): bigger blocks come sooner.
+export const sideFor = (exact: number) => (exact >= 12 ? 5 : exact >= 4 ? 2 : 1);
