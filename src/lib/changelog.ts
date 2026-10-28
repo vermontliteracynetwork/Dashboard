@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-28-sn-critters",
+    date: "2026-10-28",
+    icon: "🦉",
+    title: "42 new animals in Supernature",
+    body: "Look for birds, bears, foxes, frogs, crabs, an octopus and many more in the Habitat. Tap them to add them to your Plant and Critter Book. New cacti, pines and corals grow in the biomes too.",
+  },
+  {
     id: "2026-10-28-world-box-3",
     date: "2026-10-28",
     icon: "🌍",

@@ -45,7 +45,7 @@ const POND = { x: 800, y: 370, w: 330, h: 190 };
 // Moved in from x 16, y 150 (Build Queue 207) so the Ocean arrow never covers the Shelter sign on an iPad.
 const CAVE = { x: 96, y: 120 };
 const G = '/games/castle-defense/craftpix/';
-const OBJ = `${G}tileset/2-objects/`, SW = `${G}swamp/props/`, HB = `${SN}habitat/`;
+const OBJ = `${G}tileset/2-objects/`, SW = `${G}swamp/props/`, HB = `${SN}habitat/`, WD = `${SN}wild/`;
 const LISTEN = 'M4 9h4l5-4v14l-5-4H4z M17 8c1.6 1.4 1.6 6.6 0 8';
 
 const SPELL = `${SN}spell-icons/`;
@@ -246,19 +246,24 @@ const DECOR: Record<Biome, { src: string; x: number; y: number; w: number; filte
   grassland: [
     { src: `${HB}tree0.png`, x: 250, y: 40, w: 92 }, { src: `${HB}tree1.png`, x: 690, y: 50, w: 100 }, { src: `${HB}nat0.png`, x: 470, y: 150, w: 112 },
     { src: `${OBJ}6-flower/9.png`, x: 330, y: 300, w: 24 }, { src: `${OBJ}6-flower/12.png`, x: 560, y: 420, w: 24 }, { src: `${OBJ}6-flower/7.png`, x: 720, y: 330, w: 24 },
+    { src: `${WD}env-rock.png`, x: 900, y: 440, w: 100 }, { src: `${WD}env-agave2.png`, x: 140, y: 420, w: 70 },
     { src: `${OBJ}5-grass/2.png`, x: 420, y: 360, w: 27 }, { src: `${OBJ}5-grass/5.png`, x: 640, y: 250, w: 18 }, { src: `${OBJ}4-stone/11.png`, x: 230, y: 480, w: 70 },
   ],
   forest: [
     { src: `${OBJ}7-decor/tree1.png`, x: 230, y: 30, w: 132 }, { src: `${HB}tree0.png`, x: 420, y: 20, w: 92 }, { src: `${OBJ}7-decor/tree1.png`, x: 560, y: 60, w: 132 },
     { src: `${HB}tree1.png`, x: 700, y: 20, w: 100 }, { src: `${SW}bushes-1.png`, x: 380, y: 400, w: 130 }, { src: `${OBJ}7-decor/log1.png`, x: 640, y: 440, w: 102 },
+    { src: `${WD}env-pine-big.png`, x: 860, y: 40, w: 110 }, { src: `${WD}env-pine1.png`, x: 980, y: 90, w: 64 }, { src: `${WD}env-pine2.png`, x: 120, y: 80, w: 64 },
     { src: `${OBJ}7-decor/tree2.png`, x: 250, y: 470, w: 58 }, { src: `${SW}bushes-3.png`, x: 690, y: 280, w: 90 },
   ],
   desert: [
     { src: `${OBJ}4-stone/7.png`, x: 300, y: 300, w: 111 }, { src: `${OBJ}4-stone/8.png`, x: 620, y: 440, w: 114 }, { src: `${OBJ}4-stone/12.png`, x: 520, y: 180, w: 87 },
+    // Build Queue 410: her Free Environment pack (cacti, agave, prickly pear).
+    { src: `${WD}env-cactus1.png`, x: 840, y: 120, w: 40 }, { src: `${WD}env-cactus2.png`, x: 900, y: 170, w: 36 }, { src: `${WD}env-agave1.png`, x: 420, y: 470, w: 70 }, { src: `${WD}env-pricklypear.png`, x: 960, y: 420, w: 54 },
     { src: `${SW}sticks-4.png`, x: 690, y: 160, w: 90, filter: 'sepia(1) saturate(0.6) brightness(0.9)' }, { src: `${SW}boulder-3.png`, x: 230, y: 430, w: 120, filter: 'sepia(0.9) saturate(1.3) hue-rotate(-15deg)' },
   ],
   snow: [
     { src: `${HB}tree1.png`, x: 260, y: 40, w: 100, filter: 'saturate(0.5) brightness(1.2)' }, { src: `${HB}tree0.png`, x: 680, y: 40, w: 92, filter: 'saturate(0.5) brightness(1.2)' },
+    { src: `${WD}env-pine-snowy.png`, x: 860, y: 60, w: 70 }, { src: `${WD}env-bare-tree.png`, x: 960, y: 120, w: 70 }, { src: `${WD}env-ice-rock.png`, x: 880, y: 430, w: 110 },
     { src: `${OBJ}4-stone/11.png`, x: 480, y: 260, w: 90, filter: 'brightness(1.4)' }, { src: `${OBJ}4-stone/7.png`, x: 300, y: 460, w: 100, filter: 'brightness(1.4)' },
   ],
   swamp: [
@@ -1312,6 +1317,8 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
             <div className="sn-ocean-floor" />
             {[[60, 30, 'seaweed1'], [180, 22, 'seaweed2'], [420, 30, 'seaweed1'], [700, 22, 'seaweed2'], [960, 30, 'seaweed1'], [1080, 22, 'seaweed2']].map(([x, h, f], i) => <img key={i} className="sn-ocean-weed" src={`${PX}${f}.png`} alt="" style={{ left: x as number, height: (h as number) * 4, animationDelay: `${i * 0.6}s` }} />)}
             {[300, 820].map((x) => <img key={x} className="sn-ocean-coral" src={`${PX}coral.png`} alt="" style={{ left: x }} />)}
+            {/* Build Queue 410: her Free Environment corals. */}
+            {([[150, 'red'], [560, 'purple'], [1000, 'orange']] as const).map(([x, c]) => <img key={c} className="sn-ocean-coral" src={`${WD}env-coral-${c}.png`} alt="" style={{ left: x, width: 70, imageRendering: 'pixelated' }} />)}
             {Array.from({ length: 8 }, (_, i) => <img key={i} className="sn-ocean-bubble" src={`${PX}bubble.png`} alt="" style={{ left: 80 + i * 140, animationDelay: `${i * 0.9}s` }} />)}
           </div>
         ) : <>
@@ -1341,7 +1348,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         {wild.map((w) => (
           <button key={w.key} type="button" className={`sn-wild${w.critter ? ' critter' : ''}${lost === 'frozen' && w.plant && !survives(w.plant, 'frozen') ? ' frozen' : ''}`} style={{ left: w.x, top: w.y }} onClick={(e) => { e.stopPropagation(); collect(w); }}
             aria-label={w.critter ? `A critter: ${CRITTERS.find((c) => c.id === w.critter)?.name}. Tap to spot it.` : `A wild plant: ${PLANT(w.plant!)?.name}. Tap to pick it.`}>
-            {w.plant === 'snapjaw' ? <span className="sn-snapjaw" style={{ backgroundImage: `url(${SNAPJAW_STRIP})` }} /> : <img src={w.critter ? CRITTERS.find((c) => c.id === w.critter)!.img : plantImg(w.plant!)} alt="" />}
+            {w.plant === 'snapjaw' ? <span className="sn-snapjaw" style={{ backgroundImage: `url(${SNAPJAW_STRIP})` }} /> : (() => { const cr = w.critter ? CRITTERS.find((c) => c.id === w.critter) : undefined; return cr?.strip ? <span className="sn-strip" style={{ backgroundImage: `url(${cr.strip})`, ['--n' as string]: cr.frames ?? 4, ['--s' as string]: cr.size ?? 44 }} /> : <img src={cr ? cr.img : plantImg(w.plant!)} alt="" />; })()}
           </button>
         ))}
         {myPlots.map((pl, i) => { const xy = PLOTS[place_][i]; return (

@@ -10632,3 +10632,7 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 @keyframes wbNight { 0%, 60% { opacity: 0; } 68% { opacity: .15; } 76%, 94% { opacity: .38; } 100% { opacity: 0; } }
 .wb .wb-mark { animation: none; }
 @media (prefers-reduced-motion: reduce) { .wb .wb-animal { transition: none; } .wb .wb-weather::before { animation: none; } }
+/* Build Queue 410: animated pixel critters in the Habitat (one strip of frames each). */
+.sn-strip { display: block; width: calc(var(--s) * 1px); height: calc(var(--s) * 1px); background-repeat: no-repeat; background-size: calc(var(--n) * var(--s) * 1px) calc(var(--s) * 1px); image-rendering: pixelated; animation: snStrip calc(var(--n) * .18s) steps(var(--n)) infinite; }
+@keyframes snStrip { to { background-position: calc(var(--n) * var(--s) * -1px) 0; } }
+@media (prefers-reduced-motion: reduce) { .sn-strip { animation: none; } }

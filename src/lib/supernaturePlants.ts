@@ -60,7 +60,8 @@ export const KIND_LABEL: Record<PlantKind, string> = { healing: '💚 Healing', 
 export const EFFECT_STATUS: Record<string, string> = { sneezy: '🤧 Sneezing from sneezeweed', tummy: '🤢 A tummy ache from foxglove', sticky: '🍯 Stuck in sticky sundew drops', itchy: '😣 Itchy from stinging nettle', stung: '🫧 Stung by a sea anemone', startled: '😳 Startled by a snapjaw flower' };
 
 // Wild critters to spot (fauna). Spotting one adds it to the Plant and Critter Book.
-export interface Critter { id: string; name: string; img: string; where: PlantPlace[]; lore: string }
+// strip/frames/size (Build Queue 410): an animated pixel sprite strip, `frames` frames wide, drawn `size` pixels tall.
+export interface Critter { id: string; name: string; img: string; where: PlantPlace[]; lore: string; strip?: string; frames?: number; size?: number }
 const HB = `${SN}habitat/`;
 export const CRITTERS: Critter[] = [
   { id: 'leafbug', name: 'Leaf bug', img: `${HB}leafbug.png`, where: ['forest', 'grassland'], lore: 'Leaf insects look so much like leaves that birds fly right past them. That is camouflage!' },
@@ -68,6 +69,51 @@ export const CRITTERS: Critter[] = [
   { id: 'clampbeetle', name: 'Stag beetle', img: `${HB}clampbeetle.png`, where: ['forest', 'swamp'], lore: 'Stag beetles use their big jaws like antlers. They help break down old wood.' },
   { id: 'scorpion', name: 'Scorpion', img: `${HB}scorpion.png`, where: ['desert'], lore: 'Scorpions glow blue under ultraviolet light. Watch, do not touch!' },
   { id: 'starfish', name: 'Sea star', img: `${HB}starfish.png`, where: ['ocean'], lore: 'A sea star can grow back an arm it lost.' },
+  // Build Queue 410: her five asset packs (Basic Asset Pack, Garden Birds, Tiny Tiny Heroes Animals and the sea
+  // creatures), animated pixel strips. Left out on purpose (her rule: no blood, no worms, no humans): the eel and the
+  // snakes (they look like worms), and every hurt, death and attack sheet from the sea pack.
+  { id: 'chick', name: 'Chick', img: `${SN}wild/tiny-chick-1.png`, strip: `${SN}wild/tiny-chick.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Chicks peep to tell their mother hen where they are.' },
+  { id: 'hen', name: 'Hen', img: `${SN}wild/clucking-chicken-1.png`, strip: `${SN}wild/clucking-chicken.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Hens cluck to their chicks even before the eggs hatch.' },
+  { id: 'goose', name: 'Goose', img: `${SN}wild/honking-goose-1.png`, strip: `${SN}wild/honking-goose.png`, frames: 4, size: 44, where: ['swamp', 'grassland'], lore: 'Geese fly in a V shape, which saves energy for the whole flock.' },
+  { id: 'piglet', name: 'Pig', img: `${SN}wild/dainty-pig-1.png`, strip: `${SN}wild/dainty-pig.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Pigs are clever and can learn their own names.' },
+  { id: 'lamb', name: 'Sheep', img: `${SN}wild/pasturing-sheep-1.png`, strip: `${SN}wild/pasturing-sheep.png`, frames: 4, size: 44, where: ['grassland'], lore: 'A sheep can remember the faces of about 50 other sheep.' },
+  { id: 'skunk', name: 'Skunk', img: `${SN}wild/stinky-skunk-1.png`, strip: `${SN}wild/stinky-skunk.png`, frames: 4, size: 44, where: ['forest'], lore: 'A skunk stamps its feet and lifts its tail as a warning first.' },
+  { id: 'porcupine', name: 'Porcupine', img: `${SN}wild/spikey-porcupine-1.png`, strip: `${SN}wild/spikey-porcupine.png`, frames: 4, size: 44, where: ['forest'], lore: 'A porcupine has about 30,000 quills, and new ones grow back.' },
+  { id: 'boar', name: 'Wild boar', img: `${SN}wild/mad-boar-1.png`, strip: `${SN}wild/mad-boar.png`, frames: 4, size: 44, where: ['forest'], lore: 'Wild boars dig in the dirt with their snouts to find roots.' },
+  { id: 'arcticfox', name: 'Arctic fox', img: `${SN}wild/snow-fox-1.png`, strip: `${SN}wild/snow-fox.png`, frames: 4, size: 44, where: ['snow'], lore: 'An arctic fox has fur on the bottoms of its paws to keep warm.' },
+  { id: 'timberwolf', name: 'Timber wolf', img: `${SN}wild/timber-wolf-1.png`, strip: `${SN}wild/timber-wolf.png`, frames: 4, size: 44, where: ['snow', 'forest'], lore: 'Wolves howl to find their pack, even from far away.' },
+  { id: 'pondturtle', name: 'Turtle', img: `${SN}wild/slow-turtle-1.png`, strip: `${SN}wild/slow-turtle.png`, frames: 4, size: 44, where: ['swamp'], lore: 'A turtle cannot leave its shell: the shell is part of its skeleton.' },
+  { id: 'greenfrog', name: 'Frog', img: `${SN}wild/leaping-frog-1.png`, strip: `${SN}wild/leaping-frog.png`, frames: 4, size: 44, where: ['swamp'], lore: 'Frogs drink water through their skin instead of their mouths.' },
+  { id: 'toad', name: 'Toad', img: `${SN}wild/croaking-toad-1.png`, strip: `${SN}wild/croaking-toad.png`, frames: 4, size: 44, where: ['swamp', 'grassland'], lore: 'Toads have bumpy dry skin and can live farther from water than frogs.' },
+  { id: 'crab', name: 'Crab', img: `${SN}wild/coral-crab-1.png`, strip: `${SN}wild/coral-crab.png`, frames: 4, size: 44, where: ['ocean'], lore: 'Crabs walk sideways because of the way their legs bend.' },
+  { id: 'orangecat', name: 'Orange cat', img: `${SN}wild/meowing-cat-1.png`, strip: `${SN}wild/meowing-cat.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Cats spend about two thirds of their lives asleep.' },
+  { id: 'cardinal', name: 'Cardinal', img: `${SN}wild/gb-cardinal-1.png`, strip: `${SN}wild/gb-cardinal.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: 'Cardinals stay bright red all winter, so they are easy to spot in snow.' },
+  { id: 'bluejay', name: 'Blue jay', img: `${SN}wild/gb-blue-jay-1.png`, strip: `${SN}wild/gb-blue-jay.png`, frames: 4, size: 44, where: ['forest'], lore: 'Blue jays can copy the call of a hawk.' },
+  { id: 'stellersjay', name: "Steller's jay", img: `${SN}wild/gb-steller-s-jay-1.png`, strip: `${SN}wild/gb-steller-s-jay.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: "Steller's jays hide seeds to eat later and remember where." },
+  { id: 'robin', name: 'Robin', img: `${SN}wild/gb-red-robin-1.png`, strip: `${SN}wild/gb-red-robin.png`, frames: 4, size: 44, where: ['grassland', 'forest'], lore: 'Robins tilt their heads to listen and look for food in the grass.' },
+  { id: 'chickadee', name: 'Chickadee', img: `${SN}wild/gb-chickadee-1.png`, strip: `${SN}wild/gb-chickadee.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: 'Chickadees say their own name: chick-a-dee-dee-dee!' },
+  { id: 'housefinch', name: 'House finch', img: `${SN}wild/gb-house-finch-1.png`, strip: `${SN}wild/gb-house-finch.png`, frames: 4, size: 44, where: ['grassland'], lore: 'House finches get their red color from the food they eat.' },
+  { id: 'waxwing', name: 'Cedar waxwing', img: `${SN}wild/gb-cedar-waxwing-1.png`, strip: `${SN}wild/gb-cedar-waxwing.png`, frames: 4, size: 44, where: ['forest'], lore: 'Cedar waxwings sometimes pass a berry down a line of birds to share it.' },
+  { id: 'hummingbird', name: 'Hummingbird', img: `${SN}wild/gb-hummingbird-1.png`, strip: `${SN}wild/gb-hummingbird.png`, frames: 4, size: 44, where: ['grassland', 'forest'], lore: 'A hummingbird can fly backward and beats its wings about 50 times a second.' },
+  { id: 'dove', name: 'White dove', img: `${SN}wild/gb-white-dove-1.png`, strip: `${SN}wild/gb-white-dove.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Doves always find their way home, even from far away.' },
+  { id: 'thrush', name: 'Wood thrush', img: `${SN}wild/gb-wood-thrush-1.png`, strip: `${SN}wild/gb-wood-thrush.png`, frames: 4, size: 44, where: ['forest'], lore: 'A wood thrush can sing two notes at the same time.' },
+  { id: 'crow', name: 'Crow', img: `${SN}wild/gb-crow-1.png`, strip: `${SN}wild/gb-crow.png`, frames: 4, size: 44, where: ['grassland', 'forest', 'snow'], lore: 'Crows are so clever they can use sticks as tools.' },
+  { id: 'magpie', name: 'Magpie', img: `${SN}wild/gb-magpie-1.png`, strip: `${SN}wild/gb-magpie.png`, frames: 4, size: 44, where: ['grassland', 'forest'], lore: 'Magpies can recognize themselves in a mirror.' },
+  { id: 'pigeon', name: 'Pigeon', img: `${SN}wild/th-pigeon-1.png`, strip: `${SN}wild/th-pigeon.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Pigeons can find their way home from hundreds of miles away.' },
+  { id: 'seabird', name: 'Seabird', img: `${SN}wild/th-crow-1.png`, strip: `${SN}wild/th-crow.png`, frames: 4, size: 44, where: ['ocean', 'snow'], lore: 'Seabirds have special glands that let them drink salty sea water.' },
+  { id: 'gull', name: 'Seagull', img: `${SN}wild/th-gull-1.png`, strip: `${SN}wild/th-gull.png`, frames: 4, size: 44, where: ['ocean'], lore: 'Seagulls can drink salt water, then sneeze the extra salt out of their noses.' },
+  { id: 'brownbear', name: 'Brown bear', img: `${SN}wild/th-brown-bear-1.png`, strip: `${SN}wild/th-brown-bear.png`, frames: 4, size: 44, where: ['forest'], lore: 'Brown bears can smell food from miles away.' },
+  { id: 'blackbear', name: 'Black bear', img: `${SN}wild/th-black-bear-1.png`, strip: `${SN}wild/th-black-bear.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: 'Black bears are great tree climbers.' },
+  { id: 'graywolf', name: 'Gray wolf', img: `${SN}wild/th-gray-wolf-1.png`, strip: `${SN}wild/th-gray-wolf.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: 'A wolf pack works as a team, led by the parents.' },
+  { id: 'redfox', name: 'Red fox', img: `${SN}wild/th-red-fox-1.png`, strip: `${SN}wild/th-red-fox.png`, frames: 4, size: 44, where: ['forest', 'grassland'], lore: 'A red fox uses its bushy tail like a warm blanket.' },
+  { id: 'hamster', name: 'Hamster', img: `${SN}wild/th-hamster-1.png`, strip: `${SN}wild/th-hamster.png`, frames: 4, size: 44, where: ['grassland', 'desert'], lore: 'Hamsters carry food in their cheek pouches.' },
+  { id: 'blacksheep', name: 'Spotted sheep', img: `${SN}wild/th-sheep-1.png`, strip: `${SN}wild/th-sheep.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Sheep have a wide view and can see almost all the way around them.' },
+  { id: 'calico', name: 'Calico cat', img: `${SN}wild/th-cat-1.png`, strip: `${SN}wild/th-cat.png`, frames: 4, size: 44, where: ['grassland'], lore: 'A calico cat has three colors: white, orange and black.' },
+  { id: 'jellyfish', name: 'Jellyfish', img: `${SN}wild/sea-jellyfish-1.png`, strip: `${SN}wild/sea-jellyfish.png`, frames: 4, size: 64, where: ['ocean'], lore: 'Jellyfish have no brain, no heart and no bones.' },
+  { id: 'seaturtle', name: 'Sea turtle', img: `${SN}wild/sea-turtle-1.png`, strip: `${SN}wild/sea-turtle.png`, frames: 6, size: 64, where: ['ocean'], lore: 'Sea turtles swim thousands of miles and come back to the beach where they hatched.' },
+  { id: 'swordfish', name: 'Swordfish', img: `${SN}wild/sea-swordfish-1.png`, strip: `${SN}wild/sea-swordfish.png`, frames: 4, size: 64, where: ['ocean'], lore: 'A swordfish is one of the fastest fish in the sea.' },
+  { id: 'anglerfish', name: 'Anglerfish', img: `${SN}wild/sea-anglerfish-1.png`, strip: `${SN}wild/sea-anglerfish.png`, frames: 4, size: 64, where: ['ocean'], lore: 'An anglerfish has a glowing light on its head in the dark deep sea.' },
+  { id: 'octopus', name: 'Octopus', img: `${SN}wild/sea-octopus-1.png`, strip: `${SN}wild/sea-octopus.png`, frames: 6, size: 64, where: ['ocean'], lore: 'An octopus has three hearts and can change color in a blink.' },
   { id: 'voidbutterfly', name: 'Night butterfly', img: `${HB}voidbutterfly.png`, where: ['forest', 'swamp', 'snow'], lore: 'Some butterflies and moths fly at night and find flowers by smell.' },
 ];
 
