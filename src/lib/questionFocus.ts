@@ -23,14 +23,19 @@ export function focusFor(qs: QuestionSet, studentId?: string | null): boolean {
   return !sid || list.includes(sid);
 }
 
+// Build Queue 408: the empty map lives outside the store selector. A selector that returns a brand-new {} each time
+// makes the store think something changed on every check, and the screen re-renders forever (React error 185, the
+// teacher Assignments page crash).
+const NO_FOCUS: FocusMap = {};
+const NO_SETTINGS: SettingsMap = {};
 export function useFocusStudents() {
-  const map = useStore((s) => (s.styleLooks.find((r) => r.ownerId === FOCUS_OWNER)?.look as { map?: FocusMap } | undefined)?.map ?? {});
+  const map = useStore((s) => (s.styleLooks.find((r) => r.ownerId === FOCUS_OWNER)?.look as { map?: FocusMap } | undefined)?.map) ?? NO_FOCUS;
   const merge = useStore((s) => s.mergeStyleRow);
   return { map, set: (setId: string, ids: string[] | undefined) => { const m = { ...map }; if (ids?.length) m[setId] = ids; else delete m[setId]; merge(FOCUS_OWNER, { map: m }); } };
 }
 
 export function useStudentSettings() {
-  const map = useStore((s) => (s.styleLooks.find((r) => r.ownerId === SETTINGS_OWNER)?.look as { map?: SettingsMap } | undefined)?.map ?? {});
+  const map = useStore((s) => (s.styleLooks.find((r) => r.ownerId === SETTINGS_OWNER)?.look as { map?: SettingsMap } | undefined)?.map) ?? NO_SETTINGS;
   const merge = useStore((s) => s.mergeStyleRow);
   return {
     map,
