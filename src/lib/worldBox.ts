@@ -257,7 +257,7 @@ export function exploreQuestion(w: World, dir: Dir): Question | null {
     apply: (x) => {
       const nx = { ...x, map: nm };
       const fresh = [...new Set(rectCells(strip).map((c) => biomeAt(nx, ...xy(c))))].filter((b) => !x.found.includes(b));
-      return { ...nx, animals: [...x.animals, ...spawnWild(nx, strip)], found: [...x.found, ...fresh], log: [...x.log, `Day ${x.day}: explored ${add} new blocks to the ${dir}.${fresh.length ? ` Found: ${fresh.map((b) => BIOMES[b].name).join(', ')}.` : ''}`] };
+      return { ...nx, animals: [...x.animals, ...(x.animals.filter((a) => !a.at).length < 80 ? spawnWild(nx, strip) : [])], found: [...x.found, ...fresh], log: [...x.log, `Day ${x.day}: explored ${add} new blocks to the ${dir}.${fresh.length ? ` Found: ${fresh.map((b) => BIOMES[b].name).join(', ')}.` : ''}`] };
     },
     after: `The map now has ${total} blocks. Look ${dir} for new land and new animals!` };
 }
@@ -545,7 +545,8 @@ export function passDay(w: World): { world: World; news: string | null } {
   if (seasonOf(x.day) !== seasonOf(w.day)) news = `${SEASON_ICON[seasonOf(x.day)]} ${seasonOf(x.day)} is here!${seasonOf(x.day) === 'Winter' ? ' The lakes freeze over, so animals can walk across them.' : seasonOf(x.day) === 'Spring' ? ' Lots of babies are born in spring.' : seasonOf(x.day) === 'Fall' ? ' Animals get ready for winter.' : ''}`;
   const gap = x.buildings.find((b) => b.gaps); if (gap && !news && Math.random() < 0.5) news = `A wild animal slipped in through the gap in ${gap.name.toLowerCase()}! Fix the fence to keep it out.`;
   // Now and then wild animals have babies near each other (up to 6 of a kind).
-  if (Math.random() < (seasonOf(x.day) === 'Spring' ? 0.6 : 0.3)) {
+  // Build Queue 409: at most 80 wild animals on the map, so iPads stay smooth.
+  if (x.animals.filter((a) => !a.at).length < 80 && Math.random() < (seasonOf(x.day) === 'Spring' ? 0.6 : 0.3)) {
     const s = pick(SPECIES.filter((sp) => sp.wild));
     const mine = x.animals.filter((a) => a.kind === s.id && !a.at);
     if (mine.length >= 2 && mine.length < 6) { const p = pick(mine); x.animals = [...x.animals, { id: id('a'), kind: s.id, name: '', x: p.x, y: p.y, power: rnd(2, 10) }]; news = news ?? `A baby ${s.name.toLowerCase()} ${s.icon} was born!`; }

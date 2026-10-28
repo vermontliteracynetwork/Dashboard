@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import LeaveButton from '../../components/LeaveButton';
@@ -103,6 +103,28 @@ function Shape({ w, h, d, layers }: { w: number; h: number; d?: number; layers?:
   );
 }
 
+// Build Queue 409 (her words: "the game has becomre very laggy"): the animals are their own layer, drawn again only
+// when the animals or the view change (not on every key press or panel change), and they move with transforms, which
+// the iPad's graphics chip animates without re-laying out the page.
+const AnimalLayer = memo(function AnimalLayer({ w, view, cellPx, alphas, winter }: { w: World; view: Rect; cellPx: number; alphas: Set<string>; winter: boolean }) {
+  return (
+    <div className="wb-animals" aria-hidden>
+      {w.animals.filter((a) => a.x >= view.x0 && a.x <= view.x1 && a.y >= view.y0 && a.y <= view.y1).map((a) => {
+        const b = biomeAt(w, a.x, a.y), ev = (w.evolved?.[a.kind] ?? []).length;
+        return (
+          <span key={a.id} className={`wb-animal${a.at ? ' tame' : ''}${b === 'lake' && !winter ? ' swim' : ''}`} style={{ ['--x' as string]: a.x - view.x0 + 0.5, ['--y' as string]: a.y - view.y0 + 0.5 }}>
+            <i key={`${a.x},${a.y}`} className={`wb-body${(a.dir ?? -1) > 0 ? ' flip' : ''}`}>{SP(a.kind).icon}</i>
+            {alphas.has(a.id) && cellPx > 14 && <u className="wb-crown">👑</u>}
+            {ev > 0 && cellPx > 18 && <u className="wb-evo">✨</u>}
+            {a.lv ? <em>★{a.lv}</em> : null}
+            {a.name && cellPx > 18 && <small>{a.name}</small>}
+          </span>
+        );
+      })}
+    </div>
+  );
+}, (p, n) => p.w.animals === n.w.animals && p.w.evolved === n.w.evolved && p.view.x0 === n.view.x0 && p.view.y0 === n.view.y0 && p.view.x1 === n.view.x1 && p.view.y1 === n.view.y1 && p.cellPx === n.cellPx && p.winter === n.winter && p.alphas.size === n.alphas.size);
+
 export default function WildMeasures() {
   const back = useBack();
   const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
@@ -162,7 +184,7 @@ export default function WildMeasures() {
   const midRef = useRef(midBiome); midRef.current = midBiome;
   useEffect(() => {
     const t = window.setInterval(() => setWorld((w) => ({ ...w, animals: wander(w) })), 2600);
-    const a = window.setInterval(() => ambience(midRef.current, night()), 2300);
+    const a = window.setInterval(() => ambience(midRef.current, night()), 4500);
     const f = window.setInterval(() => { if (Math.random() < 0.35) setFlock(Date.now()); }, 20000);
     return () => { clearInterval(t); clearInterval(a); clearInterval(f); };
   }, []);
@@ -318,18 +340,7 @@ export default function WildMeasures() {
             {mark && (Array.isArray(mark) ? mark.map((c) => { const [x, y] = xy(c); return <i key={c} className="wb-mark" style={box({ x0: x, y0: y, x1: x, y1: y })} />; })
               : <i className="wb-mark box" style={box(mark)} />)}
             {ghost && <i className={`wb-ghost${ghostWhy ? ' bad' : ''}`} style={box(ghost)} />}
-            {world.animals.filter((a) => a.x >= view.x0 && a.x <= view.x1 && a.y >= view.y0 && a.y <= view.y1).map((a) => {
-              const b = biomeAt(world, a.x, a.y), ev = (world.evolved?.[a.kind] ?? []).length;
-              return (
-                <span key={a.id} className={`wb-animal${a.at ? ' tame' : ''}${b === 'lake' && season !== 'Winter' ? ' swim' : ''}`} style={{ left: L(a.x + 0.5), top: T(a.y + 0.5), animationDelay: `${(h3(a.x, a.y, 3) * -2).toFixed(2)}s` }} aria-hidden>
-                  <i key={`${a.x},${a.y}`} className="wb-body" style={{ transform: `scaleX(${(a.dir ?? -1) > 0 ? -1 : 1})` }}>{SP(a.kind).icon}</i>
-                  {alphas.has(a.id) && cellPx > 14 && <u className="wb-crown">👑</u>}
-                  {ev > 0 && cellPx > 18 && <u className="wb-evo">✨</u>}
-                  {a.lv ? <em>★{a.lv}</em> : null}
-                  {a.name && cellPx > 18 && <small>{a.name}</small>}
-                </span>
-              );
-            })}
+            <AnimalLayer w={world} view={view} cellPx={cellPx} alphas={alphas} winter={season === 'Winter'} />
             <div className="wb-sky" aria-hidden><i /><i /><i /></div>
             {flock > 0 && <div key={flock} className="wb-flock" aria-hidden>🐦 🐦 🐦</div>}
             {(season === 'Winter' || season === 'Spring') && <div className={`wb-weather ${season === 'Winter' ? 'snow' : 'rain'}`} aria-hidden />}

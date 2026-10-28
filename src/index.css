@@ -10611,3 +10611,24 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 @keyframes wbRain { from { background-position: 0 0; } to { background-position: -6px 30px; } }
 @media (prefers-reduced-motion: reduce) { .wb-animal, .wb-animal .wb-body, .wb-animal.swim::after, .wb-b.fresh, .wb-sky i, .wb-flock, .wb-weather, .wb-daynight, .wb-b.gapped { animation: none !important; } .wb-flock, .wb-weather { display: none; } }
 .wb .wb-tabs { position: sticky; top: -12px; z-index: 3; background: #fff; }
+
+/* Build Queue 409: World Box runs smoothly on iPads. Animals move with transforms (no layout work each frame), no
+   filters or blend modes on moving things, and the weather, clouds, birds and night only animate transform or opacity. */
+.wb-animals { position: absolute; inset: 0; pointer-events: none; }
+.wb .wb-animal { left: 0; top: 0; translate: none; filter: none; animation: none; transform: translate(calc(var(--x) * var(--cell) - 50%), calc(var(--y) * var(--cell) - 50%)); transition: transform 2.2s ease-in-out; will-change: transform; }
+.wb .wb-animal .wb-body { animation: wbHop .5s ease-out; }
+.wb .wb-animal .wb-body.flip { scale: -1 1; }
+.wb .wb-sky i { filter: none; left: 0; background: radial-gradient(closest-side, rgba(0,0,0,.12), transparent); animation-name: wbCloud2; }
+@keyframes wbCloud2 { from { transform: translateX(-140%); } to { transform: translateX(560%); } }
+.wb .wb-flock { left: 0; animation-name: wbFlock2; }
+@keyframes wbFlock2 { from { transform: translate(-100%, 40%); } to { transform: translate(1200%, -30%); } }
+.wb .wb-weather { overflow: hidden; background: none; animation: none; }
+.wb .wb-weather::before { content: ''; position: absolute; left: 0; right: 0; top: -100%; height: 200%; }
+.wb .wb-weather.snow::before { background-image: radial-gradient(#fff 1.5px, transparent 2px), radial-gradient(#fff 1px, transparent 1.5px); background-size: 40px 40px, 25px 25px; animation: wbFall 10s linear infinite; }
+.wb .wb-weather.rain::before { background-image: linear-gradient(170deg, transparent 0 46%, rgba(120,170,230,.5) 47% 50%, transparent 51%); background-size: 22px 30px; animation: wbFall 1.4s linear infinite; }
+@keyframes wbFall { from { transform: translateY(0); } to { transform: translateY(50%); } }
+.wb .wb-winter { mix-blend-mode: normal; background: rgba(240, 246, 255, .3); }
+.wb .wb-daynight { background: rgb(20, 30, 80); opacity: 0; animation: wbNight 240s linear infinite; }
+@keyframes wbNight { 0%, 60% { opacity: 0; } 68% { opacity: .15; } 76%, 94% { opacity: .38; } 100% { opacity: 0; } }
+.wb .wb-mark { animation: none; }
+@media (prefers-reduced-motion: reduce) { .wb .wb-animal { transition: none; } .wb .wb-weather::before { animation: none; } }
