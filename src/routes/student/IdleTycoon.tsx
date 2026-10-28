@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { useAsk } from '../../games/mini/useAsk';
@@ -137,6 +137,10 @@ const priceCost = (l: Line, lv: number) => Math.round(l.base * 3 * Math.pow(1.8,
 const money = (n: number) => `$${n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : Math.floor(n).toLocaleString()}`;
 const WHO = ['Rosa', 'Mr. Lee', 'Coach Kim', 'Grandpa Joe', 'the school library', 'a birthday party', 'the art club', 'Dr. Patel', 'the fire station', 'Auntie Mae'];
 interface Order { line: string; who: string; qty: number; tip: number }
+// Build Queue 434: animal customers from her Supernature packs walk up to the shop case and leave with each tray (decoration),
+// and one flavor a day is the daily special that sells for double (a tray of the special counts as 2 trays in the sold line).
+const SHOPPERS = ['meowing-cat', 'dainty-pig', 'tiny-chick', 'pasturing-sheep', 'leaping-frog', 'honking-goose', 'th-cat', 'th-hamster', 'clucking-chicken'].map((n) => `/games/supernature/wild/${n}.png`);
+const DAY = Math.floor(Date.now() / 86400000);
 // Build Queue 425 (her words: "use pixel images for bakery tycoon rather than emojis"): every icon on the screen is pixel art
 // from her packs (Pastel UI, the bakery Demo pack, Little Factory), plus a pixel whisk and speaker drawn to match.
 const UI = `${ART}ui/`;
@@ -169,8 +173,12 @@ export default function IdleTycoon() {
   const [roundsDone, setRoundsDone] = useState(0);
   const [closing, setClosing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Build Queue 435: the "i" buttons. One explanation open at a time; everything else stays short.
+  const [tipOpen, setTipOpen] = useState<string | null>(null);
   // Treats sold this visit, per counter, for the times sentence ("4 trays × $2 = $8").
-  const [sold, setSold] = useState<Record<string, number>>({});
+  const [sold, setSold] = useState<Record<string, { n: number; v: number }>>({});
+  const [shoppers, setShoppers] = useState<Record<string, { id: number; src: string }[]>>({});
+  const shopperId = useRef(0);
   const sfxRef = useRef(sfxVol); sfxRef.current = sfxVol;
   const clip = (k: keyof typeof SND, soft = false) => { if (sfxRef.current > 0) playClip(SND[k], (sfxRef.current / 5) * (soft ? 0.35 : 0.9)); };
   const click = () => clip('click');
@@ -201,6 +209,8 @@ export default function IdleTycoon() {
   const turn = useRef<Record<string, number>>({});
   const nextFlavor = (id: string) => { const m = menuOf(id), i = (turn.current[id] ?? -1) + 1; turn.current[id] = i; return m[i % m.length]; };
   // What one tray sells for: treats in the tray × one treat's price, plus the case, menu and flavor bonuses, sales and Golden Hour.
+  // The daily special: one open counter, one flavor from its menu, changes every day.
+  const special = (): { line: string; f: string } | null => { const ls = openLines(); if (!ls.length) return null; const l = ls[DAY % ls.length], m = menuOf(l.id); return { line: l.id, f: m[DAY % m.length] }; };
   const trayValue = (l: Line, b: Buffs = buffRef.current) => {
     const o = shopRef.current.lines[l.id]; if (!o) return 0;
     const promo = b.promo && b.promo.line === l.id ? 2 : 1;
@@ -258,20 +268,25 @@ export default function IdleTycoon() {
         if (o.baker && trays.length < BELT_MAX && (trays.length === 0 || trays[trays.length - 1].p > GAP) && now - (lastBaker.current[l.id] ?? 0) > (l.time / 2) * 1000 / (b.whisk > 0 ? b.wmult : 1)) {
           lastBaker.current[l.id] = now; trays.push({ id: ++trayId.current, p: 0, f: nextFlavor(l.id) });
         }
-        let ahead = 2, soldNow = 0;
+        let ahead = 2, soldNow = 0, units = 0;
+        const sp = special();
         trays = trays.map((tr) => {
           const st = stageOf(tr.p);
           const speed = (b.whisk > 0 ? b.wmult : 1) * (st === 1 ? ovenMult : 1) * (st === 2 && b.promo?.line === l.id ? 2 : 1);
           let p = Math.min(tr.p + (dt * speed) / l.time, ahead - GAP);
           if (stageOf(tr.p) === 0 && stageOf(p) === 1 && !o.baker) once('ovenIn', 700, true);
           if (stageOf(tr.p) === 1 && stageOf(p) === 2) once('bell', 900, o.baker);
-          if (p >= 1) { soldNow++; p = 1; }
+          if (p >= 1) { soldNow++; units += sp && sp.line === l.id && sp.f === tr.f ? 2 : 1; p = 1; }
           ahead = p;
           return { ...tr, p };
         }).filter((tr) => tr.p < 1);
         if (soldNow) {
-          earn(trayValue(l, b) * soldNow, l.id);
-          setSold((s) => ({ ...s, [l.id]: (s[l.id] ?? 0) + soldNow }));
+          const v = trayValue(l, b);
+          earn(v * units, l.id);
+          setSold((s) => ({ ...s, [l.id]: { n: (s[l.id]?.v === v ? s[l.id].n : 0) + units, v } }));
+          const sid = ++shopperId.current, src = SHOPPERS[sid % SHOPPERS.length], lid = l.id;
+          setShoppers((s) => ({ ...s, [lid]: [...(s[lid] ?? []).slice(-1), { id: sid, src }] }));
+          window.setTimeout(() => setShoppers((s) => ({ ...s, [lid]: (s[lid] ?? []).filter((x) => x.id !== sid) })), 1800);
           once(o.baker ? 'coins' : 'cash', 350, o.baker);
         }
         next[l.id] = trays;
@@ -336,13 +351,16 @@ export default function IdleTycoon() {
   const nextLocked = LINES.find((l) => !shop.lines[l.id]);
   const coinsNow = Math.floor(shop.coins);
   // The goal card: always one clear next step, with the subtraction to get there.
-  const goalFor = (what: string, cost: number) => coinsNow >= cost ? `You have enough to ${what} now!` : `Save ${money(cost)} (${numberWords(cost)} dollars) to ${what}. You have ${money(coinsNow)}, so ${money(cost - coinsNow)} more to go.`;
   const anyTray = Object.values(belts).some((t) => t.length);
-  const goal = shop.total < 5 && !anyTray ? 'Tap the cupcakes to bake! Each tap puts a tray on the belt, and it sells at the end.'
-    : !shop.lines.cupcake?.baker ? goalFor('hire a cupcake baker', LINES[0].baker)
-    : nextLocked ? goalFor(`open the ${nextLocked.name} counter`, nextLocked.open)
-    : nextOven ? goalFor(`upgrade to the ${nextOven.name}`, nextOven.cost)
-    : 'Your bakery has every counter and the best oven. Raise your prices and grow your groups!';
+  const goalT: { short: string; what: string; cost: number } | null = shop.total < 5 && !anyTray ? null
+    : !shop.lines.cupcake?.baker ? { short: 'Hire a cupcake baker', what: 'hire a cupcake baker', cost: LINES[0].baker }
+    : nextLocked ? { short: `Open ${nextLocked.name}`, what: `open the ${nextLocked.name} counter`, cost: nextLocked.open }
+    : nextOven ? { short: nextOven.name, what: `upgrade to the ${nextOven.name}`, cost: nextOven.cost }
+    : null;
+  const goal = !goalT ? (shop.total < 5 ? 'Tap + Tray on the cupcakes to bake! The tray rolls down the belt and sells at the end.' : 'Every counter is open and you have the best oven. Raise your prices and grow your groups!')
+    : coinsNow >= goalT.cost ? `You have enough to ${goalT.what} now!` : `Save ${money(goalT.cost)} (${numberWords(goalT.cost)} dollars) to ${goalT.what}. You have ${money(coinsNow)}, so ${money(goalT.cost - coinsNow)} more to go.`;
+  const info = (id: string, label: string) => <button type="button" className={`ty6-i${tipOpen === id ? ' on' : ''}`} aria-expanded={tipOpen === id} aria-label={`More about ${label}`} onClick={() => { click(); setTipOpen((t) => (t === id ? null : id)); }}><Px src="ic-info" size={18} /></button>;
+  const tip = (id: string, children: ReactNode, say?: string) => (tipOpen === id ? <p className="ty6-tip">{say && <button type="button" className="btn ty6-sq ty6-say" onClick={() => speak(say, student.ttsSettings)} aria-label="Listen"><Px src="ic-speaker" size={22} /></button>}{children}</p> : null);
   const upgradeOven = () => {
     if (!nextOven || coinsNow < nextOven.cost) { clip('error'); return; }
     askQ(`Answer to upgrade to the ${nextOven.name}!`, () => { if (spend(nextOven.cost, (s) => ({ ...s, oven: ovenLv + 1 }))) { clip('positive'); flash(`${nextOven.name}! Baking is now ${nextOven.mult} times as fast.`); } });
@@ -383,7 +401,7 @@ export default function IdleTycoon() {
       <header className="ty4-head ty5-head">
         <button type="button" className="btn" onClick={() => { click(); setLeaving(true); }}><Px src="ic-x" /> Leave</button>
         <button type="button" className="btn" onClick={() => { save(); clip('saved'); flash('Your bakery is saved.'); }}><Px src="ic-check" /> Save</button>
-        <h1>Bakery Tycoon</h1>
+        <h1 className="ty6-sr">Bakery Tycoon</h1>
         <span className="ty5-money" aria-live="polite" aria-label={`Bakery money: ${money(shop.coins)}`}>
           <small>Bakery money</small><b key={Math.floor(shop.coins)}>${Math.floor(shop.coins).toLocaleString()}</b>
           {pops.slice(-3).map((p) => <i key={p.id} className="ty5-moneypop" aria-hidden>{p.text}</i>)}
@@ -394,29 +412,52 @@ export default function IdleTycoon() {
       </header>
       {busy && <span className="ty5-busy"><Px src={WHISK_IMG[WHISKS[Math.max(0, tier - 1)].color]} size={24} /> {buffs.wmult} times as fast, {Math.ceil(buffs.whisk)}s</span>}
       <main className="ty3-main ty4-main ty5-main">
-        <section className="ty3-left ty5-left">
-          <div className="ty4-goal ty5-goal" role="status">
-            <b><Px src="ic-sign" size={26} /> Next goal</b><span>{goal}</span>
-            <button type="button" className="btn ty4-listen" onClick={() => speak(`Next goal. ${goal}`, student.ttsSettings)} aria-label="Listen to the next goal"><Px src="ic-speaker" size={24} /></button>
+        <section className="ty3-left ty5-left ty6-left">
+          <div className="ty6-tile ty6-goal">
+            <Px src="ic-sign" size={34} />
+            <span className="ty6-txt"><small>Next goal</small><b>{goalT ? goalT.short : shop.total < 5 ? 'Tap + Tray' : 'Keep growing'}</b>
+              {goalT && <span className="ty6-bar"><i style={{ width: `${Math.min(100, (coinsNow / goalT.cost) * 100)}%` }} /><em>{money(Math.min(coinsNow, goalT.cost))} / {money(goalT.cost)}</em></span>}</span>
+            {info('goal', 'the next goal')}
+            {tip('goal', <>{goal}</>, `Next goal. ${goal}`)}
           </div>
-          {order && orderLine ? (
-            <button type="button" className="ty5-card ty5-order" onClick={takeOrder}>
-              <img src={flavor(orderLine.id).img} alt="" />
-              <span><b><Px src="ic-box" /> Special order</b><small>{order.who} wants {order.qty} {orderLine.name.toLowerCase()}!</small><em>Answer to deliver · tip {money(order.tip)}</em></span>
-            </button>
-          ) : <div className="ty5-card ty5-order wait"><Px src="ic-box" size={36} /><span><b>Special orders</b><small>A customer will call soon. Answer a question to deliver and get a big tip.</small></span></div>}
-          <button type="button" className={`ty5-card ty5-whisk ${W.color}${buffs.whisk > 0 ? ' on' : ''}`} disabled={buffs.whisk > 0} onClick={buyWhisk}>
-            <Px src={WHISK_IMG[W.color]} size={40} />
-            <span><b>{W.name}</b><small>{buffs.whisk > 0 ? `Running: ${Math.ceil(buffs.whisk)}s left` : `Everything ${W.mult} times as fast for 20s`}</small><em><Px src="ic-question" size={16} /> Answer a question</em></span>
-          </button>
-          <button type="button" className={`ty5-card ty5-sale${buffs.promo ? ' on' : ''}${!buffs.promo && promoOffer && coinsNow >= promoPrice ? ' can' : ''}`} disabled={!!buffs.promo || !promoOffer} onClick={buyPromo}>
-            <Px src="ic-dollar" size={36} />
-            <span><b>{buffs.promo ? 'Sale running' : 'Sale idea'}</b><small>{buffs.promo ? `${Math.ceil(buffs.promo.secs)}s: ${LINES.find((l) => l.id === buffs.promo!.line)?.name} sell for double` : promoOffer?.text ?? 'Open a counter first'}</small>{!buffs.promo && <em>{money(promoPrice)}</em>}</span>
-          </button>
-          <div className={`ty5-card ty5-oven${nextOven && coinsNow >= nextOven.cost ? ' can' : ''}`}>
-            <img src={ovenImg(ovenLv)} alt="" className={anyTray ? 'hot' : ''} />
-            <span><b>Oven speed: {OVEN_LV[ovenLv].name}</b><small>Faster baking on every counter{ovenLv ? ` (${OVEN_LV[ovenLv].mult} times as fast)` : ''}</small></span>
-            {nextOven ? <button type="button" className="btn ty5-buy" disabled={coinsNow < nextOven.cost} onClick={upgradeOven}><img src={ovenImg(ovenLv + 1)} alt="" /><span>{nextOven.name}<small>{nextOven.mult} times as fast <Px src="ic-question" size={14} /></small></span><em>{money(nextOven.cost)}</em></button> : <em className="ty5-best">Best oven in town!</em>}
+          {(() => { const sp = special(); if (!sp) return null; const f = flavor(sp.line, sp.f); return (
+            <div className="ty6-tile ty6-special">
+              <Px src={f.img} size={34} />
+              <span className="ty6-txt"><small>Today's special</small><b>{f.name}</b></span>
+              <span className="ty6-badge">×2</span>
+              {info('special', "today's special")}
+              {tip('special', <>Trays of {f.name.toLowerCase()} sell for double today, and each one counts as 2 trays. The special changes every day.</>)}
+            </div>
+          ); })()}
+          {order && orderLine && (
+            <div className="ty6-tile ty6-order">
+              <Px src={flavor(orderLine.id).img} size={34} />
+              <span className="ty6-txt"><small>Order from {order.who}</small><b>{order.qty} {orderLine.name.toLowerCase()}</b></span>
+              <button type="button" className="btn ty6-act can" onClick={takeOrder}><Px src="ic-question" size={16} /> Tip {money(order.tip)}</button>
+              {info('order', 'the special order')}
+              {tip('order', <>Answer a question to deliver the order, and {order.who} pays you a big tip. A new order comes about every minute.</>)}
+            </div>
+          )}
+          <div className={`ty6-tile ty6-whisk ${W.color}${buffs.whisk > 0 ? ' on' : ''}`}>
+            <Px src={WHISK_IMG[W.color]} size={34} />
+            <span className="ty6-txt"><small>{W.name}</small><b>{buffs.whisk > 0 ? `${Math.ceil(buffs.whisk)}s left` : `${W.mult} times as fast`}</b></span>
+            <button type="button" className="btn ty6-act" disabled={buffs.whisk > 0} onClick={buyWhisk}><Px src="ic-question" size={16} /> Use</button>
+            {info('whisk', 'the whisk')}
+            {tip('whisk', <>Answer a question and everything bakes {W.mult} times as fast for 20 seconds. Each whisk unlocks the next: Bronze, then Silver, then Golden.</>)}
+          </div>
+          <div className={`ty6-tile ty6-sale${buffs.promo ? ' on' : ''}`}>
+            <Px src="ic-dollar" size={30} />
+            <span className="ty6-txt"><small>{buffs.promo ? 'Sale running' : 'Sale idea'}</small><b>{buffs.promo ? `${LINES.find((l) => l.id === buffs.promo!.line)?.name} ×2, ${Math.ceil(buffs.promo.secs)}s` : promoOffer ? `${LINES.find((l) => l.id === promoOffer.line)?.name} ×2` : 'Coming soon'}</b></span>
+            {!buffs.promo && <button type="button" className={`btn ty6-act${promoOffer && coinsNow >= promoPrice ? ' can' : ''}`} disabled={!promoOffer || coinsNow < promoPrice} onClick={buyPromo}>{money(promoPrice)}</button>}
+            {info('sale', 'the sale')}
+            {tip('sale', <>{promoOffer ? `"${promoOffer.text}" ` : ''}Buy it and those treats sell for double for 60 seconds. A new sale idea comes every 45 seconds.</>)}
+          </div>
+          <div className="ty6-tile ty6-oven">
+            <img src={ovenImg(ovenLv)} alt="" className={`ty6-ovenimg${anyTray ? ' hot' : ''}`} />
+            <span className="ty6-txt"><small>Oven</small><b>{OVEN_LV[ovenLv].name}</b></span>
+            {nextOven ? <button type="button" className={`btn ty6-act${coinsNow >= nextOven.cost ? ' can' : ''}`} disabled={coinsNow < nextOven.cost} onClick={upgradeOven}><Px src="ic-question" size={16} /> {money(nextOven.cost)}</button> : <span className="ty6-badge">Best</span>}
+            {info('oven', 'the oven')}
+            {tip('oven', <>The oven bakes for every counter. {nextOven ? `Upgrade to the ${nextOven.name} (answer a question) and baking is ${nextOven.mult} times as fast.` : 'It is the fastest oven: 5 times as fast.'}</>)}
           </div>
         </section>
 
@@ -425,7 +466,7 @@ export default function IdleTycoon() {
             const o = shop.lines[l.id], trays = belts[l.id] ?? [], c = ovenCost(l, o.ovens), pc = priceCost(l, o.price ?? 0);
             const front = trays[0], full = trays.length >= BELT_MAX, up = unitPrice(l, o), tv = trayValue(l);
             const bonus = groupBonus(o.ovens) + menuBonus() + varietyBonus(l.id);
-            const st = front ? stageOf(front.p) : -1, n = sold[l.id] ?? 0;
+            const st = front ? stageOf(front.p) : -1, sl = sold[l.id], n = sl && sl.v === tv ? sl.n : 0, sp = special(), isSp = sp?.line === l.id;
             return (
               <div key={l.id} className={`ty5-line${trays.length ? ' busy' : ''}`}>
                 <button type="button" className={`ty5-tap${full ? ' full' : ''}${!trays.length && !o.baker ? ' hint' : ''}`} onClick={() => tap(l)} aria-label={`Tap to bake ${l.name}. Each tray sells for ${money(tv)}.`}>
@@ -434,27 +475,31 @@ export default function IdleTycoon() {
                   {o.baker && <i className="ty4-baker" style={{ backgroundImage: `url(${FX}baker${(LINES.indexOf(l) % 4) + 1}.png)` }} aria-hidden />}
                 </button>
                 <div className="ty5-mid">
-                  <div className="ty5-title"><b>{l.name}</b><span className="ty5-math">{o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 && <em> +{Math.round(bonus * 100)}%</em>} a tray</span>{n > 0 && <span className="ty5-soldline">Sold {n} × {money(tv)} = {money(n * tv)}</span>}</div>
+                  <div className="ty5-title"><b>{l.name}</b><span className="ty5-math">{o.ovens} × {money(up)} = {money(up * o.ovens)}{bonus > 0 && <em> +{Math.round(bonus * 100)}%</em>}</span>{n > 0 && <span className="ty5-soldline">Sold {n} × {money(tv)} = {money(n * tv)}</span>}
+                    {info(`line-${l.id}`, l.name)}
+</div>
                   <div className="ty5-belt">
-                    <div className="ty5-zones" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}${st === i ? ' now' : ''}`} style={{ flexGrow: s2.part }}><img src={i === 1 ? ovenImg(ovenLv) : s2.art} alt="" />{s2.name}</span>)}</div>
+                    <div className="ty5-zones" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}${st === i ? ' now' : ''}`} style={{ flexGrow: s2.part }}>{['Mix', 'Bake', 'Sell'][i]}</span>)}</div>
                     <div className={`ty5-track${trays.length ? ' moving' : ''}`}>
                       {STAGES.map((s2, i) => <img key={s2.key} className={`ty5-mach m-${s2.key}${st === i ? ' on' : ''}`} style={{ left: `${(STAGE_START[i] + s2.part / 2) * 100}%` }} src={i === 1 ? ovenImg(ovenLv) : s2.art} alt="" aria-hidden />)}
-                      {trays.map((tr) => <button key={tr.id} type="button" className={`ty5-item s${stageOf(tr.p)}`} style={{ left: `${Math.min(1, tr.p) * 100}%` }} onPointerDown={(e) => { e.preventDefault(); nudge(l, tr.id); }} aria-label={`Tap to push this ${flavor(l.id, tr.f).name.toLowerCase()} tray along`}><img src={flavor(l.id, tr.f).img} alt="" draggable={false} /></button>)}
+                      {(shoppers[l.id] ?? []).map((c) => <span key={c.id} className="ty5-shopper" style={{ backgroundImage: `url(${c.src})` }} aria-hidden />)}
+                      {trays.map((tr) => <button key={tr.id} type="button" className={`ty5-item s${stageOf(tr.p)}${isSp && sp?.f === tr.f ? ' special' : ''}`} style={{ left: `${Math.min(1, tr.p) * 100}%` }} onPointerDown={(e) => { e.preventDefault(); nudge(l, tr.id); }} aria-label={`Tap to push this ${flavor(l.id, tr.f).name.toLowerCase()} tray along`}><img src={flavor(l.id, tr.f).img} alt="" draggable={false} /></button>)}
                     </div>
                     <div className="ty5-prog" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}`} style={{ flexGrow: s2.part }}><i style={{ width: `${front ? Math.max(0, Math.min(1, (front.p - STAGE_START[i]) / s2.part)) * 100 : 0}%` }} /></span>)}</div>
                   </div>
+                  {tip(`line-${l.id}`, <>Tap + Tray to put a tray on the belt, and tap a tray to push it along. A tray sells at the end for {o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 ? `, plus ${Math.round(bonus * 100)}% for groups and flavors` : ''}. Bigger tray adds a treat, Raise price adds {money(l.income)} to each treat, and a baker taps for you.</>, `${l.name}. ${o.ovens} ${o.ovens === 1 ? 'treat' : 'treats'} times ${up} ${up === 1 ? 'dollar' : 'dollars'} equals ${up * o.ovens} dollars a tray.${n > 0 ? ` You sold ${n} times ${tv}, which is ${n * tv} dollars.` : ''}`)}
                   {pops.filter((x) => x.line === l.id).slice(-2).map((x) => <i key={x.id} className="ty5-pop" aria-hidden>{x.text}</i>)}
                 </div>
                 <div className="ty5-ups">
                   <button type="button" className={`ty5-up${coinsNow >= c ? ' can' : ''}`} disabled={coinsNow < c} onClick={() => { if (spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))) clip('glock'); }}>
-                    <span><Px src={flavor(l.id).img} size={18} /> Bigger tray</span><small>More treats per tray: {o.ovens} → {o.ovens + 1}</small><em>{money(c)}</em>
+                    <span><Px src={flavor(l.id).img} size={18} /> Tray {o.ovens} → {o.ovens + 1}</span><em>{money(c)}</em>
                   </button>
                   <button type="button" className={`ty5-up${coinsNow >= pc ? ' can' : ''}`} disabled={coinsNow < pc} onClick={() => { if (spend(pc, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, price: (o.price ?? 0) + 1 } } }))) clip('coins'); }}>
-                    <span><Px src={`${ART}shop/coin.svg`} size={18} /> Raise price</span><small>More money per treat: {money(up)} → {money(up + l.income)}</small><em>{money(pc)}</em>
+                    <span><Px src={`${ART}shop/coin.svg`} size={18} /> Price {money(up)} → {money(up + l.income)}</span><em>{money(pc)}</em>
                   </button>
-                  {o.baker ? <span className="ty5-up done"><span><Px src="ic-baker" size={18} /> Baker hired</span><small>Taps this counter for you</small></span>
+                  {o.baker ? <span className="ty5-up done"><span><Px src="ic-baker" size={18} /> Baker working</span></span>
                     : <button type="button" className={`ty5-up${coinsNow >= l.baker ? ' can' : ''}`} disabled={coinsNow < l.baker} onClick={() => { if (spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } }))) { playCheer(); flash(`A baker is working the ${l.name} counter now!`); } }}>
-                      <span><Px src="ic-baker" size={18} /> Hire baker</span><small>Taps this counter for you</small><em>{money(l.baker)}</em>
+                      <span><Px src="ic-baker" size={18} /> Hire baker</span><em>{money(l.baker)}</em>
                     </button>}
                 </div>
               </div>
@@ -463,16 +508,16 @@ export default function IdleTycoon() {
           {nextLocked && (
             <button type="button" className={`ty5-line locked${coinsNow >= nextLocked.open ? ' can' : ''}`} disabled={coinsNow < nextLocked.open} onClick={() => openCounter(nextLocked)}>
               <img src={nextLocked.icon} alt="" />
-              <span><b>Open the {nextLocked.name} counter</b><small>{coinsNow >= nextLocked.open ? 'Answer a question to open it!' : `${money(nextLocked.open - coinsNow)} more to go`}</small></span>
+              <span><b>Open {nextLocked.name}</b><small>{coinsNow >= nextLocked.open ? 'Answer a question to open it' : `${money(nextLocked.open - coinsNow)} to go`}</small></span>
               <em>{money(nextLocked.open)} <Px src="ic-question" size={16} /></em>
             </button>
           )}
         </section>
 
         <section className="ty3-case ty4-case" aria-label="Bakery case">
-          <h2>Bakery case</h2>
-          <p className="ty3-small">{nextStar ? <>Next star at {money(nextStar)} ({money(shop.total)} so far)</> : 'Five star bakery empire!'}</p>
-          <p className="ty3-small">Bigger trays make groups: 3 a Trio (+10%), 5 a Big group (+25%), 10 a Mega group (+50%). Each extra flavor adds 5%.{open.length >= 5 ? ' Full menu: +10%!' : ''}</p>
+          <div className="ty6-casehead"><h2>Bakery case</h2>{info('case', 'the bakery case')}</div>
+          {tip('case', <>Stars and cakes come from all the money you have ever earned. Bigger trays make groups: 3 treats a Trio (+10%), 5 a Big group (+25%), 10 a Mega group (+50%). Each extra flavor on a counter adds 5%, and 5 open counters add 10%.</>)}
+          {nextStar && <span className="ty6-bar"><i style={{ width: `${Math.min(100, (shop.total / nextStar) * 100)}%` }} /><em><Px src="star-on" size={14} /> {money(shop.total)} / {money(nextStar)}</em></span>}
           <div className="ty3-shelves">
             {open.map((l) => { const o = shop.lines[l.id]; return (
               <div key={l.id} className={`ty3-shelf${groupBonus(o.ovens) ? ' grouped' : ''}`}>

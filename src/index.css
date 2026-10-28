@@ -10887,3 +10887,51 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
   .ty5 .ty5-ups { grid-column: 1 / -1; grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ty5 .ty5-tap { width: 84px; height: 84px; } .ty5 .ty5-tap b { font-size: .8rem; }
 }
+/* Build Queue 434: animal customers, the daily special, read aloud on the math line. */
+.ty5-shopper { position: absolute; right: 2%; bottom: 14px; width: 40px; height: 40px; background-size: 160px 40px; background-repeat: no-repeat; image-rendering: pixelated; z-index: 3; pointer-events: none; animation: ty5Walk .5s steps(4) infinite, ty5Leave 1.8s ease-in forwards; }
+@keyframes ty5Walk { to { background-position: -160px 0; } }
+@keyframes ty5Leave { 0% { translate: 30px 0; opacity: 0; } 20% { translate: 0 0; opacity: 1; } 70% { translate: 0 0; opacity: 1; } 100% { translate: 50px -6px; opacity: 0; } }
+.ty5-special { border-color: #f2c230; background: linear-gradient(90deg, #fffbe8, #fff); cursor: default; }
+.ty5-item.special { background: radial-gradient(circle, #fff3b0 0 55%, transparent 56%); }
+.ty5-item.special::after { content: ''; position: absolute; top: -4px; right: -2px; width: 16px; height: 16px; background: url('/games/cupcake-tycoon/ui/star-on.png') center / contain no-repeat; image-rendering: pixelated; }
+.ty5-say { min-height: 44px; min-width: 44px; padding: 0 6px; margin-left: auto; }
+@media (prefers-reduced-motion: reduce) { .ty5-shopper { animation: none; } }
+/* Build Queue 435: less text. Short tiles (picture, a small label, one bold line, one action), and an "i" button that opens the
+   explanation under the tile, one at a time. */
+.ty6-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ty5 .ty5-money { margin-left: auto; margin-right: auto; }
+.ty6-left { gap: 6px; }
+.ty6-tile { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 6px; padding: 6px 6px 6px 8px; border-radius: 14px; border: 2px solid #e7d3f5; background: #fff; box-shadow: 0 3px 0 #e7d3f5; }
+.ty6-txt { display: grid; min-width: 0; line-height: 1.15; } .ty6-txt small { font-size: .68rem; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; color: #8a7aa8; } .ty6-txt b { font-size: .95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ty6-act { min-height: 44px; padding: 0 10px; display: inline-flex; align-items: center; gap: 4px; font-weight: 900; white-space: nowrap; }
+.ty6-act.can { background: #3fd06a; border-color: #1c9a3a; color: #fff; }
+.ty6-sq { min-height: 44px; min-width: 44px; padding: 0; display: grid; place-items: center; }
+.ty6-i { width: 44px; height: 44px; border: 0; background: none; padding: 0; display: grid; place-items: center; cursor: pointer; touch-action: manipulation; border-radius: 12px; }
+.ty6-i.on { background: #ece4ff; }
+.ty6-tip { grid-column: 1 / -1; margin: 2px 0 0; padding: 8px 10px; border-radius: 10px; background: #f6f1ff; border: 2px solid #d9c4f3; font-size: .82rem; font-weight: 700; line-height: 1.35; color: #2e2152; animation: ty6Open .15s ease-out; }
+@keyframes ty6Open { from { opacity: 0; transform: translateY(-4px); } }
+.ty6-badge { font: 900 1rem 'PixCon', 'Baloo 2', sans-serif; color: #b8860b; background: #fff3b0; border-radius: 10px; padding: 4px 8px; }
+.ty6-bar { position: relative; display: block; height: 16px; border-radius: 8px; background: #f1e8fb; overflow: hidden; margin-top: 3px; }
+.ty6-bar i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #22bfd3, #8a5cf6); border-radius: 8px; transition: width .3s; }
+.ty6-bar em { position: relative; display: flex; align-items: center; justify-content: center; gap: 3px; height: 100%; font-style: normal; font-size: .68rem; font-weight: 900; color: #2e2152; }
+.ty6-goal { border-color: #f7bfdc; box-shadow: 0 3px 0 #f7bfdc; grid-template-columns: auto minmax(0, 1fr) auto auto; }
+.ty6-special { border-color: #f2c230; box-shadow: 0 3px 0 #e2ae1a; background: #fffbe8; }
+.ty6-order { border-color: #3fd06a; box-shadow: 0 3px 0 #1c9a3a; background: #effff3; animation: ty5Wiggle 2.4s ease-in-out infinite; }
+.ty6-whisk.on { border-color: #22bfd3; background: #e6fbff; } .ty6-whisk:not(.on) .ty5-px { animation: ty5Spin 1.6s ease-in-out infinite; }
+.ty6-sale.on { border-color: #8a5cf6; background: #ece4ff; }
+.ty6-ovenimg { width: 34px; height: 36px; image-rendering: pixelated; } .ty6-ovenimg.hot { animation: ty5Hot .7s ease-in-out infinite alternate; }
+.ty5-title { align-items: center; } .ty5-title .ty6-i { margin-left: auto; } .ty5-title .ty5-say { margin-left: 0; }
+.ty5-mid > .ty6-tip { grid-column: auto; }
+.ty5-zones span { justify-content: center; font-size: .78rem; }
+.ty5-up { grid-template-columns: 1fr auto; min-height: 46px; } .ty5-up span { font-size: .82rem; white-space: nowrap; }
+.ty6-casehead { display: flex; align-items: center; justify-content: space-between; } .ty4-case .ty6-tip { margin-bottom: 4px; }
+.ty4-case .ty6-bar { height: 20px; margin-bottom: 6px; }
+@media (orientation: portrait), (max-width: 900px) { .ty5 .ty6-left { grid-template-columns: 1fr 1fr; } }
+@media (prefers-reduced-motion: reduce) { .ty6-order, .ty6-whisk .ty5-px, .ty6-ovenimg.hot, .ty6-tip { animation: none !important; } }
+.ty5 .ty5-main { grid-template-columns: minmax(270px, 300px) minmax(0, 1fr) minmax(170px, 200px); }
+.ty6-goal { grid-template-columns: auto minmax(0, 1fr) auto; }
+.ty6-tip .ty6-say { float: right; margin: -2px -4px 4px 8px; }
+.ty5-title { flex-wrap: nowrap; } .ty5-title > * { flex: none; }
+@media (orientation: portrait), (max-width: 900px) { .ty5 .ty5-main { grid-template-columns: 1fr 1fr; } }
+.ty5 .ty6-casehead h2 { font-size: .95rem; }
+@media (orientation: portrait), (max-width: 900px) { .ty5 .ty3-case { max-height: none; } .ty5 .ty3-shelves { display: none; } }
