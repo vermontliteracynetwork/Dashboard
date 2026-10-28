@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: "2026-10-28",
     icon: "🐉",
     title: "Dragons and magic folk in Supernature",
-    body: "Fifteen baby and grown dragons, fire, water and earth spirits, pixies, fairies, walking trees, golems, trolls and a hobbit now live in the Habitat biomes. Spot them all for your Plant and Critter Book!",
+    body: "Fifteen baby and grown dragons, fire, water and earth spirits, pixies, fairies, walking trees, golems, trolls, a hobbit and five spell casters now live in the Habitat biomes. Spot them all for your Plant and Critter Book!",
   },
   {
     id: "2026-10-28-sn-critters",

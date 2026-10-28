@@ -111,7 +111,7 @@ export const CRITTERS: Critter[] = [
   { id: 'calico', name: 'Calico cat', img: `${SN}wild/th-cat-1.png`, strip: `${SN}wild/th-cat.png`, frames: 4, size: 44, where: ['grassland'], lore: 'A calico cat has three colors: white, orange and black.' },
   // Build Queue 411: her next four packs (GAP Hobbit and Basic Asset Packs 1, 2 and 3: monsters, magical folk and dragons),
   // animated 4-frame strips. Left out on purpose (her rule: no blood, no worms): the Red Cap, the Bloodshot Eye, the
-  // Ocular Watcher and the Death Slime (red drips), the five human spell casters (her earlier no-humans rule), and every
+  // Ocular Watcher and the Death Slime (red drips), and every
   // Hobbit attack, hit and death sheet (only the idle loop is used).
   { id: 'mn-shrieker', name: 'Shrieker mushroom', img: `${SN}wild/mn-shrieker-1.png`, strip: `${SN}wild/mn-shrieker.png`, frames: 4, size: 44, where: ['forest', 'swamp'], lore: 'A shrieker mushroom squeals loudly whenever anything walks close to it.' },
   { id: 'mn-grimlock', name: 'Cave grimlock', img: `${SN}wild/mn-grimlock-1.png`, strip: `${SN}wild/mn-grimlock.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: 'Grimlocks live in dark caves and find their way by sound and smell instead of sight.' },
@@ -150,6 +150,12 @@ export const CRITTERS: Critter[] = [
   { id: 'dr-young-red', name: 'Young red dragon', img: `${SN}wild/dr-young-red-1.png`, strip: `${SN}wild/dr-young-red.png`, frames: 4, size: 44, where: ['desert'], lore: 'Red dragons love heat and sleep near warm rocks.' },
   { id: 'dr-young-bronze', name: 'Young bronze dragon', img: `${SN}wild/dr-young-bronze-1.png`, strip: `${SN}wild/dr-young-bronze.png`, frames: 4, size: 44, where: ['ocean'], lore: 'Juvenile means young. This bronze dragon is still learning to swim.' },
   { id: 'hobbit', name: 'Hobbit', img: `${SN}wild/gap-hobbit-1.png`, strip: `${SN}wild/gap-hobbit.png`, frames: 4, size: 52, where: ['grassland', 'forest'], lore: 'Hobbits are small story folk who love gardens, snacks and cozy homes dug into hills.' },
+  // Build Queue 413: her override, the five spell casters are in after all.
+  { id: 'mg-pyromancer', name: 'Young fire mage', img: `${SN}wild/mg-pyromancer-1.png`, strip: `${SN}wild/mg-pyromancer.png`, frames: 4, size: 44, where: ['desert'], lore: 'A fire mage studies how flames need air, fuel and heat to keep burning.' },
+  { id: 'mg-sorceress', name: 'Sorceress', img: `${SN}wild/mg-sorceress-1.png`, strip: `${SN}wild/mg-sorceress.png`, frames: 4, size: 44, where: ['grassland', 'forest'], lore: 'The sorceress reads star maps to tell what season is coming.' },
+  { id: 'mg-druid', name: 'Druid', img: `${SN}wild/mg-druid-1.png`, strip: `${SN}wild/mg-druid.png`, frames: 4, size: 44, where: ['forest'], lore: 'A druid knows the name of every plant and tree in the forest.' },
+  { id: 'mg-witch', name: 'Swamp witch', img: `${SN}wild/mg-witch-1.png`, strip: `${SN}wild/mg-witch.png`, frames: 4, size: 44, where: ['swamp'], lore: 'The swamp witch brews potions from bog plants and fireflies.' },
+  { id: 'mg-necromancer', name: 'Night mage', img: `${SN}wild/mg-necromancer-1.png`, strip: `${SN}wild/mg-necromancer.png`, frames: 4, size: 44, where: ['snow', 'forest'], lore: 'The night mage only comes out under the moon and loves owls.' },
   { id: 'jellyfish', name: 'Jellyfish', img: `${SN}wild/sea-jellyfish-1.png`, strip: `${SN}wild/sea-jellyfish.png`, frames: 4, size: 64, where: ['ocean'], lore: 'Jellyfish have no brain, no heart and no bones.' },
   { id: 'seaturtle', name: 'Sea turtle', img: `${SN}wild/sea-turtle-1.png`, strip: `${SN}wild/sea-turtle.png`, frames: 6, size: 64, where: ['ocean'], lore: 'Sea turtles swim thousands of miles and come back to the beach where they hatched.' },
   { id: 'swordfish', name: 'Swordfish', img: `${SN}wild/sea-swordfish-1.png`, strip: `${SN}wild/sea-swordfish.png`, frames: 4, size: 64, where: ['ocean'], lore: 'A swordfish is one of the fastest fish in the sea.' },
