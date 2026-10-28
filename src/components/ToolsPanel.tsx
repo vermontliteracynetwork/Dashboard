@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { MenuItems } from '../lib/mainMenu';
 import { isRobotVoice } from '../lib/voiceCatalog';
 import type { PointerEvent as ReactPointerEvent } from 'react';
@@ -1021,7 +1021,9 @@ export function Whiteboard({ student }: { student: Student }) {
 
 function TTSSettingsPanel({ student }: { student: Student }) {
   const updateStudent = useStore((s) => s.updateStudent);
-  const voiceItems = useStore((s) => s.marketplaceItems.filter((it) => it.kind === 'voice'));
+  // Build Queue 408: filter outside the selector (a new array each check re-renders forever).
+  const marketItems = useStore((s) => s.marketplaceItems);
+  const voiceItems = useMemo(() => marketItems.filter((it) => it.kind === 'voice'), [marketItems]);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   useState(() => {
     // Only human-sounding English voices (her rule 2026-10-12: no more robot sounds).
