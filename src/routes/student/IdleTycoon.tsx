@@ -38,7 +38,7 @@ const SHOWCASE = ['01-birthday_cake', '02-strawberry_pudding_cake', '03-blueberr
 const SHOWCASE_AT = [50, 300, 1500, 8000, 40000, 200000, 1000000, 5000000, 25000000, 100000000];
 const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Cake', 'Chocolate Cake', 'Orange Cake', 'Bubblegum Cake', 'Brownie Cake', 'Maple Popcorn Cake', 'Double Chocolate Cake', 'Jelly Cake'];
 interface Own { ovens: number; baker: boolean }
-interface Shop { coins: number; total: number; power: number; whisk?: number; lines: Record<string, Own>; savedAt: number }
+interface Shop { coins: number; total: number; power: number; whisk?: number; tap?: number; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
 const AWAY_MAX_S = 600, TAP = 1;
 const STAR_AT = [0, 100, 1000, 10000, 100000];
@@ -67,17 +67,27 @@ export const groupBonus = (ovens: number) => (ovens >= 10 ? 0.5 : ovens >= 5 ? 0
 const groupName = (ovens: number) => (ovens >= 10 ? 'Mega group' : ovens >= 5 ? 'Big group' : ovens >= 3 ? 'Trio' : '');
 // Silly, real-world sales for the sale stage. {t} is the treat.
 const PROMOS = ['Flash sale on {t}!', 'Marketing campaign: buy one, get one {t}', 'A famous dog ate our {t} on video. Everyone wants some!', 'Grandma says these {t} are "acceptable." Sales soar!', 'The mayor declared today National {t} Day', 'A {t} taste test at the school fair', 'Our {t} were seen on the news (they were very shiny)'];
+// ---- Build Queue 415: calmer screen, a conveyor belt, and a clicker that counts in multiples ----
+// Her words (2026-10-28): "a conveyer belt for stages", "clicker element (and powering up the clicker to see large
+// number) can emmbed math skills like multiples in the game play (subtelly)". Every tap of Mix by hand adds the bowl
+// size, and the clicker skip counts out loud on screen (3, 6, 9, 12...) with the times sentence (4 × 3 = 12). Bigger
+// bowls count by bigger numbers, up to 1,000s, so students meet big multiples and place value as they grow.
+const BOWLS = [1, 2, 3, 4, 5, 10, 20, 25, 50, 100, 250, 500, 1000];
+const bowlCost = (i: number) => BOWLS[i + 1] * 20 * (i + 1);
+const STAGE_START = [0, 0.3, 0.75];
+// How far a batch is along the whole belt, 0 to 100.
+const beltPct = (r?: Run) => (r ? Math.round((STAGE_START[r.stage] + Math.min(1, r.t) * STAGES[r.stage].part) * 100) : 0);
 const Coin = ({ size = 22 }: { size?: number }) => <img className="ty3-coin" src={`${ART}shop/coin.svg`} alt="coins" width={size} height={size} />;
 
 export default function IdleTycoon() {
   const back = useBack();
-  const { settingsPanel, ask, element, pay, student, asking, rounds } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon', { rounds: { min: 1, max: 20, def: 5 }, roundsLabel: 'Rounds of oven power', startCard: false });
+  const { settingsPanel, ask, element, pay, student, asking, rounds } = useAsk('Cupcake Tycoon', '🧁', 'idleTycoon', { rounds: { min: 1, max: 20, def: 5 }, roundsLabel: 'Rounds of oven power', perLabel: 'Questions each time (1 at a time is the default)', startCard: false });
   const visit = useVisitScore('idleTycoon');
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';
   const savedShop = (styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Shop> | undefined) ?? {};
-  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, power: savedShop.power ?? 0, whisk: savedShop.whisk ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
+  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, power: savedShop.power ?? 0, whisk: savedShop.whisk ?? 0, tap: savedShop.tap ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
   const [shop, setShop] = useState<Shop>(load);
   const [runs, setRuns] = useState<Record<string, Run>>({});
   const [buffs, setBuffs] = useState<Buffs>(NO_BUFFS);
@@ -96,6 +106,8 @@ export default function IdleTycoon() {
   const [musicVol, setMusicVol] = useState(() => lsGet('ty-music', 3));
   const [roundsDone, setRoundsDone] = useState(0);
   const [closing, setClosing] = useState(false);
+  const [count, setCount] = useState<{ n: number; by: number } | null>(null);
+  const countTimer = useRef<number | undefined>(undefined);
   const sfxRef = useRef(sfxVol); sfxRef.current = sfxVol;
   const clip = (k: keyof typeof SND, soft = false) => { if (sfxRef.current > 0) playClip(SND[k], (sfxRef.current / 5) * (soft ? 0.35 : 0.9)); };
   const click = () => clip('click');
@@ -215,7 +227,20 @@ export default function IdleTycoon() {
     const d = roundsDone + 1; setRoundsDone(d);
     if (!unlimited && d >= rounds) window.setTimeout(() => setClosing(true), 1500);
   }); };
-  const tapCupcake = () => { earn(TAP * (buffs.whisk > 0 ? buffs.wmult : 1), 'tap'); click(); };
+  const bowl = Math.min(BOWLS.length - 1, shop.tap ?? 0);
+  const tapBy = TAP * BOWLS[bowl] * (buffs.whisk > 0 ? buffs.wmult : 1);
+  const tapCupcake = () => {
+    earn(tapBy, 'tap'); click();
+    const n = count && count.by === tapBy ? count.n + 1 : 1;
+    setCount({ n, by: tapBy });
+    if (n % 10 === 0) cafe.sparkle();
+    window.clearTimeout(countTimer.current);
+    countTimer.current = window.setTimeout(() => setCount(null), 3000);
+  };
+  const buyBowl = () => {
+    if (bowl >= BOWLS.length - 1) return;
+    if (spend(bowlCost(bowl), (s) => ({ ...s, tap: bowl + 1 }))) { clip('notify'); setCount(null); flash(`Bigger bowl! Every tap now makes ${BOWLS[bowl + 1]}. Count by ${BOWLS[bowl + 1]}s!`); }
+  };
   const ips = perSec();
   const tier = Math.min(2, shop.whisk ?? 0), W = WHISKS[tier];
   const price = { whisk: Math.max(W.cost, Math.round(ips * W.cost)), mixer: Math.max(25, Math.round(ips * 30)), hot: Math.max(25, Math.round(ips * 30)), promo: Math.max(30, Math.round(ips * 40)) };
@@ -233,72 +258,88 @@ export default function IdleTycoon() {
   const busy = buffs.whisk > 0 || buffs.golden > 0;
 
   return (
-    <div className={`ty ty3${buffs.whisk > 0 ? ' boosted' : ''}${buffs.golden > 0 ? ' golden' : ''}`}>
-      <header className="fd-head ty-head">
+    <div className={`ty ty3 ty4${buffs.whisk > 0 ? ' boosted' : ''}${buffs.golden > 0 ? ' golden' : ''}`}>
+      <header className="ty4-head">
         <button type="button" className="btn" onClick={() => { click(); setLeaving(true); }}>✕ Leave</button>
         <button type="button" className="btn" onClick={() => { click(); save(); clip('notify'); flash('Your bakery is saved.'); }}>💾 Save</button>
         <h1>Cupcake Tycoon</h1>
+        {busy && <span className="ty4-busy">{buffs.golden > 0 ? `🌟 Golden Hour ${Math.ceil(buffs.golden)}s` : `✨ ${buffs.wmult} times as fast ${Math.ceil(buffs.whisk)}s`}</span>}
+        <span className="ty4-stars" aria-label={`${stars} of 5 stars`}>{'★'.repeat(stars)}<span>{'★'.repeat(STAR_AT.length - stars)}</span></span>
+        <span className="ty4-coins"><Coin /> {fmt(shop.coins)}</span>
         <button type="button" className="btn" onClick={() => { click(); setPhase('menu'); phaseRef.current = 'menu'; }} aria-label="Menu and settings">☰ Bakery menu</button>
-        <MyBest game="idleTycoon" unit="coins earned" />
-        <span className="mc-hud ty3-hud"><Coin /> {fmt(shop.coins)}</span>
       </header>
-      <main className="ty3-main">
+      <main className="ty3-main ty4-main">
         <section className="ty3-left">
-          <div className="ty3-sign">{'⭐'.repeat(stars)}{'☆'.repeat(STAR_AT.length - stars)}<small>{nextStar ? <>{fmt(shop.total)} / {fmt(nextStar)} <Coin size={14} /> for the next star</> : 'Five star bakery empire!'}</small></div>
-          <div className={`ty3-power${shop.power <= 0 ? ' empty' : ''}`}>
-            <b>⚡ Oven power</b>
+          <div className={`ty4-card ty4-power${shop.power <= 0 ? ' empty' : ''}`}>
+            <b>⚡ Oven power <small>{shop.power > 0 ? `${shop.power} bakes left` : 'No power yet'}</small></b>
             <span className="ty3-meter"><i style={{ width: `${Math.min(100, shop.power * 5)}%` }} /></span>
-            <small>{shop.power > 0 ? `${shop.power} bakes left` : 'No power! Nothing can bake.'}</small>
             <button type="button" className="btn btn-primary ty3-powerbtn" onClick={powerUp}>⚡ Power the ovens</button>
           </div>
-          <button type="button" className="ty2-big ty3-big" onClick={tapCupcake} aria-label="Tap to mix by hand for one coin">
-            <img src={`${ART}showcase/01-birthday_cake.png`} alt="" className="ty2-big-img" draggable={false} /><small>Mix by hand</small>
-            {pops.filter((p) => p.line === 'tap').map((p) => <i key={p.id} className="ty2-pop" aria-hidden>{p.text}</i>)}
-          </button>
-          <div className="ty3-shop" aria-label="Power-ups">
-            <div className="ty3-whisks">{WHISKS.map((w, i) => { const locked = i > tier, owned = i < tier, cur = i === tier; return (
-              <button key={w.name} type="button" className={`ty3-pu ${w.color}${buffs.whisk > 0 && cur ? ' on' : ''}`} disabled={!cur || buffs.whisk > 0} onClick={() => buy('whisk')} aria-label={`${w.name}: everything ${w.mult} times as fast for 20 seconds${locked ? ', locked' : ''}`}>
-                <b>{locked ? '🔒' : '✨'} {w.name}</b><small>{locked ? `Buy the ${WHISKS[i - 1].name} first` : owned && !cur ? 'Upgraded!' : buffs.whisk > 0 && cur ? `${Math.ceil(buffs.whisk)}s left` : `${w.mult} times as fast, 20s`}</small>{cur && <em><Coin size={16} /> {fmt(price.whisk)}</em>}
-              </button>
-            ); })}</div>
+          <div className="ty4-card ty4-clicker">
+            <button type="button" className="ty4-bowl" onClick={tapCupcake} aria-label={`Mix by hand: each tap makes ${tapBy} coins`}>
+              <img src={`${ART}showcase/01-birthday_cake.png`} alt="" draggable={false} />
+              <small>Tap +{fmt(tapBy)}</small>
+              {pops.filter((p) => p.line === 'tap').slice(-1).map((p) => <i key={p.id} className="ty2-pop" aria-hidden>{p.text}</i>)}
+            </button>
+            <div className="ty4-count" aria-live="polite">
+              <b>Count by {fmt(tapBy)}s</b>
+              <span className="ty4-chips">{count ? Array.from({ length: Math.min(4, count.n) }, (_, i) => count.n - Math.min(4, count.n) + 1 + i).map((k) => <em key={k} className={k === count.n ? (k % 10 === 0 ? 'now ten' : 'now') : ''}>{fmt(k * count.by)}</em>) : <em className="hint">{fmt(tapBy)}, {fmt(tapBy * 2)}, {fmt(tapBy * 3)}...</em>}</span>
+              <small>{count ? `${count.n} × ${fmt(count.by)} = ${fmt(count.n * count.by)}` : 'Tap the cake to mix by hand'}</small>
+            </div>
+            {bowl < BOWLS.length - 1 && <button type="button" className="btn ty4-up" disabled={shop.coins < bowlCost(bowl)} onClick={buyBowl}>🥣 Bigger bowl: count by {fmt(BOWLS[bowl + 1])}s <em><Coin size={14} /> {fmt(bowlCost(bowl))}</em></button>}
+          </div>
+          <div className="ty3-shop ty4-shop" aria-label="Power-ups">
+            <button type="button" className={`ty3-pu ${W.color}${buffs.whisk > 0 ? ' on' : ''}`} disabled={buffs.whisk > 0} onClick={() => buy('whisk')} aria-label={`${W.name}: everything ${W.mult} times as fast for 20 seconds`}>
+              <b>✨ {W.name}</b><small>{buffs.whisk > 0 ? `${Math.ceil(buffs.whisk)}s left` : `${W.mult} times as fast, 20s${tier < 2 ? `, then the ${WHISKS[tier + 1].name}` : ''}`}</small><em><Coin size={16} /> {fmt(price.whisk)}</em>
+            </button>
             <button type="button" className={`ty3-pu${buffs.mixer > 0 ? ' on' : ''}`} disabled={buffs.mixer > 0} onClick={() => buy('mixer')}><b>🥣 Turbo Mixer</b><small>{buffs.mixer > 0 ? `${Math.ceil(buffs.mixer)}s left` : 'Mixing 3 times as fast'}</small><em><Coin size={16} /> {fmt(price.mixer)}</em></button>
             <button type="button" className={`ty3-pu${buffs.hot > 0 ? ' on' : ''}`} disabled={buffs.hot > 0} onClick={() => buy('hot')}><b>🔥 Extra Hot Oven</b><small>{buffs.hot > 0 ? `${Math.ceil(buffs.hot)}s left` : 'Baking 3 times as fast'}</small><em><Coin size={16} /> {fmt(price.hot)}</em></button>
             <button type="button" className={`ty3-pu sale${buffs.promo ? ' on' : ''}`} disabled={!!buffs.promo || !promoOffer} onClick={() => buy('promo')}><b>📣 {buffs.promo ? 'Sale running' : 'Sale idea'}</b><small>{buffs.promo ? `${Math.ceil(buffs.promo.secs)}s: ${LINES.find((l) => l.id === buffs.promo!.line)?.name} sell for double` : promoOffer?.text ?? 'Open a counter first'}</small><em><Coin size={16} /> {fmt(price.promo)}</em></button>
           </div>
         </section>
 
-        <section className="ty3-lines" aria-label="Counters">
+        <section className="ty3-lines ty4-lines" aria-label="Counters">
           {open.map((l) => {
             const o = shop.lines[l.id], r = runs[l.id], c = ovenCost(l, o.ovens);
             const fresh = Date.now() - (done[l.id] ?? 0) < 1200;
+            const pct = r?.wait ? 30 : beltPct(r), bonus = groupBonus(o.ovens) + menuBonus();
+            const status = r?.wait ? '⚡ Waiting for oven power' : r ? `${STAGES[r.stage].name} ${pct}%` : fresh ? 'Sold!' : o.baker ? 'The baker starts the next batch' : 'Tap to start a batch';
             return (
-              <div key={l.id} className={`ty3-line${fresh ? ' done' : ''}`}>
-                <button type="button" className={`ty3-run${r ? ' on' : ''}${r?.wait ? ' wait' : ''}`} onClick={() => run(l)} aria-label={`${l.name}: ${o.ovens} ovens, ${batchValue(l)} coins a batch. ${o.baker ? 'The baker runs it.' : 'Tap to bake a batch.'}`}>
-                  <img className="ty2-icon" src={l.icon} alt="" />
-                  <span className="ty2-info">
-                    <b>{l.name} <small>× {o.ovens}</small>{groupName(o.ovens) && <em className="ty3-group">{groupName(o.ovens)} +{Math.round(groupBonus(o.ovens) * 100)}%</em>}</b>
-                    <span className="ty3-stages">{STAGES.map((st, i) => <span key={st.name} className={r && r.stage === i ? 'now' : r && r.stage > i ? 'past' : ''}><i style={{ width: `${r ? (r.stage > i ? 100 : r.stage === i ? r.t * 100 : 0) : 0}%` }} />{st.icon}</span>)}</span>
-                    <small>{r?.wait ? '⚡ Needs oven power' : fresh ? 'Done! Sold!' : r ? `${STAGES[r.stage].name}...` : o.baker ? 'Baker runs it' : 'Tap to bake'} · <Coin size={13} /> {fmt(batchValue(l))}</small>
+              <div key={l.id} className={`ty4-line${fresh ? ' done' : ''}${r?.wait ? ' wait' : ''}`}>
+                <button type="button" className="ty4-run" onClick={() => run(l)} aria-label={`${l.name}: ${status}. ${o.ovens} ovens, ${batchValue(l)} coins a batch.`}>
+                  <img className="ty4-icon" src={l.icon} alt="" />
+                  <span className="ty4-name">
+                    <b>{l.name}</b>
+                    <small>{o.ovens} × {fmt(l.income)} = {fmt(o.ovens * l.income)} <Coin size={12} />{bonus > 0 && <em> +{Math.round(bonus * 100)}%</em>}</small>
+                    <small className="ty4-status">{status}</small>
                   </span>
-                  {pops.filter((x) => x.line === l.id).map((x) => <i key={x.id} className="ty2-pop" aria-hidden>{x.text}</i>)}
+                  <span className="ty4-belt" aria-hidden>
+                    <span className="ty4-stations">{STAGES.map((st, i) => <span key={st.name} className={r && !r.wait && r.stage === i ? 'now' : r && (r.stage > i || r.wait) ? 'past' : ''}>{st.icon} {st.name}</span>)}</span>
+                    <span className={`ty4-track${r && !r.wait ? ' moving' : ''}`}>{r && <img className="ty4-item" style={{ left: `${pct}%` }} src={l.icon} alt="" />}</span>
+                    <span className="ty4-prog"><i style={{ width: `${pct}%` }} /></span>
+                  </span>
+                  {pops.filter((x) => x.line === l.id).slice(-1).map((x) => <i key={x.id} className="ty2-pop" aria-hidden>{x.text}</i>)}
                 </button>
-                <button type="button" className="btn ty3-buy" disabled={shop.coins < c} onClick={() => spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))}><img className="ty2-tool" src={`${ART}shop/oven.png`} alt="" />+1 <Coin size={13} /> {fmt(c)}</button>
-                {!o.baker && <button type="button" className="btn ty3-buy" disabled={shop.coins < l.baker} onClick={() => { if (spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } }))) playCheer(); }}><img className="ty2-tool" src={`${ART}shop/rolling-pin.png`} alt="" />Baker <Coin size={13} /> {fmt(l.baker)}</button>}
+                <div className="ty4-buys">
+                  <button type="button" className="btn ty3-buy" disabled={shop.coins < c} onClick={() => spend(c, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, ovens: o.ovens + 1 } } }))}>+1 oven <Coin size={13} /> {fmt(c)}</button>
+                  {!o.baker && <button type="button" className="btn ty3-buy" disabled={shop.coins < l.baker} onClick={() => { if (spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } }))) playCheer(); }}>Baker <Coin size={13} /> {fmt(l.baker)}</button>}
+                </div>
               </div>
             );
           })}
           {nextLocked && (
-            <div className="ty3-line locked">
-              <img className="ty2-icon" src={nextLocked.icon} alt="" />
+            <div className="ty4-line locked">
+              <img className="ty4-icon" src={nextLocked.icon} alt="" />
               <b>{nextLocked.name} counter</b>
               <button type="button" className="btn ty3-buy" disabled={shop.coins < nextLocked.open} onClick={() => { if (spend(nextLocked.open, (s) => ({ ...s, lines: { ...s.lines, [nextLocked.id]: { ovens: 1, baker: false } } }))) cafe.sparkle(); }}>Open <Coin size={13} /> {fmt(nextLocked.open)}</button>
             </div>
           )}
         </section>
 
-        <section className="ty3-case" aria-label="Bakery case">
+        <section className="ty3-case ty4-case" aria-label="Bakery case">
           <h2>Bakery case</h2>
-          <p className="ty3-small">Group matching treats: 3 ovens of one treat make a Trio (+10%), 5 a Big group (+25%), 10 a Mega group (+50%).{open.length >= 5 ? ' Full menu bonus: +10% on everything!' : ` Open ${5 - open.length} more ${5 - open.length === 1 ? 'counter' : 'counters'} for a full menu bonus.`}</p>
+          <p className="ty3-small">{nextStar ? <>Next star at <Coin size={12} /> {fmt(nextStar)} ({fmt(shop.total)} so far)</> : 'Five star bakery empire!'}</p>
+          <p className="ty3-small">Group 3, 5 or 10 ovens of one treat for a bonus.{open.length >= 5 ? ' Full menu: +10%!' : ''}</p>
           <div className="ty3-shelves">
             {open.map((l) => { const o = shop.lines[l.id]; return (
               <div key={l.id} className={`ty3-shelf${groupBonus(o.ovens) ? ' grouped' : ''}`}>
@@ -311,7 +352,6 @@ export default function IdleTycoon() {
         </section>
       </main>
       {note && <p className="ty3-note" role="status">{note}</p>}
-      {busy && <span className="ty3-busy" aria-hidden>{buffs.golden > 0 ? `🌟 Golden Hour ${Math.ceil(buffs.golden)}s` : `✨ ${buffs.wmult} times as fast ${Math.ceil(buffs.whisk)}s`}</span>}
       {rain.map((r) => <button key={r.id} type="button" className="ty3-gold" style={{ left: `${r.x}%`, animationDelay: `${r.d}s` }} onClick={catchGold} aria-label="A golden cake! Tap it for Golden Hour"><img src={`${ART}showcase/01-birthday_cake.png`} alt="" /></button>)}
       {away !== null && (
         <div className="pf-overlay">
@@ -335,6 +375,7 @@ export default function IdleTycoon() {
             {confirmNew && <div className="ty3-confirm"><p>Start over? Your saved bakery, counters and coins will be gone.</p>
               <button type="button" className="btn btn-primary" onClick={() => { click(); const f = fresh(); setS(f); runsRef.current = {}; setRuns({}); if (owner) mergeStyleRow(owner, { ...f, savedAt: Date.now() }); setConfirmNew(false); setRoundsDone(0); setPhase('play'); phaseRef.current = 'play'; }}>Yes, start over</button>
               <button type="button" className="btn" onClick={() => { click(); setConfirmNew(false); }}>No, keep it</button></div>}
+            <MyBest game="idleTycoon" unit="coins earned" />
             <h3>Settings</h3>
             {settingsPanel}
             <label className="ty3-check"><input type="checkbox" checked={unlimited} onChange={(e) => { click(); setUnlimited(e.target.checked); }} /> Unlimited rounds (play until you are done)</label>

@@ -10636,3 +10636,66 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .sn-strip { display: block; width: calc(var(--s) * 1px); height: calc(var(--s) * 1px); background-repeat: no-repeat; background-size: calc(var(--n) * var(--s) * 1px) calc(var(--s) * 1px); image-rendering: pixelated; animation: snStrip calc(var(--n) * .18s) steps(var(--n)) infinite; }
 @keyframes snStrip { to { background-position: calc(var(--n) * var(--s) * -1px) 0; } }
 @media (prefers-reduced-motion: reduce) { .sn-strip { animation: none; } }
+
+/* Build Queue 415: Cupcake Tycoon, calmer. One header row in the flow (nothing overlaps), one soft cream ground with a
+   single raspberry accent, quiet borders, no pulsing, a conveyor belt with a progress bar on every counter, and the
+   skip counting clicker. */
+.ty.ty4 { --c-ground: #fbf4ef; --c-card: #fffdfb; --c-line: #ead7d0; --c-ink: #3a2a24; --c-soft: #7a645b; --c-accent: #c2456e; --c-belt: #d9cbc3;
+  background: var(--c-ground); color: var(--c-ink); }
+.ty4.boosted { background: #fbf1df; } .ty4.golden { background: #fcefd2; }
+.ty4-head { flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: max(10px, env(safe-area-inset-top)) 16px 8px; }
+.ty4-head .btn { min-height: 44px; }
+.ty4-head h1 { margin: 0 auto 0 4px; font: 900 clamp(1.1rem, 2.2vw, 1.5rem) 'PixCon', 'Baloo 2', sans-serif; letter-spacing: 1px; color: var(--c-accent); text-shadow: none; }
+.ty4-busy { padding: 4px 12px; border-radius: 999px; background: #fff3c9; border: 2px solid #e2b93a; font-weight: 900; font-size: .9rem; }
+.ty4-stars { font-size: 1.15rem; color: #e2a52a; letter-spacing: 1px; } .ty4-stars span { color: #e6d9d2; }
+.ty4-coins { display: inline-flex; align-items: center; gap: 6px; font-weight: 900; font-size: 1.15rem; padding: 4px 12px; border-radius: 999px; background: var(--c-card); border: 2px solid var(--c-line); }
+.ty4-main { padding-top: 0; }
+.ty4-card { background: var(--c-card); border: 2px solid var(--c-line); border-radius: 14px; padding: 8px 10px; display: grid; gap: 6px; }
+.ty4-power b { display: flex; justify-content: space-between; align-items: baseline; } .ty4-power b small { font-size: .8rem; color: var(--c-soft); }
+.ty4-power.empty { border-color: #e3a3a3; } .ty4-power.empty b small { color: #b0413a; }
+.ty4 .ty3-power.empty { animation: none; }
+.ty4-clicker { grid-template-columns: auto 1fr; align-items: center; }
+.ty4-bowl { position: relative; width: 92px; height: 92px; border-radius: 50%; border: 3px solid var(--c-accent); background: radial-gradient(circle, #fff 0 58%, #fbe4ec 59%); display: grid; place-items: center; align-content: center; padding: 0; font: inherit; color: var(--c-accent); cursor: pointer; touch-action: manipulation; box-shadow: 0 4px 0 #e0b4c3; }
+.ty4-bowl:active { transform: translateY(3px); box-shadow: 0 1px 0 #e0b4c3; }
+.ty4-bowl img { width: 50px; height: 50px; image-rendering: pixelated; pointer-events: none; } .ty4-bowl small { font-weight: 900; font-size: .78rem; }
+.ty4-count { display: grid; gap: 3px; min-width: 0; } .ty4-count b { font-size: .95rem; } .ty4-count > small { font-weight: 800; color: var(--c-soft); font-variant-numeric: tabular-nums; }
+.ty4-chips { display: flex; gap: 4px; flex-wrap: wrap; min-height: 26px; }
+.ty4-chips em { font-style: normal; font-weight: 800; font-size: .85rem; padding: 2px 8px; border-radius: 8px; background: #f6ece7; color: var(--c-soft); font-variant-numeric: tabular-nums; }
+.ty4-chips em.now { background: #fbe4ec; color: var(--c-accent); } .ty4-chips em.ten { background: #fff1c4; color: #8a5a00; }
+.ty4-chips em.hint { background: none; padding: 2px 0; font-weight: 700; }
+.ty4-up { grid-column: 1 / -1; min-height: 44px; font-size: .85rem; font-weight: 800; display: flex; justify-content: space-between; gap: 6px; }
+.ty4-up em { font-style: normal; white-space: nowrap; }
+.ty4 .ty3-pu { border-width: 2px; border-color: var(--c-line); background: var(--c-card); box-shadow: none; }
+.ty4 .ty3-pu.bronze { border-color: #d6a77e; background: #fbf0e5; } .ty4 .ty3-pu.silver { border-color: #b7bfc8; background: #f5f7f9; } .ty4 .ty3-pu.whisk { border-color: #e2c25a; background: #fdf6dc; }
+.ty4 .ty3-pu.on { border-color: #5aa77a; background: #ecf7f0; }
+.ty4-lines { overflow: hidden auto; gap: 6px; }
+.ty4-line { display: flex; gap: 6px; align-items: stretch; background: var(--c-card); border: 2px solid var(--c-line); border-radius: 14px; padding: 4px; flex: none; }
+.ty4-line.done { border-color: #e2b93a; } .ty4-line.wait { border-color: #9db4e6; }
+.ty4-line.locked { align-items: center; border-style: dashed; padding: 6px 8px; gap: 10px; } .ty4-line.locked b { flex: 1; }
+.ty4-run { position: relative; flex: 1; min-width: 0; display: grid; grid-template-columns: auto minmax(110px, 0.8fr) minmax(0, 2fr); align-items: center; gap: 8px; min-height: 60px; padding: 4px 8px; background: none; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; touch-action: manipulation; }
+.ty4-icon { width: 40px; height: 40px; image-rendering: pixelated; }
+.ty4-name { display: grid; gap: 1px; min-width: 0; } .ty4-name b { font-size: .98rem; }
+.ty4-name small { font-size: .76rem; font-weight: 700; color: var(--c-soft); font-variant-numeric: tabular-nums; } .ty4-name small em { font-style: normal; color: var(--c-accent); font-weight: 900; }
+.ty4-name .ty4-status { color: var(--c-ink); }
+.ty4-belt { display: grid; gap: 3px; min-width: 0; }
+.ty4-stations { display: grid; grid-template-columns: 3fr 4.5fr 2.5fr; font-size: .7rem; font-weight: 800; color: #b4a39b; }
+.ty4-stations span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-left: 2px solid #eee2dc; padding-left: 4px; }
+.ty4-stations span.now { color: var(--c-ink); } .ty4-stations span.past { color: #5aa77a; }
+.ty4-track { position: relative; height: 22px; border-radius: 6px; background: repeating-linear-gradient(90deg, var(--c-belt) 0 10px, #e7dcd6 10px 20px); box-shadow: inset 0 -3px 0 #c6b6ad; }
+.ty4-track.moving { animation: ty4Belt .8s linear infinite; }
+.ty4-item { position: absolute; bottom: 3px; width: 24px; height: 24px; translate: -50% 0; image-rendering: pixelated; transition: left .1s linear; filter: drop-shadow(0 1px 0 #0003); }
+.ty4-prog { height: 6px; border-radius: 3px; background: #eee2dc; overflow: hidden; }
+.ty4-prog i { display: block; height: 100%; background: var(--c-accent); transition: width .1s linear; }
+.ty4-buys { display: flex; flex-direction: column; gap: 4px; justify-content: center; }
+.ty4-buys .ty3-buy { min-height: 44px; font-size: .8rem; }
+.ty4-case { border-width: 2px; border-color: var(--c-line); background: var(--c-card); }
+.ty4-case h2 { color: var(--c-ink); }
+@keyframes ty4Belt { to { background-position: 20px 0; } }
+@media (orientation: portrait), (max-width: 900px) {
+  .ty4 .ty3-left { grid-template-columns: 1fr 1fr; }
+  .ty4 .ty3-shop { grid-column: 1 / span 2; grid-template-columns: 1fr 1fr; }
+  .ty4.ty3 .ty3-main { grid-template-rows: auto minmax(0, 1fr) auto; }
+  .ty4 .ty3-lines { grid-column: 1 / span 2; } .ty4 .ty3-case { grid-column: 1 / span 2; max-height: 150px; }
+  .ty4-run { grid-template-columns: auto minmax(100px, 0.8fr) minmax(0, 1.6fr); }
+}
+@media (prefers-reduced-motion: reduce) { .ty4-track.moving { animation: none; } .ty4-item, .ty4-prog i { transition: none; } }

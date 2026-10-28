@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-28-tycoon-belt",
+    date: "2026-10-28",
+    icon: "🧁",
+    title: "A calmer bakery with conveyor belts",
+    body: "Cupcake Tycoon has a calmer screen. Every treat now rides a conveyor belt from mixing to the oven to the shop, with a progress bar. Tap the cake to mix by hand and watch it count by 2s, 5s, 10s and more as you buy bigger bowls.",
+  },
+  {
     id: "2026-10-28-sn-dragons",
     date: "2026-10-28",
     icon: "🐉",
