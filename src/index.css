@@ -10935,3 +10935,8 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 @media (orientation: portrait), (max-width: 900px) { .ty5 .ty5-main { grid-template-columns: 1fr 1fr; } }
 .ty5 .ty6-casehead h2 { font-size: .95rem; }
 @media (orientation: portrait), (max-width: 900px) { .ty5 .ty3-case { max-height: none; } .ty5 .ty3-shelves { display: none; } }
+/* Build Queue 436 (a): the Recipe book. */
+.ty7-card { cursor: default; } .ty7-card em { font-style: normal; font-size: .72rem; font-weight: 900; color: #1c9a3a; }
+.ty7-card.locked img { filter: brightness(0) opacity(.25); } .ty7-card.locked span { color: #8a7aa8; }
+.ty7-book .ty6-bar { height: 22px; }
+@media (orientation: portrait), (max-width: 900px) { .ty5-head .ty7-lbl { display: none; } .ty5-head .btn { min-width: 48px; justify-content: center; } .ty5-head .ty4-stars { display: none; } }

@@ -41,7 +41,7 @@ const SHOWCASE = ['01-birthday_cake', '02-strawberry_pudding_cake', '03-blueberr
 const SHOWCASE_AT = [50, 300, 1500, 8000, 40000, 200000, 1000000, 5000000, 25000000, 100000000];
 const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Cake', 'Chocolate Cake', 'Orange Cake', 'Bubblegum Cake', 'Brownie Cake', 'Maple Popcorn Cake', 'Double Chocolate Cake', 'Jelly Cake'];
 interface Own { ovens: number; baker: boolean; price?: number }
-interface Shop { coins: number; total: number; whisk?: number; oven?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
+interface Shop { coins: number; total: number; whisk?: number; book?: Record<string, number>; oven?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
 const AWAY_MAX_S = 600;
 const STAR_AT = [0, 100, 1000, 10000, 100000];
@@ -154,7 +154,7 @@ export default function IdleTycoon() {
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';
   const savedShop = (styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Shop> | undefined) ?? {};
-  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, whisk: savedShop.whisk ?? 0, oven: savedShop.oven ?? 0, menu: savedShop.menu, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
+  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, whisk: savedShop.whisk ?? 0, oven: savedShop.oven ?? 0, menu: savedShop.menu, book: savedShop.book ?? {}, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
   const [shop, setShop] = useState<Shop>(load);
   const [belts, setBelts] = useState<Record<string, Tray[]>>({});
   const [buffs, setBuffs] = useState<Buffs>(NO_BUFFS);
@@ -173,6 +173,8 @@ export default function IdleTycoon() {
   const [roundsDone, setRoundsDone] = useState(0);
   const [closing, setClosing] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Build Queue 436 (a): the Recipe book, every flavor sold becomes a card with its count.
+  const [bookOpen, setBookOpen] = useState(false);
   // Build Queue 435: the "i" buttons. One explanation open at a time; everything else stays short.
   const [tipOpen, setTipOpen] = useState<string | null>(null);
   // Treats sold this visit, per counter, for the times sentence ("4 trays × $2 = $8").
@@ -269,6 +271,7 @@ export default function IdleTycoon() {
           lastBaker.current[l.id] = now; trays.push({ id: ++trayId.current, p: 0, f: nextFlavor(l.id) });
         }
         let ahead = 2, soldNow = 0, units = 0;
+        const soldF: string[] = [];
         const sp = special();
         trays = trays.map((tr) => {
           const st = stageOf(tr.p);
@@ -276,13 +279,14 @@ export default function IdleTycoon() {
           let p = Math.min(tr.p + (dt * speed) / l.time, ahead - GAP);
           if (stageOf(tr.p) === 0 && stageOf(p) === 1 && !o.baker) once('ovenIn', 700, true);
           if (stageOf(tr.p) === 1 && stageOf(p) === 2) once('bell', 900, o.baker);
-          if (p >= 1) { soldNow++; units += sp && sp.line === l.id && sp.f === tr.f ? 2 : 1; p = 1; }
+          if (p >= 1) { soldNow++; units += sp && sp.line === l.id && sp.f === tr.f ? 2 : 1; p = 1; soldF.push(tr.f); }
           ahead = p;
           return { ...tr, p };
         }).filter((tr) => tr.p < 1);
         if (soldNow) {
           const v = trayValue(l, b);
           earn(v * units, l.id);
+          { const bk = { ...(shopRef.current.book ?? {}) }; let fresh = false; for (const f of soldF) { if (!bk[f]) fresh = true; bk[f] = (bk[f] ?? 0) + 1; } setS({ ...shopRef.current, book: bk }); if (fresh) { once('recipe', 500); flash(`New recipe in your Recipe book: ${flavor(l.id, soldF[0]).name}!`); } }
           setSold((s) => ({ ...s, [l.id]: { n: (s[l.id]?.v === v ? s[l.id].n : 0) + units, v } }));
           const sid = ++shopperId.current, src = SHOPPERS[sid % SHOPPERS.length], lid = l.id;
           setShoppers((s) => ({ ...s, [lid]: [...(s[lid] ?? []).slice(-1), { id: sid, src }] }));
@@ -399,8 +403,8 @@ export default function IdleTycoon() {
   return (
     <div className={`ty ty3 ty4 ty5${buffs.whisk > 0 ? ' boosted' : ''}`}>
       <header className="ty4-head ty5-head">
-        <button type="button" className="btn" onClick={() => { click(); setLeaving(true); }}><Px src="ic-x" /> Leave</button>
-        <button type="button" className="btn" onClick={() => { save(); clip('saved'); flash('Your bakery is saved.'); }}><Px src="ic-check" /> Save</button>
+        <button type="button" className="btn" onClick={() => { click(); setLeaving(true); }} aria-label="Leave"><Px src="ic-x" /><span className="ty7-lbl">Leave</span></button>
+        <button type="button" className="btn" onClick={() => { save(); clip('saved'); flash('Your bakery is saved.'); }} aria-label="Save"><Px src="ic-check" /><span className="ty7-lbl">Save</span></button>
         <h1 className="ty6-sr">Bakery Tycoon</h1>
         <span className="ty5-money" aria-live="polite" aria-label={`Bakery money: ${money(shop.coins)}`}>
           <small>Bakery money</small><b key={Math.floor(shop.coins)}>${Math.floor(shop.coins).toLocaleString()}</b>
@@ -408,7 +412,8 @@ export default function IdleTycoon() {
         </span>
         <span className="ty4-stars" aria-label={`${stars} of 5 stars`}>{STAR_AT.map((_, i) => <Px key={i} src={i < stars ? 'star-on' : 'star-off'} size={20} />)}</span>
         <button type="button" className="btn" onClick={() => { clip('menuOpen'); setMenuOpen(true); }}><Px src="ic-menuboard" /> My menu</button>
-        <button type="button" className="btn" onClick={() => { clip('pauseOpen'); setPhase('menu'); phaseRef.current = 'menu'; }} aria-label="Pause, settings and start over"><Px src="ic-pause" /> Settings</button>
+        <button type="button" className="btn" onClick={() => { clip('menuOpen'); setBookOpen(true); }}><Px src="ic-book" /> Recipes</button>
+        <button type="button" className="btn" onClick={() => { clip('pauseOpen'); setPhase('menu'); phaseRef.current = 'menu'; }} aria-label="Pause, settings and start over"><Px src="ic-pause" /><span className="ty7-lbl">Settings</span></button>
       </header>
       {busy && <span className="ty5-busy"><Px src={WHISK_IMG[WHISKS[Math.max(0, tier - 1)].color]} size={24} /> {buffs.wmult} times as fast, {Math.ceil(buffs.whisk)}s</span>}
       <main className="ty3-main ty4-main ty5-main">
@@ -531,6 +536,28 @@ export default function IdleTycoon() {
       </main>
       {note && <p className="ty3-note" role="status">{note}</p>}
       {shower > 0 && <div key={shower} className="ty5-shower" aria-hidden>{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ left: `${5 + i * 6.5}%`, animationDelay: `${(i % 5) * 0.08}s` }}>$</i>)}</div>}
+      {bookOpen && (() => {
+        const bk = shop.book ?? {}, all = LINES.flatMap((l) => FLAVORS[l.id]), found = all.filter((f) => bk[f.id]).length;
+        return (
+          <div className="pf-overlay" onClick={() => { clip('menuClose'); setBookOpen(false); }}>
+            <div className="pf-panel ty3-menu ty4-menued ty7-book" onClick={(e) => e.stopPropagation()}>
+              <h2><Px src="ic-book" size={32} /> Recipe book <button type="button" className="btn ty4-listen" onClick={() => speak(`Recipe book. You have found ${found} of ${all.length} recipes. Sell a new flavor to add its card.`, student.ttsSettings)} aria-label="Listen"><Px src="ic-speaker" size={24} /></button></h2>
+              <span className="ty6-bar"><i style={{ width: `${(found / all.length) * 100}%` }} /><em>{found} of {all.length} recipes found</em></span>
+              {LINES.map((l) => (
+                <section key={l.id} className="ty4-mgroup">
+                  <h3>{l.name} <small>{FLAVORS[l.id].filter((f) => bk[f.id]).length} of {FLAVORS[l.id].length}</small></h3>
+                  <div className="ty4-mtiles">{FLAVORS[l.id].map((f) => bk[f.id] ? (
+                    <div key={f.id} className="ty4-mtile ty7-card"><img src={f.img} alt="" /><span>{f.name}</span><em>{bk[f.id].toLocaleString()} sold</em></div>
+                  ) : (
+                    <div key={f.id} className="ty4-mtile ty7-card locked"><img src={f.img} alt="" /><span>A recipe to find</span></div>
+                  ))}</div>
+                </section>
+              ))}
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { clip('menuClose'); setBookOpen(false); }}>Done</button>
+            </div>
+          </div>
+        );
+      })()}
       {menuOpen && (
         <div className="pf-overlay" onClick={() => { clip('menuClose'); setMenuOpen(false); }}>
           <div className="pf-panel ty3-menu ty4-menued" onClick={(e) => e.stopPropagation()}>
