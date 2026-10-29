@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useStore } from '../store/store';
+import { selLoginKey, useStore } from '../store/store';
+import { checkinMessage, useClassMessages, useSeen } from '../lib/classMessage';
+import ClassMessagePopup from './ClassMessagePopup';
 import { formatMoney } from '../lib/money';
 import { todayISO } from '../lib/dates';
 import {
@@ -185,6 +187,11 @@ export default function StreakLayer() {
   const role = useStore((s) => s.role);
   const studentId = useStore((s) => s.currentStudentId);
   const location = useLocation();
+  // Build Queue 439: the teacher's class message comes after the SEL check in and before today's streak card.
+  const { msgs } = useClassMessages();
+  const seenIds = useSeen(role === 'student' ? studentId : null);
+  const selDone = useStore((s) => s.selLoginCheckInKey);
+  const student = useStore((s) => s.students.find((st) => st.id === s.currentStudentId));
   const r = useStreak(role === 'student' ? studentId : null);
   const [view, setView] = useState(false);
   const [cardDone, setCardDone] = useState(false);
@@ -203,12 +210,15 @@ export default function StreakLayer() {
     return () => window.removeEventListener(OPEN_STREAK_EVENT, open);
   }, []);
   useEffect(() => { setCardDone(false); }, [studentId]);
-  streakOverlay.open = view || !!r.chestsPending;
+  const msgDue = role === 'student' && !!studentId && selDone === selLoginKey(studentId) && location.pathname === '/world/town' && !!checkinMessage(msgs, seenIds.ids, studentId);
+  const cmsg = msgDue ? checkinMessage(msgs, seenIds.ids, studentId) : null;
+  streakOverlay.open = view || !!r.chestsPending || msgDue;
   if (role !== 'student' || !studentId) return null;
   // Build Queue 224: the floating meter is gone; My Streak lives in the one main menu (which shows the count).
-  const cardDue = !HIDE_ON.includes(location.pathname) && r.cardShownDay !== todayISO() && !cardDone && location.pathname === '/world/town';
+  const cardDue = !msgDue && !HIDE_ON.includes(location.pathname) && r.cardShownDay !== todayISO() && !cardDone && location.pathname === '/world/town';
   return (
     <>
+      {cmsg && <ClassMessagePopup msg={cmsg} tts={student?.ttsSettings} onDone={() => seenIds.mark(cmsg.id)} />}
       {cardDue && <DailyCard studentId={studentId} r={r} onDone={() => setCardDone(true)} />}
       {view && <StreakView studentId={studentId} onClose={() => setView(false)} />}
       {r.chestsPending && <Chests studentId={studentId} r={r} />}

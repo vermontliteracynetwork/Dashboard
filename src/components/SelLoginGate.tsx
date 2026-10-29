@@ -10,7 +10,7 @@ import SelZoneCheckIn from './SelZoneCheckIn';
 // logged-in student the same check-in once per login and once per day,
 // wherever they land, but only on a calm screen (never mid-game or
 // mid-task, same rule as the Neighbor re-check).
-const CALM_PATHS = new Set([
+export const CALM_PATHS = new Set([
   '/world/town',
   '/world/home-room',
   '/student/home',

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-teacher-messages",
+    date: "2026-10-29",
+    icon: "💌",
+    title: "Messages from your teacher",
+    body: "Your teacher can now send you a message that pops up on your screen. Read it or tap Listen, then tap the button to keep going.",
+  },
+  {
     id: "2026-10-29-bakery-sparkle",
     date: "2026-10-29",
     icon: "✨",

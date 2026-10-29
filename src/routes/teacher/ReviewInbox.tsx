@@ -7,6 +7,7 @@ import { resolveGameReport, useAllGameReports, type GameReport } from '../../lib
 import { formatMoney } from '../../lib/money';
 import AzaleaLog from '../../components/AzaleaLog';
 import { RECEIPT_TO, isPrizeReceipt, mailtoFor } from '../../lib/prizeReceipts';
+import ClassMessageComposer from '../../components/ClassMessageComposer';
 
 type InboxItem =
   | { kind: 'help'; id: string; studentId: string; timestamp: string; done: boolean }
@@ -77,6 +78,7 @@ export default function ReviewInbox() {
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
   const [view, setView] = useState<'all' | 'azalea'>('all');
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const items: InboxItem[] = [
     ...helpPings.map((h): InboxItem => ({ kind: 'help', id: h.id, studentId: h.studentId, timestamp: h.timestamp, done: h.resolved })),
@@ -136,7 +138,8 @@ export default function ReviewInbox() {
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <h1>📥 Inbox</h1>
+        <div className="cm-inbox-head"><h1>📥 Inbox</h1><button type="button" className="btn btn-primary" onClick={() => setComposeOpen(true)}>💌 Message students</button></div>
+        {composeOpen && <ClassMessageComposer onClose={() => setComposeOpen(false)} />}
         <div className="az-log-tabs big" role="tablist">
           <button type="button" role="tab" aria-selected={view === 'all'} className={view === 'all' ? 'on' : ''} onClick={() => setView('all')}>📥 Everything</button>
           <button type="button" role="tab" aria-selected={view === 'azalea'} className={view === 'azalea' ? 'on' : ''} onClick={() => setView('azalea')}>🐱 Azalea's log (bugs and ideas)</button>

@@ -10988,3 +10988,52 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .fm-all { font-size: 1.05rem; }
 .fm-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; padding-right: 2px; }
 .fm-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; } .fm-actions .btn { min-height: 48px; } .fm-actions .btn-primary { flex: 1 1 100%; }
+/* Build Queue 439: the class message pop up and its composer. */
+.cm-inbox-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; } .cm-inbox-head h1 { margin: 0; } .cm-inbox-head .btn { min-height: 48px; }
+.cm-overlay { z-index: 170; }
+.cm-pop { position: relative; display: flex; flex-direction: column; gap: 12px; background: #fff; border-radius: 22px; border: 4px solid #5b4bd6; box-shadow: 0 8px 0 #3f33a8; padding: 22px 22px 18px; max-height: 92dvh; box-sizing: border-box; }
+.cm-small { width: min(360px, calc(100vw - 32px)); } .cm-medium { width: min(560px, calc(100vw - 32px)); } .cm-large { width: min(820px, calc(100vw - 32px)); }
+.cm-full { width: calc(100vw - 32px); height: calc(100dvh - 32px); max-height: none; }
+.cm-body { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; align-items: stretch; }
+.cm-text { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; color: #1f2147; font-weight: 700; line-height: 1.35; }
+.cm-t-s { font-size: 1rem; } .cm-t-m { font-size: 1.3rem; } .cm-t-l { font-size: 1.8rem; } .cm-t-xl { font-size: 2.6rem; line-height: 1.15; }
+.cm-img { display: block; margin: 0 auto; max-width: 100%; height: auto; border-radius: 12px; object-fit: contain; }
+.cm-w-small { width: 35%; } .cm-w-medium { width: 65%; } .cm-w-full { width: 100%; }
+.cm-ok { min-height: 56px; font-size: 1.2rem; align-self: center; min-width: 200px; }
+.cm-listen { position: absolute; top: 10px; right: 10px; min-width: 48px; min-height: 48px; padding: 0; }
+.cmc-wrap { z-index: 1000; }
+.cmc { width: min(1180px, calc(100vw - 24px)); max-height: 94dvh; display: flex; flex-direction: column; gap: 10px; text-align: left; overflow: hidden; }
+.cmc-head { display: flex; justify-content: space-between; align-items: center; } .cmc-head h2 { margin: 0; }
+.cmc-status { margin: 0; padding: 8px 10px; border-radius: 10px; background: #f1efff; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cmc-grid { flex: 1; min-height: 0; display: grid; grid-template-columns: 240px minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.cmc-tools, .cmc-canvas, .cmc-preview { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.cmc-tools small { color: #6b7280; margin-top: -6px; }
+.cmc-tool { min-height: 52px; border-radius: 12px; border: 2px dashed #5b4bd6; background: #f7f5ff; font: inherit; font-weight: 800; color: #3f33a8; cursor: grab; touch-action: manipulation; }
+.cmc-seg { display: flex; flex-wrap: wrap; gap: 4px; } .cmc-seg button { min-height: 44px; padding: 0 12px; border-radius: 10px; border: 2px solid #e5e7eb; background: #fff; font: inherit; font-weight: 700; cursor: pointer; } .cmc-seg button.on { border-color: #5b4bd6; background: #5b4bd6; color: #fff; }
+.cmc-field { display: grid; gap: 4px; } .cmc-field .input { min-height: 44px; }
+.cmc-to { display: flex; flex-direction: column; gap: 4px; }
+.cmc-canvas { padding: 8px; border-radius: 14px; background: #fafaff; border: 2px solid #e5e7eb; }
+.cmc-empty { margin: 0; padding: 20px; border: 2px dashed #c7c2f5; border-radius: 12px; text-align: center; color: #6b7280; font-weight: 600; }
+.cmc-block { display: grid; gap: 6px; padding: 8px; border-radius: 12px; background: #fff; border: 2px solid #e5e7eb; }
+.cmc-block.over { border-color: #5b4bd6; box-shadow: 0 -4px 0 #5b4bd6; }
+.cmc-bar { display: flex; align-items: center; gap: 6px; } .cmc-bar b { flex: 1; } .cmc-bar .btn { min-height: 40px; min-width: 40px; } .cmc-grip { cursor: grab; color: #9ca3af; font-weight: 900; }
+.cmc-block textarea { width: 100%; box-sizing: border-box; font: inherit; }
+.cmc-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.cmc-stage { flex: 1; display: grid; place-items: center; padding: 10px; border-radius: 14px; background: linear-gradient(#cfe8ff, #e9f7e4); overflow: auto; }
+.cmc-stage .cm-pop { transform-origin: top center; }
+.cmc-stage .cm-full { width: 100%; height: 100%; min-height: 360px; } .cmc-stage .cm-large, .cmc-stage .cm-medium, .cmc-stage .cm-small { max-width: 100%; }
+.cmc-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; } .cmc-foot span { color: #6b7280; font-weight: 600; } .cmc-sent { color: #15803d !important; }
+@media (max-width: 1000px) { .cmc-grid { grid-template-columns: 1fr; overflow-y: auto; } .cmc-tools, .cmc-canvas, .cmc-preview { overflow: visible; } }
+/* Build Queue 440: timed messages sit over everything, even games. */
+.cm-host .cm-overlay { z-index: 5000; }
+.cmc-sent-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.cmc-sentrow { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; border: 2px solid #e5e7eb; background: #fff; }
+.cmc-sentrow span { flex: 1; display: grid; min-width: 0; } .cmc-sentrow b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .cmc-sentrow small { color: #6b7280; } .cmc-sentrow .btn { min-height: 44px; }
+.cmc-stage { flex: 0 0 auto; min-height: 260px; }
+.cmc-stage { display: block; padding: 0; min-height: 0; position: relative; overflow: hidden; flex: none; }
+.cmc-screen { position: absolute; left: 0; top: 0; width: 1024px; height: 768px; transform-origin: 0 0; display: grid; place-items: center; background: linear-gradient(#cfe8ff, #e9f7e4); }
+.cmc-screen .cm-full { width: calc(100% - 32px); height: calc(100% - 32px); }
+.cmc-screen .cm-small { width: 360px; } .cmc-screen .cm-medium { width: 560px; } .cmc-screen .cm-large { width: 820px; }
+.cmc-screen .cm-pop { max-height: 736px; }
+.cm-listen { position: static; align-self: flex-end; margin: -10px -8px -6px 0; }
+@media (max-width: 1000px) { .cmc-grid { display: flex; flex-direction: column; overflow-y: auto; } .cmc-grid > * { flex: none; overflow: visible; } }

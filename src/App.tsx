@@ -53,6 +53,7 @@ import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
 import SelRecheckPrompt from './components/SelRecheckPrompt';
 import SelLoginGate from './components/SelLoginGate';
+import ClassMessageHost from './components/ClassMessageHost';
 import { lazyFresh } from './lib/freshBuild';
 import GlobalMusicPlayer from './components/GlobalMusicPlayer';
 import { stopGameMusic } from './lib/miniSfx';
@@ -158,6 +159,7 @@ export default function App() {
         <SelLoginGate />
         <CoinDropOverlay />
         <StreakLayer />
+        <ClassMessageHost />
         <GameReportBubble />
         <MainMenu />
         <PetTrainedToast />
