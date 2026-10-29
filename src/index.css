@@ -11176,12 +11176,15 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .rt-steps > span.now { color: var(--rt-dark); }
 .rt-listen { min-width: 48px; min-height: 48px; font-size: 22px; padding: 0 10px; }
 .rt-unlock { background: var(--rt-mustard) !important; animation: rtTap 1.2s ease-in-out infinite; }
-.rt-qs { display: grid; gap: 8px; }
-.rt-q { border: 2px solid #c9bb8a; border-radius: 14px; padding: 10px 12px; background: #fffaf0; display: flex; flex-direction: column; gap: 8px; }
+.rt-qs { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; align-items: start; }
+.rt-q-wrap { display: flex; flex-direction: column; gap: 6px; }
+.rt-q { position: relative; display: flex; align-items: center; gap: 14px; min-height: 64px; width: 100%; text-align: left; border: 2px solid #c9bb8a; border-bottom-width: 4px; border-radius: 16px; padding: 10px 40px 10px 14px; background: #fffaf0; color: #1f2a1e; font: inherit; font-weight: 700; font-size: 1.05rem; cursor: pointer; }
+.rt-q-letter { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: #efe4c4; color: #555034; font-size: 0.95rem; }
+.rt-q.on .rt-q-letter { background: var(--rt-leaf); color: #fff; }
+.rt-q-check { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-style: normal; font-weight: 900; color: var(--rt-leaf); font-size: 1.3rem; }
+.rt-q:focus-visible { outline: 3px solid var(--rt-mustard); }
 .rt-q.on { border-color: var(--rt-leaf); background: #eef0dc; }
-.rt-q label { display: flex; align-items: center; gap: 10px; font-weight: 700; min-height: 44px; cursor: pointer; }
-.rt-q input[type="checkbox"] { width: 28px; height: 28px; accent-color: var(--rt-red); }
-.rt-q-n { display: flex; align-items: center; gap: 12px; }
+.rt-q-n { display: flex; align-items: center; gap: 12px; padding: 0 6px; }
 .rt-q-n input { flex: 1; min-height: 44px; accent-color: var(--rt-red); }
 .rt-q-n b { min-width: 28px; font-size: 1.3rem; text-align: center; }
 .rt-restart { min-height: 48px; }

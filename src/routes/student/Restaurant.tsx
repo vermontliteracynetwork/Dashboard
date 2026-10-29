@@ -112,7 +112,8 @@ const EVENTS = [
 ];
 // How the questions come (Build Queue 468f): the student picks one or more on the main menu.
 interface QSet { closing: boolean; closingN: number; levels: boolean; levelsN: number; events: boolean; upgrades: boolean; upgradesN: number }
-const QS_DEFAULT: QSet = { closing: true, closingN: 2, levels: true, levelsN: 10, events: true, upgrades: true, upgradesN: 1 };
+// Only special events are on at first (Build Queue 470).
+const QS_DEFAULT: QSet = { closing: false, closingN: 2, levels: false, levelsN: 10, events: true, upgrades: false, upgradesN: 1 };
 const YUM = ['yum', 'yummy', 'delicious', 'satisfied', 'momma', 'mmm'] as const;
 const SND = { yum: '/sounds/restaurant/yum.mp3', yummy: '/sounds/restaurant/yummy.mp3', delicious: '/sounds/restaurant/delicious.mp3', satisfied: '/sounds/restaurant/satisfied.mp3', momma: '/sounds/restaurant/momma.mp3', mmm: '/sounds/restaurant/mmm.mp3', meh: '/sounds/restaurant/meh.mp3', bleh: '/sounds/restaurant/bleh.mp3', burn: '/sounds/restaurant/burn.mp3', stoveFlame: '/sounds/restaurant/stove-flame.mp3', lid: '/sounds/restaurant/lid.mp3', scrub: '/sounds/restaurant/scrub.mp3', chop: '/sounds/restaurant/chop-vegetable-fast.mp3', sizzle: '/sounds/restaurant/pan-sizzle-loop.mp3', plate: '/sounds/restaurant/plate-set-down.mp3', timer: '/sounds/restaurant/kitchen-timer-ding.mp3', door: '/sounds/cupcake/cc-door-bell.mp3', cash: '/sounds/cupcake/cc-cash-register.mp3', ovenIn: '/sounds/cupcake/cc-oven-close.mp3', ding: '/sounds/cupcake/bell.mp3', click: '/sounds/cupcake/click.mp3', error: '/sounds/cupcake/lo-negative.mp3', level: '/sounds/cupcake/cc-jingle-perfect-order.mp3', trash: '/sounds/cupcake/lo-confirm.mp3', serve: '/sounds/cupcake/cc-tip-jar.mp3', open: '/sounds/cupcake/cc-jingle-cafe-open.mp3', close: '/sounds/cupcake/cc-jingle-cafe-close.mp3', report: '/sounds/cupcake/cc-jingle-day-earnings.mp3', buy: '/sounds/cupcake/lo-positive.mp3' };
 
@@ -662,15 +663,19 @@ export default function Restaurant() {
             <button type="button" className="btn btn-primary btn-lg" onClick={() => { clip('click'); setPhase('play'); }}>{s.total > 0 ? 'Continue my restaurant' : 'Start my restaurant'}</button>
             <h3>Settings</h3>
             <p className="rt-small">How do you want your questions? Pick one or more.</p>
+            {/* Build Queue 470: laid out like a multiple choice question (lettered answer tiles); a picked tile with a
+                number shows its slider right under it. One or more can be picked, never none. */}
             <div className="rt-qs">
               {([
                 ['closing', 'At closing time and between levels', 'closingN', 1, 5],
                 ['levels', 'Between levels', 'levelsN', 10, 15],
                 ['events', 'To launch special events (5 questions)', null, 0, 0],
                 ['upgrades', 'At every upgrade (ovens, you, your team)', 'upgradesN', 1, 5],
-              ] as const).map(([k, label, nk, min, max]) => (
-                <div key={k} className={`rt-q${qs[k] ? ' on' : ''}`}>
-                  <label><input type="checkbox" checked={qs[k]} onChange={(e) => { const next = { ...qs, [k]: e.target.checked }; if (!next.closing && !next.levels && !next.events && !next.upgrades) { clip('error', true); flash('Pick at least one way to get questions.'); return; } s.qs = next; save(); setTick((n) => n + 1); }} /> {label}</label>
+              ] as const).map(([k, label, nk, min, max], i) => (
+                <div key={k} className="rt-q-wrap">
+                  <button type="button" className={`rt-q${qs[k] ? ' on' : ''}`} aria-pressed={qs[k]} onClick={() => { const next = { ...qs, [k]: !qs[k] }; if (!next.closing && !next.levels && !next.events && !next.upgrades) { clip('error', true); flash('Pick at least one way to get questions.'); return; } clip('click', true); s.qs = next; save(); setTick((n) => n + 1); }}>
+                    <b className="rt-q-letter">{'ABCD'[i]}</b><span>{label}</span>{qs[k] && <i className="rt-q-check" aria-hidden="true">✓</i>}
+                  </button>
                   {nk && qs[k] && <span className="rt-q-n"><input type="range" min={min} max={max} value={qs[nk]} onChange={(e) => { s.qs = { ...qs, [nk]: Number(e.target.value) }; save(); setTick((n) => n + 1); }} aria-label={`${label}: how many questions`} /><b>{qs[nk]}</b></span>}
                 </div>
               ))}
