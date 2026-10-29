@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-bakery-stickers",
+    date: "2026-10-29",
+    icon: "⭐",
+    title: "Bakery Tycoon stickers",
+    body: "Earn 12 stickers in Bakery Tycoon for big moments, like your first baker, 100 trays sold and the Golden oven. Find them in the bakery case.",
+  },
+  {
     id: "2026-10-28-bakery-recipes",
     date: "2026-10-28",
     icon: "📖",

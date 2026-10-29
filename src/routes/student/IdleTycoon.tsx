@@ -41,7 +41,7 @@ const SHOWCASE = ['01-birthday_cake', '02-strawberry_pudding_cake', '03-blueberr
 const SHOWCASE_AT = [50, 300, 1500, 8000, 40000, 200000, 1000000, 5000000, 25000000, 100000000];
 const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Cake', 'Chocolate Cake', 'Orange Cake', 'Bubblegum Cake', 'Brownie Cake', 'Maple Popcorn Cake', 'Double Chocolate Cake', 'Jelly Cake'];
 interface Own { ovens: number; baker: boolean; price?: number }
-interface Shop { coins: number; total: number; whisk?: number; book?: Record<string, number>; oven?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
+interface Shop { coins: number; total: number; whisk?: number; book?: Record<string, number>; stickers?: string[]; orders?: number; oven?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
 const AWAY_MAX_S = 600;
 const STAR_AT = [0, 100, 1000, 10000, 100000];
@@ -141,6 +141,22 @@ interface Order { line: string; who: string; qty: number; tip: number }
 // and one flavor a day is the daily special that sells for double (a tray of the special counts as 2 trays in the sold line).
 const SHOPPERS = ['meowing-cat', 'dainty-pig', 'tiny-chick', 'pasturing-sheep', 'leaping-frog', 'honking-goose', 'th-cat', 'th-hamster', 'clucking-chicken'].map((n) => `/games/supernature/wild/${n}.png`);
 const DAY = Math.floor(Date.now() / 86400000);
+// Build Queue 436 (b): achievement stickers for milestones, each one pixel art the student already knows from the game.
+const traysSold = (sh: Shop) => Object.values(sh.book ?? {}).reduce((a, b) => a + b, 0);
+const STICKERS: { id: string; name: string; img: string; got: (sh: Shop) => boolean }[] = [
+  { id: 'first-sale', name: 'First sale', img: `${ART}treats/cupcakes.png`, got: (sh) => traysSold(sh) >= 1 },
+  { id: 'baker', name: 'First baker', img: `${ART}ui/ic-baker.png`, got: (sh) => Object.values(sh.lines).some((o) => o.baker) },
+  { id: 'trays-100', name: '100 trays sold', img: `${ART}ui/ic-box.png`, got: (sh) => traysSold(sh) >= 100 },
+  { id: 'money-1000', name: '$1,000 earned', img: `${ART}shop/coin.svg`, got: (sh) => sh.total >= 1000 },
+  { id: 'whisk', name: 'First whisk', img: `${ART}ui/whisk-bronze.png`, got: (sh) => (sh.whisk ?? 0) >= 1 },
+  { id: 'order', name: 'First special order', img: `${ART}ui/ic-sign.png`, got: (sh) => (sh.orders ?? 0) >= 1 },
+  { id: 'recipes-10', name: '10 recipes found', img: `${ART}ui/ic-book.png`, got: (sh) => Object.keys(sh.book ?? {}).length >= 10 },
+  { id: 'counters-5', name: '5 counters open', img: `${ART}treats/donuts.png`, got: (sh) => Object.keys(sh.lines).length >= 5 },
+  { id: 'gold-whisk', name: 'Golden Whisk', img: `${ART}ui/whisk-gold.png`, got: (sh) => (sh.whisk ?? 0) >= 2 },
+  { id: 'money-1m', name: '$1,000,000 earned', img: `${ART}ui/star-on.png`, got: (sh) => sh.total >= 1e6 },
+  { id: 'golden-oven', name: 'Golden oven', img: `${ART}factory/oven6.png`, got: (sh) => (sh.oven ?? 0) >= 5 },
+  { id: 'all-counters', name: 'Every counter open', img: `${ART}menu/bs-baguette.png`, got: (sh) => Object.keys(sh.lines).length >= 9 },
+];
 // Build Queue 425 (her words: "use pixel images for bakery tycoon rather than emojis"): every icon on the screen is pixel art
 // from her packs (Pastel UI, the bakery Demo pack, Little Factory), plus a pixel whisk and speaker drawn to match.
 const UI = `${ART}ui/`;
@@ -154,7 +170,7 @@ export default function IdleTycoon() {
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `tycoon:${student.id}` : '';
   const savedShop = (styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Shop> | undefined) ?? {};
-  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, whisk: savedShop.whisk ?? 0, oven: savedShop.oven ?? 0, menu: savedShop.menu, book: savedShop.book ?? {}, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
+  const load = (): Shop => ({ ...fresh(), coins: savedShop.coins ?? 0, total: savedShop.total ?? 0, whisk: savedShop.whisk ?? 0, oven: savedShop.oven ?? 0, menu: savedShop.menu, book: savedShop.book ?? {}, stickers: savedShop.stickers ?? [], orders: savedShop.orders ?? 0, lines: savedShop.lines ?? fresh().lines, savedAt: savedShop.savedAt ?? Date.now() });
   const [shop, setShop] = useState<Shop>(load);
   const [belts, setBelts] = useState<Record<string, Tray[]>>({});
   const [buffs, setBuffs] = useState<Buffs>(NO_BUFFS);
@@ -175,6 +191,7 @@ export default function IdleTycoon() {
   const [menuOpen, setMenuOpen] = useState(false);
   // Build Queue 436 (a): the Recipe book, every flavor sold becomes a card with its count.
   const [bookOpen, setBookOpen] = useState(false);
+  const [newSticker, setNewSticker] = useState<string | null>(null);
   // Build Queue 435: the "i" buttons. One explanation open at a time; everything else stays short.
   const [tipOpen, setTipOpen] = useState<string | null>(null);
   // Treats sold this visit, per counter, for the times sentence ("4 trays × $2 = $8").
@@ -240,6 +257,16 @@ export default function IdleTycoon() {
     if (got > 0) { earn(got, 'away'); setAway(got); window.setTimeout(() => clip('earnings'), 300); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Award any sticker just earned (checked whenever the bakery changes).
+  const stickerKey = `${Math.floor(shop.total)}|${traysSold(shop)}|${Object.keys(shop.lines).length}|${Object.values(shop.lines).filter((o) => o.baker).length}|${shop.whisk}|${shop.oven}|${shop.orders}|${Object.keys(shop.book ?? {}).length}`;
+  useEffect(() => {
+    const have = shopRef.current.stickers ?? [];
+    const fresh = STICKERS.filter((k) => !have.includes(k.id) && k.got(shopRef.current));
+    if (!fresh.length) return;
+    setS({ ...shopRef.current, stickers: [...have, ...fresh.map((k) => k.id)] });
+    clip('star'); setNewSticker(fresh[fresh.length - 1].id);
+    window.setTimeout(() => setNewSticker((x) => (x === fresh[fresh.length - 1].id ? null : x)), 3500);
+  }, [stickerKey]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { preloadClips(Object.values(SND)); }, []);
   useEffect(() => { setCafeMusicVolume(musicVol); lsSet('ty-music', musicVol); }, [musicVol]);
   useEffect(() => { lsSet('ty-sfx', sfxVol); setCafeSfxVolume(sfxVol); }, [sfxVol]);
@@ -393,7 +420,7 @@ export default function IdleTycoon() {
   const takeOrder = () => {
     if (!order) return; const o = order;
     askQ(`Answer to deliver ${o.qty} ${LINES.find((l) => l.id === o.line)!.name.toLowerCase()} to ${o.who}!`, () => {
-      setOrder(null); earn(o.tip, 'order'); setShower(Date.now()); clip('tip'); window.setTimeout(() => clip('gold'), 250);
+      setOrder(null); earn(o.tip, 'order'); setS({ ...shopRef.current, orders: (shopRef.current.orders ?? 0) + 1 }); setShower(Date.now()); clip('tip'); window.setTimeout(() => clip('gold'), 250);
       flash(`Delivered! ${o.who} tipped you ${money(o.tip)}.`);
     });
   };
@@ -531,10 +558,14 @@ export default function IdleTycoon() {
               </div>
             ); })}
           </div>
+          <div className="ty6-casehead ty7-sthead"><h3>Stickers <small>{(shop.stickers ?? []).length} of {STICKERS.length}</small></h3>{info('stickers', 'stickers')}</div>
+          {tip('stickers', <>Stickers come from big moments: {STICKERS.map((k) => k.name).join(', ')}.</>)}
+          <div className="ty7-stickers">{STICKERS.map((k) => { const on = (shop.stickers ?? []).includes(k.id); return <span key={k.id} className={`ty7-st${on ? ' on' : ''}${newSticker === k.id ? ' new' : ''}`} title={k.name}><img src={k.img} alt={on ? k.name : 'A sticker to earn'} /></span>; })}</div>
           <div className="ty3-cakes">{SHOWCASE.map((c, i) => <img key={c} className={shop.total >= SHOWCASE_AT[i] ? 'got' : ''} src={`${ART}showcase/${c}.png`} alt={shop.total >= SHOWCASE_AT[i] ? SHOWCASE_NAME[i] : 'A cake still to unlock'} title={shop.total >= SHOWCASE_AT[i] ? SHOWCASE_NAME[i] : money(SHOWCASE_AT[i])} />)}</div>
         </section>
       </main>
       {note && <p className="ty3-note" role="status">{note}</p>}
+      {newSticker && (() => { const k = STICKERS.find((x) => x.id === newSticker)!; return <div className="ty7-toast" role="status"><span className="ty7-st on new"><img src={k.img} alt="" /></span><span><small>New sticker</small><b>{k.name}</b></span></div>; })()}
       {shower > 0 && <div key={shower} className="ty5-shower" aria-hidden>{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ left: `${5 + i * 6.5}%`, animationDelay: `${(i % 5) * 0.08}s` }}>$</i>)}</div>}
       {bookOpen && (() => {
         const bk = shop.book ?? {}, all = LINES.flatMap((l) => FLAVORS[l.id]), found = all.filter((f) => bk[f.id]).length;
