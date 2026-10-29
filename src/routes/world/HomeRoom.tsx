@@ -1524,6 +1524,8 @@ export default function HomeRoom() {
         key={activeRoom.id}
         camera={{ position: [0, 9, 11], fov: 50 }}
         shadows
+        // Build Queue 442: at most 1.5 times the screen's pixels (an iPad is 2 times), the biggest cost on an iPad.
+        dpr={[1, 1.5]}
         // Right-drag is the deliberate Sims 4-style rotate gesture (see
         // OrbitControls below) — without this, the browser's own
         // right-click menu ate the click before a drag could start.

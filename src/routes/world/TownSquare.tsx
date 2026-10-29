@@ -5,7 +5,7 @@ import { withPersonality } from '../../lib/npcPersonality';
 import { MenuItems, openMainMenu } from '../../lib/mainMenu';
 import GroundPatchMesh from './GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
-import { useGLTF, Html, useTexture, useAnimations, Line, Text } from '@react-three/drei';
+import { useGLTF, Html, useTexture, useAnimations, Line, Text, PerformanceMonitor } from '@react-three/drei';
 import { clone as cloneSkinned } from 'three/examples/jsm/utils/SkeletonUtils.js';
 import * as THREE from 'three';
 import { applyPetLook } from '../../lib/petCoats';
@@ -3055,11 +3055,28 @@ function CameraLookButtons({ cameraLook, cameraPitch, side, bottom }: { cameraLo
   );
 }
 
+// Build Queue 442 (her words: "its like the dashboard in general (specifically the main town square view)" running "super
+// slow and laggy"). Two fixes. (1) Town Square used to rebuild the whole 3D town whenever any classmate's record changed
+// (every coin, check in or task anywhere in the class arrives live). Other students only matter here for their home lots
+// (who lives where, by name), so this selector keeps the same list until the class roster or names change, or this
+// student's own record changes. (2) The Canvas draws at most 1.5 times the screen's pixels (an iPad is 2 times), and drops
+// to 1 time if the frame rate falls (drei's PerformanceMonitor), the biggest single cost on an iPad.
+type TownStudent = ReturnType<typeof useStore.getState>['students'][number];
+const townStudentsCache: { prev: TownStudent[] } = { prev: [] };
+const selectTownStudents = (s: ReturnType<typeof useStore.getState>): TownStudent[] => {
+  const prev = townStudentsCache.prev, next = s.students, cur = s.currentStudentId;
+  if (prev.length === next.length && next.every((st, i) => st === prev[i] || (st.id !== cur && prev[i].id === st.id && prev[i].name === st.name))) return prev;
+  townStudentsCache.prev = next;
+  return next;
+};
+const TOWN_DPR_MAX = Math.min(1.5, typeof window === 'undefined' ? 1 : window.devicePixelRatio || 1);
+
 export default function TownSquare() {
+  const [townDpr, setTownDpr] = useState(TOWN_DPR_MAX);
   useLockBodyScroll();
   const navigate = useNavigate();
   const currentStudentId = useStore((s) => s.currentStudentId);
-  const students = useStore((s) => s.students);
+  const students = useStore(selectTownStudents);
   // Filtered to the shared Town Square only (studentId undefined) — a real
   // bug this pass closes: every student's private Home Room furniture (and
   // now walls) used to render here too, unfiltered, which is exactly the
@@ -5092,7 +5109,8 @@ export default function TownSquare() {
         </div>
       )}
 
-      <Canvas shadows camera={{ position: [0, 3.8, 12], fov: 50, far: 2500 }}>
+      <Canvas shadows dpr={townDpr} gl={{ powerPreference: 'high-performance' }} camera={{ position: [0, 3.8, 12], fov: 50, far: 2500 }}>
+        <PerformanceMonitor onDecline={() => setTownDpr(1)} onIncline={() => setTownDpr(TOWN_DPR_MAX)} flipflops={3} onFallback={() => setTownDpr(1)} />
         <WaterAmbience off={waterSoundOff} listener={() => playerPosRef.current} />
         <TownSizeContext.Provider value={townSizeRule}>
         {/* Direct teacher report, live screenshot: dark jagged shapes on
