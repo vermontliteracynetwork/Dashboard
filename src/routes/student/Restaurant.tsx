@@ -528,9 +528,11 @@ export default function Restaurant() {
     hint(G.guests.some((x) => x.table === i && x.state === 'eat') ? 'They are eating. Clean up after they go.' : 'This table is clean.');
   };
   const atTrash = () => {
-    const n = G.me.hands.filter((h) => h.item === 'trash' || h.burnt).length;
-    if (!n) return hint('Bring dirty plates or burnt pizza here.');
-    G.me.hands = G.me.hands.filter((h) => h.item !== 'trash' && !h.burnt); clip('lid'); pop('Clean!', TRASH);
+    // Anything carried can go in the trash (Build Queue 488): plates, burnt batches, and good pizzas too.
+    const n = G.me.hands.length;
+    if (!n) return hint('Carry something here to throw it away.');
+    const good = pizzasIn(G.me.hands).length;
+    G.me.hands = []; clip('lid'); pop(good ? `Tossed ${good} pizza${good === 1 ? '' : 's'}` : 'Clean!', TRASH);
   };
   const atWindow = () => {
     const car = G.cars.find((c) => c.state === 'wait');
