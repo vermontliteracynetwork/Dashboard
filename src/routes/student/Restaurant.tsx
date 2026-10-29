@@ -168,6 +168,9 @@ function RegisterQuiz({ onEarn, onClose, tts }: { onEarn: (n: number) => void; o
       onExit={() => onClose(total)} />
   );
 }
+// Prices, all in $25 steps (Build Queue 485): tables $75 to $175, training $25 to $75 for you and $50 to $150 for the team.
+const tableCost = (have: number) => 50 + 25 * have;
+const trainCost = (who: 'me' | 'server' | 'cook', lvl: number) => (who === 'me' ? 25 : 50) * (lvl + 1);
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 // Five stars, white to start, filled in gold to the average (Build Queue 478).
 function Stars({ value, small }: { value: number; small?: boolean }) {
@@ -181,14 +184,14 @@ function Stars({ value, small }: { value: number; small?: boolean }) {
 
 // Decorations: each has its own empty spot in the room, like Farm Grow's empty plots (Build Queue 462).
 const DECOR: { id: string; name: string; model: string; img: string; at: P; fit: number; rot?: number; lift?: number; cost: number }[] = [
-  { id: 'plant', name: 'House plant', model: '/world/models/interior/houseplant-1.glb', img: `${ICON}d-plant1.png`, at: { x: 0, y: 4 }, fit: 0.6, cost: 60 },
-  { id: 'lamp', name: 'Floor lamp', model: '/world/models/interior/light-floor1.glb', img: `${ICON}d-lamp.png`, at: { x: 0, y: 6 }, fit: 0.45, cost: 120 },
-  { id: 'board', name: 'Menu board', model: '/world/models/props/sandwich-board.glb', img: `${ICON}d-board.png`, at: { x: 10, y: 4 }, fit: 0.6, rot: -0.4, cost: 150 },
-  { id: 'tree', name: 'Potted tree', model: '/world/models/props/potted_tree.glb', img: `${ICON}d-tree.png`, at: { x: 12, y: 3 }, fit: 0.7, cost: 200 },
-  { id: 'cactus', name: 'Cactus', model: '/world/models/props/cactus.glb', img: `${ICON}d-cactus.png`, at: { x: 1, y: 4 }, fit: 0.55, cost: 220 },
-  { id: 'rug', name: 'Round rug', model: '/world/models/interior/carpet-round.glb', img: `${ICON}d-rug.png`, at: { x: 4, y: 5 }, fit: 1.3, cost: 260 },
-  { id: 'plant6', name: 'Big plant', model: '/world/models/interior/houseplant-6.glb', img: `${ICON}d-plant6.png`, at: { x: 13, y: 2 }, fit: 0.7, cost: 300 },
-  { id: 'arcade', name: 'Arcade game', model: '/world/models/restaurant/Arcade_Cabinet.glb', img: `${ICON}d-arcade.png`, at: { x: 3, y: 4 }, fit: 0.8, cost: 400 },
+  { id: 'plant', name: 'House plant', model: '/world/models/interior/houseplant-1.glb', img: `${ICON}d-plant1.png`, at: { x: 0, y: 4 }, fit: 0.6, cost: 25 },
+  { id: 'lamp', name: 'Floor lamp', model: '/world/models/interior/light-floor1.glb', img: `${ICON}d-lamp.png`, at: { x: 0, y: 6 }, fit: 0.45, cost: 50 },
+  { id: 'board', name: 'Menu board', model: '/world/models/props/sandwich-board.glb', img: `${ICON}d-board.png`, at: { x: 10, y: 4 }, fit: 0.6, rot: -0.4, cost: 75 },
+  { id: 'tree', name: 'Potted tree', model: '/world/models/props/potted_tree.glb', img: `${ICON}d-tree.png`, at: { x: 12, y: 3 }, fit: 0.7, cost: 100 },
+  { id: 'cactus', name: 'Cactus', model: '/world/models/props/cactus.glb', img: `${ICON}d-cactus.png`, at: { x: 1, y: 4 }, fit: 0.55, cost: 100 },
+  { id: 'rug', name: 'Round rug', model: '/world/models/interior/carpet-round.glb', img: `${ICON}d-rug.png`, at: { x: 4, y: 5 }, fit: 1.3, cost: 125 },
+  { id: 'plant6', name: 'Big plant', model: '/world/models/interior/houseplant-6.glb', img: `${ICON}d-plant6.png`, at: { x: 13, y: 2 }, fit: 0.7, cost: 150 },
+  { id: 'arcade', name: 'Arcade game', model: '/world/models/restaurant/Arcade_Cabinet.glb', img: `${ICON}d-arcade.png`, at: { x: 3, y: 4 }, fit: 0.8, cost: 200 },
 ];
 // The back of the kitchen and the fixed furniture.
 const FIXED: Placed[] = [
@@ -553,7 +556,9 @@ export default function Restaurant() {
   const qs: QSet = { ...QS_DEFAULT, ...(s.qs ?? {}) };
   const levelQ = qs.levels ? qs.levelsN : qs.closing ? qs.closingN : 0;
   // Upgrade questions follow the price (Build Queue 479): one question for every $10, so an $80 table is 8 questions.
-  const qFor = (cost: number) => (qs.upgrades ? Math.max(1, Math.round(cost / 10)) : 0);
+  // Build Queue 485 replaced 479: every price is a multiple of $25, one question per $25, and never more than 10
+  // questions; only the big upgrades (third oven, a cook, the top oven) cost $250 and 10 questions.
+  const qFor = (cost: number) => (qs.upgrades ? Math.min(10, Math.max(1, Math.round(cost / 25))) : 0);
   const plural = (n: number) => `${n} question${n === 1 ? '' : 's'}`;
   const gate = (label: string, n: number, act: () => void, onCancel?: () => void) => { if (n > 0) ask(label, act, onCancel, n); else act(); };
   // Answering closes the level message first, so the questions are in front (Build Queue 468e).
@@ -567,13 +572,13 @@ export default function Restaurant() {
   };
   const train = (who: 'me' | 'server' | 'cook', k: keyof Skill) => {
     const sk = who === 'me' ? s.me : s[who]; if (!sk) return; const lvl = sk[k]; if (lvl >= 3) return;
-    const cost = (who === 'me' ? 80 : 150) * (lvl + 1) * THEME_PAY[s.theme];
+    const cost = trainCost(who, lvl);
     const doIt = () => { if (spend(cost)) { sk[k] = lvl + 1; save(); flash(`${who === 'me' ? 'You' : who === 'server' ? 'Your server' : 'Your cook'} got better: ${k === 'speed' ? 'faster' : k === 'carry' ? 'carries a taller tower' : 'more careful (slower to burn, bigger tips)'}!`); } };
     if (s.money < cost) { clip('error'); flash(`You need ${fmt(cost - s.money)} more.`); return; }
     gate(`Answer ${plural(qFor(cost))} to train ${who === 'me' ? 'yourself' : `your ${who}`}!`, qFor(cost), doIt);
   };
   // Neighbors can be hired (Build Queue 468h): the student picks who, and that Neighbor works in their own look.
-  const HIRE_COST = { server: 300, cook: 600 };
+  const HIRE_COST = { server: 200, cook: 250 };
   const hire = (who: 'server' | 'cook', npc: string) => {
     const cost = HIRE_COST[who];
     if (s.money < cost) { clip('error'); flash(`You need ${fmt(cost - s.money)} more.`); return; }
@@ -614,7 +619,7 @@ export default function Restaurant() {
         badge: st.state === 'cook' ? <i className="rt-bar3"><em style={{ width: `${(st.t / bakeT) * 100}%` }} /></i> : st.state === 'ready' ? <b className="rt-ready3">{st.n} ready!</b> : st.state === 'burnt' ? <b className="rt-ready3 burnt">Burnt</b> : undefined,
         children: <ModelAt url={OVEN_MODELS[s.theme] ?? OVEN_MODELS[0]} fit={0.92} /> });
     } else if (i === s.ovens) {
-      const need = i === 1 ? 2 : 8, cost = i === 1 ? 150 : 800;
+      const need = i === 1 ? 2 : 8, cost = i === 1 ? 150 : 250;
       stations.push({ key: `oven${i}`, at: o, label: 'Empty oven spot', tag: s.claimed >= need ? `+ Oven ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy('An oven', cost, need, () => { if (spend(cost)) s.ovens = i + 1; }), children: <EmptySpot /> });
     }
   });
@@ -625,7 +630,7 @@ export default function Restaurant() {
   TABLES.forEach((p, i) => {
     const cap = lvOk(8) ? 6 : lvOk(2) ? 3 : 1;
     if (i < s.tables) stations.push({ key: `table${i}`, at: p, label: `Table ${i + 1}`, onTap: () => go(use.table(i), () => atTable(i)), children: <TableSet /> });
-    else if (i === s.tables) { const need = i < 3 ? 2 : 8, cost = 80 * s.tables; stations.push({ key: `table${i}`, at: p, label: 'Empty table spot', tag: i < cap ? `+ Table ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy(`Table ${i + 1}`, cost, i < cap ? 0 : need, () => { if (spend(cost)) s.tables += 1; }), children: <EmptySpot /> }); }
+    else if (i === s.tables) { const need = i < 3 ? 2 : 8, cost = tableCost(s.tables); stations.push({ key: `table${i}`, at: p, label: 'Empty table spot', tag: i < cap ? `+ Table ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy(`Table ${i + 1}`, cost, i < cap ? 0 : need, () => { if (spend(cost)) s.tables += 1; }), children: <EmptySpot /> }); }
     else stations.push({ key: `table${i}`, at: p, label: 'Empty spot', onTap: () => { clip('error', true); flash('Add the tables in order: buy the marked spot first.'); }, children: <EmptySpot faint /> });
   });
   DECOR.forEach((d) => {
@@ -736,7 +741,7 @@ export default function Restaurant() {
                 ['closing', 'At closing time and between levels', 'closingN', 1, 5],
                 ['levels', 'Between levels', 'levelsN', 10, 15],
                 ['events', 'To launch special events (5 questions)', null, 0, 0],
-                ['upgrades', 'At every upgrade: 1 question for every $10 it costs', null, 0, 0],
+                ['upgrades', 'At every upgrade: 1 question for every $25 (never more than 10)', null, 0, 0],
               ] as const).map(([k, label, nk, min, max], i) => (
                 <div key={k} className="rt-q-wrap">
                   <button type="button" className={`rt-q${qs[k] ? ' on' : ''}`} aria-pressed={qs[k]} onClick={() => { const next = { ...qs, [k]: !qs[k] }; if (!next.closing && !next.levels && !next.events && !next.upgrades) { clip('error', true); flash('Pick at least one way to get questions.'); return; } clip('click', true); s.qs = next; save(); setTick((n) => n + 1); }}>
@@ -810,9 +815,9 @@ export default function Restaurant() {
             <div className="rt-tabs">{(['build', 'workers', 'decor'] as const).map((t) => <button key={t} type="button" className={`btn${shop === t ? ' btn-primary' : ''}`} onClick={() => setShop(t)}>{t === 'build' ? 'Kitchen and tables' : t === 'workers' ? 'Workers and you' : 'Decorate'}</button>)}</div>
             {shop === 'build' && <div className="rt-items">
               {[{ name: 'Second oven', ok: lvOk(2) && s.ovens < 2, need: 2, cost: 150, act: () => { if (spend(150)) s.ovens = 2; } },
-                { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 800, act: () => { if (spend(800)) s.ovens = 3; } },
-                { name: `Table ${s.tables + 1}`, ok: s.tables < (lvOk(8) ? 6 : lvOk(2) ? 3 : 1), need: s.tables < 3 ? 2 : 8, cost: 80 * s.tables, act: () => { if (spend(80 * s.tables)) s.tables += 1; } },
-                { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 120 * (s.ovenLv + 1), act: () => { if (spend(120 * (s.ovenLv + 1))) s.ovenLv += 1; } },
+                { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 250, act: () => { if (spend(250)) s.ovens = 3; } },
+                { name: `Table ${s.tables + 1}`, ok: s.tables < (lvOk(8) ? 6 : lvOk(2) ? 3 : 1), need: s.tables < 3 ? 2 : 8, cost: tableCost(s.tables), act: () => { if (spend(tableCost(s.tables))) s.tables += 1; } },
+                { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 50 * (s.ovenLv + 1), act: () => { if (spend(50 * (s.ovenLv + 1))) s.ovenLv += 1; } },
               ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(qFor(it.cost))} for this upgrade!`, qFor(it.cost), () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : s.claimed < it.need ? `Level ${it.need}` : 'Got it'}</span></button>)}
             </div>}
             {shop === 'workers' && <div className="rt-items">
@@ -824,7 +829,7 @@ export default function Restaurant() {
                     <b>{who === 'me' ? 'You' : who === 'server' ? 'Server' : 'Cook'}</b>
                     {who !== 'me' && sk && <small>{profiles[s.staff?.[who] ?? '']?.name ?? 'Your helper'} <button type="button" className="btn btn-sm rt-letgo" onClick={() => { const w = who as 'server' | 'cook'; s[w] = undefined; s.staff = { ...(s.staff ?? {}), [w]: undefined }; G[w].path = route(G[w], DOOR); G[w].hands = []; save(); setTick((n) => n + 1); flash('They are dismissed. You can hire someone new any time.'); }}>Dismiss</button></small>}
                     {!sk ? <button type="button" className="btn rt-item" disabled={!canHire} onClick={() => { setShop(null); setPicker(who as 'server' | 'cook'); }}><b>Hire a Neighbor</b><span>{canHire ? fmt(HIRE_COST[who as 'server' | 'cook']) : `Level ${who === 'server' ? 3 : 7}`}</span></button>
-                      : (['speed', 'carry', 'acc'] as const).map((k) => <button key={k} type="button" className="btn rt-item" disabled={sk[k] >= 3 || !lvOk(2)} onClick={() => { setShop(null); train(who, k); }}><b>{k === 'speed' ? 'Faster' : k === 'carry' ? 'Taller tower' : 'More careful'} {sk[k]}/3</b><span>{sk[k] >= 3 ? 'Best' : fmt((who === 'me' ? 80 : 150) * (sk[k] + 1) * THEME_PAY[s.theme])}</span></button>)}
+                      : (['speed', 'carry', 'acc'] as const).map((k) => <button key={k} type="button" className="btn rt-item" disabled={sk[k] >= 3 || !lvOk(2)} onClick={() => { setShop(null); train(who, k); }}><b>{k === 'speed' ? 'Faster' : k === 'carry' ? 'Taller tower' : 'More careful'} {sk[k]}/3</b><span>{sk[k] >= 3 ? 'Best' : fmt(trainCost(who, sk[k]))}</span></button>)}
                   </div>
                 );
               })}
