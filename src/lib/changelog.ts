@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-bakery-bubbles",
+    date: "2026-10-29",
+    icon: "💬",
+    title: "Happy customers",
+    body: "Bakery Tycoon customers now show how they feel when they buy, with little hearts, stars and treats in a speech bubble.",
+  },
+  {
     id: "2026-10-29-bakery-rush",
     date: "2026-10-29",
     icon: "⚡",

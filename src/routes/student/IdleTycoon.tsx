@@ -146,6 +146,8 @@ interface Order { line: string; who: string; qty: number; tip: number }
 // and one flavor a day is the daily special that sells for double (a tray of the special counts as 2 trays in the sold line).
 const SHOPPERS = ['meowing-cat', 'dainty-pig', 'tiny-chick', 'pasturing-sheep', 'leaping-frog', 'honking-goose', 'th-cat', 'th-hamster', 'clucking-chicken'].map((n) => `/games/supernature/wild/${n}.png`);
 const DAY = Math.floor(Date.now() / 86400000);
+// Build Queue 436 (e): what a customer says when it buys, as a pixel picture in a speech bubble (a heart, a star, the coin, or the treat itself).
+const SAYS = ['ic-heart', 'star-on', 'coin', 'treat', 'ic-heart'];
 // Build Queue 436 (b): achievement stickers for milestones, each one pixel art the student already knows from the game.
 const traysSold = (sh: Shop) => Object.values(sh.book ?? {}).reduce((a, b) => a + b, 0);
 const STICKERS: { id: string; name: string; img: string; got: (sh: Shop) => boolean }[] = [
@@ -204,7 +206,7 @@ export default function IdleTycoon() {
   const [tipOpen, setTipOpen] = useState<string | null>(null);
   // Treats sold this visit, per counter, for the times sentence ("4 trays × $2 = $8").
   const [sold, setSold] = useState<Record<string, { n: number; v: number }>>({});
-  const [shoppers, setShoppers] = useState<Record<string, { id: number; src: string }[]>>({});
+  const [shoppers, setShoppers] = useState<Record<string, { id: number; src: string; say: string }[]>>({});
   const shopperId = useRef(0);
   const sfxRef = useRef(sfxVol); sfxRef.current = sfxVol;
   const clip = (k: keyof typeof SND, soft = false) => { if (sfxRef.current > 0) playClip(SND[k], (sfxRef.current / 5) * (soft ? 0.35 : 0.9)); };
@@ -323,8 +325,9 @@ export default function IdleTycoon() {
           earn(v * units, l.id);
           { const bk = { ...(shopRef.current.book ?? {}) }; let fresh = false; for (const f of soldF) { if (!bk[f]) fresh = true; bk[f] = (bk[f] ?? 0) + 1; } const ol = shopRef.current.lines[l.id], before = bakerLv(ol), no = { ...ol, sold: (ol.sold ?? 0) + soldNow }; setS({ ...shopRef.current, book: bk, lines: { ...shopRef.current.lines, [l.id]: no } }); if (no.baker && bakerLv(no) > before) { once('glock', 500); flash(`The ${l.name} baker leveled up! Level ${bakerLv(no)}: ${BAKER_SPEED[bakerLv(no)]} times as fast.`); } if (fresh) { once('recipe', 500); flash(`New recipe in your Recipe book: ${flavor(l.id, soldF[0]).name}!`); } }
           setSold((s) => ({ ...s, [l.id]: { n: (s[l.id]?.v === v ? s[l.id].n : 0) + units, v } }));
-          const sid = ++shopperId.current, src = SHOPPERS[sid % SHOPPERS.length], lid = l.id;
-          setShoppers((s) => ({ ...s, [lid]: [...(s[lid] ?? []).slice(-1), { id: sid, src }] }));
+          const sid = ++shopperId.current, src = SHOPPERS[sid % SHOPPERS.length], lid = l.id, sayK = SAYS[Math.floor(Math.random() * SAYS.length)];
+          const say = sayK === 'coin' ? `${ART}shop/coin.svg` : sayK === 'treat' ? flavor(l.id, soldF[0]).img : `${ART}ui/${sayK}.png`;
+          setShoppers((s) => ({ ...s, [lid]: [...(s[lid] ?? []).slice(-1), { id: sid, src, say }] }));
           window.setTimeout(() => setShoppers((s) => ({ ...s, [lid]: (s[lid] ?? []).filter((x) => x.id !== sid) })), 1800);
           once(o.baker ? 'coins' : 'cash', 350, o.baker);
         }
@@ -536,7 +539,7 @@ export default function IdleTycoon() {
                     <div className="ty5-zones" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}${st === i ? ' now' : ''}`} style={{ flexGrow: s2.part }}>{['Mix', 'Bake', 'Sell'][i]}</span>)}</div>
                     <div className={`ty5-track${trays.length ? ' moving' : ''}`}>
                       {STAGES.map((s2, i) => <img key={s2.key} className={`ty5-mach m-${s2.key}${st === i ? ' on' : ''}`} style={{ left: `${(STAGE_START[i] + s2.part / 2) * 100}%` }} src={i === 1 ? ovenImg(ovenLv) : s2.art} alt="" aria-hidden />)}
-                      {(shoppers[l.id] ?? []).map((c) => <span key={c.id} className="ty5-shopper" style={{ backgroundImage: `url(${c.src})` }} aria-hidden />)}
+                      {(shoppers[l.id] ?? []).map((c) => <span key={c.id} className="ty5-shopper" style={{ backgroundImage: `url(${c.src})` }} aria-hidden><span className="ty9-say"><img src={c.say} alt="" /></span></span>)}
                       {trays.map((tr) => <button key={tr.id} type="button" className={`ty5-item s${stageOf(tr.p)}${isSp && sp?.f === tr.f ? ' special' : ''}`} style={{ left: `${Math.min(1, tr.p) * 100}%` }} onPointerDown={(e) => { e.preventDefault(); nudge(l, tr.id); }} aria-label={`Tap to push this ${flavor(l.id, tr.f).name.toLowerCase()} tray along`}><img src={flavor(l.id, tr.f).img} alt="" draggable={false} /></button>)}
                     </div>
                     <div className="ty5-prog" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}`} style={{ flexGrow: s2.part }}><i style={{ width: `${front ? Math.max(0, Math.min(1, (front.p - STAGE_START[i]) / s2.part)) * 100 : 0}%` }} /></span>)}</div>
