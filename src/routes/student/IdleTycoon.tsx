@@ -139,7 +139,7 @@ interface Tray { id: number; p: number; f: string }
 // One treat's price: the counter's base price × (price level + 1), so the prices skip count (1, 2, 3, 4...).
 const unitPrice = (l: Line, o: Own) => l.income * ((o.price ?? 0) + 1);
 const priceCost = (l: Line, lv: number) => Math.round(l.base * 3 * Math.pow(1.8, lv));
-const money = (n: number) => `$${n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e7 ? 0 : 1)}M` : Math.floor(n).toLocaleString()}`;
+const money = (n: number) => `$${n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)}M` : Math.floor(n).toLocaleString()}`;
 const WHO = ['Rosa', 'Mr. Lee', 'Coach Kim', 'Grandpa Joe', 'the school library', 'a birthday party', 'the art club', 'Dr. Patel', 'the fire station', 'Auntie Mae'];
 interface Order { line: string; who: string; qty: number; tip: number }
 // Build Queue 434: animal customers from her Supernature packs walk up to the shop case and leave with each tray (decoration),
@@ -465,7 +465,7 @@ export default function IdleTycoon() {
         <button type="button" className="btn" onClick={() => { save(); clip('saved'); flash('Your bakery is saved.'); }} aria-label="Save"><Px src="ic-check" /><span className="ty7-lbl">Save</span></button>
         <h1 className="ty6-sr">Bakery Tycoon</h1>
         <span className="ty5-money" aria-live="polite" aria-label={`Bakery money: ${money(shop.coins)}`}>
-          <small>Bakery money</small><b key={Math.floor(shop.coins)}>${Math.floor(shop.coins).toLocaleString()}</b>
+          <small>Bakery money</small><b key={Math.floor(shop.coins)} style={{ ['--len' as string]: String(`$${Math.floor(shop.coins).toLocaleString()}`.length) }}>${Math.floor(shop.coins).toLocaleString()}</b>
           {pops.slice(-3).map((p) => <i key={p.id} className="ty5-moneypop" aria-hidden>{p.text}</i>)}
         </span>
         <span className="ty4-stars" aria-label={`${stars} of 5 stars`}>{STAR_AT.map((_, i) => <Px key={i} src={i < stars ? 'star-on' : 'star-off'} size={20} />)}</span>
@@ -533,18 +533,20 @@ export default function IdleTycoon() {
             return (
               <div key={l.id} className={`ty5-line${trays.length ? ' busy' : ''}${sparkle[l.id] ? ' sparkle' : ''}`}>
                 {sparkle[l.id] && <span className="ty9-spark" aria-hidden>{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <img key={i} src={`${ART}ui/star-on.png`} alt="" style={{ ['--a' as string]: `${i * 45}deg` }} />)}</span>}
+                <div className="ty5-tapcol">
                 <button type="button" className={`ty5-tap${full ? ' full' : ''}${!trays.length && !o.baker ? ' hint' : ''}`} onClick={() => tap(l)} aria-label={`Tap to bake ${l.name}. Each tray sells for ${money(tv)}.`}>
                   <img src={flavor(l.id, trays[trays.length - 1]?.f).img} alt="" draggable={false} />
                   <b>{full ? 'Belt full' : '+ Tray'}</b>
                   {o.baker && <i className={`ty4-baker lv${bakerLv(o)}`} style={{ backgroundImage: `url(${FX}baker${(LINES.indexOf(l) % 4) + 1}.png)` }} aria-hidden />}
                 </button>
-                <div className="ty5-mid">
-                  <div className="ty5-title"><b>{l.name}</b><span className="ty5-math">{o.ovens} × {money(up)} = {money(up * o.ovens)}{bonus > 0 && <em> +{Math.round(bonus * 100)}%</em>}</span>{n > 0 && <span className="ty5-soldline">Sold {n} × {money(tv)} = {money(n * tv)}</span>}
                     {(() => { const left = Math.max(0, RUSH_WAIT - (Date.now() - (rushAt[l.id] ?? 0)) / 1000); const ready = left <= 0; return (
                       <button type="button" className={`btn ty8-rush${ready && trays.length ? ' ready' : ''}`} disabled={!ready} onClick={() => rush(l)} aria-label={ready ? `Rush every ${l.name} tray forward` : `Rush recharging, ${Math.ceil(left)} seconds`} style={{ ['--rush' as string]: `${(1 - left / RUSH_WAIT) * 100}%` }}>
                         <Px src="ic-bolt" size={18} />{ready ? 'Rush' : `${Math.ceil(left)}s`}
                       </button>
                     ); })()}
+                </div>
+                <div className="ty5-mid">
+                  <div className="ty5-title"><b>{l.name}</b><span className="ty5-math">{o.ovens} × {money(up)} = {money(up * o.ovens)}{bonus > 0 && <em> +{Math.round(bonus * 100)}%</em>}</span>{n > 0 && <span className="ty5-soldline">Sold {n} × {money(tv)} = {money(n * tv)}</span>}
                     {info(`line-${l.id}`, l.name)}
 </div>
                   <div className="ty5-belt">

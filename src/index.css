@@ -11037,3 +11037,48 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .cmc-screen .cm-pop { max-height: 736px; }
 .cm-listen { position: static; align-self: flex-end; margin: -10px -8px -6px 0; }
 @media (max-width: 1000px) { .cmc-grid { display: flex; flex-direction: column; overflow-y: auto; } .cmc-grid > * { flex: none; overflow: visible; } }
+/* Build Queue 446: Bakery Tycoon on a student iPad (her screenshot at about 1000 by 570). The money counter shrinks to fit
+   its number, Rush sits under + Tray, upgrade buttons stack their price under the label so nothing is cut off, money pops
+   stay over the belt, long labels end with "...", the header leaves room for the round Menu button, and every Bakery
+   window opens above everything else. */
+.ty5 .pf-overlay { z-index: 400; }
+.ty5-head { padding-right: 84px; }
+.ty5-money { min-width: 0; max-width: 34vw; padding: 2px 14px 4px; }
+.ty5-money b { font-size: min(3.2rem, calc(30vw / (var(--len, 4) * 0.78))); white-space: nowrap; }
+.ty5-moneypop { top: auto; bottom: -14px; right: 4px; font-size: .95rem; }
+.ty5-tapcol { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
+.ty5-tapcol .ty8-rush { margin: 0; min-width: 0; width: 100%; }
+.ty5-title { flex-wrap: wrap; align-items: baseline; } .ty5-title .ty6-i { margin-left: auto; }
+.ty5-soldline { flex-basis: 100%; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ty5-pop { top: auto; bottom: 30px; right: 6px; }
+.ty5-up { grid-template-columns: minmax(0, 1fr); row-gap: 0; padding: 4px 8px; }
+.ty5-up span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ty5-up em { grid-column: 1; grid-row: auto; justify-self: end; font-size: .9rem; }
+.ty5-up.done small, .ty8-baker small { grid-column: 1; }
+.ty8-baker { grid-template-columns: minmax(0, 1fr) auto; } .ty8-baker .ty8-pips { grid-row: 1; grid-column: 2; }
+.ty6-txt small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ty5 .ty6-casehead h2 { font-size: .9rem; }
+.ty5-line { min-width: 0; } .ty5-mid { min-width: 0; }
+@media (max-width: 1100px) and (orientation: landscape) {
+  .ty5 .ty5-main { grid-template-columns: 230px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .ty5 .ty5-left { grid-row: 1; grid-column: 1; }
+  .ty5 .ty5-lines { grid-row: 1 / span 2; grid-column: 2; }
+  .ty5 .ty3-case { grid-row: 2; grid-column: 1; overflow-y: auto; min-height: 0; }
+  .ty5 .ty3-shelves { display: none; }
+  .ty5-head .ty7-lbl { display: none; } .ty5-head .btn { min-width: 48px; justify-content: center; }
+  .ty5-line { grid-template-columns: 78px minmax(0, 1fr) 128px; gap: 6px; padding: 6px; }
+  .ty5-tap { width: 78px; height: 78px; } .ty5-tap img { width: 40px; height: 40px; } .ty5-tap b { font-size: .8rem; }
+  .ty5-title b { font-size: .95rem; } .ty5-math { font-size: .75rem; }
+  .ty6-tile { padding: 4px 4px 4px 6px; gap: 4px; } .ty6-txt b { font-size: .86rem; } .ty6-act { padding: 0 8px; font-size: .85rem; }
+}
+.ty5-money { max-width: 46vw; }
+.ty5-money b { font-size: min(3.2rem, calc(42vw / (var(--len, 4) * 1.1))); }
+.ty6-txt b { white-space: normal; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ty5-up span { white-space: normal; font-size: .76rem; line-height: 1.15; }
+.ty5-title .ty6-i { order: 2; } .ty5-soldline { order: 3; }
+.ty5-money { flex: 0 0 auto; max-width: none; }
+.ty5-money b { font-size: min(3.2rem, calc(34vw / (var(--len, 4) * 1.1))); }
+@media (max-width: 1300px) { .ty5-head .ty4-stars { display: none; } }
+.ty5-money b { font-size: min(3.2rem, calc(36vw / (var(--len, 4) * 1.3))); }
+.ty5-money b { animation-name: ty10Bump; }
+@keyframes ty10Bump { from { transform: scale(1.06); } to { transform: none; } }
