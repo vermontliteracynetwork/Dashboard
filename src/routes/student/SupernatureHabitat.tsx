@@ -104,6 +104,8 @@ const VIEWS: { id: View; label: string; icon: string }[] = [...BIOMES.map((b) =>
 const viewLabel = (v: View) => VIEWS.find((x) => x.id === v)!.label;
 const canSwim = (c: Creature) => c.move === 'swim' || c.move === 'float' || /aquatic|water breathing|swimming|fin tail/.test(c.traits.join(' ').toLowerCase());
 // Where a creature lives when nobody has moved it yet: swimmers in the Ocean, everyone else in its favorite land.
+// Build Queue 445 (her words: "zero birds can be in the ocean in supernature"): only swimmers that do not fly can live in the Ocean.
+const oceanOk = (c: Creature) => canSwim(c) && c.move !== 'fly';
 const homeOf = (c: Creature): View => (c.move === 'swim' ? 'ocean' : (c.likes[0] ?? 'grassland'));
 function oceanPlace(i: number) { return { x: 90 + ((i * 181) % 900), y: 130 + ((i * 97) % 300), d: i % 2 ? -70 : 70, t: 10 + (i % 4) * 3 }; }
 const WEATHERS: { id: Weather; label: string; icon: string; img?: string; does: string }[] = [
@@ -346,7 +348,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   const land: Biome = biome === 'ocean' ? 'grassland' : biome;
   // Each creature is assigned a biome and can be moved (Build Queue 125).
   const [homes, setHomes] = useState<Record<string, View>>((saved.homes as Record<string, View>) ?? {});
-  const home = (c: Creature): View => homes[c.id] ?? homeOf(c);
+  const home = (c: Creature): View => { const h = homes[c.id] ?? homeOf(c); return h === 'ocean' && !oceanOk(c) ? (c.likes[0] ?? 'grassland') : h; };
   const [temp, setTemp] = useState<Record<string, 'float' | 'fast' | 'zoom'>>({});
   const [weather, setWeather] = useState<Weather>('clear');
   const [desertRain, setDesertRain] = useState(false);
@@ -561,7 +563,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     return cand.find((id) => !has(k, id) && can.some((x) => x.s.id === id && x.ok)) ?? null;
   };
   const likedElsewhere = (l: Live): View | null => {
-    const opts = [...l.c.likes.map((b) => b as View), ...(canSwim(l.c) ? ['ocean' as View] : [])];
+    const opts = [...l.c.likes.map((b) => b as View), ...(oceanOk(l.c) ? ['ocean' as View] : [])];
     return opts.find((v) => v !== home(l.c)) ?? null;
   };
   const showRipple = (who: Creature, change: string, nextEco: Eco, nextHomes: Record<string, View>) => {
@@ -753,7 +755,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   const addCreature = (id: string) => {
     const c = all.find((x) => x.id === id); if (!c) return;
-    const where: View = biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome;
+    const where: View = biome === 'ocean' && !oceanOk(c) ? homeOf(c) : biome;
     setOut((o) => o.filter((x) => x !== id)); setHomes((h) => ({ ...h, [id]: where }));
     setLevels((lv) => ({ ...lv, [id]: 0 })); setSeen((m) => ({ ...m, [id]: [] }));
     setSkills((m) => ({ ...m, [id]: startSkills(c) }));
@@ -763,7 +765,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
   };
   const webChange = (id: string, mode: 'add' | 'remove'): string[] => {
     const c = all.find((x) => x.id === id); if (!c) return [];
-    const where = mode === 'add' ? (biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome) : home(c);
+    const where = mode === 'add' ? (biome === 'ocean' && !oceanOk(c) ? homeOf(c) : biome) : home(c);
     const near = live.filter((l) => l.c.id !== id && home(l.c) === where).map((l) => l.c);
     const lines: string[] = [];
     if (isHunter(c)) { const prey = near.filter((p) => catches(c, p, sk(p))); if (prey.length) lines.push(mode === 'add' ? `${prey.map((p) => p.name).join(', ')} could be hunted by ${c.name}.` : `${prey.map((p) => p.name).join(', ')} will be safer: one less predator.`); }
@@ -971,7 +973,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
     setLive((ls) => ls.map((l) => {
       let hp = l.hp; let status = l.status;
       const hit = (n: number, s: string) => { hp = Math.max(0, hp - n); status = s; };
-      const hm = home(l.c); const likes = hm === 'ocean' ? canSwim(l.c) : l.c.likes.includes(hm);
+      const hm = home(l.c); const likes = hm === 'ocean' ? oceanOk(l.c) : l.c.likes.includes(hm);
       if (hp > 0 && !l.hide) {
         // Each creature's own body decides what happens to it (supernatureAdapt.ts).
         // Season potions protect against one hard time each (Build Queue 121).
@@ -1621,10 +1623,10 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
               {sel_.status === 'homesick' && ` It likes: ${sel_.c.likes.map((b) => BIOMES.find((x) => x.id === b)!.label.toLowerCase()).join(', ')}.`}</p>
             <div className="sn-pop-move">
               <b>Lives in:</b>
-              {VIEWS.map((v) => { const ok = v.id !== 'ocean' || canSwim(sel_.c); return (
+              {VIEWS.map((v) => { const ok = v.id !== 'ocean' || oceanOk(sel_.c); return (
                 <button key={v.id} type="button" className={`sn-chip-btn${home(sel_.c) === v.id ? ' on' : ''}`} disabled={!ok || home(sel_.c) === v.id} title={ok ? `Move to the ${v.label}` : 'It cannot swim'} onClick={() => moveTo(sel_.c, v.id)}>{v.icon} {v.label}</button>
               ); })}
-              {!canSwim(sel_.c) && <span className="sn-small">It cannot swim, so it cannot live in the Ocean.</span>}
+              {!oceanOk(sel_.c) && <span className="sn-small">{sel_.c.move === 'fly' ? 'Fliers cannot live in the Ocean.' : 'It cannot swim, so it cannot live in the Ocean.'}</span>}
             </div>
             {!checkIn ? (
               <div className="sn-pop-actions">
@@ -1738,7 +1740,7 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
           </PopCard>
         </div>
       )}
-      {placing && (() => { const c = all.find((x) => x.id === placing.id); if (!c) return null; const adding = placing.mode === 'add'; const where = adding ? (biome === 'ocean' && !canSwim(c) ? homeOf(c) : biome) : home(c); const lines = webChange(c.id, placing.mode); const text = adding
+      {placing && (() => { const c = all.find((x) => x.id === placing.id); if (!c) return null; const adding = placing.mode === 'add'; const where = adding ? (biome === 'ocean' && !oceanOk(c) ? homeOf(c) : biome) : home(c); const lines = webChange(c.id, placing.mode); const text = adding
         ? `Put ${c.name} in the ${viewLabel(where).toLowerCase()}? ${c.name} will come into play. It starts over at level 0 with its 3 starting skills. The food web will change: ${lines.join(' ')}`
         : `Take ${c.name} out of the Habitat? ${c.name} will no longer be in play. Its levels and the skills it learned will start over from zero when you put it back. The food web in the ${viewLabel(where).toLowerCase()} will change: ${lines.join(' ')}`; return (
         <div className="sn-modal snp-modal" role="alertdialog" aria-label={adding ? 'Put a creature in' : 'Take a creature out'}>
