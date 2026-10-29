@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-bakery-baker-levels",
+    date: "2026-10-29",
+    icon: "🧑‍🍳",
+    title: "Bakers level up",
+    body: "In Bakery Tycoon your bakers now level up when their counter sells 25, 100 and 250 trays. Every level bakes faster, up to 2 times as fast!",
+  },
+  {
     id: "2026-10-29-bakery-stickers",
     date: "2026-10-29",
     icon: "⭐",

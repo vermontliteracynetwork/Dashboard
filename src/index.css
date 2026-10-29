@@ -10952,3 +10952,8 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ty7-toast .ty7-st { width: 52px; } .ty7-toast span:last-child { display: grid; } .ty7-toast small { font-size: .7rem; font-weight: 900; text-transform: uppercase; color: #8a5cf6; } .ty7-toast b { font-size: 1.05rem; }
 @media (orientation: portrait), (max-width: 900px) { .ty7-stickers { grid-template-columns: repeat(12, minmax(0, 1fr)); } }
 @media (prefers-reduced-motion: reduce) { .ty7-st.new, .ty7-toast { animation: none; } }
+/* Build Queue 436 (c): baker levels. */
+.ty8-baker { grid-template-columns: 1fr auto; } .ty8-baker small { grid-column: 1 / -1; }
+.ty8-pips { display: inline-flex; gap: 3px; } .ty8-pips i { width: 10px; height: 10px; border-radius: 2px; background: #e7d3f5; border: 1px solid #b59cf6; } .ty8-pips i.on { background: #f2c230; border-color: #b8860b; }
+.ty4-baker.lv1 { filter: drop-shadow(0 0 2px #ffd84a); } .ty4-baker.lv2 { filter: drop-shadow(0 0 3px #ffd84a); } .ty4-baker.lv3 { filter: drop-shadow(0 0 4px #ff9ccb) drop-shadow(0 0 2px #ffd84a); }
+.ty5-tap .ty4-baker { bottom: auto; top: -10px; right: -10px; }

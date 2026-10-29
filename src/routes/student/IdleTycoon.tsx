@@ -40,7 +40,10 @@ const LINES: Line[] = [
 const SHOWCASE = ['01-birthday_cake', '02-strawberry_pudding_cake', '03-blueberry_cake', '04-chocolate_cake', '05-orange_cake', '06-bubblegum_cake', '07-brownie_cake', '08-maple-popcorn-cake', '09-chocolate_cake2', '10-jell-o_cake'];
 const SHOWCASE_AT = [50, 300, 1500, 8000, 40000, 200000, 1000000, 5000000, 25000000, 100000000];
 const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Cake', 'Chocolate Cake', 'Orange Cake', 'Bubblegum Cake', 'Brownie Cake', 'Maple Popcorn Cake', 'Double Chocolate Cake', 'Jelly Cake'];
-interface Own { ovens: number; baker: boolean; price?: number }
+interface Own { ovens: number; baker: boolean; price?: number; sold?: number }
+// Build Queue 436 (c): bakers level up as their counter sells 25, 100 and 250 trays, and each level bakes faster.
+const BAKER_AT = [25, 100, 250], BAKER_SPEED = [1, 1.25, 1.5, 2];
+const bakerLv = (o: Own) => BAKER_AT.filter((n) => (o.sold ?? 0) >= n).length;
 interface Shop { coins: number; total: number; whisk?: number; book?: Record<string, number>; stickers?: string[]; orders?: number; oven?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
 const AWAY_MAX_S = 600;
@@ -294,7 +297,7 @@ export default function IdleTycoon() {
       for (const l of LINES) {
         const o = shopRef.current.lines[l.id]; if (!o) continue;
         let trays = [...(beltRef.current[l.id] ?? [])];
-        if (o.baker && trays.length < BELT_MAX && (trays.length === 0 || trays[trays.length - 1].p > GAP) && now - (lastBaker.current[l.id] ?? 0) > (l.time / 2) * 1000 / (b.whisk > 0 ? b.wmult : 1)) {
+        if (o.baker && trays.length < BELT_MAX && (trays.length === 0 || trays[trays.length - 1].p > GAP) && now - (lastBaker.current[l.id] ?? 0) > (l.time / 2) * 1000 / (b.whisk > 0 ? b.wmult : 1) / BAKER_SPEED[bakerLv(o)]) {
           lastBaker.current[l.id] = now; trays.push({ id: ++trayId.current, p: 0, f: nextFlavor(l.id) });
         }
         let ahead = 2, soldNow = 0, units = 0;
@@ -313,7 +316,7 @@ export default function IdleTycoon() {
         if (soldNow) {
           const v = trayValue(l, b);
           earn(v * units, l.id);
-          { const bk = { ...(shopRef.current.book ?? {}) }; let fresh = false; for (const f of soldF) { if (!bk[f]) fresh = true; bk[f] = (bk[f] ?? 0) + 1; } setS({ ...shopRef.current, book: bk }); if (fresh) { once('recipe', 500); flash(`New recipe in your Recipe book: ${flavor(l.id, soldF[0]).name}!`); } }
+          { const bk = { ...(shopRef.current.book ?? {}) }; let fresh = false; for (const f of soldF) { if (!bk[f]) fresh = true; bk[f] = (bk[f] ?? 0) + 1; } const ol = shopRef.current.lines[l.id], before = bakerLv(ol), no = { ...ol, sold: (ol.sold ?? 0) + soldNow }; setS({ ...shopRef.current, book: bk, lines: { ...shopRef.current.lines, [l.id]: no } }); if (no.baker && bakerLv(no) > before) { once('glock', 500); flash(`The ${l.name} baker leveled up! Level ${bakerLv(no)}: ${BAKER_SPEED[bakerLv(no)]} times as fast.`); } if (fresh) { once('recipe', 500); flash(`New recipe in your Recipe book: ${flavor(l.id, soldF[0]).name}!`); } }
           setSold((s) => ({ ...s, [l.id]: { n: (s[l.id]?.v === v ? s[l.id].n : 0) + units, v } }));
           const sid = ++shopperId.current, src = SHOPPERS[sid % SHOPPERS.length], lid = l.id;
           setShoppers((s) => ({ ...s, [lid]: [...(s[lid] ?? []).slice(-1), { id: sid, src }] }));
@@ -504,7 +507,7 @@ export default function IdleTycoon() {
                 <button type="button" className={`ty5-tap${full ? ' full' : ''}${!trays.length && !o.baker ? ' hint' : ''}`} onClick={() => tap(l)} aria-label={`Tap to bake ${l.name}. Each tray sells for ${money(tv)}.`}>
                   <img src={flavor(l.id, trays[trays.length - 1]?.f).img} alt="" draggable={false} />
                   <b>{full ? 'Belt full' : '+ Tray'}</b>
-                  {o.baker && <i className="ty4-baker" style={{ backgroundImage: `url(${FX}baker${(LINES.indexOf(l) % 4) + 1}.png)` }} aria-hidden />}
+                  {o.baker && <i className={`ty4-baker lv${bakerLv(o)}`} style={{ backgroundImage: `url(${FX}baker${(LINES.indexOf(l) % 4) + 1}.png)` }} aria-hidden />}
                 </button>
                 <div className="ty5-mid">
                   <div className="ty5-title"><b>{l.name}</b><span className="ty5-math">{o.ovens} × {money(up)} = {money(up * o.ovens)}{bonus > 0 && <em> +{Math.round(bonus * 100)}%</em>}</span>{n > 0 && <span className="ty5-soldline">Sold {n} × {money(tv)} = {money(n * tv)}</span>}
@@ -519,7 +522,7 @@ export default function IdleTycoon() {
                     </div>
                     <div className="ty5-prog" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}`} style={{ flexGrow: s2.part }}><i style={{ width: `${front ? Math.max(0, Math.min(1, (front.p - STAGE_START[i]) / s2.part)) * 100 : 0}%` }} /></span>)}</div>
                   </div>
-                  {tip(`line-${l.id}`, <>Tap + Tray to put a tray on the belt, and tap a tray to push it along. A tray sells at the end for {o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 ? `, plus ${Math.round(bonus * 100)}% for groups and flavors` : ''}. Bigger tray adds a treat, Raise price adds {money(l.income)} to each treat, and a baker taps for you.</>, `${l.name}. ${o.ovens} ${o.ovens === 1 ? 'treat' : 'treats'} times ${up} ${up === 1 ? 'dollar' : 'dollars'} equals ${up * o.ovens} dollars a tray.${n > 0 ? ` You sold ${n} times ${tv}, which is ${n * tv} dollars.` : ''}`)}
+                  {tip(`line-${l.id}`, <>Tap + Tray to put a tray on the belt, and tap a tray to push it along. A tray sells at the end for {o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 ? `, plus ${Math.round(bonus * 100)}% for groups and flavors` : ''}. Bigger tray adds a treat, Raise price adds {money(l.income)} to each treat, and a baker taps for you. Bakers level up at 25, 100 and 250 trays sold and bake faster each time.</>, `${l.name}. ${o.ovens} ${o.ovens === 1 ? 'treat' : 'treats'} times ${up} ${up === 1 ? 'dollar' : 'dollars'} equals ${up * o.ovens} dollars a tray.${n > 0 ? ` You sold ${n} times ${tv}, which is ${n * tv} dollars.` : ''}`)}
                   {pops.filter((x) => x.line === l.id).slice(-2).map((x) => <i key={x.id} className="ty5-pop" aria-hidden>{x.text}</i>)}
                 </div>
                 <div className="ty5-ups">
@@ -529,7 +532,7 @@ export default function IdleTycoon() {
                   <button type="button" className={`ty5-up${coinsNow >= pc ? ' can' : ''}`} disabled={coinsNow < pc} onClick={() => { if (spend(pc, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, price: (o.price ?? 0) + 1 } } }))) clip('coins'); }}>
                     <span><Px src={`${ART}shop/coin.svg`} size={18} /> Price {money(up)} → {money(up + l.income)}</span><em>{money(pc)}</em>
                   </button>
-                  {o.baker ? <span className="ty5-up done"><span><Px src="ic-baker" size={18} /> Baker working</span></span>
+                  {o.baker ? <span className="ty5-up done ty8-baker"><span><Px src="ic-baker" size={18} /> Baker level {bakerLv(o) + 1}</span><span className="ty8-pips" aria-label={`Level ${bakerLv(o) + 1} of 4`}>{BAKER_AT.map((n, i) => <i key={n} className={bakerLv(o) > i ? 'on' : ''} />)}</span>{bakerLv(o) < 3 && <small>{o.sold ?? 0} / {BAKER_AT[bakerLv(o)]} trays</small>}</span>
                     : <button type="button" className={`ty5-up${coinsNow >= l.baker ? ' can' : ''}`} disabled={coinsNow < l.baker} onClick={() => { if (spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...o, baker: true } } }))) { playCheer(); flash(`A baker is working the ${l.name} counter now!`); } }}>
                       <span><Px src="ic-baker" size={18} /> Hire baker</span><em>{money(l.baker)}</em>
                     </button>}
