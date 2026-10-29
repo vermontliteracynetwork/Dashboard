@@ -126,14 +126,14 @@ export default function QuestionSetsManager() {
                       starring never also navigates into the set. */}
                   <button
                     className="btn btn-sm"
-                    onClick={(e) => { e.stopPropagation(); setFocusMenu(focusMenu === set.id ? null : set.id); }}
+                    onClick={(e) => { e.stopPropagation(); setFocusMenu(set.id); }}
                     aria-label={set.isFocus ? `Unstar ${set.name} as a focus set` : `Star ${set.name} as a focus set`}
-                    title={set.isFocus ? 'Focus set — shown around the game. Tap to unstar.' : 'Star as a focus set — shown around the game'}
+                    title={set.isFocus ? 'Focus set: tap to choose the students' : 'Star as a focus set'}
                     style={{ position: 'absolute', top: 6, right: 6, zIndex: 1, minHeight: 36, minWidth: 36, padding: 0, borderRadius: '50%' }}
                   >
                     {set.isFocus ? '⭐' : '☆'}
                   </button>
-                  {focusMenu === set.id && <div style={{ position: 'absolute', top: 46, right: 6, zIndex: 5 }}><FocusMenu set={set} onClose={() => setFocusMenu(null)} /></div>}
+                  {focusMenu === set.id && <FocusMenu set={set} onClose={() => setFocusMenu(null)} />}
                   <button
                     style={{ all: 'unset', display: 'contents', cursor: 'pointer' }}
                     onClick={() => navigate(`/teacher/question-sets/${set.id}`)}

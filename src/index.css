@@ -10978,3 +10978,13 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .ty9-spark img { position: absolute; width: 18px; height: 18px; margin: -9px; image-rendering: pixelated; animation: ty9Burst 1.4s ease-out forwards; }
 @keyframes ty9Burst { 0% { transform: rotate(var(--a)) translateX(0) scale(.4); opacity: 1; } 70% { opacity: 1; } 100% { transform: rotate(var(--a)) translateX(70px) scale(1); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .ty5-line.sparkle { animation: none; } .ty9-spark { display: none; } }
+/* Build Queue 437: the Focus menu opens in front of everything. */
+.fm-wrap { z-index: 1000; }
+.fm-panel { width: min(440px, calc(100vw - 32px)); max-height: 88dvh; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.fm-panel h2 { margin: 0; font-size: 1.2rem; } .fm-sub { margin: 0; color: #6b7280; font-weight: 600; }
+.fm-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 10px; border-radius: 12px; border: 2px solid #e5e7eb; font-weight: 700; cursor: pointer; }
+.fm-row input { width: 24px; height: 24px; flex: none; }
+.fm-row.on { border-color: #5b4bd6; background: #f1efff; }
+.fm-all { font-size: 1.05rem; }
+.fm-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; padding-right: 2px; }
+.fm-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; } .fm-actions .btn { min-height: 48px; } .fm-actions .btn-primary { flex: 1 1 100%; }
