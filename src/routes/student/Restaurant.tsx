@@ -1,7 +1,9 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
-import { useAsk } from '../../games/mini/useAsk';
+import { useAsk, useGameQuestions } from '../../games/mini/useAsk';
+import QuestionScreen from '../../components/QuestionScreen';
+import type { MCQuestion } from '../../types';
 import { playClip, preloadClips } from '../../lib/miniSfx';
 import { speak } from '../../components/ReadAloud';
 import { playCheer } from '../../lib/petSounds';
@@ -140,6 +142,32 @@ interface Car { id: number; item: Item; n: number; state: 'come' | 'wait' | 'go'
 interface Oven { state: 'idle' | 'cook' | 'ready' | 'burnt'; item?: Item; t: number; n: number }
 interface Day { served: number; pizzas: number; money: number; tips: number; slow: number; five: number; stars: number[]; items: Partial<Record<Item, number>>; wages?: { who: string; amt: number }[] }
 const NEW_DAY = (): Day => ({ served: 0, pizzas: 0, money: 0, tips: 0, slow: 0, five: 0, stars: [], items: {} });
+// The cash register quiz (Build Queue 482): while the shop is closed, the register asks questions for as long as the
+// student likes; answers in a row climb a multiplier (her anchors: 1 right is $5, 2 in a row $10, 10 in a row $500), and a
+// wrong answer starts the streak again. This money is Restaurant money only, never classroom money.
+const REG_PAY = [5, 10, 20, 35, 55, 80, 120, 180, 300, 500];
+const regPay = (streak: number) => REG_PAY[Math.min(streak, REG_PAY.length) - 1] ?? 0;
+function RegisterQuiz({ onEarn, onClose, tts }: { onEarn: (n: number) => void; onClose: (total: number) => void; tts?: import('../../types').TTSSettings }) {
+  const { next, right } = useGameQuestions('dinerDash');
+  const [q, setQ] = useState<MCQuestion>(() => next());
+  const [streak, setStreak] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [count, setCount] = useState(0);
+  const bar = (
+    <div className="rt-mult" aria-label={`Streak ${streak}, earned $${total} this time`}>
+      <div className="rt-mult-row">{REG_PAY.map((p, i) => <span key={p} className={`rt-mult-s${i < streak ? ' on' : ''}${i === streak - 1 ? ' now' : ''}`}>${p}</span>)}</div>
+      <small>{streak ? `${streak} in a row` : 'Answer to start a streak'} · Earned this time: <b>${total}</b></small>
+    </div>
+  );
+  return (
+    <QuestionScreen key={`${q.id}-${count}`} prompt={q.prompt} typed={q.typed} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt}
+      done={streak} total={REG_PAY.length} topSlot={bar} whoLabel="Cash register: answer for Restaurant money" ttsSettings={tts}
+      onCorrectAnswer={() => { const k = streak + 1, n = regPay(k); right(q); setStreak(k); setTotal((t) => t + n); onEarn(n); setCount((c) => c + 1); setQ(next(q.id)); }}
+      onWrongAnswer={() => setStreak(0)}
+      onSkip={() => { setStreak(0); setQ(next(q.id)); setCount((c) => c + 1); }}
+      onExit={() => onClose(total)} />
+  );
+}
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 // Five stars, white to start, filled in gold to the average (Build Queue 478).
 function Stars({ value, small }: { value: number; small?: boolean }) {
@@ -236,6 +264,7 @@ export default function Restaurant() {
   const [events, setEvents] = useState(false);
   const [restartArmed, setRestartArmed] = useState(false);
   const [shownTag, setShownTag] = useState<string | null>(null);
+  const [regQuiz, setRegQuiz] = useState(false);
   const spokenStep = useRef('');
   const [pops, setPops] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const [sfx] = useState(() => lsGet('rt-sfx', 4));
@@ -391,6 +420,10 @@ export default function Restaurant() {
   }
   function serverThink() {
     const G2 = g.current!, s2 = G2.s, sv = G2.server, cap = 4 + (s2.server?.carry ?? 0) * 3;
+    const room = cap - sv.hands.length;
+    const more = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'ready');
+    // A trained server fills their tower from every ready oven before carrying it all to the counter (Build Queue 483).
+    if (pizzasIn(sv.hands).length && room > 0 && more >= 0) { sv.path = route(sv, use.oven(more)); sv.job = () => { const o = G2.ovens[more]; if (o.state === 'ready') { const k = Math.min(o.n, cap - sv.hands.length); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
     if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = COUNTER_CAP - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); }; return; }
     if (sv.hands.some((h) => h.item === 'trash' || h.burnt)) { sv.path = route(sv, use.trash); sv.job = () => { sv.hands = []; }; return; }
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && (o.state === 'ready' || o.state === 'burnt'));
@@ -587,6 +620,7 @@ export default function Restaurant() {
   });
   stations.push({ key: 'trash', at: TRASH, label: 'Trash can', onTap: () => go(use.trash, atTrash), children: <ModelAt url={TRASH_MODEL} fit={0.55} /> });
   stations.push({ key: 'counter', at: COUNTER, label: 'Counter: stack pizzas and hand them over', tag: `${s.stock.length} pizza${s.stock.length === 1 ? '' : 's'} on the counter`, onTap: () => go(use.counter, atCounter) });
+  if (!G.open) stations.push({ key: 'register', at: { x: 7, y: COUNTER.y }, label: 'Cash register: answer questions for money', tag: 'Cash register questions', onTap: () => go({ x: 7, y: 2 }, () => { clip('cash', true); setRegQuiz(true); }) });
   if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', onTap: () => go(use.window, atWindow) });
   TABLES.forEach((p, i) => {
     const cap = lvOk(8) ? 6 : lvOk(2) ? 3 : 1;
@@ -831,6 +865,7 @@ export default function Restaurant() {
           </div>
         </div>
       )}
+      {regQuiz && <RegisterQuiz tts={student.ttsSettings} onEarn={(n) => { s.money += n; s.total += n; clip('cash', true); save(); setTick((t) => t + 1); }} onClose={(t) => { setRegQuiz(false); save(); if (t) { playCheer(); flash(`The register earned you ${fmt(t)}!`); } }} />}
       {element}
     </div>
   );

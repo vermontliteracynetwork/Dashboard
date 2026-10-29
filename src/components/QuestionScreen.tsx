@@ -94,6 +94,9 @@ export interface QuestionScreenProps {
   // Build Queue 291 (her words: "in multiplayer game, remove ... label from question. instead, put the name of the player
   // beside the X to close. thats all thats needed"): whose turn it is, shown beside the close button.
   playerName?: string;
+  // Build Queue 482: a game's own counter in the top bar instead of "N of M answered correctly" (the Restaurant's cash
+  // register multiplier).
+  topSlot?: React.ReactNode;
 }
 
 const LETTERS = 'ABCDEFGHIJ';
@@ -155,6 +158,7 @@ export default function QuestionScreen({
   typed,
   plain = false,
   playerName,
+  topSlot,
 }: QuestionScreenProps) {
   // Build Queue 291: the speaker reads the symbol sentence too, as the student has it so far.
   const sentenceRef = useRef('');
@@ -318,7 +322,7 @@ export default function QuestionScreen({
         </button>
         {playerName && <b style={{ fontSize: 20, fontWeight: 800, color: '#3A342A', marginLeft: 12, marginRight: 'auto', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '30vw' }}>{playerName}</b>}
 
-        <ProgressPips done={done} total={total} />
+        {topSlot ?? <ProgressPips done={done} total={total} />}
 
         <div style={{ position: 'relative', flex: '0 0 auto' }}>
           <button

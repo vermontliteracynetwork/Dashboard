@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: "2026-10-29",
     icon: "🍕",
     title: "Run your own Restaurant",
-    body: "A new game in Food games! Your Neighbors come in hungry. Take their order, bake the pizza, serve the table, ring them up and clean up. Tap the empty spots to add ovens, tables and decorations, and level up all the way to new restaurants.",
+    body: "A new game in Food games! Bake pizzas, stack them in a tall tower on the counter, and hand each Neighbor the number they ask for. Fast service earns five stars. Add ovens, tables and decorations, hire Neighbors to help, and when the shop is closed, answer questions at the cash register for a growing money streak.",
   },
   {
     id: "2026-10-29-teacher-messages",
