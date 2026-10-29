@@ -100,8 +100,8 @@ export const CRITTERS: Critter[] = [
   { id: 'crow', name: 'Crow', img: `${SN}wild/gb-crow-1.png`, strip: `${SN}wild/gb-crow.png`, frames: 4, size: 44, where: ['grassland', 'forest', 'snow'], lore: 'Crows are so clever they can use sticks as tools.' },
   { id: 'magpie', name: 'Magpie', img: `${SN}wild/gb-magpie-1.png`, strip: `${SN}wild/gb-magpie.png`, frames: 4, size: 44, where: ['grassland', 'forest'], lore: 'Magpies can recognize themselves in a mirror.' },
   { id: 'pigeon', name: 'Pigeon', img: `${SN}wild/th-pigeon-1.png`, strip: `${SN}wild/th-pigeon.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Pigeons can find their way home from hundreds of miles away.' },
-  { id: 'seabird', name: 'Seabird', img: `${SN}wild/th-crow-1.png`, strip: `${SN}wild/th-crow.png`, frames: 4, size: 44, where: ['ocean', 'snow'], lore: 'Seabirds have special glands that let them drink salty sea water.' },
-  { id: 'gull', name: 'Seagull', img: `${SN}wild/th-gull-1.png`, strip: `${SN}wild/th-gull.png`, frames: 4, size: 44, where: ['ocean'], lore: 'Seagulls can drink salt water, then sneeze the extra salt out of their noses.' },
+  { id: 'seabird', name: 'Seabird', img: `${SN}wild/th-crow-1.png`, strip: `${SN}wild/th-crow.png`, frames: 4, size: 44, where: ['snow'], lore: 'Seabirds have special glands that let them drink salty sea water.' },
+  { id: 'gull', name: 'Seagull', img: `${SN}wild/th-gull-1.png`, strip: `${SN}wild/th-gull.png`, frames: 4, size: 44, where: ['swamp'], lore: 'Seagulls live by lakes as well as the sea, and they can drink salty water.' },
   { id: 'brownbear', name: 'Brown bear', img: `${SN}wild/th-brown-bear-1.png`, strip: `${SN}wild/th-brown-bear.png`, frames: 4, size: 44, where: ['forest'], lore: 'Brown bears can smell food from miles away.' },
   { id: 'blackbear', name: 'Black bear', img: `${SN}wild/th-black-bear-1.png`, strip: `${SN}wild/th-black-bear.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: 'Black bears are great tree climbers.' },
   { id: 'graywolf', name: 'Gray wolf', img: `${SN}wild/th-gray-wolf-1.png`, strip: `${SN}wild/th-gray-wolf.png`, frames: 4, size: 44, where: ['forest', 'snow'], lore: 'A wolf pack works as a team, led by the parents.' },
@@ -126,7 +126,7 @@ export const CRITTERS: Critter[] = [
   { id: 'mn-ettin', name: 'Two-headed ettin', img: `${SN}wild/mn-ettin-1.png`, strip: `${SN}wild/mn-ettin.png`, frames: 4, size: 44, where: ['grassland'], lore: 'An ettin has two heads that never agree on which way to walk.' },
   { id: 'mg-fire-elemental', name: 'Fire elemental', img: `${SN}wild/mg-fire-elemental-1.png`, strip: `${SN}wild/mg-fire-elemental.png`, frames: 4, size: 44, where: ['desert'], lore: 'A fire elemental is a spirit made of flame. It loves the hot desert sun.' },
   { id: 'mg-wisp', name: 'Glowing wisp', img: `${SN}wild/mg-wisp-1.png`, strip: `${SN}wild/mg-wisp.png`, frames: 4, size: 44, where: ['swamp', 'forest'], lore: 'Wisps are tiny floating lights that bob over the marsh at dusk.' },
-  { id: 'mg-water-elemental', name: 'Water elemental', img: `${SN}wild/mg-water-elemental-1.png`, strip: `${SN}wild/mg-water-elemental.png`, frames: 4, size: 44, where: ['ocean', 'swamp'], lore: 'A water elemental is a spirit made of water. It can splash into a puddle and back again.' },
+  { id: 'mg-water-elemental', name: 'Water elemental', img: `${SN}wild/mg-water-elemental-1.png`, strip: `${SN}wild/mg-water-elemental.png`, frames: 4, size: 44, where: ['swamp'], lore: 'A water elemental is a spirit made of water. It can splash into a puddle and back again.' },
   { id: 'mg-pixie', name: 'Fluttering pixie', img: `${SN}wild/mg-pixie-1.png`, strip: `${SN}wild/mg-pixie.png`, frames: 4, size: 44, where: ['forest', 'grassland'], lore: 'Pixies flutter from flower to flower like butterflies.' },
   { id: 'mg-treant', name: 'Grizzled treant', img: `${SN}wild/mg-treant-1.png`, strip: `${SN}wild/mg-treant.png`, frames: 4, size: 44, where: ['forest'], lore: 'A treant is a walking tree. Old ones move so slowly that moss grows on them.' },
   { id: 'mg-iron-golem', name: 'Iron golem', img: `${SN}wild/mg-iron-golem-1.png`, strip: `${SN}wild/mg-iron-golem.png`, frames: 4, size: 44, where: ['grassland'], lore: 'An iron golem is a magic statue that guards the meadow. Iron is a strong metal.' },
@@ -138,17 +138,17 @@ export const CRITTERS: Critter[] = [
   { id: 'dr-viridian-drake', name: 'Viridian drake', img: `${SN}wild/dr-viridian-drake-1.png`, strip: `${SN}wild/dr-viridian-drake.png`, frames: 4, size: 44, where: ['forest'], lore: 'A drake is a dragon cousin. Viridian means a blue-green color.' },
   { id: 'dr-mud-wyvern', name: 'Mud wyvern', img: `${SN}wild/dr-mud-wyvern-1.png`, strip: `${SN}wild/dr-mud-wyvern.png`, frames: 4, size: 44, where: ['swamp'], lore: 'A wyvern has two legs and two wings. This one loves rolling in mud to cool off.' },
   { id: 'dr-adult-white', name: 'White dragon', img: `${SN}wild/dr-adult-white-1.png`, strip: `${SN}wild/dr-adult-white.png`, frames: 4, size: 44, where: ['snow'], lore: 'White dragons have thick scales that keep them warm in the snow.' },
-  { id: 'dr-bronze', name: 'Bronze dragon', img: `${SN}wild/dr-bronze-1.png`, strip: `${SN}wild/dr-bronze.png`, frames: 4, size: 44, where: ['ocean'], lore: 'Bronze dragons live by the sea and love to swim with whales.' },
+  { id: 'dr-bronze', name: 'Bronze dragon', img: `${SN}wild/dr-bronze-1.png`, strip: `${SN}wild/dr-bronze.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Bronze dragons love thunderstorms and collect shiny coins.' },
   { id: 'dr-baby-brass', name: 'Baby brass dragon', img: `${SN}wild/dr-baby-brass-1.png`, strip: `${SN}wild/dr-baby-brass.png`, frames: 4, size: 44, where: ['desert'], lore: 'Brass dragons love warm sand and chatting with every traveler they meet.' },
   { id: 'dr-pygmy-wyvern', name: 'Pygmy wyvern', img: `${SN}wild/dr-pygmy-wyvern-1.png`, strip: `${SN}wild/dr-pygmy-wyvern.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Pygmy means very small. This wyvern is about the size of a cat.' },
   { id: 'dr-adult-green', name: 'Green dragon', img: `${SN}wild/dr-adult-green-1.png`, strip: `${SN}wild/dr-adult-green.png`, frames: 4, size: 44, where: ['forest'], lore: 'Green dragons guard the oldest trees in the forest.' },
   { id: 'dr-poison-drake', name: 'Poison drake', img: `${SN}wild/dr-poison-drake-1.png`, strip: `${SN}wild/dr-poison-drake.png`, frames: 4, size: 44, where: ['swamp'], lore: 'A poison drake has bright warning colors, like a poison dart frog. Look, do not touch!' },
-  { id: 'dr-aqua-drake', name: 'Aqua drake', img: `${SN}wild/dr-aqua-drake-1.png`, strip: `${SN}wild/dr-aqua-drake.png`, frames: 4, size: 44, where: ['ocean'], lore: 'Aqua drakes glide over the waves and dive for fish.' },
+  { id: 'dr-aqua-drake', name: 'Aqua drake', img: `${SN}wild/dr-aqua-drake-1.png`, strip: `${SN}wild/dr-aqua-drake.png`, frames: 4, size: 44, where: ['swamp'], lore: 'Aqua drakes glide over the pond and dive for fish.' },
   { id: 'dr-baby-copper', name: 'Baby copper dragon', img: `${SN}wild/dr-baby-copper-1.png`, strip: `${SN}wild/dr-baby-copper.png`, frames: 4, size: 44, where: ['desert', 'grassland'], lore: 'Copper dragons love jokes and riddles.' },
   { id: 'dr-young-brass', name: 'Young brass dragon', img: `${SN}wild/dr-young-brass-1.png`, strip: `${SN}wild/dr-young-brass.png`, frames: 4, size: 44, where: ['desert'], lore: 'A young brass dragon naps in the sun to warm its scales.' },
   { id: 'dr-baby-white', name: 'Baby white dragon', img: `${SN}wild/dr-baby-white-1.png`, strip: `${SN}wild/dr-baby-white.png`, frames: 4, size: 44, where: ['snow'], lore: 'A baby white dragon slides down snowy hills for fun.' },
   { id: 'dr-young-red', name: 'Young red dragon', img: `${SN}wild/dr-young-red-1.png`, strip: `${SN}wild/dr-young-red.png`, frames: 4, size: 44, where: ['desert'], lore: 'Red dragons love heat and sleep near warm rocks.' },
-  { id: 'dr-young-bronze', name: 'Young bronze dragon', img: `${SN}wild/dr-young-bronze-1.png`, strip: `${SN}wild/dr-young-bronze.png`, frames: 4, size: 44, where: ['ocean'], lore: 'Juvenile means young. This bronze dragon is still learning to swim.' },
+  { id: 'dr-young-bronze', name: 'Young bronze dragon', img: `${SN}wild/dr-young-bronze-1.png`, strip: `${SN}wild/dr-young-bronze.png`, frames: 4, size: 44, where: ['grassland'], lore: 'Juvenile means young. This bronze dragon is still learning to fly.' },
   { id: 'hobbit', name: 'Hobbit', img: `${SN}wild/gap-hobbit-1.png`, strip: `${SN}wild/gap-hobbit.png`, frames: 4, size: 52, where: ['grassland', 'forest'], lore: 'Hobbits are small story folk who love gardens, snacks and cozy homes dug into hills.' },
   // Build Queue 413: her override, the five spell casters are in after all.
   { id: 'mg-pyromancer', name: 'Young fire mage', img: `${SN}wild/mg-pyromancer-1.png`, strip: `${SN}wild/mg-pyromancer.png`, frames: 4, size: 44, where: ['desert'], lore: 'A fire mage studies how flames need air, fuel and heat to keep burning.' },
@@ -180,6 +180,8 @@ export const SPROUT_MS = 30_000, GROWN_MS = 90_000;
 
 // Wild plants and critters sprinkled sparsely and randomly in each biome. They grow back every day (Build Queue 190, her
 // words: "plants should grow every day"): a new day brings new wild plants, even ones that were picked.
+// Build Queue 444 (her words: "ensure that no plants grow in the ponds or water. no rocks in ponds"): on land, wild plants and
+// critters stay left of x 690, well clear of the pond (x 800 and wider in a flood).
 export function wildSpots(place: PlantPlace, abs: number, day = 0): { key: string; plant?: string; critter?: string; x: number; y: number }[] {
   let seed = (abs * 9301 + day * 7919 + place.length * 49297 + place.charCodeAt(0) * 233) % 233280;
   const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
@@ -187,8 +189,8 @@ export function wildSpots(place: PlantPlace, abs: number, day = 0): { key: strin
   const critters = CRITTERS.filter((c) => c.where.includes(place));
   const out: { key: string; plant?: string; critter?: string; x: number; y: number }[] = [];
   const n = 3 + Math.floor(rnd() * 2);
-  for (let i = 0; i < n && plants.length; i++) out.push({ key: `${abs}:${day}:${place}:p${i}`, plant: plants[Math.floor(rnd() * plants.length)].id, x: 250 + Math.floor(rnd() * 520), y: place === 'ocean' ? 470 + Math.floor(rnd() * 40) : 230 + Math.floor(rnd() * 260) });
-  if (critters.length && rnd() < 0.8) out.push({ key: `${abs}:${day}:${place}:c`, critter: critters[Math.floor(rnd() * critters.length)].id, x: 260 + Math.floor(rnd() * 500), y: place === 'ocean' ? 480 : 250 + Math.floor(rnd() * 220) });
+  for (let i = 0; i < n && plants.length; i++) out.push({ key: `${abs}:${day}:${place}:p${i}`, plant: plants[Math.floor(rnd() * plants.length)].id, x: 250 + Math.floor(rnd() * (place === 'ocean' ? 520 : 420)), y: place === 'ocean' ? 470 + Math.floor(rnd() * 40) : 230 + Math.floor(rnd() * 260) });
+  if (critters.length && rnd() < 0.8) out.push({ key: `${abs}:${day}:${place}:c`, critter: critters[Math.floor(rnd() * critters.length)].id, x: 260 + Math.floor(rnd() * (place === 'ocean' ? 500 : 400)), y: place === 'ocean' ? 480 : 250 + Math.floor(rnd() * 220) });
   return out;
 }
 // Garden plots in each biome (Build Queue 190, her words: "each biome should have up to 10 plants in each"): 10 plots in two

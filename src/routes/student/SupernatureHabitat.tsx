@@ -242,11 +242,13 @@ function place(c: Creature, i: number, k = i): { x: number; y: number; d: number
   return { x: 240 + ((i * 149) % 440), y: 210 + ((i * 71) % 220), d: (i % 2 ? -1 : 1) * (90 + (i % 4) * 25), t: 18 + (i % 5) * 4 };
 }
 
+// Build Queue 444: nothing on land sits in the pond (x 800 to 1130, y 370 to 560, a little bigger in a flood): no rocks, no
+// plants, no lily leaves.
 const DECOR: Record<Biome, { src: string; x: number; y: number; w: number; filter?: string }[]> = {
   grassland: [
     { src: `${HB}tree0.png`, x: 250, y: 40, w: 92 }, { src: `${HB}tree1.png`, x: 690, y: 50, w: 100 }, { src: `${HB}nat0.png`, x: 470, y: 150, w: 112 },
     { src: `${OBJ}6-flower/9.png`, x: 330, y: 300, w: 24 }, { src: `${OBJ}6-flower/12.png`, x: 560, y: 420, w: 24 }, { src: `${OBJ}6-flower/7.png`, x: 720, y: 330, w: 24 },
-    { src: `${WD}env-rock.png`, x: 900, y: 440, w: 100 }, { src: `${WD}env-agave2.png`, x: 140, y: 420, w: 70 },
+    { src: `${WD}env-rock.png`, x: 960, y: 240, w: 100 }, { src: `${WD}env-agave2.png`, x: 140, y: 420, w: 70 },
     { src: `${OBJ}5-grass/2.png`, x: 420, y: 360, w: 27 }, { src: `${OBJ}5-grass/5.png`, x: 640, y: 250, w: 18 }, { src: `${OBJ}4-stone/11.png`, x: 230, y: 480, w: 70 },
   ],
   forest: [
@@ -258,18 +260,18 @@ const DECOR: Record<Biome, { src: string; x: number; y: number; w: number; filte
   desert: [
     { src: `${OBJ}4-stone/7.png`, x: 300, y: 300, w: 111 }, { src: `${OBJ}4-stone/8.png`, x: 620, y: 440, w: 114 }, { src: `${OBJ}4-stone/12.png`, x: 520, y: 180, w: 87 },
     // Build Queue 410: her Free Environment pack (cacti, agave, prickly pear).
-    { src: `${WD}env-cactus1.png`, x: 840, y: 120, w: 40 }, { src: `${WD}env-cactus2.png`, x: 900, y: 170, w: 36 }, { src: `${WD}env-agave1.png`, x: 420, y: 470, w: 70 }, { src: `${WD}env-pricklypear.png`, x: 960, y: 420, w: 54 },
+    { src: `${WD}env-cactus1.png`, x: 840, y: 120, w: 40 }, { src: `${WD}env-cactus2.png`, x: 900, y: 170, w: 36 }, { src: `${WD}env-agave1.png`, x: 420, y: 470, w: 70 }, { src: `${WD}env-pricklypear.png`, x: 1040, y: 250, w: 54 },
     { src: `${SW}sticks-4.png`, x: 690, y: 160, w: 90, filter: 'sepia(1) saturate(0.6) brightness(0.9)' }, { src: `${SW}boulder-3.png`, x: 230, y: 430, w: 120, filter: 'sepia(0.9) saturate(1.3) hue-rotate(-15deg)' },
   ],
   snow: [
     { src: `${HB}tree1.png`, x: 260, y: 40, w: 100, filter: 'saturate(0.5) brightness(1.2)' }, { src: `${HB}tree0.png`, x: 680, y: 40, w: 92, filter: 'saturate(0.5) brightness(1.2)' },
-    { src: `${WD}env-pine-snowy.png`, x: 860, y: 60, w: 70 }, { src: `${WD}env-bare-tree.png`, x: 960, y: 120, w: 70 }, { src: `${WD}env-ice-rock.png`, x: 880, y: 430, w: 110 },
+    { src: `${WD}env-pine-snowy.png`, x: 860, y: 60, w: 70 }, { src: `${WD}env-bare-tree.png`, x: 960, y: 120, w: 70 }, { src: `${WD}env-ice-rock.png`, x: 1000, y: 230, w: 110 },
     { src: `${OBJ}4-stone/11.png`, x: 480, y: 260, w: 90, filter: 'brightness(1.4)' }, { src: `${OBJ}4-stone/7.png`, x: 300, y: 460, w: 100, filter: 'brightness(1.4)' },
   ],
   swamp: [
     { src: `${SW}tree-tower-short.png`, x: 520, y: 60, w: 150 }, { src: `${SW}shrub-swamp-1.png`, x: 250, y: 120, w: 150 }, { src: `${SW}shrub-swamp-3.png`, x: 680, y: 220, w: 110 },
-    { src: `${SW}rafflesia.png`, x: 330, y: 410, w: 110 }, { src: `${SW}sticks-1.png`, x: 620, y: 420, w: 100 }, { src: `${SW}water-plant-1.png`, x: 770, y: 330, w: 60 },
-    { src: `${SW}water-plant-2.png`, x: 1080, y: 320, w: 60 },
+    { src: `${SW}rafflesia.png`, x: 330, y: 410, w: 110 }, { src: `${SW}sticks-1.png`, x: 620, y: 420, w: 100 }, { src: `${SW}water-plant-1.png`, x: 700, y: 250, w: 60 },
+    { src: `${SW}water-plant-2.png`, x: 1040, y: 230, w: 60 },
   ],
 };
 
@@ -1334,7 +1336,6 @@ export default function SupernatureHabitat({ bar, say, found, saved, onSave, pot
         {season === 'Spring' && <div className="sn-blossoms" />}
         {season === 'Fall' && <div className="sn-leafpiles" />}
         <div className={`sn-pond${biome === 'snow' || active === 'blizzard' || season === 'Winter' ? ' icy' : ''}`} style={{ left: POND.x, top: POND.y, width: POND.w, height: POND.h, transform: `scale(${pond})` }}>
-          {biome === 'swamp' && <><img src={`${SW}leaf-on-the-water-1.png`} alt="" style={{ left: 40, top: 40, width: 60 }} /><img src={`${SW}leaf-on-the-water-3.png`} alt="" style={{ left: 220, top: 100, width: 54 }} /></>}
         </div>
         <div className="sn-season-decor">{DECOR[biome].map((d, i) => <img key={`${biome}${i}`} className="sn-decor" src={d.src} alt="" style={{ left: d.x, top: d.y, width: d.w, filter: d.filter }} />)}</div>
         <button type="button" className="sn-shelter" style={{ left: CAVE.x, top: CAVE.y }} onClick={(e) => { e.stopPropagation(); takeCover(); }} aria-label={covered ? 'Bring everyone out of the shelter' : 'Take cover in the shelter'}>
