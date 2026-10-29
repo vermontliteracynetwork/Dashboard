@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T14:53:46.254Z",
+  "generatedAt": "2026-10-29T16:13:25.827Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -369,6 +369,11 @@
     {
       "path": "/world/models/buildings/pet-store.glb",
       "label": "Pet Store",
+      "category": "buildings"
+    },
+    {
+      "path": "/world/models/buildings/pizza-restaurant.glb",
+      "label": "Pizza Restaurant",
       "category": "buildings"
     },
     {

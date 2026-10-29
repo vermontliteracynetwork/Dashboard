@@ -60,7 +60,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'crossyHopper', added: '2026-10-12', title: "Crossy Road Hopper", route: '/student/crossy', cover: '/games/covers/crossy-hopper.svg', blurb: "Answer to earn hops, then cross the busy roads when the way is clear.", versus: false, cabinet: { marquee: '#2f6b12', panel: '#8fd16a', trim: '#ffd23f', icon: '🐔' } },
   // Idle Tycoon (Build Queue 46, her genres list: the farm or bakery shop; answers boost a running business).
   { id: 'idleTycoon', added: '2026-10-12', title: "Bakery Tycoon", route: '/student/cupcake-tycoon', cover: '/games/covers/idle-tycoon.svg', blurb: "Build a bakery empire: pick your menu, power the ovens with answers, add ovens and hire bakers.", versus: false, cabinet: { marquee: '#d63a6a', panel: '#f0a8c4', trim: '#ffd23f', icon: '🧁' } },
-  // Build Queue 447: Diner Dash was removed; the students' Restaurant game (Cat Pizza and Scratch Pizza Tycoon style) replaces it.
+  // Build Queue 447/448: Diner Dash was removed; the students' Restaurant game (Cat Pizza and Scratch Pizza Tycoon style) replaces it.
+  { id: 'dinerDash', added: '2026-10-29', title: 'Restaurant', route: '/student/diner', cover: '/games/covers/restaurant.jpg', blurb: 'Run your own pizza place: take orders, cook, serve, ring up and clean, then level up to new restaurants.', versus: false, cabinet: { marquee: '#e2479a', panel: '#ffd3bd', trim: '#ffd23f', icon: '🍕' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

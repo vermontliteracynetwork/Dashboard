@@ -66,7 +66,7 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'pet-shelter', label: `Pet Shelter → ${ROLE_VIEWS['pet-shelter']}` },
   { value: 'pet-gym', label: `Buff Doge's Gym → ${ROLE_VIEWS['pet-gym']}` },
   { value: 'pet-show', label: `Pet Show Ring → ${ROLE_VIEWS['pet-show']}` },
-  { value: 'diner-dash', label: `Restaurant (coming soon) → ${ROLE_VIEWS['diner-dash']}` },
+  { value: 'diner-dash', label: `Restaurant → ${ROLE_VIEWS['diner-dash']}` },
   { value: 'idle-tycoon', label: `Bakery Tycoon → ${ROLE_VIEWS['idle-tycoon']}` },
   { value: 'crossy-hopper', label: `Crossy Road Hopper → ${ROLE_VIEWS['crossy-hopper']}` },
   { value: 'plinko-drop', label: `Plinko Drop → ${ROLE_VIEWS['plinko-drop']}` },
@@ -3088,6 +3088,40 @@ export default function WorldEditor() {
     setHomesMsg('Removed the Neighborhood (the land stays).');
     flashSaved();
   };
+  // ---- Build Queue 456: the Restaurant building (her low poly pizza restaurant, her words: "use the low poly asset for
+  // the exterior and role in the town squre"). One tap gives the Restaurant role a home in Town Square: it swaps the
+  // model on a building that already has the role, or places a new one on the first clear spot. It goes in as a draft,
+  // like every Build Mode change, so students see it after she taps Publish.
+  const PIZZA_SHOP = '/world/models/buildings/pizza-restaurant.glb';
+  const shopRow = useStore((s) => s.styleLooks.find((r) => r.ownerId === 'restaurant-building')?.look) as { closed?: boolean } | undefined;
+  const townObjs = useStore((s) => s.worldObjects).filter((o) => !o.studentId);
+  const hasShop = townObjs.some((o) => o.modelPath === PIZZA_SHOP);
+  const shopTarget = townObjs.find((o) => o.role === 'diner-dash');
+  const [shopMsg, setShopMsg] = useState<string | null>(null);
+  const placeShop = async () => {
+    const size = await measureModel(PIZZA_SHOP);
+    if (!size) { setShopMsg('The restaurant model did not load. Try again in a moment.'); return; }
+    const st = useStore.getState();
+    const rule = !!(st.styleLooks.find((r) => r.ownerId === 'world-size')?.look as { on?: boolean } | undefined)?.on;
+    const k = rule ? townSizeFactor({ x: size.x, y: size.y, z: size.z }) : 1;
+    const scale = Math.round((7 / (Math.max(size.x, size.z) * k)) * 100000) / 100000;
+    if (shopTarget) {
+      st.updateWorldObject(shopTarget.id, { modelPath: PIZZA_SHOP, scale, customName: shopTarget.customName || 'Restaurant' });
+      setShopMsg(`The ${shopTarget.customName || shopTarget.label} building is now the pizza restaurant. Tap Publish so students see it.`);
+    } else {
+      const others = townObjs.filter((o) => o.collides || (o.scale ?? 1) > 0.5);
+      let best: [number, number] | null = null, bestD = Infinity;
+      for (let x = -22; x <= 22; x += 1) for (let z = -22; z <= 22; z += 1) {
+        if (Math.hypot(x, z) < 8) continue;
+        if (others.some((o) => Math.hypot(o.position[0] - x, o.position[2] - z) < 6)) continue;
+        const d = Math.hypot(x, z + 15); if (d < bestD) { bestD = d; best = [x, z]; }
+      }
+      if (!best) { setShopMsg('There was no clear spot big enough. Make some room, then tap again.'); return; }
+      st.addWorldObject({ modelPath: PIZZA_SHOP, label: 'Pizza Restaurant', customName: 'Restaurant', role: 'diner-dash', position: [best[0], 0, best[1]], rotationY: 0, scale, collides: true });
+      setShopMsg('The Restaurant is placed in Town Square (move it anywhere). Tap Publish so students see it.');
+    }
+    flashSaved();
+  };
   // ---- the new Town Square and Enchanted Forest (see townRemake.ts) ----
   // Only ever runs when she taps the button and confirms; the old town is saved first.
   const remake = useStore((s) => s.styleLooks.find((r) => r.ownerId === REMAKE_OWNER)?.look) as RemakeRow | undefined;
@@ -4241,6 +4275,13 @@ export default function WorldEditor() {
                 </>
               )}
               {<button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label="Close" onClick={() => { setRestoreArmed(false); useStore.getState().mergeStyleRow(REMAKE_OWNER, { bannerClosed: true }); }}>✕</button>}
+            </div>
+          )}
+          {!hasShop && !shopRow?.closed && remakeProgress === null && (
+            <div role="status" style={{ position: 'absolute', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 7, background: '#f5eac6', border: '3px solid #cb381b', borderRadius: 14, padding: '8px 12px', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center', maxWidth: 'calc(100% - 24px)', fontFamily: 'system-ui, sans-serif', fontSize: '0.8rem', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+              <span>🍕 {shopMsg ?? (shopTarget ? `The new pizza restaurant model is ready for your ${shopTarget.customName || shopTarget.label} building.` : 'The Restaurant game needs a building in Town Square.')}</span>
+              {!shopMsg && <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} onClick={() => { void placeShop(); }}>{shopTarget ? 'Use the pizza restaurant' : 'Place the Restaurant'}</button>}
+              <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} aria-label="Close" onClick={() => useStore.getState().mergeStyleRow('restaurant-building', { closed: true })}>✕</button>
             </div>
           )}
           {showSaved && (

@@ -73,6 +73,7 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/buildings/office-building-3.glb,Office Building 3,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/office-building.glb,Office Building,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/pet-store.glb,Pet Store,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/buildings/pizza-restaurant.glb,Pizza Restaurant,buildings,Buildings & Places,tiny,keyword,0.218,solid (blocks movement),yes,50,0.50,paid,no,yes,no,static click-to-collect
 /world/models/buildings/post-office.glb,Post Office,buildings,Buildings & Places,personScale,keyword,1.745,solid (blocks movement),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/seamstress-shop.glb,Seamstress Shop,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/buildings/store.glb,Store,buildings,Buildings & Places,largeStructure,category-fallback,7.853,solid (blocks movement),yes,3500,35.00,paid,no,no,no,"placed decoration only, not clickable"

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-restaurant",
+    date: "2026-10-29",
+    icon: "🍕",
+    title: "Run your own Restaurant",
+    body: "A new game in Food games! Your Neighbors come in hungry. Take their order, bake the pizza, serve the table, ring them up and clean up. Tap the empty spots to add ovens, tables and decorations, and level up all the way to new restaurants.",
+  },
+  {
     id: "2026-10-29-teacher-messages",
     date: "2026-10-29",
     icon: "💌",

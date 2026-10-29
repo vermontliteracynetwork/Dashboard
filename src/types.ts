@@ -597,7 +597,7 @@ export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   plinkoDrop: '🎯 Plinko Drop',
   crossyHopper: '🐔 Crossy Road Hopper',
   idleTycoon: '🧁 Bakery Tycoon',
-  dinerDash: '🍔 Diner Dash',
+  dinerDash: '🍕 Restaurant',
 };
 
 // How a question-set-backed activity (Quiz or Native Game type) is
