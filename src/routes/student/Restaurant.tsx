@@ -59,6 +59,21 @@ const THEME_PAY = [1, 3, 8];
 const menuFor = (lv: number, theme: number) => (Object.keys(ITEMS) as Item[]).filter((k) => ITEMS[k].theme === theme && ITEMS[k].lv <= lv);
 // The workers wear simple Style looks; the customers are the Town Square Neighbors.
 const SERVER_LOOK = defaultLook('frog'), COOK_LOOK = defaultLook('capybara');
+// The team. Build Queue 491 added three jobs (her words: "a new employee should be added to hire as someone who is a
+// takeout attendent (managing the take out) and dirve threw attendant who manages the drive threw. custodians can be
+// hired to clean only."). Each stands at their own spot in the kitchen row when there is nothing to do.
+type Role = 'server' | 'cook' | 'janitor' | 'takeout' | 'drive';
+const ROLE_KEYS: Role[] = ['server', 'cook', 'janitor', 'takeout', 'drive'];
+const ROLES: Record<Role, { name: string; cost: number; lv: number; wage: number; post: P; look: StyleLook; job: string; skills: (keyof Skill)[] }> = {
+  server: { name: 'Server', cost: 800, lv: 3, wage: 30, post: { x: 11, y: 2 }, look: SERVER_LOOK, job: 'Carries pizzas from the ovens to the counter tower, and cleans tables when there is no custodian.', skills: ['speed', 'carry', 'acc'] },
+  cook: { name: 'Cook', cost: 1000, lv: 7, wage: 45, post: { x: 4, y: 2 }, look: COOK_LOOK, job: 'Keeps the ovens baking.', skills: ['speed', 'carry', 'acc'] },
+  janitor: { name: 'Custodian', cost: 600, lv: 4, wage: 25, post: { x: 10, y: 2 }, look: defaultLook('fox'), job: 'Cleans the tables and takes out the trash. Cleaning only.', skills: ['speed', 'carry'] },
+  takeout: { name: 'Takeout attendant', cost: 800, lv: 5, wage: 35, post: { x: 5, y: 2 }, look: defaultLook('cat'), job: 'Hands takeout customers their pizzas from the tower, so they never wait behind the line.', skills: ['speed'] },
+  drive: { name: 'Drive through attendant', cost: 900, lv: 6, wage: 40, post: { x: 12, y: 2 }, look: defaultLook('squirrel'), job: 'Carries pizzas from the tower to the drive through window for every car.', skills: ['speed'] },
+};
+// What the team did while the student was answering questions (Build Queue 492).
+interface Away { baked: number; stacked: number; cleaned: number; takeout: number; drive: number; money: number }
+const NO_AWAY: Away = { baked: 0, stacked: 0, cleaned: 0, takeout: 0, drive: 0, money: 0 };
 
 // The room. Kitchen along the top wall, the counter and register in the middle, tables in the dining room, the door at the
 // bottom left and the drive through window on the right wall.
@@ -68,7 +83,16 @@ const COUNTER: P = { x: 6, y: 3 };
 const WINDOW: P = { x: 13, y: 4 };
 // Tables sit left and right of the middle column, which is kept clear for the line (Build Queue 480).
 const TABLES: P[] = TABLES_AT;
-const DOOR: P = { x: 0, y: 8 };
+// Build Queue 491 (her words: "instead of level 10 being a new restuarant, lets keep the main retaruant, no new
+// restaurants and instead new rooms can be added. at level 10 they can add a new dining room that is ajacent do and
+// connecting to the main room"): the new dining room joins on the left (columns -6 to -1, rows 3 to 8), open to the main
+// room on rows 6 to 8, and the front door moves to its far wall.
+const ANNEX_X = -6, ANNEX_COST = 2000, MAIN_TABLES = 6;
+const DOOR_MAIN: P = { x: 0, y: 8 }, DOOR_ANNEX: P = { x: ANNEX_X, y: 8 };
+let DOOR: P = DOOR_MAIN;
+let MIN_X = 0;
+// The wall between the rooms: no walking across it above the opening.
+const wallBetween = (x: number, y: number, nx: number) => MIN_X < 0 && y < 6 && ((x === -1 && nx === 0) || (x === 0 && nx === -1));
 // One counter spot for asking and paying (Build Queue 468a); the line runs left from it, one tile each (473).
 const ORDER_SPOT: P = { x: 6, y: 4 };
 // The line runs down the middle column from the counter (Build Queue 480), then along the bottom row if it is long.
@@ -94,7 +118,7 @@ const UNLOCKS: Record<number, { title: string; steps: string[] }> = {
   7: { title: 'Veggie pizza, and hire a Neighbor as your cook', steps: ['Tap Shop, then Workers', 'Pick the Neighbor you want as your cook', 'The cook keeps the ovens baking while you serve'] },
   8: { title: 'A third oven and up to 6 tables', steps: ['Tap the empty oven spot or a table spot', 'Tap Add it', 'More tables means bigger groups'] },
   9: { title: 'Supreme pizza and the birthday party event', steps: ['Tap Events', 'Pick Birthday Party', 'Serve every group fast while it lasts'] },
-  10: { title: 'Pizza master! Your pizzeria is complete', steps: ['Keep beating your best day', 'Launch special events', 'Train yourself and your team to the top'] },
+  10: { title: 'A new dining room next to your pizzeria', steps: ['Tap Shop, then Kitchen and tables', 'Add the new dining room next door', 'Add up to 4 more tables in it for bigger crowds'] },
 };
 // Customers to serve for the next level (Build Queue 468g): 1 for level 1, 10 for level 2 (plus its upgrades, 469), then
 // 20, 24 and on up to 44. Level 10 is the top.
@@ -137,7 +161,8 @@ interface Save {
   money: number; total: number; level: number; claimed: number; xp: number; theme: number;
   ovens: number; ovenLv: number; tables: number; shelves: number; stock: Item[]; decor: string[];
   me: Skill; server?: Skill; cook?: Skill; best: number; day: number; served: number;
-  qs?: QSet; staff?: { server?: string; cook?: string }; hints?: boolean; ratings?: number[]; stackLv?: number;
+  qs?: QSet; staff?: Partial<Record<Role, string>>; hints?: boolean; ratings?: number[]; stackLv?: number;
+  janitor?: Skill; takeout?: Skill; drive?: Skill; annex?: boolean;
 }
 const FRESH: Save = { money: 0, total: 0, level: 1, claimed: 1, xp: 0, theme: 0, ovens: 1, ovenLv: 0, tables: 1, shelves: 0, stock: [], decor: [], me: { speed: 0, carry: 0, acc: 0 }, best: 0, day: 0, served: 0, ratings: [] };
 type Hand = { item: Item | 'trash'; burnt?: boolean };
@@ -182,7 +207,7 @@ function RegisterQuiz({ onEarn, onClose, tts }: { onEarn: (n: number) => void; o
 // Prices (Build Queue 485, raised four times by 486): tables $300 to $700, training $100 to $300 for you and $200 to $600
 // for the team.
 const tableCost = (have: number) => 200 + 100 * have;
-const trainCost = (who: 'me' | 'server' | 'cook', lvl: number) => (who === 'me' ? 100 : 200) * (lvl + 1);
+const trainCost = (who: 'me' | Role, lvl: number) => (who === 'me' ? 100 : 200) * (lvl + 1);
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 // Five stars, white to start, filled in gold to the average (Build Queue 478).
 function Stars({ value, small }: { value: number; small?: boolean }) {
@@ -232,7 +257,7 @@ const mover = (p: P): Mover => ({ x: p.x, y: p.y, path: [], face: 1, hands: [], 
 // what is built; a breadth first search finds the shortest way, and straight runs are merged so walking stays smooth.
 let BLOCKED = new Set<string>();
 const key = (x: number, y: number) => `${x},${y}`;
-const free = (x: number, y: number) => x >= 0 && y >= 1 && x < COLS && y < ROWS && !BLOCKED.has(key(x, y));
+const free = (x: number, y: number) => (x >= 0 || (x >= MIN_X && y >= 3)) && y >= 1 && x < COLS && y < ROWS && !BLOCKED.has(key(x, y));
 const route = (from: P, to: P): P[] => {
   const sx = Math.round(from.x), sy = Math.round(from.y);
   let tx = Math.round(to.x), ty = Math.round(to.y);
@@ -246,7 +271,7 @@ const route = (from: P, to: P): P[] => {
   while (q.length) {
     const [x, y] = q.shift()!;
     if (x === tx && y === ty) break;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, k = key(nx, ny); if (!prev.has(k) && free(nx, ny)) { prev.set(k, key(x, y)); q.push([nx, ny]); } }
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, k = key(nx, ny); if (!prev.has(k) && free(nx, ny) && !wallBetween(x, y, nx)) { prev.set(k, key(x, y)); q.push([nx, ny]); } }
   }
   if (!prev.has(key(tx, ty))) return [{ x: tx, y: ty }];
   const cells: P[] = [];
@@ -268,9 +293,9 @@ export default function Restaurant() {
   const savedRow = styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Save> | undefined;
   const saved: Partial<Save> = savedRow ?? (() => { try { return localKey ? JSON.parse(localStorage.getItem(localKey) ?? '{}') as Partial<Save> : {}; } catch { return {}; } })();
   const load = (v: Partial<Save>): Save => ({ ...FRESH, ...v, me: { ...FRESH.me, ...(v.me ?? {}) }, stock: Array.isArray(v.stock) ? v.stock.filter((x) => x in ITEMS) : [], ratings: Array.isArray(v.ratings) ? v.ratings : [] });
-  const g = useRef<{ s: Save; me: Mover; guests: Guest[]; cars: Car[]; ovens: Oven[]; server: Mover; cook: Mover; open: boolean; day: Day; nextGuest: number; nextCar: number; event: { id: string; until: number } | null; nextEvent: number; burnAfter: number; spawnQ: Guest[]; staffHome: boolean; mess: Record<number, boolean> } | null>(null);
+  const g = useRef<{ s: Save; me: Mover; guests: Guest[]; cars: Car[]; ovens: Oven[]; server: Mover; cook: Mover; janitor: Mover; takeout: Mover; drive: Mover; away: Away | null; open: boolean; day: Day; nextGuest: number; nextCar: number; event: { id: string; until: number } | null; nextEvent: number; burnAfter: number; spawnQ: Guest[]; staffHome: boolean; mess: Record<number, boolean> } | null>(null);
   if (!g.current) {
-    g.current = { s: load(saved), me: mover({ x: 6, y: 2 }), guests: [], cars: [], ovens: Array.from({ length: 3 }, () => ({ state: 'idle', t: 0, n: 0 })), server: mover({ x: 11, y: 2 }), cook: mover({ x: 4, y: 2 }), open: false, day: NEW_DAY(), nextGuest: 0, nextCar: 0, event: null, nextEvent: Date.now() + 120000, burnAfter: 18, spawnQ: [], staffHome: true, mess: {} };
+    g.current = { s: load(saved), me: mover({ x: 6, y: 2 }), guests: [], cars: [], ovens: Array.from({ length: 3 }, () => ({ state: 'idle', t: 0, n: 0 })), server: mover(ROLES.server.post), cook: mover(ROLES.cook.post), janitor: mover(ROLES.janitor.post), takeout: mover(ROLES.takeout.post), drive: mover(ROLES.drive.post), away: null, open: false, day: NEW_DAY(), nextGuest: 0, nextCar: 0, event: null, nextEvent: Date.now() + 120000, burnAfter: 18, spawnQ: [], staffHome: true, mess: {} };
   }
   const [, setTick] = useState(0);
   const [phase, setPhase] = useState<'menu' | 'play'>('menu');
@@ -282,7 +307,9 @@ export default function Restaurant() {
   const [bakeType, setBakeType] = useState<Item>('cheese');
   const bakeRef = useRef(bakeType); bakeRef.current = bakeType;
   const [buy, setBuy] = useState<{ name: string; cost: number; act: () => void } | null>(null);
-  const [picker, setPicker] = useState<null | 'server' | 'cook'>(null);
+  const [picker, setPicker] = useState<null | Role>(null);
+  const [away, setAway] = useState<Away | null>(null);
+  const actRef = useRef<Record<'janitor' | 'takeout' | 'drive', () => void>>({ janitor: () => {}, takeout: () => {}, drive: () => {} });
   const [events, setEvents] = useState(false);
   const [restartArmed, setRestartArmed] = useState(false);
   const [shownTag, setShownTag] = useState<string | null>(null);
@@ -329,15 +356,15 @@ export default function Restaurant() {
       const G = g.current!; if (phaseRef.current !== 'play') return;
       const s = G.s, now = Date.now();
       const stepMover = (m: Mover, speed: number) => {
-        if (!m.path.length) return;
+        // A job at the spot they already stand on happens right away (so no one is ever left waiting on it).
+        if (!m.path.length) { if (m.job) { const j = m.job; m.job = null; j(); } return; }
         const tg = m.path[0], dx = tg.x - m.x, dy = tg.y - m.y, d = Math.hypot(dx, dy), stp = speed * dt;
         if (dx) m.face = dx > 0 ? 1 : -1;
         if (d <= stp) { m.x = tg.x; m.y = tg.y; m.path.shift(); if (!m.path.length && m.job) { const j = m.job; m.job = null; j(); } }
         else { m.x += (dx / d) * stp; m.y += (dy / d) * stp; }
       };
       stepMover(G.me, 3.2 * (1 + s.me.speed * 0.25));
-      if (s.server) stepMover(G.server, 2.6 * (1 + s.server.speed * 0.25));
-      if (s.cook) stepMover(G.cook, 2.6 * (1 + s.cook.speed * 0.25));
+      for (const r of ROLE_KEYS) { const sk = s[r]; if (sk) stepMover(G[r], 2.6 * (1 + sk.speed * 0.25)); }
       // Ovens bake their batch, then burn if left too long.
       const bake = 7 / (1 + s.ovenLv * 0.35);
       G.ovens.forEach((o, i) => {
@@ -406,8 +433,12 @@ export default function Restaurant() {
       if (G.event && G.event.until < now) G.event = null;
       // The team: the cook keeps the ovens going while the counter tower is short; the server carries batches out to the
       // counter, cleans tables and takes out the trash.
-      if (s.cook && G.open && !G.staffHome && !G.cook.path.length && !G.cook.job) cookThink();
-      if (s.server && G.open && !G.staffHome && !G.server.path.length && !G.server.job) serverThink();
+      // They keep at it while the student answers questions or shops (Build Queue 492).
+      if (G.open && !G.staffHome) {
+        if (s.cook && !G.cook.path.length && !G.cook.job) cookThink();
+        if (s.server && !G.server.path.length && !G.server.job) serverThink();
+        for (const r of ['janitor', 'takeout', 'drive'] as const) if (s[r] && !G[r].path.length && !G[r].job) actRef.current[r]();
+      }
       if (nowP - lastDraw > 100) { lastDraw = nowP; setTick((n) => (n + 1) % 1000000); }
     };
     raf = requestAnimationFrame(loop);
@@ -417,7 +448,7 @@ export default function Restaurant() {
   // A different Neighbor each time when there are enough of them (never someone on the team).
   function pickNeighbor() {
     const st = g.current!.s.staff ?? {};
-    const list = nbRef.current.filter((n) => n.id !== st.server && n.id !== st.cook); const inside = new Set(g.current!.guests.filter((c) => c.state !== 'leave').map((c) => c.npc));
+    const team = Object.values(st); const list = nbRef.current.filter((n) => !team.includes(n.id)); const inside = new Set(g.current!.guests.filter((c) => c.state !== 'leave').map((c) => c.npc));
     const free = list.filter((n) => !inside.has(n.id)); const pool = free.length ? free : list;
     const n = pool[Math.floor(Math.random() * pool.length)];
     return n ? { npc: n.id, name: n.name } : { npc: '', name: 'A Neighbor' };
@@ -427,6 +458,7 @@ export default function Restaurant() {
     const line = g.current!.guests.filter((x) => x.state === 'walk-in' || x.state === 'line').sort((a, b) => a.arrived - b.arrived || a.id - b.id);
     line.forEach((x, i) => { const t = lineSpot(i); const last = x.m.path[x.m.path.length - 1]; const at = Math.round(x.m.x) === t.x && Math.round(x.m.y) === t.y && !x.m.path.length; if (!at && !(last && last.x === t.x && last.y === t.y)) { x.m.path = route(x.m, t); x.m.job = () => { x.state = 'line'; }; } else if (at) x.state = 'line'; });
   }
+  function tally(k: keyof Away, n = 1) { const a = g.current!.away; if (a) a[k] += n; }
   const pizzasIn = (h: Hand[]) => h.filter((x) => x.item !== 'trash' && !x.burnt);
   // The pizzas a batch makes, and where they go.
   const batch = (s: Save) => 2 + s.ovenLv;
@@ -436,9 +468,9 @@ export default function Restaurant() {
     if (s2.stock.length + ready >= stackCap(s2)) return;
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'idle'); if (oi < 0) return;
     const menu2 = menuFor(s2.level, s2.theme);
-    const want = G2.guests.find((c) => c.state === 'line' && s2.stock.filter((x) => x === c.item).length < c.n)?.item;
+    const want = G2.guests.find((c) => c.state === 'line' && s2.stock.filter((x) => x === c.item).length < c.n)?.item ?? G2.cars.find((c) => c.state === 'wait' && s2.stock.filter((x) => x === c.item).length < c.n)?.item;
     const item = want && menu2.includes(want) ? want : menu2.includes(bakeRef.current) ? bakeRef.current : menu2[0];
-    ck.path = route(ck, use.oven(oi)); ck.job = () => { const o = G2.ovens[oi]; if (o.state === 'idle') { o.state = 'cook'; o.item = item; o.t = 0; o.n = batch(s2); } };
+    ck.path = route(ck, use.oven(oi)); ck.job = () => { const o = G2.ovens[oi]; if (o.state === 'idle') { o.state = 'cook'; o.item = item; o.t = 0; o.n = batch(s2); tally('baked', o.n); } };
   }
   function serverThink() {
     const G2 = g.current!, s2 = G2.s, sv = G2.server, cap = 4 + (s2.server?.carry ?? 0) * 3;
@@ -446,12 +478,13 @@ export default function Restaurant() {
     const more = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'ready');
     // A trained server fills their tower from every ready oven before carrying it all to the counter (Build Queue 483).
     if (pizzasIn(sv.hands).length && room > 0 && more >= 0) { sv.path = route(sv, use.oven(more)); sv.job = () => { const o = G2.ovens[more]; if (o.state === 'ready') { const k = Math.min(o.n, cap - sv.hands.length); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
-    if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = stackCap(s2) - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); }; return; }
+    if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = stackCap(s2) - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); tally('stacked', give.length); }; return; }
     if (sv.hands.some((h) => h.item === 'trash' || h.burnt)) { sv.path = route(sv, use.trash); sv.job = () => { sv.hands = []; }; return; }
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && (o.state === 'ready' || o.state === 'burnt'));
     if (oi >= 0) { sv.path = route(sv, use.oven(oi)); sv.job = () => { const o = G2.ovens[oi]; if (o.state === 'burnt') { sv.hands.push({ item: o.item ?? 'cheese', burnt: true }); o.state = 'idle'; o.n = 0; } else if (o.state === 'ready') { const k = Math.min(o.n, cap); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
-    const ti = Object.keys(G2.mess).map(Number).find((k) => G2.mess[k]);
-    if (ti !== undefined) { sv.path = route(sv, use.table(ti)); sv.job = () => { if (G2.mess[ti]) { G2.mess[ti] = false; sv.hands.push({ item: 'trash' }); } }; }
+    // With a custodian on the team, cleaning is their job.
+    const ti = s2.janitor ? undefined : Object.keys(G2.mess).map(Number).find((k) => G2.mess[k]);
+    if (ti !== undefined) { sv.path = route(sv, use.table(ti)); sv.job = () => { if (G2.mess[ti]) { G2.mess[ti] = false; sv.hands.push({ item: 'trash' }); tally('cleaned'); } }; }
   }
 
   if (!student) return null;
@@ -493,6 +526,22 @@ export default function Restaurant() {
     o.state = 'cook'; o.item = menu.includes(bakeType) ? bakeType : menu[0]; o.t = 0; o.n = batch(s); clip('stoveFlame');
     flash(`Baking ${o.n} ${ITEMS[o.item].name.toLowerCase()}s.`);
   };
+  // Hand a customer their pizzas from the tower and take payment (the student at the counter, or the takeout attendant).
+  const handOver = (c: Guest, staff = false) => {
+    for (let k = 0; k < c.n; k++) s.stock.splice(s.stock.indexOf(c.item), 1);
+    const waited = (Date.now() - c.arrived) / 1000, stars = starsFor(waited, c.n);
+    const amt = priceOf(c.item, c.n);
+    let tip = amt * ((stars >= 5 ? 0.2 : stars === 4 ? 0.1 : 0) + s.me.acc * 0.04 + s.decor.length * 0.05) * (G.event?.id === 'rush' && G.event.until > Date.now() ? 2 : 1);
+    if (c.critic && waited <= 20) { tip += 50; flash('The food critic loved it! +$50'); }
+    const paid = Math.round(amt * (stars <= 1 ? 0.6 : 1) + tip);
+    G.day.tips += Math.round(tip); earn(paid, ORDER_SPOT); clip('cash');
+    if (stars <= 2) { c.say = { text: SARCASM[Math.floor(Math.random() * SARCASM.length)], until: Date.now() + 3500 }; clip(Math.random() < 0.5 ? 'meh' : 'bleh'); }
+    else { c.say = { text: HAPPY[Math.floor(Math.random() * HAPPY.length)], until: Date.now() + 2500 }; const v = YUM[Math.floor(Math.random() * YUM.length)]; window.setTimeout(() => clip(v), 700); }
+    if (c.takeout) { c.state = 'leave'; c.m.path = route(c.m, DOOR); }
+    else { c.state = 'eat'; c.eatEnd = Date.now() + 6000 + c.n * 600; c.m.path = route(c.m, { x: TABLES[c.table].x + 1, y: TABLES[c.table].y }); }
+    c.m.job = null; served(stars, c.n, c.item); reline();
+    if (staff) { tally('takeout'); tally('money', paid); }
+  };
   // The counter: stack what you carry on the tower, then hand the first customer in line their pizzas and take payment.
   const atCounter = () => {
     let did = false;
@@ -505,19 +554,7 @@ export default function Restaurant() {
     const c = G.guests.filter((x) => x.state === 'line').sort((a, b) => a.arrived - b.arrived)[0];
     if (c) {
       const have = s.stock.filter((x) => x === c.item).length;
-      if (have >= c.n) {
-        for (let k = 0; k < c.n; k++) s.stock.splice(s.stock.indexOf(c.item), 1);
-        const waited = (Date.now() - c.arrived) / 1000, stars = starsFor(waited, c.n);
-        const amt = priceOf(c.item, c.n);
-        let tip = amt * ((stars >= 5 ? 0.2 : stars === 4 ? 0.1 : 0) + s.me.acc * 0.04 + s.decor.length * 0.05) * (G.event?.id === 'rush' && G.event.until > Date.now() ? 2 : 1);
-        if (c.critic && waited <= 20) { tip += 50; flash('The food critic loved it! +$50'); }
-        G.day.tips += Math.round(tip); earn(Math.round(amt * (stars <= 1 ? 0.6 : 1) + tip), ORDER_SPOT); clip('cash');
-        if (stars <= 2) { c.say = { text: SARCASM[Math.floor(Math.random() * SARCASM.length)], until: Date.now() + 3500 }; clip(Math.random() < 0.5 ? 'meh' : 'bleh'); }
-        else { c.say = { text: HAPPY[Math.floor(Math.random() * HAPPY.length)], until: Date.now() + 2500 }; const v = YUM[Math.floor(Math.random() * YUM.length)]; window.setTimeout(() => clip(v), 700); }
-        if (c.takeout) { c.state = 'leave'; c.m.path = route(c.m, DOOR); }
-        else { c.state = 'eat'; c.eatEnd = Date.now() + 6000 + c.n * 600; c.m.path = route(c.m, { x: TABLES[c.table].x + 1, y: TABLES[c.table].y }); }
-        c.m.job = null; served(stars, c.n, c.item); reline(); return;
-      }
+      if (have >= c.n) { handOver(c); return; }
       if (!did) hint(`${c.name} wants ${c.n} ${ITEMS[c.item].name.toLowerCase()}${c.n === 1 ? '' : 's'}. The counter has ${have}. Bake ${c.n - have} more!`);
       return;
     }
@@ -546,8 +583,46 @@ export default function Restaurant() {
     const mine = G.me.hands.filter((h) => h.item === car.item && !h.burnt);
     if (mine.length < car.n) return hint(`The car wants ${car.n} ${ITEMS[car.item].name.toLowerCase()}${car.n === 1 ? '' : 's'}. You are carrying ${mine.length}.`);
     const give = mine.slice(0, car.n); G.me.hands = G.me.hands.filter((h) => !give.includes(h));
+    payCar(car);
+  };
+  const payCar = (car: Car, staff = false) => {
     const stars = starsFor((Date.now() - car.arrived) / 1000, car.n); car.state = 'go';
-    earn(Math.round(priceOf(car.item, car.n) * 1.3), WINDOW); clip('cash'); served(stars, car.n, car.item);
+    const paid = Math.round(priceOf(car.item, car.n) * 1.3);
+    earn(paid, WINDOW); clip('cash'); served(stars, car.n, car.item);
+    if (staff) { tally('drive'); tally('money', paid); }
+  };
+  // ---- the three new team jobs (Build Queue 491); the game loop calls these through actRef so they see this screen's
+  // newest state ----
+  const send = (m: Mover, to: P, job: () => void) => { m.path = route(m, to); m.job = job; };
+  const home = (m: Mover, r: Role) => { const p = ROLES[r].post; if (Math.round(m.x) !== p.x || Math.round(m.y) !== p.y) m.path = route(m, p); };
+  const TOWER_BACK: P = { x: 8, y: 2 };
+  actRef.current = {
+    // The custodian: dirty tables, then the trash, and nothing else.
+    janitor: () => {
+      const m = G.janitor, cap = 4 + (s.janitor?.carry ?? 0) * 3;
+      const ti = Object.keys(G.mess).map(Number).find((k) => G.mess[k]);
+      if (ti !== undefined && m.hands.length < cap) { send(m, use.table(ti), () => { if (G.mess[ti]) { G.mess[ti] = false; m.hands.push({ item: 'trash' }); tally('cleaned'); clip('scrub', true); } }); return; }
+      if (m.hands.length) { send(m, use.trash, () => { m.hands = []; }); return; }
+      home(m, 'janitor');
+    },
+    // The takeout attendant: any takeout customer in line whose pizzas are on the tower gets them, line or no line.
+    takeout: () => {
+      const m = G.takeout;
+      const c = G.guests.filter((x) => x.state === 'line' && x.takeout && s.stock.filter((i) => i === x.item).length >= x.n).sort((a, b) => a.arrived - b.arrived)[0];
+      if (!c) { home(m, 'takeout'); return; }
+      send(m, use.counter, () => { if (c.state === 'line' && s.stock.filter((i) => i === c.item).length >= c.n) handOver(c, true); });
+    },
+    // The drive through attendant: takes the car's pizzas off the tower and carries them to the window.
+    drive: () => {
+      const m = G.drive, car = G.cars.find((x) => x.state === 'wait'), goods = pizzasIn(m.hands);
+      const putBack = (keep: (h: Hand) => boolean) => send(m, TOWER_BACK, () => { const back = pizzasIn(m.hands).filter((h) => !keep(h)).slice(0, Math.max(0, stackCap(s) - s.stock.length)); s.stock.push(...back.map((h) => h.item as Item)); m.hands = m.hands.filter((h) => keep(h)); });
+      if (!car) { if (m.hands.length) putBack(() => false); else home(m, 'drive'); return; }
+      if (goods.some((h) => h.item !== car.item)) { putBack((h) => h.item === car.item); return; }
+      if (goods.length >= car.n) { send(m, use.window, () => { if (car.state !== 'wait') return; const give = pizzasIn(m.hands).filter((h) => h.item === car.item).slice(0, car.n); if (give.length < car.n) return; m.hands = m.hands.filter((h) => !give.includes(h)); payCar(car, true); }); return; }
+      const need = car.n - goods.length;
+      if (s.stock.filter((x) => x === car.item).length < need) { home(m, 'drive'); return; }
+      send(m, TOWER_BACK, () => { const k = Math.min(need, s.stock.filter((x) => x === car.item).length); for (let j = 0; j < k; j++) { s.stock.splice(s.stock.indexOf(car.item), 1); m.hands.push({ item: car.item }); } });
+    },
   };
   const go = (to: P, job: () => void) => { if (phase !== 'play') return; G.me.path = route(G.me, to); G.me.job = job; };
   const tapFloor = (p: P) => { if (phase !== 'play') return; G.me.path = route(G.me, p); G.me.job = null; };
@@ -556,16 +631,16 @@ export default function Restaurant() {
   const toggleOpen = () => {
     if (!G.open) {
       G.open = true; G.day = NEW_DAY(); G.nextGuest = Date.now() + 1500; G.nextCar = Date.now() + 25000;
-      if (G.staffHome) { G.staffHome = false; for (const [m, post] of [[G.server, { x: 11, y: 2 }], [G.cook, { x: 4, y: 2 }]] as const) { m.x = DOOR.x; m.y = DOOR.y; m.hands = []; m.path = route(m, post); m.job = null; } }
+      if (G.staffHome) { G.staffHome = false; for (const r of ROLE_KEYS) { const m = G[r]; m.x = DOOR.x; m.y = DOOR.y; m.hands = []; m.path = route(m, ROLES[r].post); m.job = null; } }
       clip('open'); flash('Open for business! Bake ahead and stack your tower.'); return;
     }
     G.open = false; G.spawnQ = [];
     G.guests.forEach((c) => { if (c.state !== 'leave') { c.state = 'leave'; c.say = { text: 'See you next time!', until: Date.now() + 2000 }; c.m.path = route(c.m, DOOR); c.m.job = null; } });
     G.cars.forEach((c) => { c.state = 'go'; });
-    for (const m of [G.server, G.cook]) { m.path = route(m, DOOR); m.job = null; m.hands = []; }
+    for (const r of ROLE_KEYS) { const m = G[r]; m.path = route(m, DOOR); m.job = null; m.hands = []; }
     G.staffHome = true;
     const wages: { who: string; amt: number }[] = [];
-    (['server', 'cook'] as const).forEach((w) => { const sk = s[w]; if (!sk) return; const amt = Math.round((w === 'server' ? 30 : 45) * (1 + (sk.speed + sk.carry + sk.acc) * 0.15)); wages.push({ who: `${profiles[s.staff?.[w] ?? '']?.name ?? 'Your helper'} (${w})`, amt }); });
+    ROLE_KEYS.forEach((w) => { const sk = s[w]; if (!sk) return; const amt = Math.round(ROLES[w].wage * (1 + (sk.speed + sk.carry + sk.acc) * 0.15)); wages.push({ who: `${profiles[s.staff?.[w] ?? '']?.name ?? 'Your helper'} (${ROLES[w].name.toLowerCase()})`, amt }); });
     const paid = wages.reduce((n, w) => n + w.amt, 0);
     s.money = Math.max(0, s.money - paid); G.day.wages = wages;
     s.day += 1; const net = G.day.money - paid; const best = net > s.best; if (best) s.best = net; save();
@@ -583,7 +658,15 @@ export default function Restaurant() {
   // the counts stay what 485 set: never more than 10, and only the biggest upgrades reach 10.
   const qFor = (cost: number) => (qs.upgrades ? Math.min(10, Math.max(1, Math.round(cost / 100))) : 0);
   const plural = (n: number) => `${n} question${n === 1 ? '' : 's'}`;
-  const gate = (label: string, n: number, act: () => void, onCancel?: () => void) => { if (n > 0) ask(label, act, onCancel, n); else act(); };
+  // The team keeps working through the questions, and a "While you were away" report shows what they did (Build Queue
+  // 492, her words: "all employees should continue working while player upgrades or answers any questions. a "whle you
+  // were away report" should present on what they did - after answering questions, they should continue working").
+  const gate = (label: string, n: number, act: () => void, onCancel?: () => void) => {
+    if (n <= 0) { act(); return; }
+    if (G.open && !G.staffHome && ROLE_KEYS.some((r) => s[r]) && !G.away) G.away = { ...NO_AWAY };
+    const done = () => { const a = G.away; G.away = null; if (a && Object.values(a).some((v) => v > 0)) setAway(a); };
+    ask(label, () => { act(); done(); }, () => { onCancel?.(); done(); }, n);
+  };
   // Answering closes the level message first, so the questions are in front (Build Queue 468e).
   const claimLevel = (lv: number) => {
     setLevelUp(null);
@@ -593,21 +676,20 @@ export default function Restaurant() {
     setEvents(false);
     gate(`Answer 5 questions to start the ${e.title}!`, 5, () => { G.event = { id: e.id, until: Date.now() + (e.id === 'critic' ? 60000 : EVENT_MS) }; clip('level'); flash(`${e.title} is on!`); });
   };
-  const train = (who: 'me' | 'server' | 'cook', k: keyof Skill) => {
+  const train = (who: 'me' | Role, k: keyof Skill) => {
     const sk = who === 'me' ? s.me : s[who]; if (!sk) return; const lvl = sk[k]; if (lvl >= 3) return;
     const cost = trainCost(who, lvl);
-    const doIt = () => { if (spend(cost)) { sk[k] = lvl + 1; save(); flash(`${who === 'me' ? 'You' : who === 'server' ? 'Your server' : 'Your cook'} got better: ${k === 'speed' ? 'faster' : k === 'carry' ? 'carries a taller tower' : 'more careful (slower to burn, bigger tips)'}!`); } };
+    const doIt = () => { if (spend(cost)) { sk[k] = lvl + 1; save(); flash(`${who === 'me' ? 'You' : `Your ${ROLES[who].name.toLowerCase()}`} got better: ${k === 'speed' ? 'faster' : k === 'carry' ? 'carries a taller tower' : 'more careful (slower to burn, bigger tips)'}!`); } };
     if (s.money < cost) { clip('error'); flash(`You need ${fmt(cost - s.money)} more.`); return; }
     gate(`Answer ${plural(qFor(cost))} to train ${who === 'me' ? 'yourself' : `your ${who}`}!`, qFor(cost), doIt);
   };
   // Neighbors can be hired (Build Queue 468h): the student picks who, and that Neighbor works in their own look.
-  const HIRE_COST = { server: 800, cook: 1000 };
-  const hire = (who: 'server' | 'cook', npc: string) => {
-    const cost = HIRE_COST[who];
+  const hire = (who: Role, npc: string) => {
+    const cost = ROLES[who].cost;
     if (s.money < cost) { clip('error'); flash(`You need ${fmt(cost - s.money)} more.`); return; }
     setPicker(null);
     const name = profiles[npc]?.name ?? 'your Neighbor';
-    gate(`Answer ${plural(Math.max(1, qFor(cost)))} to hire ${name}!`, Math.max(1, qFor(cost)), () => { if (spend(cost)) { s[who] = { speed: 0, carry: 0, acc: 0 }; s.staff = { ...(s.staff ?? {}), [who]: npc }; if (!G.staffHome) { const m = G[who]; m.x = DOOR.x; m.y = DOOR.y; m.path = route(m, who === 'server' ? { x: 11, y: 2 } : { x: 4, y: 2 }); } save(); playCheer(); flash(`You hired ${name} as your ${who}!`); } });
+    gate(`Answer ${plural(Math.max(1, qFor(cost)))} to hire ${name}!`, Math.max(1, qFor(cost)), () => { if (spend(cost)) { s[who] = { speed: 0, carry: 0, acc: 0 }; s.staff = { ...(s.staff ?? {}), [who]: npc }; if (!G.staffHome) { const m = G[who]; m.x = DOOR.x; m.y = DOOR.y; m.path = route(m, ROLES[who].post); } save(); playCheer(); flash(`You hired ${name} as your ${ROLES[who].name.toLowerCase()}!`); } });
   };
 
   // ---- level 1 "show how you do it": the steps for the first customer ----
@@ -650,10 +732,12 @@ export default function Restaurant() {
   stations.push({ key: 'counter', at: COUNTER, label: 'Counter: stack pizzas and hand them over', tag: `${s.stock.length} pizza${s.stock.length === 1 ? '' : 's'} on the counter`, onTap: () => go(use.counter, atCounter) });
   if (!G.open) stations.push({ key: 'register', at: { x: 7, y: COUNTER.y }, label: 'Cash register: answer questions for money', tag: 'Cash register questions', onTap: () => go({ x: 7, y: 2 }, () => { clip('cash', true); setRegQuiz(true); }) });
   if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', onTap: () => go(use.window, atWindow) });
+  const tableCap = s.annex ? TABLES.length : lvOk(8) ? MAIN_TABLES : lvOk(2) ? 3 : 1;
   TABLES.forEach((p, i) => {
-    const cap = lvOk(8) ? 6 : lvOk(2) ? 3 : 1;
+    const cap = tableCap;
+    if (i >= MAIN_TABLES && !s.annex) return;
     if (i < s.tables) stations.push({ key: `table${i}`, at: p, label: `Table ${i + 1}`, onTap: () => go(use.table(i), () => atTable(i)), children: <TableSet /> });
-    else if (i === s.tables) { const need = i < 3 ? 2 : 8, cost = tableCost(s.tables); stations.push({ key: `table${i}`, at: p, label: 'Empty table spot', tag: i < cap ? `+ Table ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy(`Table ${i + 1}`, cost, i < cap ? 0 : need, () => { if (spend(cost)) s.tables += 1; }), children: <EmptySpot /> }); }
+    else if (i === s.tables) { const need = i < 3 ? 2 : i < MAIN_TABLES ? 8 : 10, cost = tableCost(s.tables); stations.push({ key: `table${i}`, at: p, label: 'Empty table spot', tag: i < cap ? `+ Table ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy(`Table ${i + 1}`, cost, i < cap ? 0 : need, () => { if (spend(cost)) s.tables += 1; }), children: <EmptySpot /> }); }
     else stations.push({ key: `table${i}`, at: p, label: 'Empty spot', onTap: () => { clip('error', true); flash('Add the tables in order: buy the marked spot first.'); }, children: <EmptySpot faint /> });
   });
   DECOR.forEach((d) => {
@@ -664,6 +748,7 @@ export default function Restaurant() {
   DECOR.forEach((d) => { if (s.decor.includes(d.id)) stations.push({ key: `deco-${d.id}`, at: d.at, label: d.name, onTap: () => { clip('click', true); pop(d.id === 'arcade' ? 'High score!' : CUTE[Math.floor(Math.random() * CUTE.length)], d.at); }, children: <ModelAt url={d.model} fit={d.fit} rot={d.rot} /> }); });
   // Labels show only for a moment after a tap, so they never pile up or cover anyone (Build Queue 472).
   const tagged = stations.map((st) => ({ ...st, tag: shownTag === st.key ? st.tag : undefined, onTap: () => { if (st.tag) { setShownTag(st.key); window.setTimeout(() => setShownTag((k) => (k === st.key ? null : k)), 2500); } st.onTap(); } }));
+  DOOR = s.annex ? DOOR_ANNEX : DOOR_MAIN; MIN_X = s.annex ? ANNEX_X : 0;
   BLOCKED = new Set<string>([
     ...Array.from({ length: COLS }, (_, x) => key(x, 1)),
     ...[5, 6, 7, 8].map((x) => key(x, COUNTER.y)),
@@ -716,9 +801,9 @@ export default function Restaurant() {
       <div className="rt-stage">
         <Suspense fallback={<p className="rt-loading">Setting up your restaurant...</p>}>
           <RestaurantScene
-            theme={s.theme} ovens={s.ovens} shelves={0} tables={s.tables} showWindow={lvOk(6)}
+            theme={s.theme} ovens={s.ovens} shelves={0} tables={s.tables} showWindow={lvOk(6)} annex={!!s.annex}
             stations={tagged} me={sceneMover(G.me)} meLook={meLook}
-            staff={G.staffHome && G.server.path.length === 0 && G.cook.path.length === 0 ? [] : [...(s.server ? [{ m: sceneMover(G.server), look: profiles[s.staff?.server ?? '']?.look ?? SERVER_LOOK }] : []), ...(s.cook ? [{ m: sceneMover(G.cook), look: profiles[s.staff?.cook ?? '']?.look ?? COOK_LOOK }] : [])]}
+            staff={G.staffHome && ROLE_KEYS.every((r) => !G[r].path.length) ? [] : ROLE_KEYS.filter((r) => s[r]).map((r) => ({ m: sceneMover(G[r]), look: profiles[s.staff?.[r] ?? '']?.look ?? ROLES[r].look }))}
             guests={G.guests.map((c) => ({ id: c.id, m: sceneMover(c.m), look: profiles[c.npc]?.look ?? defaultLook('dog'), bubble: bubbleFor(c), side: lineSide(c) }))}
             cars={G.cars.map((c) => ({ id: c.id, x: c.x, bubble: c.state === 'wait' ? <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n}</b></span></i> : null }))}
             props={FIXED} tapHere={showHints ? tapHere : null} pops={pops}
@@ -839,21 +924,23 @@ export default function Restaurant() {
             {shop === 'build' && <div className="rt-items">
               {[{ name: 'Second oven', ok: lvOk(2) && s.ovens < 2, need: 2, cost: 600, act: () => { if (spend(600)) s.ovens = 2; } },
                 { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 1000, act: () => { if (spend(1000)) s.ovens = 3; } },
-                { name: `Table ${s.tables + 1}`, ok: s.tables < (lvOk(8) ? 6 : lvOk(2) ? 3 : 1), need: s.tables < 3 ? 2 : 8, cost: tableCost(s.tables), act: () => { if (spend(tableCost(s.tables))) s.tables += 1; } },
+                { name: 'New dining room next door (room for 4 more tables)', ok: lvOk(10) && !s.annex, need: 10, cost: ANNEX_COST, act: () => { if (spend(ANNEX_COST)) { s.annex = true; flash('Your new dining room is open! Add tables in it.'); } } },
+                { name: `Table ${s.tables + 1}`, ok: s.tables < tableCap, need: s.tables < 3 ? 2 : s.tables < MAIN_TABLES ? 8 : 10, cost: tableCost(s.tables), act: () => { if (spend(tableCost(s.tables))) s.tables += 1; } },
                 { name: (s.stackLv ?? 0) < 4 ? `Bigger pizza tower (holds ${STACK_CAPS[(s.stackLv ?? 0) + 1]}, bigger orders)` : 'Bigger pizza tower (holds 50)', ok: lvOk(2) && (s.stackLv ?? 0) < 4, need: 2, cost: STACK_COST[Math.min(3, s.stackLv ?? 0)], act: () => { const lv = s.stackLv ?? 0; if (spend(STACK_COST[lv])) { s.stackLv = lv + 1; flash(`Your counter tower now holds ${stackCap(s)} pizzas, and customers order more!`); } } },
                 { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 200 * (s.ovenLv + 1), act: () => { if (spend(200 * (s.ovenLv + 1))) s.ovenLv += 1; } },
               ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(qFor(it.cost))} for this upgrade!`, qFor(it.cost), () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : s.claimed < it.need ? `Level ${it.need}` : 'Got it'}</span></button>)}
             </div>}
             {shop === 'workers' && <div className="rt-items">
-              {(['me', 'server', 'cook'] as const).map((who) => {
+              {(['me', ...ROLE_KEYS] as ('me' | Role)[]).map((who) => {
                 const sk = who === 'me' ? s.me : s[who];
-                const canHire = who === 'server' ? lvOk(3) : who === 'cook' ? lvOk(7) : true;
+                const canHire = who === 'me' || lvOk(ROLES[who].lv);
                 return (
                   <div key={who} className="rt-worker">
-                    <b>{who === 'me' ? 'You' : who === 'server' ? 'Server' : 'Cook'}</b>
-                    {who !== 'me' && sk && <small>{profiles[s.staff?.[who] ?? '']?.name ?? 'Your helper'} <button type="button" className="btn btn-sm rt-letgo" onClick={() => { const w = who as 'server' | 'cook'; s[w] = undefined; s.staff = { ...(s.staff ?? {}), [w]: undefined }; G[w].path = route(G[w], DOOR); G[w].hands = []; save(); setTick((n) => n + 1); flash('They are dismissed. You can hire someone new any time.'); }}>Dismiss</button></small>}
-                    {!sk ? <button type="button" className="btn rt-item" disabled={!canHire} onClick={() => { setShop(null); setPicker(who as 'server' | 'cook'); }}><b>Hire a Neighbor</b><span>{canHire ? fmt(HIRE_COST[who as 'server' | 'cook']) : `Level ${who === 'server' ? 3 : 7}`}</span></button>
-                      : (['speed', 'carry', 'acc'] as const).map((k) => <button key={k} type="button" className="btn rt-item" disabled={sk[k] >= 3 || !lvOk(2)} onClick={() => { setShop(null); train(who, k); }}><b>{k === 'speed' ? 'Faster' : k === 'carry' ? 'Taller tower' : 'More careful'} {sk[k]}/3</b><span>{sk[k] >= 3 ? 'Best' : fmt(trainCost(who, sk[k]))}</span></button>)}
+                    <b>{who === 'me' ? 'You' : ROLES[who].name}</b>
+                    {who !== 'me' && <small className="rt-job">{ROLES[who].job}</small>}
+                    {who !== 'me' && sk && <small>{profiles[s.staff?.[who] ?? '']?.name ?? 'Your helper'} <button type="button" className="btn btn-sm rt-letgo" onClick={() => { s[who] = undefined; s.staff = { ...(s.staff ?? {}), [who]: undefined }; G[who].path = route(G[who], DOOR); G[who].job = null; G[who].hands = []; save(); setTick((n) => n + 1); flash('They are dismissed. You can hire someone new any time.'); }}>Dismiss</button></small>}
+                    {who !== 'me' && !sk ? <button type="button" className="btn rt-item" disabled={!canHire} onClick={() => { setShop(null); setPicker(who); }}><b>Hire a Neighbor</b><span>{canHire ? fmt(ROLES[who].cost) : `Level ${ROLES[who].lv}`}</span></button>
+                      : sk && (who === 'me' ? (['speed', 'carry', 'acc'] as const) : ROLES[who].skills).map((k) => <button key={k} type="button" className="btn rt-item" disabled={sk[k] >= 3 || !lvOk(2)} onClick={() => { setShop(null); train(who, k); }}><b>{k === 'speed' ? 'Faster' : k === 'carry' ? 'Taller tower' : 'More careful'} {sk[k]}/3</b><span>{sk[k] >= 3 ? 'Best' : fmt(trainCost(who, sk[k]))}</span></button>)}
                   </div>
                 );
               })}
@@ -877,10 +964,10 @@ export default function Restaurant() {
       {picker && (
         <div className="pf-overlay rt-top" onClick={() => setPicker(null)}>
           <div className="pf-panel rt-panel" onClick={(e) => e.stopPropagation()}>
-            <h2>Hire a Neighbor as your {picker} <small>{fmt(HIRE_COST[picker])}</small></h2>
-            <p className="rt-small">They work in your pizzeria looking just like they do in Town Square. Each one is paid a wage at closing time.</p>
+            <h2>Hire a Neighbor as your {ROLES[picker].name.toLowerCase()} <small>{fmt(ROLES[picker].cost)}</small></h2>
+            <p className="rt-small">{ROLES[picker].job} They work in your pizzeria looking just like they do in Town Square, and are paid a wage at closing time.</p>
             <div className="rt-items">
-              {neighbors.filter((n) => n.id !== s.staff?.server && n.id !== s.staff?.cook).map((n) => (
+              {neighbors.filter((n) => !Object.values(s.staff ?? {}).includes(n.id)).map((n) => (
                 <button key={n.id} type="button" className="btn rt-item" onClick={() => hire(picker, n.id)}><b>{n.name}</b><span>{n.title}</span></button>
               ))}
             </div>
@@ -902,6 +989,28 @@ export default function Restaurant() {
           </div>
         </div>
       )}
+      {away && (() => {
+        const nm = (r: Role) => s[r] ? (profiles[s.staff?.[r] ?? '']?.name ?? `Your ${ROLES[r].name.toLowerCase()}`) : '';
+        const rows: [string, string][] = [
+          ...(away.baked ? [[`${nm('cook')} baked`, `${away.baked} pizzas`] as [string, string]] : []),
+          ...(away.stacked ? [[`${nm('server')} stacked on the counter`, `${away.stacked} pizzas`] as [string, string]] : []),
+          ...(away.cleaned ? [['Tables cleaned', `${away.cleaned}`] as [string, string]] : []),
+          ...(away.takeout ? [[`${nm('takeout')} served takeout customers`, `${away.takeout}`] as [string, string]] : []),
+          ...(away.drive ? [[`${nm('drive')} served drive through cars`, `${away.drive}`] as [string, string]] : []),
+          ...(away.money ? [['Money your team earned', fmt(away.money)] as [string, string]] : []),
+        ];
+        const said = `While you were away, your team kept working. ${rows.map(([a, b]) => `${a}: ${b}`).join('. ')}.`;
+        return (
+          <div className="pf-overlay rt-top">
+            <div className="pf-panel rt-panel">
+              <h2>While you were away <button type="button" className="btn rt-listen" aria-label="Listen" onClick={() => speak(said, student.ttsSettings)}>🔊</button></h2>
+              <p className="rt-small">Your team kept working while you answered questions.</p>
+              <table className="rt-report"><tbody>{rows.map(([a, b]) => <tr key={a}><td>{a}</td><td>{b}</td></tr>)}</tbody></table>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { clip('click', true); setAway(null); }}>Keep going</button>
+            </div>
+          </div>
+        );
+      })()}
       {regQuiz && <RegisterQuiz tts={student.ttsSettings} onEarn={(n) => { s.money += n; s.total += n; clip('cash', true); save(); setTick((t) => t + 1); }} onClose={(t) => { setRegQuiz(false); save(); if (t) { playCheer(); flash(`The register earned you ${fmt(t)}!`); } }} />}
       {element}
     </div>

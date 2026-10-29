@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-restaurant-away",
+    date: "2026-10-29",
+    icon: "⏱️",
+    title: "Your team keeps working",
+    body: "In the Restaurant, your workers keep working while you answer questions or shop. When you finish, a While you were away card shows everything they did and the money they earned.",
+  },
+  {
+    id: "2026-10-29-restaurant-rooms",
+    date: "2026-10-29",
+    icon: "🏠",
+    title: "A new dining room and new jobs",
+    body: "At level 10 of the Restaurant, add a new dining room right next to your pizzeria with room for 4 more tables. You can also hire a Custodian to clean, a Takeout attendant for takeout customers, and a Drive through attendant for the cars.",
+  },
+  {
     id: "2026-10-29-restaurant-tower",
     date: "2026-10-29",
     icon: "🍕",

@@ -160,19 +160,21 @@ function MoveSwitch({ moveRef, look, scale, carrying }: { moveRef: React.RefObje
 // shows its shop, pulled back just far enough that the whole room fits the iPad screen in either orientation.
 const ELEV = (40 * Math.PI) / 180;
 const FOV = 32;
-function Rig() {
+function Rig({ minX }: { minX: number }) {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
     cam.fov = FOV; cam.aspect = size.width / size.height; cam.near = 0.5; cam.far = 200;
-    const target = new THREE.Vector3(0, 0.3, 0.5);
-    const corners = [[-COLS / 2 - 0.6, 0, -ROWS / 2 - 0.2], [COLS / 2 + 0.6, 0, -ROWS / 2 - 0.2], [-COLS / 2 - 0.6, 0, ROWS / 2 + 0.3], [COLS / 2 + 0.6, 0, ROWS / 2 + 0.3], [-COLS / 2, 1.5, -ROWS / 2], [COLS / 2, 1.5, -ROWS / 2]].map(([x, y, z]) => new THREE.Vector3(x, y, z));
-    const place = (d: number) => { cam.position.set(0, target.y + Math.sin(ELEV) * d, target.z + Math.cos(ELEV) * d); cam.lookAt(target); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
+    // With the new dining room the camera pulls back and slides left so both rooms fit.
+    const left = wx(minX) - 0.5, right = COLS / 2;
+    const target = new THREE.Vector3((left + right) / 2, 0.3, 0.5);
+    const corners = [[left - 0.6, 0, -ROWS / 2 - 0.2], [right + 0.6, 0, -ROWS / 2 - 0.2], [left - 0.6, 0, ROWS / 2 + 0.3], [right + 0.6, 0, ROWS / 2 + 0.3], [left, 1.5, -ROWS / 2], [right, 1.5, -ROWS / 2]].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+    const place = (d: number) => { cam.position.set(target.x, target.y + Math.sin(ELEV) * d, target.z + Math.cos(ELEV) * d); cam.lookAt(target); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
     const fits = (d: number) => { place(d); return corners.every((c) => { const v = c.clone().project(cam); return Math.abs(v.x) <= 0.97 && Math.abs(v.y) <= 0.95; }); };
     let lo = 4, hi = 80;
     for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
     place(hi);
-  }, [camera, size]);
+  }, [camera, size, minX]);
   return null;
 }
 
@@ -217,13 +219,22 @@ function Tiles({ cells, colors }: { cells: P[]; colors: string[] }) {
   ))}</>;
 }
 
-function Walls({ showWindow }: { showWindow: boolean }) {
+function Walls({ showWindow, annex }: { showWindow: boolean; annex: boolean }) {
   const paper = useWallpaper();
+  const aw = ANNEX.x1 - ANNEX.x0 + 1;
   return (
     <>
         <group position={[0, 0, wz(0) + 0.3]}><Wall len={COLS + 0.2} paper={paper} /></group>
-        <group position={[wx(0) - 0.56, 0, wz(1) - 0.5 + (ROWS - 2) / 2]}><Wall len={ROWS - 2} rot={Math.PI / 2} paper={paper} /></group>
-        <group position={[wx(0) - 0.55, 0, wz(ROWS - 1)]}><Model url={MODEL.door} fit={1.001} rot={Math.PI / 2} /></group>
+        {annex ? <>
+          {/* The main room's left wall stops at row 5, leaving a wide opening into the new dining room. */}
+          <group position={[wx(0) - 0.56, 0, wz(1) - 0.5 + 2.5]}><Wall len={5} rot={Math.PI / 2} paper={paper} /></group>
+          <group position={[wx(ANNEX.x0) - 0.5 + aw / 2, 0, wz(ANNEX.y0) - 0.56]}><Wall len={aw + 0.2} paper={paper} /></group>
+          <group position={[wx(ANNEX.x0) - 0.56, 0, wz(ANNEX.y0) - 0.5 + (ANNEX.y1 - ANNEX.y0) / 2]}><Wall len={ANNEX.y1 - ANNEX.y0} rot={Math.PI / 2} paper={paper} /></group>
+          <group position={[wx(ANNEX.x0) - 0.55, 0, wz(ANNEX.y1)]}><Model url={MODEL.door} fit={1.001} rot={Math.PI / 2} /></group>
+        </> : <>
+          <group position={[wx(0) - 0.56, 0, wz(1) - 0.5 + (ROWS - 2) / 2]}><Wall len={ROWS - 2} rot={Math.PI / 2} paper={paper} /></group>
+          <group position={[wx(0) - 0.55, 0, wz(ROWS - 1)]}><Model url={MODEL.door} fit={1.001} rot={Math.PI / 2} /></group>
+        </>}
         <group position={[wx(COLS - 1) + 0.56, 0, wz(1) - 0.5 + 1.5]}><Wall len={3} rot={-Math.PI / 2} paper={paper} /></group>
         <group position={[wx(COLS - 1) + 0.56, 0, wz(5) - 0.5 + 2]}><Wall len={4} rot={-Math.PI / 2} paper={paper} /></group>
         <group position={[wx(COLS - 1) + 0.55, 0, wz(4)]}>{showWindow ? <Model url={MODEL.window} fit={1.001} rot={-Math.PI / 2} /> : <Wall len={1} rot={-Math.PI / 2} paper={paper} />}</group>
@@ -232,7 +243,7 @@ function Walls({ showWindow }: { showWindow: boolean }) {
 }
 
 export interface SceneProps {
-  theme: number; ovens: number; shelves: number; tables: number; showWindow: boolean;
+  theme: number; ovens: number; shelves: number; tables: number; showWindow: boolean; annex?: boolean;
   stations: SceneStation[]; me: SceneMover; meLook: StyleLook; staff: { m: SceneMover; look: StyleLook }[];
   guests: SceneGuest[]; cars: { id: number; x: number; bubble: React.ReactNode }[];
   props: Placed[]; tapHere: P | null; pops: { id: number; text: string; x: number; y: number }[];
@@ -243,14 +254,16 @@ export interface SceneProps {
 export default function RestaurantScene(p: SceneProps) {
   const kitchen = useMemo(() => { const c: P[] = []; for (let y = 1; y <= 2; y++) for (let x = 0; x < COLS; x++) c.push({ x, y }); return c; }, []);
   const dining = useMemo(() => { const c: P[] = []; for (let y = 3; y < ROWS; y++) for (let x = 0; x < COLS; x++) c.push({ x, y }); return c; }, []);
+  const annexCells = useMemo(() => { const c: P[] = []; for (let y = ANNEX.y0; y <= ANNEX.y1; y++) for (let x = ANNEX.x0; x <= ANNEX.x1; x++) c.push({ x, y }); return c; }, []);
+  const annex = !!p.annex, aw = ANNEX.x1 - ANNEX.x0 + 1, ah = ANNEX.y1 - ANNEX.y0 + 1;
   const floorDown = (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
-    const x = Math.round(e.point.x + (COLS - 1) / 2), y = Math.round(e.point.z + (ROWS - 1) / 2);
-    p.onFloor({ x: Math.max(0, Math.min(COLS - 1, x)), y: Math.max(1, Math.min(ROWS - 1, y)) });
+    const x = Math.max(annex ? ANNEX.x0 : 0, Math.min(COLS - 1, Math.round(e.point.x + (COLS - 1) / 2))), y = Math.round(e.point.z + (ROWS - 1) / 2);
+    p.onFloor({ x, y: Math.max(x < 0 ? ANNEX.y0 : 1, Math.min(ROWS - 1, y)) });
   };
   return (
     <Canvas dpr={[1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: true, alpha: true }} camera={{ fov: FOV, near: 0.5, far: 200, position: [0, 12, 14] }} style={{ touchAction: 'none' }}>
-      <Rig />
+      <Rig minX={annex ? ANNEX.x0 : 0} />
             <ambientLight intensity={0.9} />
       <hemisphereLight args={['#ffffff', '#f3d6ff', 0.7]} />
       <directionalLight position={[-4, 9, 6]} intensity={1.3} />
@@ -258,7 +271,11 @@ export default function RestaurantScene(p: SceneProps) {
         <mesh position={[0, -0.07, 0.2]}><boxGeometry args={[COLS + 0.2, 0.04, ROWS + 0.4]} /><meshStandardMaterial color="#6b3e22" /></mesh>
         <Tiles cells={kitchen} colors={TILE_COLORS.kitchen} />
         <Tiles cells={dining} colors={TILE_COLORS.dining[p.theme] ?? TILE_COLORS.dining[0]} />
-        <Suspense fallback={null}><Walls showWindow={p.showWindow} /></Suspense>
+        {annex && <>
+          <mesh position={[wx(ANNEX.x0) - 0.5 + aw / 2, -0.07, wz(ANNEX.y0) - 0.5 + ah / 2 + 0.2]}><boxGeometry args={[aw + 0.2, 0.04, ah + 0.4]} /><meshStandardMaterial color="#6b3e22" /></mesh>
+          <Tiles cells={annexCells} colors={TILE_COLORS.dining[p.theme] ?? TILE_COLORS.dining[0]} />
+        </>}
+        <Suspense fallback={null}><Walls showWindow={p.showWindow} annex={annex} /></Suspense>
         {/* The counter across the middle, with the register on it. */}
         {/* The counter, the register on top, and the tower of ready pizzas (two stacks of 10, Build Queue 478). */}
         {[5, 6, 7, 8].map((x) => <group key={x} position={[wx(x), 0, wz(3)]}><Model url={MODEL.counter} fit={1.001} /><Suspense fallback={null}><OnTop base={MODEL.counter} fit={1.001}>{x === 7 && <Model url={MODEL.register} fit={0.42} rot={Math.PI} />}{TOWER_SLOT[x] !== undefined && p.counterFood.length > TOWER_SLOT[x] * TOWER_MAX && <Tower items={p.counterFood.slice(TOWER_SLOT[x] * TOWER_MAX, (TOWER_SLOT[x] + 1) * TOWER_MAX).map((food) => ({ food }))} size={0.42} />}</OnTop></Suspense></group>)}
@@ -302,6 +319,12 @@ export default function RestaurantScene(p: SceneProps) {
         <planeGeometry args={[COLS, ROWS]} />
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
+      {annex && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[wx(ANNEX.x0) - 0.5 + aw / 2, 0.005, wz(ANNEX.y0) - 0.5 + ah / 2]} onPointerDown={floorDown}>
+          <planeGeometry args={[aw, ah]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
       {p.tapHere && (
         <Html position={[wx(p.tapHere.x) + 0.42, 0.25, wz(p.tapHere.y) + 0.48]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
           <span className={`rt-tap3${p.reduceMotion ? ' still' : ''}`} aria-hidden="true"><img src="/games/restaurant/icons/tap.png" alt="" /></span>
@@ -318,4 +341,7 @@ export default function RestaurantScene(p: SceneProps) {
 
 Object.values(MODEL).flat().forEach((u) => useGLTF.preload(u));
 // Where the tables stand: left and right of the middle column, which is the line (Build Queue 480).
-export const TABLES_AT: P[] = [{ x: 3, y: 6 }, { x: 9, y: 6 }, { x: 3, y: 8 }, { x: 9, y: 8 }, { x: 11, y: 6 }, { x: 11, y: 8 }];
+// Tables 7 to 10 stand in the new dining room on the left (Build Queue 491), clear of the walk in from its door.
+export const TABLES_AT: P[] = [{ x: 3, y: 6 }, { x: 9, y: 6 }, { x: 3, y: 8 }, { x: 9, y: 8 }, { x: 11, y: 6 }, { x: 11, y: 8 }, { x: -5, y: 4 }, { x: -2, y: 4 }, { x: -5, y: 6 }, { x: -2, y: 6 }];
+// The new dining room (Build Queue 491): columns -6 to -1, rows 3 to 8.
+export const ANNEX = { x0: -6, x1: -1, y0: 3, y1: ROWS - 1 };
