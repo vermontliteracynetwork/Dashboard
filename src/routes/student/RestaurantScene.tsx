@@ -33,7 +33,7 @@ export const MODEL = {
 export interface Placed { model: string; x: number; y: number; fit: number; rot?: number; lift?: number }
 export interface FoodDef { model: string; parts?: { model: string; x: number; z: number; s: number; ry: number }[]; pizza?: 'plain' | 'pepperoni' | 'burnt' }
 export interface SceneMover { x: number; y: number; path: P[]; show: { food: FoodDef | null; trash?: boolean }[] }
-export interface SceneGuest { id: number; m: SceneMover; look: StyleLook; bubble: React.ReactNode | null }
+export interface SceneGuest { id: number; m: SceneMover; look: StyleLook; bubble: React.ReactNode | null; side?: number }
 export interface SceneStation { key: string; at: P; label: string; onTap: () => void; badge?: React.ReactNode; tag?: string; glow?: 'ready' | 'burnt' | 'cook' | null; children?: React.ReactNode }
 
 // Grid tile to world position (one tile is one unit).
@@ -63,6 +63,13 @@ function ModelInner({ url, fit, rot = 0, recolor, hide }: ModelProps) {
 }
 
 export const ModelAt = Model;
+// Sets its children on top of a model (the register on the counter, Build Queue 476): measures the model's height at
+// the same fit the room uses.
+function OnTop({ base, fit, children }: { base: string; fit: number; children: React.ReactNode }) {
+  const { scene } = useGLTF(base);
+  const h = useMemo(() => { const b = new THREE.Box3().setFromObject(scene), sz = b.getSize(new THREE.Vector3()); return sz.y * (fit / Math.max(sz.x, sz.z, 0.0001)); }, [scene, fit]);
+  return <group position={[0, h, 0]}>{children}</group>;
+}
 export const OVEN_MODELS = MODEL.oven;
 export const DISPLAY_MODEL = MODEL.display;
 export const TRASH_MODEL = MODEL.trash;
@@ -120,20 +127,28 @@ function Walker({ m, look, scale, children }: { m: SceneMover; look: StyleLook; 
   return (
     <group ref={g} position={[wx(m.x), 0, wz(m.y)]}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.015, 0]}><circleGeometry args={[0.26, 24]} /><meshBasicMaterial color="#000000" transparent opacity={0.18} depthWrite={false} /></mesh>
-      <MoveSwitch moveRef={moveRef} look={look} scale={scale} />
+      <MoveSwitch moveRef={moveRef} look={look} scale={scale} carrying={m.show.length > 0} />
+      {/* Carried in front with both arms out (Build Queue 474), stacked into a wobbly tower (471). */}
       {m.show.length > 0 && (
-        <group position={[0, 1.55, 0.25]}>
-          {m.show.map((h, i) => <group key={i} position={[0, i * 0.12, 0]}>{h.food ? <Food def={h.food} size={0.34} /> : <Model url={`${RM}plate_dirty.glb`} fit={0.3} />}</group>)}
+        <group position={[0, 0.72 * scale, 0.42 * scale]}>
+          <Tower items={m.show} size={0.36} />
         </group>
       )}
       {children}
     </group>
   );
 }
-function MoveSwitch({ moveRef, look, scale }: { moveRef: React.RefObject<StyleMove>; look: StyleLook; scale: number }) {
+// A tall, slightly wobbly stack of pizzas and plates (her words: "pizzas should stack on top of eachother in a tall tower
+// (comedic engagement)").
+export function Tower({ items, size }: { items: { food: FoodDef | null }[]; size: number }) {
+  const g = useRef<THREE.Group>(null);
+  useFrame(({ clock }) => { const o = g.current; if (!o) return; const t = clock.elapsedTime; o.children.forEach((c, i) => { c.rotation.z = Math.sin(t * 3 + i * 0.7) * 0.004 * i; c.position.x = Math.sin(t * 2.4 + i) * 0.0025 * i; }); });
+  return <group ref={g}>{items.map((h, i) => <group key={i} position={[0, i * size * 0.2, 0]} rotation={[0, i * 0.9, 0]}>{h.food ? <Food def={h.food} size={size} /> : <Model url={`${RM}plate_dirty.glb`} fit={size * 0.9} />}</group>)}</group>;
+}
+function MoveSwitch({ moveRef, look, scale, carrying }: { moveRef: React.RefObject<StyleMove>; look: StyleLook; scale: number; carrying: boolean }) {
   const [move, setMove] = useState<StyleMove>('idle');
   useFrame(() => { if (moveRef.current !== move) setMove(moveRef.current); });
-  return <StyleCharacter look={look} move={move} scale={scale} />;
+  return <StyleCharacter look={look} move={move} scale={scale} carrying={carrying} />;
 }
 
 // The camera (Build Queue 467, her words: "rather than a full top down view, give it more of the angle view that the cat
@@ -217,7 +232,7 @@ export interface SceneProps {
   stations: SceneStation[]; me: SceneMover; meLook: StyleLook; staff: { m: SceneMover; look: StyleLook }[];
   guests: SceneGuest[]; cars: { id: number; x: number; bubble: React.ReactNode }[];
   props: Placed[]; tapHere: P | null; pops: { id: number; text: string; x: number; y: number }[];
-  ovenFood: (FoodDef | null)[]; shelfFood: FoodDef[]; tableFood: (FoodDef | null)[]; tableMess: boolean[];
+  ovenFood: (FoodDef | null)[]; shelfFood: FoodDef[]; counterFood: FoodDef[]; tableFood: (FoodDef | null)[]; tableMess: boolean[];
   onFloor: (p: P) => void; reduceMotion?: boolean;
 }
 
@@ -241,7 +256,8 @@ export default function RestaurantScene(p: SceneProps) {
         <Tiles cells={dining} colors={TILE_COLORS.dining[p.theme] ?? TILE_COLORS.dining[0]} />
         <Suspense fallback={null}><Walls showWindow={p.showWindow} /></Suspense>
         {/* The counter across the middle, with the register on it. */}
-        {[5, 6, 7, 8].map((x) => <group key={x} position={[wx(x), 0, wz(3)]}><Model url={MODEL.counter} fit={1.001} /></group>)}
+        {/* The counter, the register on top, and the tower of ready pizzas (two stacks of 10, Build Queue 478). */}
+        {[5, 6, 7, 8].map((x) => <group key={x} position={[wx(x), 0, wz(3)]}><Model url={MODEL.counter} fit={1.001} /><Suspense fallback={null}><OnTop base={MODEL.counter} fit={1.001}>{x === 7 && <Model url={MODEL.register} fit={0.42} rot={Math.PI} />}{(x === 8 || x === 5) && p.counterFood.length > (x === 8 ? 0 : 10) && <Tower items={p.counterFood.slice(x === 8 ? 0 : 10, x === 8 ? 10 : 20).map((food) => ({ food }))} size={0.42} />}</OnTop></Suspense></group>)}
         {p.props.map((d, i) => <group key={i} position={[wx(d.x), d.lift ?? 0, wz(d.y)]}><Model url={d.model} fit={d.fit} rot={d.rot ?? 0} /></group>)}
         {p.stations.map((st) => (
           <group key={st.key} position={[wx(st.at.x), 0, wz(st.at.y)]}>
@@ -259,7 +275,7 @@ export default function RestaurantScene(p: SceneProps) {
           </group>
         ))}
         {p.ovenFood.map((f, i) => f && <group key={`of${i}`} position={[wx(1 + i), 0.62, wz(1) + 0.45]}><Food def={f} size={0.4} /></group>)}
-        {p.shelfFood.map((f, i) => <group key={`sf${i}`} position={[wx(9 + Math.floor(i / 4)) - 0.3 + (i % 4) * 0.2, 0.78, wz(1) + 0.1]}><Food def={f} size={0.2} /></group>)}
+        {[0, 1].map((sh) => { const list = p.shelfFood.slice(sh * 8, sh * 8 + 8); return list.length ? <group key={`sf${sh}`} position={[wx(9 + sh), 0.92, wz(1) + 0.05]}><Tower items={list.map((food) => ({ food }))} size={0.4} /></group> : null; })}
         {p.tableFood.map((f, i) => f && <group key={`tf${i}`} position={[wx(TABLES_AT[i].x), 0.52, wz(TABLES_AT[i].y)]}><Food def={f} size={0.38} /></group>)}
         {p.tableMess.map((on, i) => on && <group key={`tm${i}`} position={[wx(TABLES_AT[i].x), 0.52, wz(TABLES_AT[i].y)]}><Model url={`${RM}plate_dirty.glb`} fit={0.36} /></group>)}
         {p.cars.map((c) => (
@@ -270,7 +286,7 @@ export default function RestaurantScene(p: SceneProps) {
         ))}
         {p.guests.map((c) => (
           <Walker key={c.id} m={c.m} look={c.look} scale={0.95}>
-            {c.bubble && <Html position={[0, 1.9, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>{c.bubble}</Html>}
+            {c.bubble && <Html position={[c.side ?? 0, 1.9, 0]} center zIndexRange={[30, 0]} style={{ pointerEvents: 'none' }}>{c.bubble}</Html>}
           </Walker>
         ))}
         {p.staff.map((st, i) => <Walker key={`s${i}`} m={st.m} look={st.look} scale={0.95} />)}
@@ -283,7 +299,7 @@ export default function RestaurantScene(p: SceneProps) {
         <meshBasicMaterial transparent opacity={0} depthWrite={false} />
       </mesh>
       {p.tapHere && (
-        <Html position={[wx(p.tapHere.x) + 0.35, 1.1, wz(p.tapHere.y) + 0.2]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
+        <Html position={[wx(p.tapHere.x) + 0.42, 0.25, wz(p.tapHere.y) + 0.48]} center zIndexRange={[40, 0]} style={{ pointerEvents: 'none' }}>
           <span className={`rt-tap3${p.reduceMotion ? ' still' : ''}`} aria-hidden="true"><img src="/games/restaurant/icons/tap.png" alt="" /></span>
         </Html>
       )}
@@ -297,4 +313,5 @@ export default function RestaurantScene(p: SceneProps) {
 }
 
 Object.values(MODEL).flat().forEach((u) => useGLTF.preload(u));
-export const TABLES_AT: P[] = [{ x: 3, y: 6 }, { x: 6, y: 6 }, { x: 9, y: 6 }, { x: 3, y: 8 }, { x: 6, y: 8 }, { x: 9, y: 8 }];
+// Where the tables stand: left and right of the middle column, which is the line (Build Queue 480).
+export const TABLES_AT: P[] = [{ x: 3, y: 6 }, { x: 9, y: 6 }, { x: 3, y: 8 }, { x: 9, y: 8 }, { x: 11, y: 6 }, { x: 11, y: 8 }];

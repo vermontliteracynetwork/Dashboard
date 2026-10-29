@@ -11192,3 +11192,27 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .rt-ev { flex-direction: column; align-items: flex-start; }
 .rt-ev span { font-size: 0.9rem; font-weight: 400; }
 @media (prefers-reduced-motion: reduce) { .rt-unlock { animation: none; } }
+.rt-minus td { color: var(--rt-deep); }
+.rt-letgo { margin-left: 8px; min-height: 44px; font-size: 0.8rem; }
+/* Build Queue 478: money centered on the red bar with the star rating beside it; stars in customer bubbles; the bake picker */
+.rt-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+.rt-head-l, .rt-head-r { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rt-head-r { justify-content: flex-end; }
+.rt-head-c { display: flex; align-items: center; gap: 10px; justify-content: center; }
+.rt-head .rt-money { margin: 0; }
+.rt-stars { position: relative; display: inline-block; font-size: 1.7rem; line-height: 1; letter-spacing: 2px; white-space: nowrap; }
+.rt-stars-bg { color: #fff; text-shadow: 0 1px 0 rgba(0,0,0,0.25); }
+.rt-stars-fg { position: absolute; left: 0; top: 0; overflow: hidden; color: var(--rt-mustard, #d9a83a); text-shadow: 0 1px 0 rgba(0,0,0,0.2); }
+.rt-stars.sm { font-size: 0.95rem; letter-spacing: 1px; }
+.rt-b3 .rt-stars-bg, .rt-report .rt-stars-bg { color: #e7dcc0; text-shadow: none; }
+.rt-b3.ask { flex-direction: column; gap: 2px; padding: 4px 8px; }
+.rt-b3.ask::before { display: none; }
+.rt-want { display: flex; align-items: center; gap: 4px; }
+.rt-want b { font-size: 1.15rem; color: #1e200f; }
+.rt-bake { position: absolute; left: 12px; bottom: 12px; z-index: 50; display: flex; align-items: center; gap: 6px; background: #fffaf0; border: 2px solid #c9bb8a; border-bottom-width: 4px; border-radius: 16px; padding: 6px 8px; max-width: calc(100vw - 120px); overflow-x: auto; }
+.rt-bake > span { font-weight: 800; padding: 0 4px; }
+.rt-bake-b { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 56px; min-height: 56px; padding: 4px; border: 2px solid transparent; border-radius: 12px; background: none; cursor: pointer; font: inherit; }
+.rt-bake-b img { width: 36px; height: 36px; object-fit: contain; }
+.rt-bake-b small { font-size: 0.7rem; font-weight: 700; }
+.rt-bake-b.on { border-color: var(--rt-leaf, #555034); background: #eef0dc; }
+@media (max-width: 900px) { .rt-stars { font-size: 1.3rem; } .rt-head { grid-template-columns: auto auto; } .rt-head-c { order: -1; grid-column: 1 / -1; } }

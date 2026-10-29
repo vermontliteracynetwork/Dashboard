@@ -8,7 +8,7 @@ import { playCheer } from '../../lib/petSounds';
 import { defaultLook } from '../../style/species';
 import { useNpcProfiles, useNpcRoster } from '../../style/npcs';
 import type { StyleLook } from '../../style/types';
-import RestaurantScene, { COLS, ROWS, DISPLAY_MODEL, EmptySpot, ModelAt, OVEN_MODELS, REGISTER_MODEL, TableSet, TRASH_MODEL } from './RestaurantScene';
+import RestaurantScene, { COLS, ROWS, TABLES_AT, EmptySpot, ModelAt, OVEN_MODELS, TableSet, TRASH_MODEL } from './RestaurantScene';
 import type { FoodDef, Placed, SceneStation, P } from './RestaurantScene';
 
 // Build Queue 447 and 448: Restaurant, the students' own pizza place (they asked for Cat Pizza on Poki and Pizza Tycoon on
@@ -21,9 +21,12 @@ import type { FoodDef, Placed, SceneStation, P } from './RestaurantScene';
 // are display shelves for them; the student upgrades the same way as the workers (faster, holds more, better accuracy);
 // slow food pays less, with funny sarcastic comments; the money always shows; decorating; and special events like a
 // pepperoni sale, to help them beat their best day.
-// The ABA goal (order of steps, following multistep directions) lives in the step strip: every customer's steps show
-// as picture cards in order (take the order, cook, serve, cash out, clean up), doing them in order earns a Perfect order
-// bonus, and every new level teaches its new job as numbered steps.
+// Build Queue 478 changed the loop (her words: "remove "orders" but rather pizzas need to be stacked on the counter so it
+// is visable how many are made. customers instead request nimbers of pizzas between 1-10 at a time"): the student bakes
+// batches ahead, carries them out of the oven and stacks them in a tower on the counter; each customer asks for a number
+// of pizzas (1 to 10) and is handed them from the tower, paying at the same time. Every customer leaves a star rating.
+// The ABA goal (order of steps, following multistep directions) lives in level 1's step strip and in each new level's
+// numbered steps.
 
 const ICON = '/games/restaurant/icons/';
 const RM = '/games/restaurant/models/';
@@ -58,36 +61,36 @@ const SERVER_LOOK = defaultLook('frog'), COOK_LOOK = defaultLook('capybara');
 // The room. Kitchen along the top wall, the counter and register in the middle, tables in the dining room, the door at the
 // bottom left and the drive through window on the right wall.
 const OVENS: P[] = [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }];
-const SHELVES: P[] = [{ x: 9, y: 1 }, { x: 10, y: 1 }];
 const TRASH: P = { x: 12, y: 1 };
 const COUNTER: P = { x: 6, y: 3 };
 const WINDOW: P = { x: 13, y: 4 };
-const TABLES: P[] = [{ x: 3, y: 6 }, { x: 6, y: 6 }, { x: 9, y: 6 }, { x: 3, y: 8 }, { x: 6, y: 8 }, { x: 9, y: 8 }];
+// Tables sit left and right of the middle column, which is kept clear for the line (Build Queue 480).
+const TABLES: P[] = TABLES_AT;
 const DOOR: P = { x: 0, y: 8 };
-// Build Queue 468a (her words: "pay and order should be same feature"): one counter spot takes orders and payments.
-const ORDER_SPOT: P = { x: 6, y: 4 }, PAY_SPOT: P = { x: 7, y: 4 };
-const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), shelf: (i: number) => ({ x: SHELVES[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
+// One counter spot for asking and paying (Build Queue 468a); the line runs left from it, one tile each (473).
+const ORDER_SPOT: P = { x: 6, y: 4 };
+// The line runs down the middle column from the counter (Build Queue 480), then along the bottom row if it is long.
+const lineSpot = (i: number): P => (i < 5 ? { x: ORDER_SPOT.x, y: ORDER_SPOT.y + i } : { x: ORDER_SPOT.x + (i - 4), y: 8 });
+const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
+// The counter holds a tower of up to 20 ready pizzas (two stacks of 10, Build Queue 471 and 478).
+const COUNTER_CAP = 20;
 
 // Levels: what each one adds, taught as numbered steps (following multistep directions).
 const UNLOCKS: Record<number, { title: string; steps: string[] }> = {
   2: { title: 'Grow your pizzeria: a second oven, tables 2 and 3, and a faster oven', steps: ['Tap a marked empty spot to add an oven or a table', 'Tap Shop for the faster oven', 'Finish 3 of the 4 upgrades and serve 10 customers to reach level 3'] },
-  3: { title: 'Pepperoni pizza, special events, and hire your first Neighbor', steps: ['Tap Shop, then Workers, and pick a Neighbor to be your server', 'Tap Events to launch a special event', 'Tap the empty shelf spot in the kitchen to add a display shelf'] },
+  3: { title: 'Pepperoni pizza, special events, and hire your first Neighbor', steps: ['Tap Shop, then Workers, and pick a Neighbor to be your server', 'Your server carries pizzas to the counter and cleans tables', 'Tap Events to launch a special event'] },
   4: { title: 'Decorate your pizzeria', steps: ['Find the marked empty spots around the room', 'Tap one and add a decoration', 'Every decoration adds 5% to tips'] },
-  5: { title: 'Takeout and margherita pizza', steps: ['A takeout customer waits at the counter', 'Cook their pizza', 'Bring it to the counter', 'Ring them up at the counter'] },
-  6: { title: 'The drive through', steps: ['Tap the window when a car comes', 'Cook the order', 'Carry it to the window to hand it over and get paid'] },
-  7: { title: 'Veggie pizza, and hire a Neighbor as your cook', steps: ['Tap Shop, then Workers', 'Pick the Neighbor you want as your cook', 'The cook starts the ovens for every order while you take orders and cash out'] },
-  8: { title: 'A third oven and up to 6 tables', steps: ['Tap the empty oven spot or a table spot', 'Tap Add it', 'More tables means more customers'] },
-  9: { title: 'Supreme pizza and the birthday party event', steps: ['Tap Events', 'Pick Birthday party', 'Serve every table fast while it lasts'] },
+  5: { title: 'Takeout and margherita pizza', steps: ['Takeout customers take their pizzas and go home', 'They do not need a table', 'Keep a tall tower on the counter for them'] },
+  6: { title: 'The drive through', steps: ['A car comes to the window and asks for pizzas', 'Carry that many from the counter or the oven', 'Tap the window to hand them over and get paid'] },
+  7: { title: 'Veggie pizza, and hire a Neighbor as your cook', steps: ['Tap Shop, then Workers', 'Pick the Neighbor you want as your cook', 'The cook keeps the ovens baking while you serve'] },
+  8: { title: 'A third oven and up to 6 tables', steps: ['Tap the empty oven spot or a table spot', 'Tap Add it', 'More tables means bigger groups'] },
+  9: { title: 'Supreme pizza and the birthday party event', steps: ['Tap Events', 'Pick Birthday Party', 'Serve every group fast while it lasts'] },
   10: { title: 'Pizza master! Your pizzeria is complete', steps: ['Keep beating your best day', 'Launch special events', 'Train yourself and your team to the top'] },
 };
-// Customers to cash out for the next level (Build Queue 468g, her words: "after level 1, it should take longer to get to
-// level 10. dont proceed after 10 so make the levels complex and timeconsuming enough for enthusiastic game play by middle
-// schoolers"): 1 for level 1, then 16, 20, 24 and on up to 44, about 240 customers in all. Level 10 is the top.
+// Customers to serve for the next level (Build Queue 468g): 1 for level 1, 10 for level 2 (plus its upgrades, 469), then
+// 20, 24 and on up to 44. Level 10 is the top.
 const MAX_LEVEL = 10;
 const xpFor = (lv: number) => (lv <= 1 ? 1 : lv === 2 ? 10 : 8 + lv * 4);
-// Build Queue 469 (her words: "level two should be completed when 75% of presented upgrades have been completed and 10
-// customers have been served"): level 2 offers four upgrades (a second oven, tables 2 and 3, a faster oven), and three of
-// them finish it along with 10 customers.
 const LEVEL_UPGRADES: Record<number, { name: string; done: (s: Save) => boolean }[]> = {
   2: [
     { name: 'Second oven', done: (s) => s.ovens >= 2 },
@@ -98,52 +101,66 @@ const LEVEL_UPGRADES: Record<number, { name: string; done: (s: Save) => boolean 
 };
 const upgradesNeed = (lv: number) => Math.ceil((LEVEL_UPGRADES[lv]?.length ?? 0) * 0.75);
 const upgradesDone = (lv: number, s: Save) => (LEVEL_UPGRADES[lv] ?? []).filter((u) => u.done(s)).length;
+// How many pizzas a customer asks for (her words: "between 1-10 at a time"): 1 on level 1, up to 3 on level 2, then
+// the top grows with the level until it reaches 10.
+const wantMax = (lv: number) => (lv <= 1 ? 1 : Math.min(10, lv + 1));
+// A customer's stars drop the longer they wait for their pizzas.
+const patienceFor = (n: number) => 35 + n * 5;
+const starsFor = (waited: number, n: number) => { const q = waited / patienceFor(n); return q <= 0.4 ? 5 : q <= 0.6 ? 4 : q <= 0.8 ? 3 : q <= 1 ? 2 : 1; };
 const SARCASM = ['Took you long enough. I aged a year.', 'Wow, fast food. Very fast. Said nobody.', 'I ordered that last Tuesday.', 'My pizza grew a beard while I waited.', 'I almost made it myself. At home. From scratch.', 'Great pizza. Shame about the nap I took waiting.'];
 const HAPPY = ['Yum!', 'Best pizza in town!', 'Five stars!', 'So fast!', 'Delicious!'];
-// Special events (Build Queue 468f, her example: "Pepperoni Flash Sale (increase customers for 5 mins, 25% off pepperoni
-// pizza"). The student launches one with 5 questions when that is picked in the question settings; otherwise one is
-// offered now and then.
 const EVENT_MS = 5 * 60 * 1000;
 const EVENTS = [
-  { id: 'pep', title: 'Pepperoni Flash Sale', text: 'For 5 minutes, lots more customers come in, and pepperoni pizza is 25% off, so almost everyone wants one.', lv: 3 },
+  { id: 'pep', title: 'Pepperoni Flash Sale', text: 'For 5 minutes, lots more customers come in, and pepperoni pizza is 25% off, so almost everyone wants it.', lv: 3 },
   { id: 'rush', title: 'Lunch Rush', text: 'For 5 minutes, customers come twice as fast and every tip is doubled.', lv: 3 },
-  { id: 'critic', title: 'Food Critic', text: 'A food critic is coming. Serve them in under 20 seconds for a $50 bonus.', lv: 5 },
-  { id: 'party', title: 'Birthday Party', text: 'For 5 minutes, every table orders and pays 50% more.', lv: 9 },
+  { id: 'critic', title: 'Food Critic', text: 'A food critic is coming. Hand over their pizzas in under 20 seconds for a $50 bonus.', lv: 5 },
+  { id: 'party', title: 'Birthday Party', text: 'For 5 minutes, groups ask for more pizzas and pay 50% more.', lv: 9 },
 ];
-// How the questions come (Build Queue 468f): the student picks one or more on the main menu.
 interface QSet { closing: boolean; closingN: number; levels: boolean; levelsN: number; events: boolean; upgrades: boolean; upgradesN: number }
 // Only special events are on at first (Build Queue 470).
 const QS_DEFAULT: QSet = { closing: false, closingN: 2, levels: false, levelsN: 10, events: true, upgrades: false, upgradesN: 1 };
 const YUM = ['yum', 'yummy', 'delicious', 'satisfied', 'momma', 'mmm'] as const;
-const SND = { yum: '/sounds/restaurant/yum.mp3', yummy: '/sounds/restaurant/yummy.mp3', delicious: '/sounds/restaurant/delicious.mp3', satisfied: '/sounds/restaurant/satisfied.mp3', momma: '/sounds/restaurant/momma.mp3', mmm: '/sounds/restaurant/mmm.mp3', meh: '/sounds/restaurant/meh.mp3', bleh: '/sounds/restaurant/bleh.mp3', burn: '/sounds/restaurant/burn.mp3', stoveFlame: '/sounds/restaurant/stove-flame.mp3', lid: '/sounds/restaurant/lid.mp3', scrub: '/sounds/restaurant/scrub.mp3', chop: '/sounds/restaurant/chop-vegetable-fast.mp3', sizzle: '/sounds/restaurant/pan-sizzle-loop.mp3', plate: '/sounds/restaurant/plate-set-down.mp3', timer: '/sounds/restaurant/kitchen-timer-ding.mp3', door: '/sounds/cupcake/cc-door-bell.mp3', cash: '/sounds/cupcake/cc-cash-register.mp3', ovenIn: '/sounds/cupcake/cc-oven-close.mp3', ding: '/sounds/cupcake/bell.mp3', click: '/sounds/cupcake/click.mp3', error: '/sounds/cupcake/lo-negative.mp3', level: '/sounds/cupcake/cc-jingle-perfect-order.mp3', trash: '/sounds/cupcake/lo-confirm.mp3', serve: '/sounds/cupcake/cc-tip-jar.mp3', open: '/sounds/cupcake/cc-jingle-cafe-open.mp3', close: '/sounds/cupcake/cc-jingle-cafe-close.mp3', report: '/sounds/cupcake/cc-jingle-day-earnings.mp3', buy: '/sounds/cupcake/lo-positive.mp3' };
+const SND = { yum: '/sounds/restaurant/yum.mp3', yummy: '/sounds/restaurant/yummy.mp3', delicious: '/sounds/restaurant/delicious.mp3', satisfied: '/sounds/restaurant/satisfied.mp3', momma: '/sounds/restaurant/momma.mp3', mmm: '/sounds/restaurant/mmm.mp3', meh: '/sounds/restaurant/meh.mp3', bleh: '/sounds/restaurant/bleh.mp3', burn: '/sounds/restaurant/burn.mp3', stoveFlame: '/sounds/restaurant/stove-flame.mp3', lid: '/sounds/restaurant/lid.mp3', scrub: '/sounds/restaurant/scrub.mp3', chop: '/sounds/restaurant/chop-vegetable-fast.mp3', plate: '/sounds/restaurant/plate-set-down.mp3', timer: '/sounds/restaurant/kitchen-timer-ding.mp3', door: '/sounds/cupcake/cc-door-bell.mp3', cash: '/sounds/cupcake/cc-cash-register.mp3', click: '/sounds/cupcake/click.mp3', error: '/sounds/cupcake/lo-negative.mp3', level: '/sounds/cupcake/cc-jingle-perfect-order.mp3', open: '/sounds/cupcake/cc-jingle-cafe-open.mp3', report: '/sounds/cupcake/cc-jingle-day-earnings.mp3', buy: '/sounds/cupcake/lo-positive.mp3' };
 
 interface Skill { speed: number; carry: number; acc: number }
 interface Save {
   money: number; total: number; level: number; claimed: number; xp: number; theme: number;
   ovens: number; ovenLv: number; tables: number; shelves: number; stock: Item[]; decor: string[];
   me: Skill; server?: Skill; cook?: Skill; best: number; day: number; served: number;
-  qs?: QSet; staff?: { server?: string; cook?: string };
+  qs?: QSet; staff?: { server?: string; cook?: string }; hints?: boolean; ratings?: number[];
 }
-const FRESH: Save = { money: 0, total: 0, level: 1, claimed: 1, xp: 0, theme: 0, ovens: 1, ovenLv: 0, tables: 1, shelves: 0, stock: [], decor: [], me: { speed: 0, carry: 0, acc: 0 }, best: 0, day: 0, served: 0 };
+const FRESH: Save = { money: 0, total: 0, level: 1, claimed: 1, xp: 0, theme: 0, ovens: 1, ovenLv: 0, tables: 1, shelves: 0, stock: [], decor: [], me: { speed: 0, carry: 0, acc: 0 }, best: 0, day: 0, served: 0, ratings: [] };
 type Hand = { item: Item | 'trash'; burnt?: boolean };
 interface Mover { x: number; y: number; path: P[]; face: 1 | -1; hands: Hand[]; job: (() => void) | null }
-type CState = 'walk-in' | 'order' | 'wait' | 'eat' | 'to-pay' | 'pay' | 'leave';
-interface Guest { id: number; npc: string; name: string; m: Mover; state: CState; item: Item; takeout: boolean; table: number; arrived: number; ordered: boolean; mistakes: number; critic?: boolean; say?: { text: string; until: number } }
-interface Car { id: number; item: Item; state: 'come' | 'order' | 'wait' | 'go'; x: number; arrived: number }
-interface Oven { state: 'idle' | 'cook' | 'ready' | 'burnt'; item?: Item; t: number }
-interface Ticket { id: number; item: Item; for: number; car?: boolean; cooking: boolean }
-interface Day { served: number; money: number; tips: number; slow: number; perfect: number; items: Partial<Record<Item, number>> }
-const NEW_DAY = (): Day => ({ served: 0, money: 0, tips: 0, slow: 0, perfect: 0, items: {} });
+// walk-in: on the way to the line; line: waiting for pizzas; eat: at a table; leave: heading out.
+type CState = 'walk-in' | 'line' | 'eat' | 'leave';
+interface Guest { id: number; npc: string; name: string; m: Mover; waitT?: number; state: CState; item: Item; n: number; takeout: boolean; table: number; arrived: number; critic?: boolean; eatEnd?: number; say?: { text: string; until: number } }
+interface Car { id: number; item: Item; n: number; state: 'come' | 'wait' | 'go'; x: number; arrived: number }
+// Ovens bake a batch: 2 pizzas, and one more for each faster oven upgrade.
+interface Oven { state: 'idle' | 'cook' | 'ready' | 'burnt'; item?: Item; t: number; n: number }
+interface Day { served: number; pizzas: number; money: number; tips: number; slow: number; five: number; stars: number[]; items: Partial<Record<Item, number>>; wages?: { who: string; amt: number }[] }
+const NEW_DAY = (): Day => ({ served: 0, pizzas: 0, money: 0, tips: 0, slow: 0, five: 0, stars: [], items: {} });
+const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+// Five stars, white to start, filled in gold to the average (Build Queue 478).
+function Stars({ value, small }: { value: number; small?: boolean }) {
+  return (
+    <span className={`rt-stars${small ? ' sm' : ''}`} role="img" aria-label={`${value ? value.toFixed(1) : 'No'} stars`}>
+      <span className="rt-stars-bg">★★★★★</span>
+      <span className="rt-stars-fg" style={{ width: `${Math.max(0, Math.min(5, value)) * 20}%` }}>★★★★★</span>
+    </span>
+  );
+}
+
 // Decorations: each has its own empty spot in the room, like Farm Grow's empty plots (Build Queue 462).
 const DECOR: { id: string; name: string; model: string; img: string; at: P; fit: number; rot?: number; lift?: number; cost: number }[] = [
   { id: 'plant', name: 'House plant', model: '/world/models/interior/houseplant-1.glb', img: `${ICON}d-plant1.png`, at: { x: 0, y: 4 }, fit: 0.6, cost: 60 },
   { id: 'lamp', name: 'Floor lamp', model: '/world/models/interior/light-floor1.glb', img: `${ICON}d-lamp.png`, at: { x: 0, y: 6 }, fit: 0.45, cost: 120 },
   { id: 'board', name: 'Menu board', model: '/world/models/props/sandwich-board.glb', img: `${ICON}d-board.png`, at: { x: 10, y: 4 }, fit: 0.6, rot: -0.4, cost: 150 },
-  { id: 'tree', name: 'Potted tree', model: '/world/models/props/potted_tree.glb', img: `${ICON}d-tree.png`, at: { x: 13, y: 6 }, fit: 0.7, cost: 200 },
-  { id: 'cactus', name: 'Cactus', model: '/world/models/props/cactus.glb', img: `${ICON}d-cactus.png`, at: { x: 11, y: 8 }, fit: 0.55, cost: 220 },
-  { id: 'rug', name: 'Round rug', model: '/world/models/interior/carpet-round.glb', img: `${ICON}d-rug.png`, at: { x: 11, y: 6 }, fit: 1.3, cost: 260 },
+  { id: 'tree', name: 'Potted tree', model: '/world/models/props/potted_tree.glb', img: `${ICON}d-tree.png`, at: { x: 12, y: 3 }, fit: 0.7, cost: 200 },
+  { id: 'cactus', name: 'Cactus', model: '/world/models/props/cactus.glb', img: `${ICON}d-cactus.png`, at: { x: 1, y: 4 }, fit: 0.55, cost: 220 },
+  { id: 'rug', name: 'Round rug', model: '/world/models/interior/carpet-round.glb', img: `${ICON}d-rug.png`, at: { x: 4, y: 5 }, fit: 1.3, cost: 260 },
   { id: 'plant6', name: 'Big plant', model: '/world/models/interior/houseplant-6.glb', img: `${ICON}d-plant6.png`, at: { x: 13, y: 2 }, fit: 0.7, cost: 300 },
-  { id: 'arcade', name: 'Arcade game', model: '/world/models/restaurant/Arcade_Cabinet.glb', img: `${ICON}d-arcade.png`, at: { x: 13, y: 8 }, fit: 0.8, rot: -Math.PI / 2, cost: 400 },
+  { id: 'arcade', name: 'Arcade game', model: '/world/models/restaurant/Arcade_Cabinet.glb', img: `${ICON}d-arcade.png`, at: { x: 3, y: 4 }, fit: 0.8, cost: 400 },
 ];
 // The back of the kitchen and the fixed furniture.
 const FIXED: Placed[] = [
@@ -200,10 +217,10 @@ export default function Restaurant() {
   const localKey = student ? `rt-save:${student.id}` : '';
   const savedRow = styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Save> | undefined;
   const saved: Partial<Save> = savedRow ?? (() => { try { return localKey ? JSON.parse(localStorage.getItem(localKey) ?? '{}') as Partial<Save> : {}; } catch { return {}; } })();
-  const g = useRef<{ s: Save; me: Mover; guests: Guest[]; cars: Car[]; ovens: Oven[]; tickets: Ticket[]; server: Mover; cook: Mover; open: boolean; day: Day; nextGuest: number; nextCar: number; event: { id: string; until: number } | null; nextEvent: number; burnAfter: number } | null>(null);
+  const load = (v: Partial<Save>): Save => ({ ...FRESH, ...v, me: { ...FRESH.me, ...(v.me ?? {}) }, stock: Array.isArray(v.stock) ? v.stock.filter((x) => x in ITEMS) : [], ratings: Array.isArray(v.ratings) ? v.ratings : [] });
+  const g = useRef<{ s: Save; me: Mover; guests: Guest[]; cars: Car[]; ovens: Oven[]; server: Mover; cook: Mover; open: boolean; day: Day; nextGuest: number; nextCar: number; event: { id: string; until: number } | null; nextEvent: number; burnAfter: number; spawnQ: Guest[]; staffHome: boolean; mess: Record<number, boolean> } | null>(null);
   if (!g.current) {
-    const s: Save = { ...FRESH, ...saved, me: { ...FRESH.me, ...(saved.me ?? {}) } };
-    g.current = { s, me: mover({ x: 6, y: 2 }), guests: [], cars: [], ovens: Array.from({ length: 3 }, () => ({ state: 'idle', t: 0 })), tickets: [], server: mover({ x: 11, y: 2 }), cook: mover({ x: 4, y: 2 }), open: false, day: NEW_DAY(), nextGuest: 0, nextCar: 0, event: null, nextEvent: Date.now() + 120000, burnAfter: 14 };
+    g.current = { s: load(saved), me: mover({ x: 6, y: 2 }), guests: [], cars: [], ovens: Array.from({ length: 3 }, () => ({ state: 'idle', t: 0, n: 0 })), server: mover({ x: 11, y: 2 }), cook: mover({ x: 4, y: 2 }), open: false, day: NEW_DAY(), nextGuest: 0, nextCar: 0, event: null, nextEvent: Date.now() + 120000, burnAfter: 18, spawnQ: [], staffHome: true, mess: {} };
   }
   const [, setTick] = useState(0);
   const [phase, setPhase] = useState<'menu' | 'play'>('menu');
@@ -212,24 +229,24 @@ export default function Restaurant() {
   const [report, setReport] = useState<(Day & { best: boolean; dayNo: number }) | null>(null);
   const [levelUp, setLevelUp] = useState<number | null>(null);
   const [offer, setOffer] = useState<(typeof EVENTS)[number] | null>(null);
-  const [extra, setExtra] = useState<Item>('cheese');
+  const [bakeType, setBakeType] = useState<Item>('cheese');
+  const bakeRef = useRef(bakeType); bakeRef.current = bakeType;
   const [buy, setBuy] = useState<{ name: string; cost: number; act: () => void } | null>(null);
   const [picker, setPicker] = useState<null | 'server' | 'cook'>(null);
   const [events, setEvents] = useState(false);
   const [restartArmed, setRestartArmed] = useState(false);
+  const [shownTag, setShownTag] = useState<string | null>(null);
+  const spokenStep = useRef('');
   const [pops, setPops] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const [sfx] = useState(() => lsGet('rt-sfx', 4));
-  // The Town Square Neighbors, exactly as they look there, walk in as the customers.
+  // The Town Square Neighbors (and townspeople), exactly as they look there, walk in as the customers; anyone made with
+  // the Neighbor creator joins in on their own.
   const roster = useNpcRoster();
   const profiles = useNpcProfiles();
-  // Neighbors and townspeople (anyone the teacher makes with the Neighbor creator joins in on their own).
   const neighbors = useMemo(() => roster.filter((e) => profiles[e.id]).map((e) => profiles[e.id]), [roster, profiles]);
   const nbRef = useRef(neighbors); nbRef.current = neighbors;
   const myRow = useStore((st) => st.styleLooks.find((r) => r.ownerId === st.currentStudentId));
   const meLook = useMemo<StyleLook>(() => { const l = myRow?.look as StyleLook | undefined; return l && l.species && l.body && l.outfit ? l : defaultLook('dog'); }, [myRow]);
-  // Taking an order is a little conversation, the Duolingo Adventures way: the Neighbor asks, and the student picks
-  // the reply that matches what they asked for.
-  const [talk, setTalk] = useState<{ gid: number; line: string; options: { text: string; right: boolean }[]; miss: string | null } | null>(null);
   const phaseRef = useRef(phase); phaseRef.current = phase;
   const clip = (k: keyof typeof SND, soft = false) => { if (sfx > 0) playClip(SND[k], (sfx / 5) * (soft ? 0.35 : 0.85)); };
   const flash = (t: string) => { setNote(t); window.setTimeout(() => setNote((n) => (n === t ? null : n)), 3200); };
@@ -243,18 +260,17 @@ export default function Restaurant() {
   // A saved restaurant that arrives after the game opened still loads (never over a game already in progress).
   useEffect(() => {
     const G0 = g.current; if (!G0 || !savedRow || G0.s.total > 0 || !(savedRow.total ?? 0)) return;
-    G0.s = { ...FRESH, ...savedRow, me: { ...FRESH.me, ...(savedRow.me ?? {}) } }; setTick((n) => n + 1);
-  }, [savedRow]);
+    G0.s = load(savedRow); setTick((n) => n + 1);
+  }, [savedRow]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     const hide = () => { if (document.visibilityState === 'hidden') saveRef.current(); };
     document.addEventListener('visibilitychange', hide);
     return () => { document.removeEventListener('visibilitychange', hide); saveRef.current(); };
   }, []);
-
   useEffect(() => { preloadClips(Object.values(SND)); }, []);
+
   // ---- the game loop: every animation frame, so walking is smooth (Build Queue 467) ----
   useEffect(() => {
-    // Game time follows the real clock, so a busy iPad never slows the customers down.
     let last = performance.now(), lastDraw = 0, raf = 0;
     const loop = () => {
       raf = requestAnimationFrame(loop);
@@ -271,73 +287,83 @@ export default function Restaurant() {
       stepMover(G.me, 3.2 * (1 + s.me.speed * 0.25));
       if (s.server) stepMover(G.server, 2.6 * (1 + s.server.speed * 0.25));
       if (s.cook) stepMover(G.cook, 2.6 * (1 + s.cook.speed * 0.25));
-      // Ovens bake, then burn if left too long.
-      const bake = 6 / (1 + s.ovenLv * 0.35);
+      // Ovens bake their batch, then burn if left too long.
+      const bake = 7 / (1 + s.ovenLv * 0.35);
       G.ovens.forEach((o, i) => {
         if (i >= s.ovens) return;
         if (o.state === 'cook') { o.t += dt; if (o.t >= bake) { o.state = 'ready'; o.t = 0; clip('timer', true); } }
-        else if (o.state === 'ready') { o.t += dt; if (o.t >= G.burnAfter + s.me.acc * 4) { o.state = 'burnt'; flash('Oh no, a pizza burned! Carry it to the trash.'); clip('burn'); } }
+        else if (o.state === 'ready') { o.t += dt; if (o.t >= G.burnAfter + s.me.acc * 5) { o.state = 'burnt'; flash('Oh no, a batch burned! Carry it to the trash.'); clip('burn'); } }
       });
-      // Customers arrive while the restaurant is open.
+      const menu = menuFor(s.level, s.theme);
       const rush = (G.event?.id === 'rush' || G.event?.id === 'pep') && G.event.until > now;
-      const maxGuests = s.level <= 1 ? 1 : s.tables + (s.claimed >= 5 ? 2 : 0);
+      const party = G.event?.id === 'party' && G.event.until > now;
       const active = G.guests.filter((c) => c.state !== 'leave').length;
-      if (G.open && now >= G.nextGuest && active < maxGuests) {
-        const menu = menuFor(s.level, s.theme);
+      const maxGuests = s.level <= 1 ? 1 : s.tables + (s.claimed >= 5 ? 3 : 0);
+      // Customers come in now and then (Build Queue 471): from level 3 in groups of friends (up to 2 on levels 3 to 5,
+      // 3 on 6 to 8, 4 on 9 and 10), each asking for their own number of pizzas.
+      if (G.open && now >= G.nextGuest && active + G.spawnQ.length < maxGuests) {
         const pep = G.event?.id === 'pep' && G.event.until > now && menu.includes('pepperoni');
-        const item = pep && Math.random() < 0.7 ? 'pepperoni' : menu[Math.floor(Math.random() * menu.length)];
-        const freeTable = Array.from({ length: s.tables }, (_, i) => i).find((i) => !G.guests.some((c) => c.table === i && c.state !== 'leave'));
-        const takeout = s.claimed >= 5 && (freeTable === undefined || Math.random() < 0.3);
-        if (freeTable !== undefined || takeout) {
-          const c: Guest = { id: uid++, ...pickNeighbor(), m: mover(DOOR), state: 'walk-in', item, takeout, table: takeout ? -1 : freeTable!, arrived: now, ordered: false, mistakes: 0, critic: G.event?.id === 'critic' && G.event.until > now && !G.guests.some((x) => x.critic) };
-          const queue = G.guests.filter((x) => x.state === 'walk-in' || x.state === 'order').length;
-          c.m.path = route(DOOR, { x: ORDER_SPOT.x - queue, y: ORDER_SPOT.y });
-          c.m.job = () => { c.state = 'order'; };
-          G.guests.push(c); clip('door', true);
+        const big = s.level <= 2 ? 1 : Math.min(4, 2 + Math.floor((s.level - 3) / 3));
+        const size = 1 + Math.floor(Math.random() * big);
+        const taken = new Set([...G.guests.filter((c) => c.state !== 'leave').map((c) => c.table), ...G.spawnQ.map((c) => c.table)]);
+        for (let k = 0; k < size && active + G.spawnQ.length < maxGuests; k++) {
+          const item = pep && Math.random() < 0.7 ? 'pepperoni' : menu[Math.floor(Math.random() * menu.length)];
+          // Never seat anyone at a table that still has dirty plates on it (Build Queue 481).
+          const freeTable = Array.from({ length: s.tables }, (_, i) => i).find((i) => !taken.has(i) && !G.mess[i]);
+          const takeout = s.claimed >= 5 && (freeTable === undefined || Math.random() < 0.35);
+          if (freeTable === undefined && !takeout) break;
+          const n = Math.min(10, 1 + Math.floor(Math.random() * wantMax(s.level)) + (party ? 1 : 0));
+          const c: Guest = { id: uid++, ...pickNeighbor(), m: mover(DOOR), state: 'walk-in', item, n, takeout, table: takeout ? -1 : freeTable!, arrived: now, critic: G.event?.id === 'critic' && G.event.until > now && !G.guests.some((x) => x.critic) };
+          if (!takeout) taken.add(freeTable!);
+          G.spawnQ.push(c);
         }
-        G.nextGuest = now + (s.level <= 1 ? 2000 : (rush ? 5000 : 10000) - Math.min(4000, s.level * 300));
+        const base = s.level <= 1 ? 2500 : Math.max(6000, 16000 - s.level * 800);
+        G.nextGuest = now + base * (0.5 + Math.random()) * (rush ? 0.5 : 1);
+      }
+      // The next one steps in once the doorway is clear, and joins the end of the line.
+      if (G.spawnQ.length && !G.guests.some((x) => Math.hypot(x.m.x - DOOR.x, x.m.y - DOOR.y) < 0.9)) {
+        const c = G.spawnQ.shift()!; c.arrived = now;
+        G.guests.push(c); clip('door', true); reline();
       }
       // Cars at the drive through.
       if (G.open && s.claimed >= 6 && now >= G.nextCar && !G.cars.some((c) => c.state !== 'go')) {
-        const menu = menuFor(s.level, s.theme);
-        G.cars.push({ id: uid++, item: menu[Math.floor(Math.random() * menu.length)], state: 'come', x: 0, arrived: now });
-        G.nextCar = now + 30000;
+        G.cars.push({ id: uid++, item: menu[Math.floor(Math.random() * menu.length)], n: 1 + Math.floor(Math.random() * 4), state: 'come', x: 0, arrived: now });
+        G.nextCar = now + 35000;
       }
-      G.cars.forEach((c) => { if (c.state === 'come') { c.x = Math.min(1, c.x + dt * 0.8); if (c.x >= 1) c.state = 'order'; } else if (c.state === 'go') c.x += dt; });
+      G.cars.forEach((c) => { if (c.state === 'come') { c.x = Math.min(1, c.x + dt * 0.8); if (c.x >= 1) { c.state = 'wait'; c.arrived = now; } } else if (c.state === 'go') c.x += dt; });
       G.cars = G.cars.filter((c) => c.x < 2.2);
-      // Customers move and wait.
+      // Customers move, keeping their own space (Build Queue 473): one about to walk into another waits a moment.
       G.guests.forEach((c) => {
+        const tg = c.m.path[0];
+        if (tg) {
+          const d = Math.hypot(tg.x - c.m.x, tg.y - c.m.y) || 1, nx = c.m.x + ((tg.x - c.m.x) / d) * 0.45, ny = c.m.y + ((tg.y - c.m.y) / d) * 0.45;
+          const near = G.guests.some((o) => o !== c && o.state !== 'leave' && Math.hypot(o.m.x - nx, o.m.y - ny) < 0.6 && Math.hypot(o.m.x - c.m.x, o.m.y - c.m.y) > Math.hypot(o.m.x - nx, o.m.y - ny));
+          if (near && (c.waitT ?? 0) < 1.5) { c.waitT = (c.waitT ?? 0) + dt; return; }
+        }
+        c.waitT = 0;
         stepMover(c.m, 2);
-        if (c.state === 'eat' && now - (c as Guest & { ate?: number }).arrived > 0 && c.m.path.length === 0) {
-          const e = c as Guest & { eatEnd?: number };
-          if (e.eatEnd && now >= e.eatEnd) {
-            c.state = 'to-pay'; c.m.path = route(c.m, PAY_SPOT); c.m.job = () => { c.state = 'pay'; };
-            trash.current[c.table] = true;
-          }
+        if (c.state === 'eat' && !c.m.path.length && c.eatEnd && now >= c.eatEnd) {
+          G.mess[c.table] = true; c.state = 'leave'; c.say = { text: 'Thanks!', until: now + 1500 }; c.m.path = route(c.m, DOOR); c.m.job = null;
         }
         if (c.say && c.say.until < now) c.say = undefined;
       });
       G.guests = G.guests.filter((c) => !(c.state === 'leave' && !c.m.path.length));
-      // Event offers pop up from level 3, unless the student launches events with questions (then they pick).
       if (G.open && s.claimed >= 3 && !(s.qs ?? QS_DEFAULT).events && !G.event && now >= G.nextEvent) {
         const pool = EVENTS.filter((e) => e.lv <= s.claimed);
         setOffer(pool[Math.floor(Math.random() * pool.length)]); G.nextEvent = now + 180000;
       }
       if (G.event && G.event.until < now) G.event = null;
-      // The workers.
-      if (s.cook && !G.cook.path.length && !G.cook.job) {
-        const tk = G.tickets.find((x) => !x.cooking); const oi = G.ovens.findIndex((o, i) => i < s.ovens && o.state === 'idle');
-        if (tk && oi >= 0) { G.cook.path = route(G.cook, use.oven(oi)); G.cook.job = () => { const o = G.ovens[oi]; if (o.state === 'idle' && !tk.cooking) { o.state = 'cook'; o.item = tk.item; o.t = 0; tk.cooking = true; } }; }
-      }
-      if (s.server && !G.server.path.length && !G.server.job) serverThink();
-      // The 3D characters move every frame; the screen around them refreshes 10 times a second.
+      // The team: the cook keeps the ovens going while the counter tower is short; the server carries batches out to the
+      // counter, cleans tables and takes out the trash.
+      if (s.cook && G.open && !G.staffHome && !G.cook.path.length && !G.cook.job) cookThink();
+      if (s.server && G.open && !G.staffHome && !G.server.path.length && !G.server.job) serverThink();
       if (nowP - lastDraw > 100) { lastDraw = nowP; setTick((n) => (n + 1) % 1000000); }
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const trash = useRef<Record<number, boolean>>({});
-  // A different Neighbor each time when there are enough of them.
+
+  // A different Neighbor each time when there are enough of them (never someone on the team).
   function pickNeighbor() {
     const st = g.current!.s.staff ?? {};
     const list = nbRef.current.filter((n) => n.id !== st.server && n.id !== st.cook); const inside = new Set(g.current!.guests.filter((c) => c.state !== 'leave').map((c) => c.npc));
@@ -345,162 +371,159 @@ export default function Restaurant() {
     const n = pool[Math.floor(Math.random() * pool.length)];
     return n ? { npc: n.id, name: n.name } : { npc: '', name: 'A Neighbor' };
   }
+  // The line at the counter: first come, first served, one tile each.
+  function reline() {
+    const line = g.current!.guests.filter((x) => x.state === 'walk-in' || x.state === 'line').sort((a, b) => a.arrived - b.arrived || a.id - b.id);
+    line.forEach((x, i) => { const t = lineSpot(i); const last = x.m.path[x.m.path.length - 1]; const at = Math.round(x.m.x) === t.x && Math.round(x.m.y) === t.y && !x.m.path.length; if (!at && !(last && last.x === t.x && last.y === t.y)) { x.m.path = route(x.m, t); x.m.job = () => { x.state = 'line'; }; } else if (at) x.state = 'line'; });
+  }
+  const pizzasIn = (h: Hand[]) => h.filter((x) => x.item !== 'trash' && !x.burnt);
+  // The pizzas a batch makes, and where they go.
+  const batch = (s: Save) => 2 + s.ovenLv;
+  function cookThink() {
+    const G2 = g.current!, s2 = G2.s, ck = G2.cook;
+    const ready = G2.ovens.reduce((n, o, i) => n + (i < s2.ovens && o.state !== 'idle' ? o.n : 0), 0);
+    if (s2.stock.length + ready >= COUNTER_CAP) return;
+    const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'idle'); if (oi < 0) return;
+    const menu2 = menuFor(s2.level, s2.theme);
+    const want = G2.guests.find((c) => c.state === 'line' && s2.stock.filter((x) => x === c.item).length < c.n)?.item;
+    const item = want && menu2.includes(want) ? want : menu2.includes(bakeRef.current) ? bakeRef.current : menu2[0];
+    ck.path = route(ck, use.oven(oi)); ck.job = () => { const o = G2.ovens[oi]; if (o.state === 'idle') { o.state = 'cook'; o.item = item; o.t = 0; o.n = batch(s2); } };
+  }
+  function serverThink() {
+    const G2 = g.current!, s2 = G2.s, sv = G2.server, cap = 4 + (s2.server?.carry ?? 0) * 3;
+    if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = COUNTER_CAP - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); }; return; }
+    if (sv.hands.some((h) => h.item === 'trash' || h.burnt)) { sv.path = route(sv, use.trash); sv.job = () => { sv.hands = []; }; return; }
+    const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && (o.state === 'ready' || o.state === 'burnt'));
+    if (oi >= 0) { sv.path = route(sv, use.oven(oi)); sv.job = () => { const o = G2.ovens[oi]; if (o.state === 'burnt') { sv.hands.push({ item: o.item ?? 'cheese', burnt: true }); o.state = 'idle'; o.n = 0; } else if (o.state === 'ready') { const k = Math.min(o.n, cap); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
+    const ti = Object.keys(G2.mess).map(Number).find((k) => G2.mess[k]);
+    if (ti !== undefined) { sv.path = route(sv, use.table(ti)); sv.job = () => { if (G2.mess[ti]) { G2.mess[ti] = false; sv.hands.push({ item: 'trash' }); } }; }
+  }
 
   if (!student) return null;
   const G = g.current, s = G.s;
   const menu = menuFor(s.level, s.theme);
-  const carryMax = 1 + s.me.carry;
+  const carryMax = 4 + s.me.carry * 3; // a pizza tower: 4, then 7, 10 and 13 with training
   const theme = THEMES[s.theme] ?? THEMES[0];
+  const lvOk = (need: number) => s.claimed >= need;
+  if (!menu.includes(bakeType) && menu.length) queueMicrotask(() => setBakeType(menu[0]));
 
-  // ---- money, levels, saving ----
+  // ---- money, ratings, levels, saving ----
   const earn = (n: number, p: P) => { s.money += n; s.total += n; G.day.money += n; pop(`+${fmt(n)}`, p); };
-  // The next level comes once its customers are served and (on level 2) enough of its upgrades are done, and only
-  // after the student has unlocked the level they are on.
   const checkLevel = () => {
     if (s.level >= MAX_LEVEL) { s.xp = 0; return; }
     if (s.claimed < s.level) return;
     if (s.xp >= xpFor(s.level) && upgradesDone(s.level, s) >= upgradesNeed(s.level)) { s.xp = 0; s.level += 1; clip('level'); setLevelUp(s.level); save(); }
   };
-  const cashedOut = () => {
-    if (s.xp < xpFor(s.level)) s.xp += 1; s.served += 1; G.day.served += 1;
-    checkLevel();
-    save();
+  const served = (stars: number, n: number, item: Item) => {
+    if (s.xp < xpFor(s.level)) s.xp += 1;
+    s.served += 1; G.day.served += 1; G.day.pizzas += n; G.day.items[item] = (G.day.items[item] ?? 0) + n;
+    s.ratings = [...(s.ratings ?? []), stars].slice(-40); G.day.stars.push(stars);
+    if (stars >= 5) G.day.five += 1; if (stars <= 2) G.day.slow += 1;
+    checkLevel(); save();
   };
   const spend = (c: number) => { if (s.money < c) { clip('error'); flash(`You need ${fmt(c - s.money)} more.`); return false; } s.money -= c; clip('buy'); save(); return true; };
+  const hint = (t: string) => { clip('error', true); flash(t); };
+  const priceOf = (item: Item, n: number) => { const ev = G.event && G.event.until > Date.now() ? G.event.id : null; return ITEMS[item].price * n * (1 + s.level * 0.08) * THEME_PAY[s.theme] * (ev === 'pep' && item === 'pepperoni' ? 0.75 : 1) * (ev === 'party' ? 1.5 : 1); };
 
-  // ---- what the student's tap does at each station (the five steps) ----
-  const hint = (t: string, c?: Guest) => { clip('error', true); flash(t); if (c) c.mistakes += 1; };
-  const firstOrdering = () => G.guests.find((c) => c.state === 'order' && !c.ordered);
-  const takeOrder = (c: Guest) => {
-    c.ordered = true; G.tickets.push({ id: uid++, item: c.item, for: c.id, cooking: false }); clip('chop');
-    c.say = { text: `${ITEMS[c.item].name}${c.takeout ? ' to go' : ''}, please!`, until: Date.now() + 3000 };
-    if (c.takeout) { c.state = 'wait'; } else { c.state = 'wait'; c.m.path = route(c.m, { x: TABLES[c.table].x + 1, y: TABLES[c.table].y }); c.m.job = null; }
-    // Move the line up.
-    G.guests.filter((x) => x.state === 'order' && !x.ordered).forEach((x, i) => { x.m.path = [{ x: ORDER_SPOT.x - i, y: ORDER_SPOT.y }]; });
-  };
-  const SILLY = ['bowl of ice cubes', 'sock sandwich', 'pickle smoothie', 'plate of air', 'spaghetti shoe'];
-  const startTalk = (c: Guest) => {
-    const want = ITEMS[c.item].name.toLowerCase(), go = c.takeout ? ' to go' : '';
-    const others = menu.filter((m) => m !== c.item);
-    const wrong = others.length ? ITEMS[others[Math.floor(Math.random() * others.length)]].name.toLowerCase() : SILLY[Math.floor(Math.random() * SILLY.length)];
-    const options = [{ text: `One ${want}${go}, coming right up!`, right: true }, { text: `One ${wrong}${go}, coming right up!`, right: false }].sort(() => Math.random() - 0.5);
-    const line = `Hi! Can I please have a ${want}${go}?`;
-    setTalk({ gid: c.id, line, options, miss: null }); clip('click', true);
-    speak(line, student?.ttsSettings);
-  };
-  const answerTalk = (right: boolean) => {
-    const c = talk && G.guests.find((x) => x.id === talk.gid);
-    if (!talk || !c) { setTalk(null); return; }
-    if (right) { setTalk(null); takeOrder(c); return; }
-    c.mistakes += 1; clip('error', true);
-    const miss = `Oh, did you mean one ${ITEMS[c.item].name.toLowerCase()}${c.takeout ? ' to go' : ''}? That is what I asked for.`;
-    setTalk({ ...talk, miss }); speak(miss, student?.ttsSettings);
-  };
-  const atCounter = () => {
-    if (G.guests.some((x) => x.state === 'pay')) return atRegister();
-    const c = firstOrdering();
-    if (c) return startTalk(c);
-    const to = G.guests.find((x) => x.takeout && x.state === 'wait' && G.me.hands.some((h) => h.item === x.item && !h.burnt));
-    if (to) return handOver(to, { x: COUNTER.x, y: COUNTER.y });
-    hint(G.guests.some((x) => x.takeout && x.state === 'wait') ? 'First cook the takeout order, then bring it to the counter.' : 'No one is waiting at the counter right now.');
-  };
-  const handOver = (c: Guest, p: P) => {
-    const hi = G.me.hands.findIndex((h) => h.item === c.item && !h.burnt);
-    G.me.hands.splice(hi, 1); fulfil(c.id, c.item);
-    clip('plate');
-    if (c.takeout) { c.state = 'to-pay'; c.m.path = route(c.m, PAY_SPOT); c.m.job = () => { c.state = 'pay'; }; pop('Takeout!', p); }
-    else { c.state = 'eat'; (c as Guest & { eatEnd?: number }).eatEnd = Date.now() + 5000; pop('Served!', p); }
-  };
-  const fulfil = (gid: number, item: Item) => { const i = G.tickets.findIndex((x) => x.for === gid && x.item === item); if (i >= 0) G.tickets.splice(i, 1); };
+  // ---- what each tap does ----
   const atOven = (i: number) => {
     const o = G.ovens[i];
-    if (o.state === 'ready' || o.state === 'burnt') {
-      if (G.me.hands.length >= carryMax) return hint(`Your hands are full (you can carry ${carryMax}). Serve or store something first.`);
-      G.me.hands.push({ item: o.item!, burnt: o.state === 'burnt' }); o.state = 'idle'; o.item = undefined; clip('click'); return;
+    if (o.state === 'burnt') { if (G.me.hands.length >= carryMax) return hint('Your hands are full. Put your pizzas on the counter first.'); G.me.hands.push({ item: o.item ?? 'cheese', burnt: true }); o.state = 'idle'; o.n = 0; clip('lid'); flash('Carry the burnt batch to the trash.'); return; }
+    if (o.state === 'ready') {
+      const room = carryMax - G.me.hands.length; if (room <= 0) return hint(`Your hands are full (you can carry ${carryMax}). Stack them on the counter first.`);
+      const k = Math.min(room, o.n); for (let j = 0; j < k; j++) G.me.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle';
+      clip('lid'); pop(`+${k} pizza${k === 1 ? '' : 's'}`, OVENS[i]); return;
     }
     if (o.state === 'cook') return hint('It is still baking. Wait for the ding!');
-    const tk = G.tickets.find((x) => !x.cooking);
-    if (tk) { o.state = 'cook'; o.item = tk.item; o.t = 0; tk.cooking = true; clip(s.theme ? 'sizzle' : 'stoveFlame'); return; }
-    // No orders: bake an extra one for the display shelf.
-    if (s.shelves > 0) { if (s.stock.length + G.me.hands.filter((h) => !h.burnt && h.item !== 'trash').length >= s.shelves * 4) return hint('The display shelves are full.'); o.state = 'cook'; o.item = menu.includes(extra) ? extra : menu[0]; o.t = 0; clip('ovenIn'); flash(`Baking an extra ${ITEMS[o.item].name.toLowerCase()} for the shelf.`); return; }
-    hint(firstOrdering() ? 'First take the order at the counter, then cook it.' : 'There are no orders to cook right now.');
+    o.state = 'cook'; o.item = menu.includes(bakeType) ? bakeType : menu[0]; o.t = 0; o.n = batch(s); clip('stoveFlame');
+    flash(`Baking ${o.n} ${ITEMS[o.item].name.toLowerCase()}s.`);
   };
-  const atShelf = () => {
-    const extraIdx = G.me.hands.findIndex((h) => h.item !== 'trash' && !h.burnt && !G.tickets.some((t) => t.item === h.item) && !G.guests.some((c) => c.state === 'wait' && c.item === h.item));
-    if (extraIdx >= 0 && s.stock.length < s.shelves * 4) { s.stock.push(G.me.hands[extraIdx].item as Item); G.me.hands.splice(extraIdx, 1); clip('click'); save(); return; }
-    const want = G.guests.find((c) => c.state === 'wait' && s.stock.includes(c.item)) ?? (G.cars.find((c) => c.state === 'wait' && s.stock.includes(c.item)));
-    if (want && G.me.hands.length < carryMax) { const it = want.item; s.stock.splice(s.stock.indexOf(it), 1); G.me.hands.push({ item: it }); const tk = G.tickets.find((t) => t.item === it && !t.cooking); if (tk) tk.cooking = true; clip('click'); save(); return; }
-    hint(s.stock.length ? 'Take a pizza from the shelf when a customer is waiting for it.' : 'The shelf is empty. Bake an extra pizza and bring it here.');
+  // The counter: stack what you carry on the tower, then hand the first customer in line their pizzas and take payment.
+  const atCounter = () => {
+    let did = false;
+    const carried = pizzasIn(G.me.hands);
+    if (carried.length) {
+      const room = COUNTER_CAP - s.stock.length;
+      if (room <= 0) hint('The counter tower is full! Hand some pizzas to customers first.');
+      else { const put = carried.slice(0, room); s.stock.push(...put.map((h) => h.item as Item)); G.me.hands = G.me.hands.filter((h) => !put.includes(h)); clip('plate'); pop(`${s.stock.length} on the counter`, COUNTER); did = true; }
+    }
+    const c = G.guests.filter((x) => x.state === 'line').sort((a, b) => a.arrived - b.arrived)[0];
+    if (c) {
+      const have = s.stock.filter((x) => x === c.item).length;
+      if (have >= c.n) {
+        for (let k = 0; k < c.n; k++) s.stock.splice(s.stock.indexOf(c.item), 1);
+        const waited = (Date.now() - c.arrived) / 1000, stars = starsFor(waited, c.n);
+        const amt = priceOf(c.item, c.n);
+        let tip = amt * ((stars >= 5 ? 0.2 : stars === 4 ? 0.1 : 0) + s.me.acc * 0.04 + s.decor.length * 0.05) * (G.event?.id === 'rush' && G.event.until > Date.now() ? 2 : 1);
+        if (c.critic && waited <= 20) { tip += 50; flash('The food critic loved it! +$50'); }
+        G.day.tips += Math.round(tip); earn(Math.round(amt * (stars <= 1 ? 0.6 : 1) + tip), ORDER_SPOT); clip('cash');
+        if (stars <= 2) { c.say = { text: SARCASM[Math.floor(Math.random() * SARCASM.length)], until: Date.now() + 3500 }; clip(Math.random() < 0.5 ? 'meh' : 'bleh'); }
+        else { c.say = { text: HAPPY[Math.floor(Math.random() * HAPPY.length)], until: Date.now() + 2500 }; const v = YUM[Math.floor(Math.random() * YUM.length)]; window.setTimeout(() => clip(v), 700); }
+        if (c.takeout) { c.state = 'leave'; c.m.path = route(c.m, DOOR); }
+        else { c.state = 'eat'; c.eatEnd = Date.now() + 6000 + c.n * 600; c.m.path = route(c.m, { x: TABLES[c.table].x + 1, y: TABLES[c.table].y }); }
+        c.m.job = null; served(stars, c.n, c.item); reline(); return;
+      }
+      if (!did) hint(`${c.name} wants ${c.n} ${ITEMS[c.item].name.toLowerCase()}${c.n === 1 ? '' : 's'}. The counter has ${have}. Bake ${c.n - have} more!`);
+      return;
+    }
+    // A car waiting at the drive through: pick its pizzas up from the tower to carry to the window.
+    const car = G.cars.find((x) => x.state === 'wait');
+    if (car && !did) {
+      const have = s.stock.filter((x) => x === car.item).length, k = Math.min(car.n, have, carryMax - G.me.hands.length);
+      if (k > 0) { for (let j = 0; j < k; j++) { s.stock.splice(s.stock.indexOf(car.item), 1); G.me.hands.push({ item: car.item }); } clip('plate'); flash(`Carry them to the drive through window.`); return; }
+    }
+    if (!did) hint(s.stock.length ? 'No one is in line right now. Your tower is ready for them.' : 'Bake some pizzas, then stack them here.');
   };
   const atTable = (i: number) => {
-    const c = G.guests.find((x) => x.table === i && (x.state === 'wait' || x.state === 'eat'));
-    if (c && c.state === 'wait') {
-      if (G.me.hands.some((h) => h.item === c.item && !h.burnt)) return handOver(c, TABLES[i]);
-      return hint(G.me.hands.length ? `This table ordered ${ITEMS[c.item].name.toLowerCase()}.` : 'First cook their order, then bring it here.', c);
-    }
-    if (trash.current[i]) { if (G.me.hands.length >= carryMax) return hint('Your hands are full.'); trash.current[i] = false; G.me.hands.push({ item: 'trash' }); clip('scrub'); return; }
-    hint('Nothing to do at this table right now.');
+    if (G.mess[i]) { if (G.me.hands.length >= carryMax) return hint('Your hands are full.'); G.mess[i] = false; G.me.hands.push({ item: 'trash' }); clip('scrub'); return; }
+    hint(G.guests.some((x) => x.table === i && x.state === 'eat') ? 'They are eating. Clean up after they go.' : 'This table is clean.');
   };
   const atTrash = () => {
     const n = G.me.hands.filter((h) => h.item === 'trash' || h.burnt).length;
-    if (!n) return hint('Bring trash or burnt food here.');
+    if (!n) return hint('Bring dirty plates or burnt pizza here.');
     G.me.hands = G.me.hands.filter((h) => h.item !== 'trash' && !h.burnt); clip('lid'); pop('Clean!', TRASH);
   };
-  const atRegister = () => {
-    const c = G.guests.find((x) => x.state === 'pay');
-    if (!c) return hint(G.guests.some((x) => x.state === 'eat' || x.state === 'to-pay') ? 'Wait for them to finish and come to the counter.' : 'No one is ready to pay yet.');
-    const waited = (Date.now() - c.arrived) / 1000, patience = 45 + s.level * 2;
-    const base = ITEMS[c.item].price * (1 + s.level * 0.08) * THEME_PAY[s.theme];
-    const ev = G.event && G.event.until > Date.now() ? G.event.id : null;
-    let amt = base * (ev === 'pep' && c.item === 'pepperoni' ? 0.75 : 1) * (ev === 'party' ? 1.5 : 1);
-    let tip = 0;
-    if (waited > patience) { amt *= 0.6; G.day.slow += 1; c.say = { text: SARCASM[Math.floor(Math.random() * SARCASM.length)], until: Date.now() + 3500 }; clip(Math.random() < 0.5 ? 'meh' : 'bleh'); }
-    else { tip = amt * (0.1 + s.me.acc * 0.05 + s.decor.length * 0.05) * (ev === 'rush' ? 2 : 1); c.say = { text: HAPPY[Math.floor(Math.random() * HAPPY.length)], until: Date.now() + 2500 }; const v = YUM[Math.floor(Math.random() * YUM.length)]; window.setTimeout(() => clip(v), 700); }
-    if (c.mistakes === 0) { tip += 5; G.day.perfect += 1; flash('Perfect order! You did every step in order: +$5'); }
-    if (c.critic && waited <= 20) { tip += 50; flash('The food critic loved it! +$50'); }
-    G.day.tips += Math.round(tip); G.day.items[c.item] = (G.day.items[c.item] ?? 0) + 1;
-    earn(Math.round(amt + tip), PAY_SPOT); clip('cash');
-    c.state = 'leave'; c.m.path = route(c.m, DOOR); c.m.job = null;
-    cashedOut();
-  };
   const atWindow = () => {
-    const car = G.cars.find((c) => c.state === 'order');
-    if (car) { car.state = 'wait'; G.tickets.push({ id: uid++, item: car.item, for: -car.id, car: true, cooking: false }); clip('click'); flash(`Drive through: ${ITEMS[car.item].name}. Cook it, then bring it to the window.`); return; }
-    const w = G.cars.find((c) => c.state === 'wait' && G.me.hands.some((h) => h.item === c.item && !h.burnt));
-    if (w) { const hi = G.me.hands.findIndex((h) => h.item === w.item && !h.burnt); G.me.hands.splice(hi, 1); fulfil(-w.id, w.item); w.state = 'go'; earn(Math.round(ITEMS[w.item].price * 1.3 * (1 + s.level * 0.08) * THEME_PAY[s.theme]), WINDOW); clip('cash'); G.day.items[w.item] = (G.day.items[w.item] ?? 0) + 1; cashedOut(); return; }
-    hint(G.cars.some((c) => c.state === 'wait') ? 'First cook the drive through order, then bring it to the window.' : 'No car at the window.');
+    const car = G.cars.find((c) => c.state === 'wait');
+    if (!car) return hint('No car at the window.');
+    const mine = G.me.hands.filter((h) => h.item === car.item && !h.burnt);
+    if (mine.length < car.n) return hint(`The car wants ${car.n} ${ITEMS[car.item].name.toLowerCase()}${car.n === 1 ? '' : 's'}. You are carrying ${mine.length}.`);
+    const give = mine.slice(0, car.n); G.me.hands = G.me.hands.filter((h) => !give.includes(h));
+    const stars = starsFor((Date.now() - car.arrived) / 1000, car.n); car.state = 'go';
+    earn(Math.round(priceOf(car.item, car.n) * 1.3), WINDOW); clip('cash'); served(stars, car.n, car.item);
   };
-  // The server carries ready food to whoever is waiting and cleans tables (the student still takes orders and cashes out).
-  function serverThink() {
-    const G2 = g.current!, s2 = G2.s, sv = G2.server, cap = 1 + (s2.server?.carry ?? 0);
-    const waiting = G2.guests.find((c) => c.state === 'wait' && !c.takeout && sv.hands.some((h) => h.item === c.item));
-    if (waiting) { sv.path = route(sv, use.table(waiting.table)); sv.job = () => { const hi = sv.hands.findIndex((h) => h.item === waiting.item); if (hi >= 0 && waiting.state === 'wait') { sv.hands.splice(hi, 1); fulfil(waiting.id, waiting.item); waiting.state = 'eat'; (waiting as Guest & { eatEnd?: number }).eatEnd = Date.now() + 5000; } }; return; }
-    if (sv.hands.length < cap) {
-      const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'ready' && G2.guests.some((c) => c.state === 'wait' && !c.takeout && c.item === o.item));
-      if (oi >= 0) { sv.path = route(sv, use.oven(oi)); sv.job = () => { const o = G2.ovens[oi]; if (o.state === 'ready') { sv.hands.push({ item: o.item! }); o.state = 'idle'; o.item = undefined; } }; return; }
-      const ti = Object.keys(trash.current).map(Number).find((k) => trash.current[k]);
-      if (ti !== undefined) { sv.path = route(sv, use.table(ti)); sv.job = () => { if (trash.current[ti]) { trash.current[ti] = false; sv.hands.push({ item: 'trash' }); } }; return; }
-    }
-    if (sv.hands.some((h) => h.item === 'trash')) { sv.path = route(sv, use.trash); sv.job = () => { sv.hands = sv.hands.filter((h) => h.item !== 'trash'); }; }
-  }
-  // A tap on a station: walk there, then do the job.
   const go = (to: P, job: () => void) => { if (phase !== 'play') return; G.me.path = route(G.me, to); G.me.job = job; };
   const tapFloor = (p: P) => { if (phase !== 'play') return; G.me.path = route(G.me, p); G.me.job = null; };
-  // Open and close: closing ends the day with a report.
+  // Open and close. Closing (Build Queue 475): every customer heads out, the team goes home, and the day's wages come off
+  // the day's money in the report.
   const toggleOpen = () => {
-    if (!G.open) { G.open = true; G.day = NEW_DAY(); G.nextGuest = Date.now() + 1500; G.nextCar = Date.now() + 20000; clip('open'); flash('Open for business! Customers are coming.'); return; }
-    G.open = false; s.day += 1; const best = G.day.money > s.best; if (best) s.best = G.day.money; save();
+    if (!G.open) {
+      G.open = true; G.day = NEW_DAY(); G.nextGuest = Date.now() + 1500; G.nextCar = Date.now() + 25000;
+      if (G.staffHome) { G.staffHome = false; for (const [m, post] of [[G.server, { x: 11, y: 2 }], [G.cook, { x: 4, y: 2 }]] as const) { m.x = DOOR.x; m.y = DOOR.y; m.hands = []; m.path = route(m, post); m.job = null; } }
+      clip('open'); flash('Open for business! Bake ahead and stack your tower.'); return;
+    }
+    G.open = false; G.spawnQ = [];
+    G.guests.forEach((c) => { if (c.state !== 'leave') { c.state = 'leave'; c.say = { text: 'See you next time!', until: Date.now() + 2000 }; c.m.path = route(c.m, DOOR); c.m.job = null; } });
+    G.cars.forEach((c) => { c.state = 'go'; });
+    for (const m of [G.server, G.cook]) { m.path = route(m, DOOR); m.job = null; m.hands = []; }
+    G.staffHome = true;
+    const wages: { who: string; amt: number }[] = [];
+    (['server', 'cook'] as const).forEach((w) => { const sk = s[w]; if (!sk) return; const amt = Math.round((w === 'server' ? 30 : 45) * (1 + (sk.speed + sk.carry + sk.acc) * 0.15)); wages.push({ who: `${profiles[s.staff?.[w] ?? '']?.name ?? 'Your helper'} (${w})`, amt }); });
+    const paid = wages.reduce((n, w) => n + w.amt, 0);
+    s.money = Math.max(0, s.money - paid); G.day.wages = wages;
+    s.day += 1; const net = G.day.money - paid; const best = net > s.best; if (best) s.best = net; save();
     clip(best ? 'level' : 'report'); if (best) playCheer();
     setReport({ ...G.day, best, dayNo: s.day });
   };
+
   // ---- the questions (Build Queue 468f): how many, and when, is the student's own pick on the main menu ----
   const qs: QSet = { ...QS_DEFAULT, ...(s.qs ?? {}) };
   const levelQ = qs.levels ? qs.levelsN : qs.closing ? qs.closingN : 0;
-  const upgradeQ = qs.upgrades ? qs.upgradesN : 0;
+  // Upgrade questions follow the price (Build Queue 479): one question for every $10, so an $80 table is 8 questions.
+  const qFor = (cost: number) => (qs.upgrades ? Math.max(1, Math.round(cost / 10)) : 0);
   const plural = (n: number) => `${n} question${n === 1 ? '' : 's'}`;
   const gate = (label: string, n: number, act: () => void, onCancel?: () => void) => { if (n > 0) ask(label, act, onCancel, n); else act(); };
-  // Answering closes the level message first, so the questions are in front (Build Queue 468e, the bug in her
-  // screenshots); backing out brings the message back.
+  // Answering closes the level message first, so the questions are in front (Build Queue 468e).
   const claimLevel = (lv: number) => {
     setLevelUp(null);
     gate(`Answer ${plural(levelQ)} to unlock level ${lv}!`, levelQ, () => { s.claimed = Math.max(s.claimed, lv); save(); clip('buy'); playCheer(); flash(`Level ${lv} unlocked: ${UNLOCKS[lv]?.title ?? 'faster customers and bigger tips'}.`); }, () => setLevelUp(lv));
@@ -509,13 +532,12 @@ export default function Restaurant() {
     setEvents(false);
     gate(`Answer 5 questions to start the ${e.title}!`, 5, () => { G.event = { id: e.id, until: Date.now() + (e.id === 'critic' ? 60000 : EVENT_MS) }; clip('level'); flash(`${e.title} is on!`); });
   };
-  const lvOk = (need: number) => s.claimed >= need;
   const train = (who: 'me' | 'server' | 'cook', k: keyof Skill) => {
     const sk = who === 'me' ? s.me : s[who]; if (!sk) return; const lvl = sk[k]; if (lvl >= 3) return;
     const cost = (who === 'me' ? 80 : 150) * (lvl + 1) * THEME_PAY[s.theme];
-    const doIt = () => { if (spend(cost)) { sk[k] = lvl + 1; save(); flash(`${who === 'me' ? 'You' : who === 'server' ? 'Your server' : 'Your cook'} got better: ${k === 'speed' ? 'faster' : k === 'carry' ? 'carries more' : 'more accurate'}!`); } };
+    const doIt = () => { if (spend(cost)) { sk[k] = lvl + 1; save(); flash(`${who === 'me' ? 'You' : who === 'server' ? 'Your server' : 'Your cook'} got better: ${k === 'speed' ? 'faster' : k === 'carry' ? 'carries a taller tower' : 'more careful (slower to burn, bigger tips)'}!`); } };
     if (s.money < cost) { clip('error'); flash(`You need ${fmt(cost - s.money)} more.`); return; }
-    gate(`Answer ${plural(upgradeQ)} to train ${who === 'me' ? 'yourself' : `your ${who}`}!`, upgradeQ, doIt);
+    gate(`Answer ${plural(qFor(cost))} to train ${who === 'me' ? 'yourself' : `your ${who}`}!`, qFor(cost), doIt);
   };
   // Neighbors can be hired (Build Queue 468h): the student picks who, and that Neighbor works in their own look.
   const HIRE_COST = { server: 300, cook: 600 };
@@ -524,39 +546,48 @@ export default function Restaurant() {
     if (s.money < cost) { clip('error'); flash(`You need ${fmt(cost - s.money)} more.`); return; }
     setPicker(null);
     const name = profiles[npc]?.name ?? 'your Neighbor';
-    gate(`Answer ${plural(Math.max(1, upgradeQ))} to hire ${name}!`, Math.max(1, upgradeQ), () => { if (spend(cost)) { s[who] = { speed: 0, carry: 0, acc: 0 }; s.staff = { ...(s.staff ?? {}), [who]: npc }; save(); playCheer(); flash(`You hired ${name} as your ${who}!`); } });
+    gate(`Answer ${plural(Math.max(1, qFor(cost)))} to hire ${name}!`, Math.max(1, qFor(cost)), () => { if (spend(cost)) { s[who] = { speed: 0, carry: 0, acc: 0 }; s.staff = { ...(s.staff ?? {}), [who]: npc }; if (!G.staffHome) { const m = G[who]; m.x = DOOR.x; m.y = DOOR.y; m.path = route(m, who === 'server' ? { x: 11, y: 2 } : { x: 4, y: 2 }); } save(); playCheer(); flash(`You hired ${name} as your ${who}!`); } });
   };
 
-  // The step strip: the oldest customer's steps, in order (the ABA goal).
-  const focus = G.guests.find((c) => c.state !== 'leave');
-  const steps = focus ? (focus.takeout ? ['Take the order', 'Cook it', 'Hand it over at the counter', 'Ring them up at the counter'] : ['Take the order', 'Cook it', 'Serve the table', 'Ring them up at the counter', 'Clean the table']) : [];
-  const stepAt = !focus ? -1 : !focus.ordered ? 0 : focus.state === 'wait' ? (G.tickets.some((t) => t.for === focus.id && !t.cooking) || G.ovens.some((o) => o.state === 'cook') ? 1 : 2) : focus.state === 'eat' || focus.state === 'to-pay' || focus.state === 'pay' ? 3 : 4;
-  // Empty spots, like Farm Grow's empty plots: the next oven, table and shelf, and every decoration, wait in the room
-  // as a marked tile. Tapping one offers to buy it (Build Queue 462).
+  // ---- level 1 "show how you do it": the steps for the first customer ----
+  const focus = G.guests.filter((c) => c.state !== 'leave').sort((a, b) => a.arrived - b.arrived)[0];
+  const steps = ['Bake pizzas in the oven', 'Take them out of the oven', 'Stack them on the counter', 'Hand them to the customer', 'Clean the table'];
+  const readyOven = G.ovens.findIndex((o, i) => i < s.ovens && (o.state === 'ready' || o.state === 'burnt'));
+  const idleOven = G.ovens.findIndex((o, i) => i < s.ovens && o.state === 'idle');
+  const dirty = Object.keys(G.mess).map(Number).find((k) => G.mess[k]);
+  const stepAt = focus ? (focus.state === 'eat' ? 4 : s.stock.filter((x) => x === focus.item).length >= focus.n ? 3 : pizzasIn(G.me.hands).length ? 2 : readyOven >= 0 ? 1 : 0) : dirty !== undefined ? 4 : -1;
+  const tapHere: P | null = G.me.path.length ? null
+    : G.me.hands.some((h) => h.item === 'trash' || h.burnt) ? TRASH
+    : stepAt === 0 ? (idleOven >= 0 ? OVENS[idleOven] : null) : stepAt === 1 ? OVENS[readyOven] : stepAt === 2 || stepAt === 3 ? COUNTER
+    : stepAt === 4 && dirty !== undefined ? TABLES[dirty] : null;
+  // The steps strip and the tap here hand teach level 1; after that they are off unless turned back on (471, 477).
+  const showHints = s.level <= 1 || !!s.hints;
+  if (s.level <= 1 && phase === 'play' && stepAt >= 0) {
+    const k = `${focus?.id ?? 'x'}-${stepAt}`;
+    if (spokenStep.current !== k) { spokenStep.current = k; const line = `Step ${stepAt + 1}: ${steps[stepAt]}.`; queueMicrotask(() => speak(line, student.ttsSettings)); }
+  }
+
+  // ---- the room ----
   const offerBuy = (name: string, cost: number, need: number, act: () => void) => {
     if (s.claimed < need) { clip('error', true); flash(`${name} opens at level ${need}.`); return; }
     clip('click', true); setBuy({ name, cost, act });
   };
-  const bake = 6 / (1 + s.ovenLv * 0.35);
+  const bakeT = 7 / (1 + s.ovenLv * 0.35);
   const stations: SceneStation[] = [];
   OVENS.forEach((o, i) => {
     if (i < s.ovens) {
       const st = G.ovens[i];
       stations.push({ key: `oven${i}`, at: o, label: `Oven ${i + 1}`, onTap: () => go(use.oven(i), () => atOven(i)), glow: st.state === 'idle' ? null : st.state,
-        badge: st.state === 'cook' ? <i className="rt-bar3"><em style={{ width: `${(st.t / bake) * 100}%` }} /></i> : st.state === 'ready' ? <b className="rt-ready3">Ready!</b> : st.state === 'burnt' ? <b className="rt-ready3 burnt">Burnt</b> : s.ovenLv > 0 ? <b className="rt-lv3">{s.ovenLv}</b> : undefined,
+        badge: st.state === 'cook' ? <i className="rt-bar3"><em style={{ width: `${(st.t / bakeT) * 100}%` }} /></i> : st.state === 'ready' ? <b className="rt-ready3">{st.n} ready!</b> : st.state === 'burnt' ? <b className="rt-ready3 burnt">Burnt</b> : undefined,
         children: <ModelAt url={OVEN_MODELS[s.theme] ?? OVEN_MODELS[0]} fit={0.92} /> });
     } else if (i === s.ovens) {
       const need = i === 1 ? 2 : 8, cost = i === 1 ? 150 : 800;
       stations.push({ key: `oven${i}`, at: o, label: 'Empty oven spot', tag: s.claimed >= need ? `+ Oven ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy('An oven', cost, need, () => { if (spend(cost)) s.ovens = i + 1; }), children: <EmptySpot /> });
     }
   });
-  SHELVES.forEach((p, i) => {
-    if (i < s.shelves) stations.push({ key: `shelf${i}`, at: p, label: 'Display shelf', onTap: () => go(use.shelf(i), atShelf), children: <ModelAt url={DISPLAY_MODEL} fit={0.95} /> });
-    else if (i === s.shelves) { const need = i ? 7 : 3; stations.push({ key: `shelf${i}`, at: p, label: 'Empty shelf spot', tag: s.claimed >= need ? `+ Shelf ${fmt(200)}` : `Level ${need}`, onTap: () => offerBuy('A display shelf (holds 4 extra pizzas)', 200, need, () => { if (spend(200)) s.shelves += 1; }), children: <EmptySpot /> }); }
-  });
   stations.push({ key: 'trash', at: TRASH, label: 'Trash can', onTap: () => go(use.trash, atTrash), children: <ModelAt url={TRASH_MODEL} fit={0.55} /> });
-  stations.push({ key: 'counter', at: COUNTER, label: 'Counter: take orders and payments', tag: 'Order and pay', onTap: () => go(use.counter, atCounter) });
-  if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive', onTap: () => go(use.window, atWindow) });
+  stations.push({ key: 'counter', at: COUNTER, label: 'Counter: stack pizzas and hand them over', tag: `${s.stock.length} pizza${s.stock.length === 1 ? '' : 's'} on the counter`, onTap: () => go(use.counter, atCounter) });
+  if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', onTap: () => go(use.window, atWindow) });
   TABLES.forEach((p, i) => {
     const cap = lvOk(8) ? 6 : lvOk(2) ? 3 : 1;
     if (i < s.tables) stations.push({ key: `table${i}`, at: p, label: `Table ${i + 1}`, onTap: () => go(use.table(i), () => atTable(i)), children: <TableSet /> });
@@ -565,13 +596,12 @@ export default function Restaurant() {
   });
   DECOR.forEach((d) => {
     if (s.decor.includes(d.id) || !lvOk(4)) return;
-    stations.push({ key: `decor-${d.id}`, at: d.at, label: `Empty spot for ${d.name}`, tag: lvOk(4) ? `+ ${fmt(d.cost)}` : undefined, onTap: () => offerBuy(d.name, d.cost, 4, () => { if (spend(d.cost)) s.decor.push(d.id); }), children: <EmptySpot faint={!lvOk(4)} /> });
+    stations.push({ key: `decor-${d.id}`, at: d.at, label: `Empty spot for ${d.name}`, tag: `+ ${fmt(d.cost)}`, onTap: () => offerBuy(d.name, d.cost, 4, () => { if (spend(d.cost)) s.decor.push(d.id); }), children: <EmptySpot /> });
   });
-  // Tap that plant: every decoration does something small and fun when tapped (Duolingo Adventures' "tap that plant, pet
-  // that dog").
   const CUTE = ['So pretty!', 'Nice!', 'Ooh!', 'Love it!', 'Fancy!'];
   DECOR.forEach((d) => { if (s.decor.includes(d.id)) stations.push({ key: `deco-${d.id}`, at: d.at, label: d.name, onTap: () => { clip('click', true); pop(d.id === 'arcade' ? 'High score!' : CUTE[Math.floor(Math.random() * CUTE.length)], d.at); }, children: <ModelAt url={d.model} fit={d.fit} rot={d.rot} /> }); });
-  const placed: Placed[] = [...FIXED, { model: REGISTER_MODEL, x: 7, y: COUNTER.y, fit: 0.5, lift: 0.98 }];
+  // Labels show only for a moment after a tap, so they never pile up or cover anyone (Build Queue 472).
+  const tagged = stations.map((st) => ({ ...st, tag: shownTag === st.key ? st.tag : undefined, onTap: () => { if (st.tag) { setShownTag(st.key); window.setTimeout(() => setShownTag((k) => (k === st.key ? null : k)), 2500); } st.onTap(); } }));
   BLOCKED = new Set<string>([
     ...Array.from({ length: COLS }, (_, x) => key(x, 1)),
     ...[5, 6, 7, 8].map((x) => key(x, COUNTER.y)),
@@ -579,75 +609,78 @@ export default function Restaurant() {
     ...DECOR.filter((d) => s.decor.includes(d.id) && d.id !== 'rug').map((d) => key(d.at.x, d.at.y)),
     key(WINDOW.x, WINDOW.y),
   ]);
+  // A customer's bubble: their stars on top (how happy they would be right now), then how many pizzas they want.
+  const nowMs = Date.now();
   const bubbleFor = (c: Guest) => {
     if (c.say) return <i className="rt-b3"><em>{c.say.text}</em></i>;
-    if (c.state === 'order' && !c.ordered) return <i className="rt-b3 ask"><b>{c.name}</b><img src={c.takeout ? `${ICON}pizzabox.png` : ITEMS[c.item].img} alt="" /></i>;
-    if (c.state === 'wait') return <i className="rt-b3"><img src={ITEMS[c.item].img} alt="" />{c.takeout && <img src={`${ICON}pizzabox.png`} alt="" />}</i>;
+    // Only once they are standing in line, one tile apart, so bubbles never pile up on each other (Build Queue 472).
+    if (c.state === 'line') return <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n}</b>{c.takeout && <img src={`${ICON}pizzabox.png`} alt="to go" />}</span></i>;
     return null;
   };
-  // The live mover itself (so the 3D walkers read its position every frame), plus what is in its hands.
+  // Bubbles down the line take turns left and right of each customer, so they never cover one another.
+  const lineOrder = G.guests.filter((x) => x.state === 'line').sort((a, b) => a.arrived - b.arrived);
+  const lineSide = (c: Guest) => { const i = lineOrder.indexOf(c); return i <= 0 ? 0 : i % 2 ? 0.9 : -0.9; };
   const sceneMover = (m: Mover) => Object.assign(m, { show: m.hands.map(foodOf) });
-  // The tap here hand: points at where the next step happens, so the order of the steps is always clear.
-  const tapAt: P | null = !focus || G.me.path.length || talk ? null
-    : stepAt === 0 ? (focus.state === 'order' ? COUNTER : null)
-    : stepAt === 1 ? (() => { const done = G.ovens.findIndex((o, i) => i < s.ovens && (o.state === 'ready' || o.state === 'burnt')); if (done >= 0 && G.me.hands.length < carryMax) return OVENS[done]; const idle = G.ovens.findIndex((o, i) => i < s.ovens && o.state === 'idle'); return idle >= 0 && G.tickets.some((t) => !t.cooking) ? OVENS[idle] : null; })()
-    : stepAt === 2 ? (G.me.hands.some((h) => h.item === focus.item && !h.burnt) ? (focus.takeout ? COUNTER : TABLES[focus.table]) : (() => { const r = G.ovens.findIndex((o, i) => i < s.ovens && o.state === 'ready' && o.item === focus.item); return r >= 0 ? OVENS[r] : null; })())
-    : stepAt === 3 ? (focus.state === 'pay' ? COUNTER : null)
-    : null;
-  const dirty = Object.keys(trash.current).map(Number).find((k) => trash.current[k]);
-  const tapHere = tapAt ?? (talk ? null : !G.me.path.length && dirty !== undefined && G.me.hands.length < carryMax ? TABLES[dirty] : G.me.hands.some((h) => h.item === 'trash' || h.burnt) && !G.me.path.length ? TRASH : null);
-  const evOn = G.event && G.event.until > Date.now() ? EVENTS.find((e) => e.id === G.event!.id) : null;
+  const evOn = G.event && G.event.until > nowMs ? EVENTS.find((e) => e.id === G.event!.id) : null;
   const leaveGame = () => { save(); pay(); back.go(); };
+  const rating = avg(s.ratings ?? []);
 
   return (
     <div className="rt" style={{ ['--rt-wall' as string]: theme.wall }}>
       <header className="rt-head">
-        <button type="button" className="btn" onClick={() => { clip('click'); setPhase('menu'); }} aria-label="Pause and settings">Pause</button>
-        <span className="rt-money" aria-label={`${theme.name} money`}><b>{fmt(s.money)}</b></span>
-        <span className="rt-level"><b>Level {s.level}{s.level >= MAX_LEVEL ? ': Pizza master' : ''}</b>{s.level < MAX_LEVEL && <><i><em style={{ width: `${(s.xp / xpFor(s.level)) * 100}%` }} /></i><small>{s.xp} / {xpFor(s.level)} customers{upgradesNeed(s.level) ? ` · ${Math.min(upgradesDone(s.level, s), upgradesNeed(s.level))} / ${upgradesNeed(s.level)} upgrades` : ''}</small></>}</span>
-        {s.level > s.claimed && levelUp === null && <button type="button" className="btn rt-unlock" onClick={() => setLevelUp(s.level)}>Unlock level {s.level}</button>}
-        {lvOk(3) && qs.events && <button type="button" className="btn" onClick={() => { clip('click'); setEvents(true); }}>Events</button>}
-        <button type="button" className={`btn ${G.open ? 'rt-close' : 'btn-primary'}`} onClick={toggleOpen}>{G.open ? 'Close for the day' : 'Open'}</button>
-        <button type="button" className="btn" disabled={!lvOk(2)} onClick={() => { clip('click'); setShop('build'); }}>Shop</button>
+        <div className="rt-head-l">
+          <button type="button" className="btn" onClick={() => { clip('click'); setPhase('menu'); }} aria-label="Pause and settings">Pause</button>
+          <span className="rt-level"><b>Level {s.level}{s.level >= MAX_LEVEL ? ': Pizza master' : ''}</b>{s.level < MAX_LEVEL && <><i><em style={{ width: `${(s.xp / xpFor(s.level)) * 100}%` }} /></i><small>{s.xp} / {xpFor(s.level)} customers{upgradesNeed(s.level) ? ` · ${Math.min(upgradesDone(s.level, s), upgradesNeed(s.level))} / ${upgradesNeed(s.level)} upgrades` : ''}</small></>}</span>
+        </div>
+        {/* Build Queue 478: the money centered on the red bar, with the five star rating beside it. */}
+        <div className="rt-head-c">
+          <span className="rt-money" aria-label={`${theme.name} money`}><b>{fmt(s.money)}</b></span>
+          <Stars value={rating} />
+        </div>
+        <div className="rt-head-r">
+          {s.level > s.claimed && levelUp === null && <button type="button" className="btn rt-unlock" onClick={() => setLevelUp(s.level)}>Unlock level {s.level}</button>}
+          {lvOk(3) && qs.events && <button type="button" className="btn" onClick={() => { clip('click'); setEvents(true); }}>Events</button>}
+          <button type="button" className={`btn ${G.open ? 'rt-close' : 'btn-primary'}`} onClick={toggleOpen}>{G.open ? 'Close' : 'Open'}</button>
+          <button type="button" className="btn" disabled={!lvOk(2)} onClick={() => { clip('click'); setShop('build'); }}>Shop</button>
+        </div>
       </header>
-      {steps.length > 0 && (
-        <div className="rt-steps" aria-label="Steps for this customer">
+      {showHints && stepAt >= 0 && (
+        <div className="rt-steps" aria-label="Steps">
           {steps.map((st, i) => <span key={st} className={i < stepAt ? 'done' : i === stepAt ? 'now' : ''}><b>{i + 1}</b>{st}</span>)}
           <button type="button" className="btn rt-say" onClick={() => speak(`Steps, in order. ${steps.map((x, i) => `${i + 1}, ${x}`).join('. ')}. You are on step ${stepAt + 1}.`, student.ttsSettings)} aria-label="Listen to the steps">🔊</button>
         </div>
       )}
-      {evOn && <div className="rt-event">{evOn.title} {Math.ceil((G.event!.until - Date.now()) / 1000)}s</div>}
+      {evOn && <div className="rt-event">{evOn.title} {Math.ceil((G.event!.until - nowMs) / 1000)}s</div>}
       <div className="rt-stage">
         <Suspense fallback={<p className="rt-loading">Setting up your restaurant...</p>}>
           <RestaurantScene
-            theme={s.theme} ovens={s.ovens} shelves={s.shelves} tables={s.tables} showWindow={lvOk(6)}
-            stations={stations} me={sceneMover(G.me)} meLook={meLook}
-            staff={[...(s.server ? [{ m: sceneMover(G.server), look: profiles[s.staff?.server ?? '']?.look ?? SERVER_LOOK }] : []), ...(s.cook ? [{ m: sceneMover(G.cook), look: profiles[s.staff?.cook ?? '']?.look ?? COOK_LOOK }] : [])]}
-            guests={G.guests.map((c) => ({ id: c.id, m: sceneMover(c.m), look: profiles[c.npc]?.look ?? defaultLook('dog'), bubble: bubbleFor(c) }))}
-            cars={G.cars.map((c) => ({ id: c.id, x: c.x, bubble: c.state === 'order' || c.state === 'wait' ? <i className="rt-b3"><img src={ITEMS[c.item].img} alt="" /></i> : null }))}
-            props={placed} tapHere={tapHere} pops={pops}
-            ovenFood={G.ovens.slice(0, s.ovens).map((o) => (o.item && o.state !== 'idle' ? (o.state === 'burnt' ? BURNT : ITEMS[o.item].food) : null))}
-            shelfFood={s.stock.map((it) => ITEMS[it].food)}
-            tableFood={TABLES.map((_, i) => { const c = G.guests.find((x) => x.table === i && x.state === 'eat'); return c ? ITEMS[c.item].food : null; })}
-            tableMess={TABLES.map((_, i) => !!trash.current[i])}
+            theme={s.theme} ovens={s.ovens} shelves={0} tables={s.tables} showWindow={lvOk(6)}
+            stations={tagged} me={sceneMover(G.me)} meLook={meLook}
+            staff={G.staffHome && G.server.path.length === 0 && G.cook.path.length === 0 ? [] : [...(s.server ? [{ m: sceneMover(G.server), look: profiles[s.staff?.server ?? '']?.look ?? SERVER_LOOK }] : []), ...(s.cook ? [{ m: sceneMover(G.cook), look: profiles[s.staff?.cook ?? '']?.look ?? COOK_LOOK }] : [])]}
+            guests={G.guests.map((c) => ({ id: c.id, m: sceneMover(c.m), look: profiles[c.npc]?.look ?? defaultLook('dog'), bubble: bubbleFor(c), side: lineSide(c) }))}
+            cars={G.cars.map((c) => ({ id: c.id, x: c.x, bubble: c.state === 'wait' ? <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n}</b></span></i> : null }))}
+            props={FIXED} tapHere={showHints ? tapHere : null} pops={pops}
+            ovenFood={[]} shelfFood={[]}
+            counterFood={s.stock.map((it) => ITEMS[it].food)}
+            tableFood={TABLES.map((_, i) => { const c = G.guests.find((x) => x.table === i && x.state === 'eat' && !x.m.path.length); return c ? ITEMS[c.item].food : null; })}
+            tableMess={TABLES.map((_, i) => !!G.mess[i])}
             onFloor={tapFloor}
           />
         </Suspense>
       </div>
-      {talk && (() => { const c = G.guests.find((x) => x.id === talk.gid); return (
-        <div className="rt-talk" role="dialog" aria-label="Take the order">
-          <p className="rt-talk-line"><b>{c?.name ?? 'Neighbor'}</b>{talk.miss ?? talk.line}</p>
-          <button type="button" className="btn rt-talk-say" onClick={() => speak(talk.miss ?? talk.line, student.ttsSettings)} aria-label="Listen">🔊</button>
-          <div className="rt-talk-opts">{talk.options.map((o) => <button key={o.text} type="button" className="btn btn-lg" onClick={() => answerTalk(o.right)}>{o.text}</button>)}</div>
+      {phase === 'play' && menu.length > 1 && (
+        <div className="rt-bake" role="group" aria-label="Which pizza the ovens bake">
+          <span>Bake:</span>
+          {menu.map((m) => <button key={m} type="button" className={`rt-bake-b${bakeType === m ? ' on' : ''}`} aria-pressed={bakeType === m} onClick={() => { clip('click', true); setBakeType(m); }}><img src={ITEMS[m].img} alt="" /><small>{ITEMS[m].name.replace(' pizza', '')}</small></button>)}
         </div>
-      ); })()}
+      )}
       {buy && (
         <div className="pf-overlay rt-top" onClick={() => setBuy(null)}>
           <div className="pf-panel rt-panel" onClick={(e) => e.stopPropagation()}>
             <h2>{buy.name}</h2>
             <p>Add it to your restaurant for <b>{fmt(buy.cost)}</b>? You have {fmt(s.money)}.</p>
             <div className="rt-row">
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => { const b = buy; setBuy(null); if (s.money < b.cost) { clip('error'); flash(`You need ${fmt(b.cost - s.money)} more.`); return; } gate(`Answer ${plural(upgradeQ)} to add it!`, upgradeQ, () => { b.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}>{upgradeQ ? `Answer ${plural(upgradeQ)} to add it` : 'Add it'}</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { const b = buy; setBuy(null); if (s.money < b.cost) { clip('error'); flash(`You need ${fmt(b.cost - s.money)} more.`); return; } gate(`Answer ${plural(qFor(b.cost))} to add it!`, qFor(b.cost), () => { b.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}>{qFor(buy.cost) ? `Answer ${plural(qFor(buy.cost))} to add it` : 'Add it'}</button>
               <button type="button" className="btn btn-lg" onClick={() => setBuy(null)}>Not now</button>
             </div>
           </div>
@@ -658,19 +691,18 @@ export default function Restaurant() {
       {phase === 'menu' && (
         <div className="pf-overlay rt-top">
           <div className="pf-panel rt-panel">
-            <h2>Restaurant <button type="button" className="btn rt-listen" aria-label="Listen" onClick={() => speak('Run your own pizzeria! Tap where to walk, then tap the counter, the oven, the tables and the trash to do each job in order. Pick how you want your questions.', student.ttsSettings)}>🔊</button></h2>
-            <p>Run your own pizzeria! Tap where to walk, then tap the counter, the oven, the tables and the trash to do each job in order.</p>
+            <h2>Restaurant <button type="button" className="btn rt-listen" aria-label="Listen" onClick={() => speak('Run your own pizzeria! Bake pizzas, stack them in a tower on the counter, and hand each customer the number of pizzas they ask for. Pick how you want your questions.', student.ttsSettings)}>🔊</button></h2>
+            <p>Run your own pizzeria! Bake pizzas, stack them in a tower on the counter, and hand each customer the number they ask for.</p>
             <button type="button" className="btn btn-primary btn-lg" onClick={() => { clip('click'); setPhase('play'); }}>{s.total > 0 ? 'Continue my restaurant' : 'Start my restaurant'}</button>
             <h3>Settings</h3>
             <p className="rt-small">How do you want your questions? Pick one or more.</p>
-            {/* Build Queue 470: laid out like a multiple choice question (lettered answer tiles); a picked tile with a
-                number shows its slider right under it. One or more can be picked, never none. */}
+            {/* Build Queue 470: laid out like a multiple choice question; a picked tile with a number shows its slider. */}
             <div className="rt-qs">
               {([
                 ['closing', 'At closing time and between levels', 'closingN', 1, 5],
                 ['levels', 'Between levels', 'levelsN', 10, 15],
                 ['events', 'To launch special events (5 questions)', null, 0, 0],
-                ['upgrades', 'At every upgrade (ovens, you, your team)', 'upgradesN', 1, 5],
+                ['upgrades', 'At every upgrade: 1 question for every $10 it costs', null, 0, 0],
               ] as const).map(([k, label, nk, min, max], i) => (
                 <div key={k} className="rt-q-wrap">
                   <button type="button" className={`rt-q${qs[k] ? ' on' : ''}`} aria-pressed={qs[k]} onClick={() => { const next = { ...qs, [k]: !qs[k] }; if (!next.closing && !next.levels && !next.events && !next.upgrades) { clip('error', true); flash('Pick at least one way to get questions.'); return; } clip('click', true); s.qs = next; save(); setTick((n) => n + 1); }}>
@@ -680,9 +712,10 @@ export default function Restaurant() {
                 </div>
               ))}
             </div>
+            <button type="button" className={`rt-q${s.hints ? ' on' : ''}`} aria-pressed={!!s.hints} onClick={() => { s.hints = !s.hints; save(); clip('click', true); setTick((n) => n + 1); }}><b className="rt-q-letter">👆</b><span>Show the steps and where to tap (always on in level 1)</span>{s.hints && <i className="rt-q-check" aria-hidden="true">✓</i>}</button>
             <button type="button" className={`btn rt-restart${restartArmed ? ' armed' : ''}`} onClick={() => {
               if (!restartArmed) { setRestartArmed(true); return; }
-              setRestartArmed(false); G.s = { ...FRESH, me: { ...FRESH.me }, stock: [], decor: [], qs: s.qs }; G.guests = []; G.cars = []; G.tickets = []; G.open = false; G.ovens.forEach((o) => { o.state = 'idle'; o.item = undefined; }); trash.current = {}; save(); setTick((n) => n + 1); flash('Your restaurant is brand new.');
+              setRestartArmed(false); G.s = load({ qs: s.qs }); G.guests = []; G.cars = []; G.spawnQ = []; G.open = false; G.staffHome = true; G.mess = {}; G.me.hands = []; G.ovens.forEach((o) => { o.state = 'idle'; o.item = undefined; o.n = 0; }); save(); setTick((n) => n + 1); flash('Your restaurant is brand new.');
             }}>{restartArmed ? 'Tap again to erase your restaurant and start over' : 'Start over'}</button>
             <div className="rt-row"><button type="button" className="btn" onClick={leaveGame}>Save and leave</button></div>
           </div>
@@ -707,7 +740,7 @@ export default function Restaurant() {
           <div className="pf-panel rt-panel">
             <h2>{offer.title}</h2><p>{offer.text}</p>
             <div className="rt-row">
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => { G.event = { id: offer.id, until: Date.now() + 60000 }; setOffer(null); clip('buy'); }}>Start</button>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => { G.event = { id: offer.id, until: Date.now() + (offer.id === 'critic' ? 60000 : EVENT_MS) }; setOffer(null); clip('buy'); }}>Start</button>
               <button type="button" className="btn btn-lg" onClick={() => setOffer(null)}>Not now</button>
             </div>
           </div>
@@ -720,14 +753,18 @@ export default function Restaurant() {
             {report.best && <p className="rt-best">New best day!</p>}
             <table className="rt-report"><tbody>
               <tr><td>Customers served</td><td>{report.served}</td></tr>
+              <tr><td>Pizzas sold</td><td>{report.pizzas}</td></tr>
               {Object.entries(report.items).map(([k, n]) => <tr key={k}><td>{ITEMS[k as Item].name}</td><td>{n}</td></tr>)}
+              <tr><td>Today's rating</td><td><Stars small value={avg(report.stars)} /> {report.stars.length ? avg(report.stars).toFixed(1) : '-'}</td></tr>
+              <tr><td>Five star customers</td><td>{report.five}</td></tr>
+              <tr><td>Slow customers</td><td>{report.slow}</td></tr>
               <tr><td>Money earned</td><td>{fmt(report.money)}</td></tr>
               <tr><td>Tips</td><td>{fmt(report.tips)}</td></tr>
-              <tr><td>Perfect orders (every step in order)</td><td>{report.perfect}</td></tr>
-              <tr><td>Slow orders</td><td>{report.slow}</td></tr>
+              {(report.wages ?? []).map((w) => <tr key={w.who} className="rt-minus"><td>Wages: {w.who}</td><td>-{fmt(w.amt)}</td></tr>)}
+              {(report.wages ?? []).length > 0 && <tr><td><b>Money kept today</b></td><td>{fmt(report.money - (report.wages ?? []).reduce((n, w) => n + w.amt, 0))}</td></tr>}
               <tr><td>Best day so far</td><td>{fmt(s.best)}</td></tr>
             </tbody></table>
-            <button type="button" className="btn rt-listen" aria-label="Listen" onClick={() => speak(`Day ${report.dayNo}. You served ${report.served} customers and earned ${Math.floor(report.money)} dollars, with ${report.perfect} perfect orders.${report.best ? ' New best day!' : ''}`, student.ttsSettings)}>🔊</button>
+            <button type="button" className="btn rt-listen" aria-label="Listen" onClick={() => speak(`Day ${report.dayNo}. You served ${report.served} customers and sold ${report.pizzas} pizzas, earning ${Math.floor(report.money)} dollars.${report.stars.length ? ` Your rating today is ${avg(report.stars).toFixed(1)} stars.` : ''}${report.best ? ' New best day!' : ''}`, student.ttsSettings)}>🔊</button>
             <button type="button" className="btn btn-primary btn-lg" onClick={() => { setReport(null); if (qs.closing) gate(`Closing time: answer ${plural(qs.closingN)}!`, qs.closingN, () => { clip('buy'); flash('Great shift! See you next time.'); }); }}>{qs.closing ? `Done, then ${plural(qs.closingN)}` : 'Done'}</button>
           </div>
         </div>
@@ -741,10 +778,8 @@ export default function Restaurant() {
               {[{ name: 'Second oven', ok: lvOk(2) && s.ovens < 2, need: 2, cost: 150, act: () => { if (spend(150)) s.ovens = 2; } },
                 { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 800, act: () => { if (spend(800)) s.ovens = 3; } },
                 { name: `Table ${s.tables + 1}`, ok: s.tables < (lvOk(8) ? 6 : lvOk(2) ? 3 : 1), need: s.tables < 3 ? 2 : 8, cost: 80 * s.tables, act: () => { if (spend(80 * s.tables)) s.tables += 1; } },
-                { name: `Oven upgrade (bakes faster) ${s.ovenLv + 1}`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 120 * (s.ovenLv + 1), act: () => { if (spend(120 * (s.ovenLv + 1))) s.ovenLv += 1; } },
-                { name: `Display shelf ${s.shelves + 1} (holds 4)`, ok: lvOk(3) && s.shelves < (lvOk(7) ? 2 : 1), need: s.shelves ? 7 : 3, cost: 200, act: () => { if (spend(200)) s.shelves += 1; } },
-              ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(upgradeQ)} for this upgrade!`, upgradeQ, () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : s.claimed < it.need ? `Level ${it.need}` : 'Got it'}</span></button>)}
-              {lvOk(3) && s.shelves > 0 && <div className="rt-extra"><b>Extra pizzas to bake:</b>{menu.map((m) => <button key={m} type="button" className={`btn${extra === m ? ' btn-primary' : ''}`} onClick={() => setExtra(m)}><img src={ITEMS[m].img} alt="" />{ITEMS[m].name}</button>)}</div>}
+                { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 120 * (s.ovenLv + 1), act: () => { if (spend(120 * (s.ovenLv + 1))) s.ovenLv += 1; } },
+              ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(qFor(it.cost))} for this upgrade!`, qFor(it.cost), () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : s.claimed < it.need ? `Level ${it.need}` : 'Got it'}</span></button>)}
             </div>}
             {shop === 'workers' && <div className="rt-items">
               {(['me', 'server', 'cook'] as const).map((who) => {
@@ -753,9 +788,9 @@ export default function Restaurant() {
                 return (
                   <div key={who} className="rt-worker">
                     <b>{who === 'me' ? 'You' : who === 'server' ? 'Server' : 'Cook'}</b>
-                    {who !== 'me' && sk && <small>{profiles[s.staff?.[who] ?? '']?.name ?? 'Your helper'}</small>}
+                    {who !== 'me' && sk && <small>{profiles[s.staff?.[who] ?? '']?.name ?? 'Your helper'} <button type="button" className="btn btn-sm rt-letgo" onClick={() => { const w = who as 'server' | 'cook'; s[w] = undefined; s.staff = { ...(s.staff ?? {}), [w]: undefined }; G[w].path = route(G[w], DOOR); G[w].hands = []; save(); setTick((n) => n + 1); flash('They are dismissed. You can hire someone new any time.'); }}>Dismiss</button></small>}
                     {!sk ? <button type="button" className="btn rt-item" disabled={!canHire} onClick={() => { setShop(null); setPicker(who as 'server' | 'cook'); }}><b>Hire a Neighbor</b><span>{canHire ? fmt(HIRE_COST[who as 'server' | 'cook']) : `Level ${who === 'server' ? 3 : 7}`}</span></button>
-                      : (['speed', 'carry', 'acc'] as const).map((k) => <button key={k} type="button" className="btn rt-item" disabled={sk[k] >= 3 || !lvOk(2)} onClick={() => { setShop(null); train(who, k); }}><b>{k === 'speed' ? 'Faster' : k === 'carry' ? 'Holds more' : 'More accurate'} {sk[k]}/3</b><span>{sk[k] >= 3 ? 'Best' : fmt((who === 'me' ? 80 : 150) * (sk[k] + 1) * THEME_PAY[s.theme])}</span></button>)}
+                      : (['speed', 'carry', 'acc'] as const).map((k) => <button key={k} type="button" className="btn rt-item" disabled={sk[k] >= 3 || !lvOk(2)} onClick={() => { setShop(null); train(who, k); }}><b>{k === 'speed' ? 'Faster' : k === 'carry' ? 'Taller tower' : 'More careful'} {sk[k]}/3</b><span>{sk[k] >= 3 ? 'Best' : fmt((who === 'me' ? 80 : 150) * (sk[k] + 1) * THEME_PAY[s.theme])}</span></button>)}
                   </div>
                 );
               })}
@@ -772,7 +807,7 @@ export default function Restaurant() {
         <div className="pf-overlay rt-top" onClick={() => setPicker(null)}>
           <div className="pf-panel rt-panel" onClick={(e) => e.stopPropagation()}>
             <h2>Hire a Neighbor as your {picker} <small>{fmt(HIRE_COST[picker])}</small></h2>
-            <p className="rt-small">They work in your pizzeria looking just like they do in Town Square.</p>
+            <p className="rt-small">They work in your pizzeria looking just like they do in Town Square. Each one is paid a wage at closing time.</p>
             <div className="rt-items">
               {neighbors.filter((n) => n.id !== s.staff?.server && n.id !== s.staff?.cook).map((n) => (
                 <button key={n.id} type="button" className="btn rt-item" onClick={() => hire(picker, n.id)}><b>{n.name}</b><span>{n.title}</span></button>
@@ -786,10 +821,10 @@ export default function Restaurant() {
         <div className="pf-overlay rt-top" onClick={() => setEvents(false)}>
           <div className="pf-panel rt-panel" onClick={(e) => e.stopPropagation()}>
             <h2>Special events</h2>
-            <p className="rt-small">Answer 5 questions to launch one. {G.event && G.event.until > Date.now() ? 'One is running now, so wait for it to end.' : ''}</p>
+            <p className="rt-small">Answer 5 questions to launch one. {G.event && G.event.until > nowMs ? 'One is running now, so wait for it to end.' : ''}</p>
             <div className="rt-items">
               {EVENTS.map((e) => (
-                <button key={e.id} type="button" className="btn rt-item rt-ev" disabled={!lvOk(e.lv) || !!(G.event && G.event.until > Date.now())} onClick={() => launchEvent(e)}><b>{e.title}</b><span>{lvOk(e.lv) ? e.text : `Level ${e.lv}`}</span></button>
+                <button key={e.id} type="button" className="btn rt-item rt-ev" disabled={!lvOk(e.lv) || !!(G.event && G.event.until > nowMs)} onClick={() => launchEvent(e)}><b>{e.title}</b><span>{lvOk(e.lv) ? e.text : `Level ${e.lv}`}</span></button>
               ))}
             </div>
             <button type="button" className="btn btn-lg" onClick={() => setEvents(false)}>Done</button>

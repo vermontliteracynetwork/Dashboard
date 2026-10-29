@@ -34,6 +34,8 @@ interface Props {
   look: StyleLook;
   move?: StyleMove;
   talking?: boolean;
+  // Holding something in front with both arms out (Restaurant, Build Queue 474).
+  carrying?: boolean;
   scale?: number;
   reduceMotion?: boolean;
   // Teacher item workshop: draw only the clothes (no animal), so an item
@@ -293,7 +295,7 @@ function Tail({ look, species, tailRef }: { look: StyleLook; species: SpeciesDef
 
 const ease = (cur: number, target: number, rate: number, dt: number) => cur + (target - cur) * (1 - Math.exp(-rate * dt));
 
-export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look: lookIn, move = 'idle', talking = false, scale = 1, reduceMotion = false, bodyless = false }, handle) {
+export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function StyleCharacter({ look: lookIn, move = 'idle', talking = false, carrying = false, scale = 1, reduceMotion = false, bodyless = false }, handle) {
   const look = useMemo(() => withoutForeignHair(lookIn), [lookIn]);
   const species = speciesById(look.species);
   useEffect(() => prewarmHats(species.id), [species.id]);
@@ -391,6 +393,9 @@ export const StyleCharacter = forwardRef<StyleCharacterHandle, Props>(function S
       hZ = Math.sin(t * 0.9) * 0.07 * calm;
       hX = Math.sin(t * 0.37) * 0.05 * calm;
     }
+
+    // Carrying: both arms reach forward, a little in, with a small sway while walking.
+    if (carrying && move !== 'swim' && move !== 'tread') { const sway = move === 'walk' || move === 'run' ? Math.sin(t * 7.5) * 0.06 : 0; aL = -1.25 + sway; aR = -1.25 - sway; oL = oR = 0.12; }
 
     const sh = shot.current;
     if (sh) {
