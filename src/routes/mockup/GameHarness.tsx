@@ -16,7 +16,6 @@ const GAMES: Record<string, LazyExoticComponent<ComponentType>> = {
   chess: lazy(() => import('../student/SlimeChess')),
   gym: lazy(() => import('../student/BuffDogeGym')),
   'pet-show': lazy(() => import('../student/PetShowRing')),
-  diner: lazy(() => import('../student/DinerDash')),
   'cupcake-tycoon': lazy(() => import('../student/IdleTycoon')),
   crossy: lazy(() => import('../student/CrossyHopper')),
   plinko: lazy(() => import('../student/PlinkoDrop')),
