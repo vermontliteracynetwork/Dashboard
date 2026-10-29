@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-bakery-sparkle",
+    date: "2026-10-29",
+    icon: "✨",
+    title: "Sparkly new flavors",
+    body: "When you add a new flavor to a Bakery Tycoon counter in My menu, that counter sparkles with stars so you can see where your new treat will bake.",
+  },
+  {
     id: "2026-10-29-bakery-bubbles",
     date: "2026-10-29",
     icon: "💬",

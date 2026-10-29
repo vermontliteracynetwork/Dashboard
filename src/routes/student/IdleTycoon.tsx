@@ -200,6 +200,17 @@ export default function IdleTycoon() {
   const [bookOpen, setBookOpen] = useState(false);
   const [newSticker, setNewSticker] = useState<string | null>(null);
   const [rushAt, setRushAt] = useState<Record<string, number>>({});
+  // Build Queue 436 (f): counters that got a new flavor sparkle when My menu closes.
+  const newFlavors = useRef<Set<string>>(new Set());
+  const [sparkle, setSparkle] = useState<Record<string, number>>({});
+  const closeMenu = () => {
+    clip('menuClose'); setMenuOpen(false);
+    if (newFlavors.current.size) {
+      const now = Date.now(), ids = [...newFlavors.current]; newFlavors.current.clear();
+      setSparkle((x) => ({ ...x, ...Object.fromEntries(ids.map((id) => [id, now])) })); window.setTimeout(() => clip('positive'), 150);
+      window.setTimeout(() => setSparkle((x) => Object.fromEntries(Object.entries(x).filter(([, t]) => t !== now))), 1800);
+    }
+  };
   const [, setTick] = useState(0);
   useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 1000); return () => clearInterval(t); }, []);
   // Build Queue 435: the "i" buttons. One explanation open at a time; everything else stays short.
@@ -395,7 +406,7 @@ export default function IdleTycoon() {
     const cur = shopRef.current.menu?.[line] ?? menuOf(line), has = cur.includes(f);
     if (has && cur.length <= 1) { clip('error'); flash('Every counter needs at least 1 treat on the menu.'); return; }
     if (!has && cur.length >= MENU_MAX) { clip('error'); flash(`Up to ${MENU_MAX} on each counter. Take one off first.`); return; }
-    clip(has ? 'click' : 'recipe'); setS({ ...shopRef.current, menu: { ...(shopRef.current.menu ?? {}), [line]: has ? cur.filter((x) => x !== f) : [...cur, f] } }); save();
+    if (!has) newFlavors.current.add(line); clip(has ? 'click' : 'recipe'); setS({ ...shopRef.current, menu: { ...(shopRef.current.menu ?? {}), [line]: has ? cur.filter((x) => x !== f) : [...cur, f] } }); save();
   };
   const ovenLv = Math.min(OVEN_LV.length - 1, shop.oven ?? 0), nextOven = OVEN_LV[ovenLv + 1];
   const open = LINES.filter((l) => shop.lines[l.id]);
@@ -520,7 +531,8 @@ export default function IdleTycoon() {
             const bonus = groupBonus(o.ovens) + menuBonus() + varietyBonus(l.id);
             const st = front ? stageOf(front.p) : -1, sl = sold[l.id], n = sl && sl.v === tv ? sl.n : 0, sp = special(), isSp = sp?.line === l.id;
             return (
-              <div key={l.id} className={`ty5-line${trays.length ? ' busy' : ''}`}>
+              <div key={l.id} className={`ty5-line${trays.length ? ' busy' : ''}${sparkle[l.id] ? ' sparkle' : ''}`}>
+                {sparkle[l.id] && <span className="ty9-spark" aria-hidden>{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <img key={i} src={`${ART}ui/star-on.png`} alt="" style={{ ['--a' as string]: `${i * 45}deg` }} />)}</span>}
                 <button type="button" className={`ty5-tap${full ? ' full' : ''}${!trays.length && !o.baker ? ' hint' : ''}`} onClick={() => tap(l)} aria-label={`Tap to bake ${l.name}. Each tray sells for ${money(tv)}.`}>
                   <img src={flavor(l.id, trays[trays.length - 1]?.f).img} alt="" draggable={false} />
                   <b>{full ? 'Belt full' : '+ Tray'}</b>
@@ -615,7 +627,7 @@ export default function IdleTycoon() {
         );
       })()}
       {menuOpen && (
-        <div className="pf-overlay" onClick={() => { clip('menuClose'); setMenuOpen(false); }}>
+        <div className="pf-overlay" onClick={closeMenu}>
           <div className="pf-panel ty3-menu ty4-menued" onClick={(e) => e.stopPropagation()}>
             <h2><Px src="ic-menuboard" size={32} /> My bakery menu <button type="button" className="btn ty4-listen" onClick={() => speak(`My bakery menu. Pick up to ${MENU_MAX} treats for each counter. Each counter bakes them in turn, and every extra flavor adds 5 percent.`, student.ttsSettings)} aria-label="Listen"><Px src="ic-speaker" size={24} /></button></h2>
             <p className="ty3-small">Pick up to {MENU_MAX} treats for each counter. Each counter bakes them in turn, and every extra flavor adds 5%.</p>
@@ -629,7 +641,7 @@ export default function IdleTycoon() {
                 ); })}</div>
               </section>
             ); })}
-            <button type="button" className="btn btn-primary btn-lg" onClick={() => { clip('menuClose'); setMenuOpen(false); }}>Done</button>
+            <button type="button" className="btn btn-primary btn-lg" onClick={closeMenu}>Done</button>
           </div>
         </div>
       )}
