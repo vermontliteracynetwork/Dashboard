@@ -16,7 +16,7 @@ import type { NativeGameCard } from '../../lib/nativeGames';
 // a swipe, stacked down the page. "View all" first, then this student's own favorites, then themes.
 type Id = NativeGameCard['id'];
 const SHELVES: { title: string; ids: Id[] }[] = [
-  { title: 'Food games', ids: ['bakery', 'idleTycoon', 'dinerDash', 'kitchenCookOff', 'farmGrow'] },
+  { title: 'Food games', ids: ['bakery', 'idleTycoon', 'dinerDash', 'farmGrow'] },
   { title: 'Pet and animal games', ids: ['petShow', 'rescueShelter', 'fishingDock', 'crossyHopper'] },
   { title: 'Basics', ids: ['memoryMatch', 'wordSearch', 'quizMode', 'plinkoDrop'] },
   { title: 'Cool themes', ids: ['chess', 'spaceBowling', 'alchemy', 'castleDefense', 'shapeDash', 'gemMine', 'lighthouse', 'bubbleShooter'] },

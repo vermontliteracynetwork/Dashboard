@@ -110,8 +110,10 @@ function Walker({ m, look, scale, children }: { m: SceneMover; look: StyleLook; 
     const o = g.current; if (!o) return;
     const tx = wx(m.x), tz = wz(m.y);
     const dx = tx - o.position.x, dz = tz - o.position.z;
-    o.position.x += dx * Math.min(1, dt * 14); o.position.z += dz * Math.min(1, dt * 14);
-    if (Math.hypot(dx, dz) > 0.01) face.current = Math.atan2(dx, dz);
+    // The game moves everyone every frame, so this only rounds off the corners.
+    const k = Math.min(1, dt * 22);
+    o.position.x += dx * k; o.position.z += dz * k;
+    if (Math.hypot(dx, dz) > 0.02) face.current = Math.atan2(dx, dz);
     let d = face.current - o.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); o.rotation.y += d * Math.min(1, dt * 10);
     moveRef.current = m.path.length ? 'walk' : 'idle';
   });
@@ -134,17 +136,23 @@ function MoveSwitch({ moveRef, look, scale }: { moveRef: React.RefObject<StyleMo
   return <StyleCharacter look={look} move={move} scale={scale} />;
 }
 
-// Orthographic camera tipped down at the room, fitted to the stage (both iPad orientations).
-const ELEV = (56 * Math.PI) / 180;
+// The camera (Build Queue 467, her words: "rather than a full top down view, give it more of the angle view that the cat
+// pizza game does"): a perspective camera looking into the room from the front at about 40 degrees, the way Cat Pizza
+// shows its shop, pulled back just far enough that the whole room fits the iPad screen in either orientation.
+const ELEV = (40 * Math.PI) / 180;
+const FOV = 32;
 function Rig() {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
-    const cam = camera as THREE.OrthographicCamera;
-    const spanH = ROWS * Math.sin(ELEV) + 1.6 * Math.cos(ELEV) + 0.4;
-    cam.zoom = Math.min(size.width / (COLS + 0.6), size.height / spanH);
-    cam.position.set(0, Math.sin(ELEV) * 30, Math.cos(ELEV) * 30 + 0.35);
-    cam.lookAt(0, 0.2, 0.35);
-    cam.updateProjectionMatrix();
+    const cam = camera as THREE.PerspectiveCamera;
+    cam.fov = FOV; cam.aspect = size.width / size.height; cam.near = 0.5; cam.far = 200;
+    const target = new THREE.Vector3(0, 0.3, 0.5);
+    const corners = [[-COLS / 2 - 0.6, 0, -ROWS / 2 - 0.2], [COLS / 2 + 0.6, 0, -ROWS / 2 - 0.2], [-COLS / 2 - 0.6, 0, ROWS / 2 + 0.3], [COLS / 2 + 0.6, 0, ROWS / 2 + 0.3], [-COLS / 2, 1.5, -ROWS / 2], [COLS / 2, 1.5, -ROWS / 2]].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+    const place = (d: number) => { cam.position.set(0, target.y + Math.sin(ELEV) * d, target.z + Math.cos(ELEV) * d); cam.lookAt(target); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
+    const fits = (d: number) => { place(d); return corners.every((c) => { const v = c.clone().project(cam); return Math.abs(v.x) <= 0.97 && Math.abs(v.y) <= 0.95; }); };
+    let lo = 4, hi = 80;
+    for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
+    place(hi);
   }, [camera, size]);
   return null;
 }
@@ -222,7 +230,7 @@ export default function RestaurantScene(p: SceneProps) {
     p.onFloor({ x: Math.max(0, Math.min(COLS - 1, x)), y: Math.max(1, Math.min(ROWS - 1, y)) });
   };
   return (
-    <Canvas orthographic dpr={[1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: true, alpha: true }} camera={{ near: 0.1, far: 200 }} style={{ touchAction: 'none' }}>
+    <Canvas dpr={[1, 1.5]} gl={{ powerPreference: 'high-performance', antialias: true, alpha: true }} camera={{ fov: FOV, near: 0.5, far: 200, position: [0, 12, 14] }} style={{ touchAction: 'none' }}>
       <Rig />
             <ambientLight intensity={0.9} />
       <hemisphereLight args={['#ffffff', '#f3d6ff', 0.7]} />

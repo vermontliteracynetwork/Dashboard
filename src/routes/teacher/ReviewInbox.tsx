@@ -147,7 +147,7 @@ export default function ReviewInbox() {
         {view === 'azalea' ? <AzaleaLog nameFor={nameFor} onPhoto={setZoomedPhoto} /> : <>
         {receipts.length > 0 && (
           <section className="receipts" aria-label="Prize receipts">
-            <h2>🧾 Prize receipts <small>real-life prizes to hand over · also emailed to {RECEIPT_TO.join(' and ')}</small></h2>
+            <h2>🧾 Prize receipts <small>real-life prizes to hand over · tap Email to send one to {RECEIPT_TO.join(' and ')}</small></h2>
             <div className="inbox-list">
               {receipts.map((t) => { const done = given.includes(t.id); return (
                 <div key={t.id} className={`inbox-row ${done ? 'inbox-row-done' : ''}`}>

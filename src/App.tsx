@@ -71,7 +71,6 @@ const RescueShelter = lazyFresh(() => import('./routes/student/RescueShelter'));
 const FishingDock = lazyFresh(() => import('./routes/student/FishingDock'));
 const FarmGrow = lazyFresh(() => import('./routes/student/FarmGrow'));
 const LighthouseSignal = lazyFresh(() => import('./routes/student/LighthouseSignal'));
-const KitchenCookOff = lazyFresh(() => import('./routes/student/KitchenCookOff'));
 const GemMine = lazyFresh(() => import('./routes/student/GemMine'));
 const MemoryMatch = lazyFresh(() => import('./routes/student/MemoryMatch'));
 const WordSearch = lazyFresh(() => import('./routes/student/WordSearch'));
@@ -251,7 +250,7 @@ export default function App() {
           <Route path="/student/word-search" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><WordSearch /></Suspense>} />
           <Route path="/student/memory-match" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><MemoryMatch /></Suspense>} />
           <Route path="/student/gem-mine" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><GemMine /></Suspense>} />
-          <Route path="/student/kitchen" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><KitchenCookOff /></Suspense>} />
+          <Route path="/student/kitchen" element={<Navigate to="/student/games" replace />} />
           <Route path="/student/lighthouse" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><LighthouseSignal /></Suspense>} />
           <Route path="/student/farm-grow" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><FarmGrow /></Suspense>} />
           <Route path="/student/fishing-dock" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><FishingDock /></Suspense>} />

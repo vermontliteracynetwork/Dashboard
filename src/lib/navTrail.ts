@@ -50,7 +50,6 @@ const LABELS: Record<string, string> = {
   '/student/word-search': "🔤 Word Search",
   '/student/memory-match': "🃏 Memory Match",
   '/student/gem-mine': "💎 Gem Mine",
-  '/student/kitchen': "🍳 Kitchen Cook-Off",
   '/student/lighthouse': "🗼 Lighthouse Signal",
   '/student/farm-grow': "🌱 Farm Grow",
   '/student/fishing-dock': "🎣 Doc Fishing",

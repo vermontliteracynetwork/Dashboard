@@ -350,7 +350,6 @@ const ROLE_OPTIONS: { value: WorldObjectRole | ''; label: string }[] = [
   { value: 'word-search', label: `Word Search → ${ROLE_VIEWS['word-search']}` },
   { value: 'memory-match', label: `Memory Match → ${ROLE_VIEWS['memory-match']}` },
   { value: 'gem-mine', label: `Gem Mine → ${ROLE_VIEWS['gem-mine']}` },
-  { value: 'kitchen-cook-off', label: `Kitchen Cook-Off → ${ROLE_VIEWS['kitchen-cook-off']}` },
   { value: 'lighthouse-signal', label: `Lighthouse Signal → ${ROLE_VIEWS['lighthouse-signal']}` },
   { value: 'farm-grow', label: `Farm Grow → ${ROLE_VIEWS['farm-grow']}` },
   { value: 'fishing-dock', label: `Doc Fishing (fishing dock) → ${ROLE_VIEWS['fishing-dock']}` },

@@ -84,7 +84,9 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
     </>
   );
   const right = useRef(0);
-  const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void) => setOpen({ q: next(), label, onRight, onCancel, left: rs.perRound, total: rs.perRound }), [next, rs.perRound]);
+  // `count` lets a game ask a set number of questions for one action (Restaurant, Build Queue 468); otherwise it is the
+  // student's "questions each time" setting.
+  const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void, count?: number) => { const n = Math.max(1, count ?? rs.perRound); setOpen({ q: next(), label, onRight, onCancel, left: n, total: n }); }, [next, rs.perRound]);
   const pay = useCallback(() => {
     if (student && right.current > 0) payForAnswers(student.id, right.current, game, icon);
     right.current = 0;

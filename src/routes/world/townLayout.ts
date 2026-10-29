@@ -187,7 +187,8 @@ export const ROLE_VIEWS: Record<WorldObjectRole, string> = {
   'gem-mine': '/student/gem-mine',
   'train-dispatch': '/student/games',
   'mine-cart-run': '/student/games',
-  'kitchen-cook-off': '/student/kitchen',
+  // Kitchen Cook-Off was removed (her words 2026-10-29: "remove kitchen cookoff entirely"); a building with the role opens the Arcade.
+  'kitchen-cook-off': '/student/games',
   'lighthouse-signal': '/student/lighthouse',
   'post-office-sort': '/student/games',
   'farm-grow': '/student/farm-grow',

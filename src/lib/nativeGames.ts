@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dinerDash' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'gemMine' | 'kitchenCookOff' | 'lighthouse' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dinerDash' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'gemMine' | 'lighthouse' | 'farmGrow' | 'fishingDock' | 'rescueShelter';
   title: string;
   route: string;
   cover: string;
@@ -41,7 +41,6 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   // Lighthouse Signal (Build Queue 32, her list: lighthouse; answers light the beam to guide boats safely in).
   { id: 'lighthouse', added: '2026-10-12', title: "Lighthouse Signal", route: '/student/lighthouse', cover: '/games/covers/lighthouse-signal.svg', blurb: "Answer to light the lamp, then guide boats home through the fog.", versus: false, cabinet: { marquee: '#23386b', panel: '#3f5fa8', trim: '#ffec96', icon: '🗼' } },
   // Kitchen Cook-Off (Build Queue 33, her list: restaurant; answers pick ingredients in order to cook recipes, sequencing practice).
-  { id: 'kitchenCookOff', added: '2026-10-12', title: "Kitchen Cook-Off", route: '/student/kitchen', cover: '/games/covers/kitchen-cook-off.svg', blurb: "Answer to get each ingredient, then cook recipes in the right order: first, next, then, last.", versus: false, cabinet: { marquee: '#d2553a', panel: '#f08a5d', trim: '#ffe14d', icon: '🍳' } },
   // Mine Cart Run (Build Queue 34, her list: mine entrance; a Mario-style auto-runner where answers choose the track switch).
   // Train Station Dispatch (Build Queue 35, her list: train station; answers route trains to the right platforms).
   // Gem Mine (Build Queue 36, her list: cave or shop; answers dig up gems that fill collection pages).

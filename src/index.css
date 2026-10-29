@@ -11103,7 +11103,7 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .rt-steps > span.now b { background: #555034; }
 .rt-say { min-width: 44px; min-height: 44px; margin-left: auto; font-size: 20px; }
 .rt-event { position: absolute; top: 140px; left: 50%; transform: translateX(-50%); z-index: 5; background: #d9a83a; padding: 6px 16px; border-radius: 999px; font-weight: 800; box-shadow: 0 3px 0 #a87d22; }
-.rt-stage { flex: 1; min-height: 0; position: relative; background: linear-gradient(rgba(30, 32, 15, 0.62), rgba(30, 32, 15, 0.62)), url(/games/restaurant/icons/tomato-wallpaper.jpg) 0 0 / 220px repeat; }
+.rt-stage { flex: 1; min-height: 0; position: relative; background: #f5eac6; }
 .rt-stage canvas { touch-action: none; }
 .rt-loading { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; font-size: 1.3rem; font-weight: 800; color: #8f2510; }
 .rt-tag3 { display: flex; flex-direction: column; align-items: center; gap: 2px; white-space: nowrap; font-family: inherit; }
@@ -11174,3 +11174,18 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .rt-loading { color: var(--rt-cream); background: var(--rt-dark); }
 .rt-level i { background: rgba(244, 236, 214, 0.35); }
 .rt-steps > span.now { color: var(--rt-dark); }
+.rt-listen { min-width: 48px; min-height: 48px; font-size: 22px; padding: 0 10px; }
+.rt-unlock { background: var(--rt-mustard) !important; animation: rtTap 1.2s ease-in-out infinite; }
+.rt-qs { display: grid; gap: 8px; }
+.rt-q { border: 2px solid #c9bb8a; border-radius: 14px; padding: 10px 12px; background: #fffaf0; display: flex; flex-direction: column; gap: 8px; }
+.rt-q.on { border-color: var(--rt-leaf); background: #eef0dc; }
+.rt-q label { display: flex; align-items: center; gap: 10px; font-weight: 700; min-height: 44px; cursor: pointer; }
+.rt-q input[type="checkbox"] { width: 28px; height: 28px; accent-color: var(--rt-red); }
+.rt-q-n { display: flex; align-items: center; gap: 12px; }
+.rt-q-n input { flex: 1; min-height: 44px; accent-color: var(--rt-red); }
+.rt-q-n b { min-width: 28px; font-size: 1.3rem; text-align: center; }
+.rt-restart { min-height: 48px; }
+.rt-restart.armed { background: #fde2dc !important; border-color: var(--rt-red) !important; color: var(--rt-deep) !important; }
+.rt-ev { flex-direction: column; align-items: flex-start; }
+.rt-ev span { font-size: 0.9rem; font-weight: 400; }
+@media (prefers-reduced-motion: reduce) { .rt-unlock { animation: none; } }

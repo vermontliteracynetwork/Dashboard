@@ -20,7 +20,6 @@ export function gameProgressLabels(rows: Rows, studentId: string | undefined): P
   };
   of('fishingDock', 'fishbook', 'caught', 44, 'fish');
   of('lighthouse', 'lighthouse', 'seen', 9, 'boats');
-  of('kitchenCookOff', 'kitchen', 'cooked', 8, 'recipes');
   of('gemMine', 'gemmine', 'gems', 18, 'gems');
   of('wordSearch', 'wordsearch', 'themes', 6, 'puzzles');
   num('memoryMatch', 'memory', 'best', (n) => `${n} flips`);

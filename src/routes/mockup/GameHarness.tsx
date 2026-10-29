@@ -23,7 +23,6 @@ const GAMES: Record<string, LazyExoticComponent<ComponentType>> = {
   'word-search': lazy(() => import('../student/WordSearch')),
   'memory-match': lazy(() => import('../student/MemoryMatch')),
   'gem-mine': lazy(() => import('../student/GemMine')),
-  kitchen: lazy(() => import('../student/KitchenCookOff')),
   lighthouse: lazy(() => import('../student/LighthouseSignal')),
   'farm-grow': lazy(() => import('../student/FarmGrow')),
   'rescue-shelter': lazy(() => import('../student/RescueShelter')),
