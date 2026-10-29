@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-restaurant-tower",
+    date: "2026-10-29",
+    icon: "🍕",
+    title: "Bigger pizza towers",
+    body: "In the Restaurant Shop, buy a Bigger pizza tower to stack 15, then 20, 25 and even 50 pizzas on the counter. Customers order more at once, so you sell more pizzas in one go.",
+  },
+  {
     id: "2026-10-29-restaurant",
     date: "2026-10-29",
     icon: "🍕",

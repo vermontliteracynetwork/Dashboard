@@ -76,7 +76,13 @@ const LINE_MORE: P[] = [{ x: 7, y: 8 }, { x: 8, y: 8 }, { x: 7, y: 7 }, { x: 8, 
 const lineSpot = (i: number): P => (i < 5 ? { x: ORDER_SPOT.x, y: ORDER_SPOT.y + i } : LINE_MORE[Math.min(i - 5, LINE_MORE.length - 1)]);
 const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
 // The counter holds a tower of up to 20 ready pizzas (two stacks of 10, Build Queue 471 and 478).
-const COUNTER_CAP = 20;
+// The counter tower grows with the "Bigger pizza tower" upgrade (Build Queue 490, her words: "give upgrade skill to sell
+// more pizzas in larger stacks. add an upgrade where stacks can increase to 15, 20, 25, and 50 at a time").
+const STACK_CAPS = [10, 15, 20, 25, 50];
+const STACK_COST = [400, 800, 1200, 2400];
+const stackCap = (s: { stackLv?: number }) => STACK_CAPS[Math.min(STACK_CAPS.length - 1, s.stackLv ?? 0)];
+// A bigger tower also brings bigger orders, so a tall stack sells in one go.
+const STACK_ORDER = [0, 3, 6, 10, 20];
 
 // Levels: what each one adds, taught as numbered steps (following multistep directions).
 const UNLOCKS: Record<number, { title: string; steps: string[] }> = {
@@ -131,7 +137,7 @@ interface Save {
   money: number; total: number; level: number; claimed: number; xp: number; theme: number;
   ovens: number; ovenLv: number; tables: number; shelves: number; stock: Item[]; decor: string[];
   me: Skill; server?: Skill; cook?: Skill; best: number; day: number; served: number;
-  qs?: QSet; staff?: { server?: string; cook?: string }; hints?: boolean; ratings?: number[];
+  qs?: QSet; staff?: { server?: string; cook?: string }; hints?: boolean; ratings?: number[]; stackLv?: number;
 }
 const FRESH: Save = { money: 0, total: 0, level: 1, claimed: 1, xp: 0, theme: 0, ovens: 1, ovenLv: 0, tables: 1, shelves: 0, stock: [], decor: [], me: { speed: 0, carry: 0, acc: 0 }, best: 0, day: 0, served: 0, ratings: [] };
 type Hand = { item: Item | 'trash'; burnt?: boolean };
@@ -357,7 +363,7 @@ export default function Restaurant() {
           const freeTable = Array.from({ length: s.tables }, (_, i) => i).find((i) => !taken.has(i) && !G.mess[i]);
           const takeout = s.claimed >= 5 && (freeTable === undefined || Math.random() < 0.35);
           if (freeTable === undefined && !takeout) break;
-          const n = Math.min(10, 1 + Math.floor(Math.random() * wantMax(s.level)) + (party ? 1 : 0));
+          const n = Math.min(stackCap(s), 1 + Math.floor(Math.random() * (wantMax(s.level) + (s.level > 1 ? STACK_ORDER[s.stackLv ?? 0] : 0))) + (party ? 1 : 0));
           const c: Guest = { id: uid++, ...pickNeighbor(), m: mover(DOOR), state: 'walk-in', item, n, takeout, table: takeout ? -1 : freeTable!, arrived: now, critic: G.event?.id === 'critic' && G.event.until > now && !G.guests.some((x) => x.critic) };
           if (!takeout) taken.add(freeTable!);
           G.spawnQ.push(c);
@@ -427,7 +433,7 @@ export default function Restaurant() {
   function cookThink() {
     const G2 = g.current!, s2 = G2.s, ck = G2.cook;
     const ready = G2.ovens.reduce((n, o, i) => n + (i < s2.ovens && o.state !== 'idle' ? o.n : 0), 0);
-    if (s2.stock.length + ready >= COUNTER_CAP) return;
+    if (s2.stock.length + ready >= stackCap(s2)) return;
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'idle'); if (oi < 0) return;
     const menu2 = menuFor(s2.level, s2.theme);
     const want = G2.guests.find((c) => c.state === 'line' && s2.stock.filter((x) => x === c.item).length < c.n)?.item;
@@ -440,7 +446,7 @@ export default function Restaurant() {
     const more = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'ready');
     // A trained server fills their tower from every ready oven before carrying it all to the counter (Build Queue 483).
     if (pizzasIn(sv.hands).length && room > 0 && more >= 0) { sv.path = route(sv, use.oven(more)); sv.job = () => { const o = G2.ovens[more]; if (o.state === 'ready') { const k = Math.min(o.n, cap - sv.hands.length); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
-    if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = COUNTER_CAP - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); }; return; }
+    if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = stackCap(s2) - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); }; return; }
     if (sv.hands.some((h) => h.item === 'trash' || h.burnt)) { sv.path = route(sv, use.trash); sv.job = () => { sv.hands = []; }; return; }
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && (o.state === 'ready' || o.state === 'burnt'));
     if (oi >= 0) { sv.path = route(sv, use.oven(oi)); sv.job = () => { const o = G2.ovens[oi]; if (o.state === 'burnt') { sv.hands.push({ item: o.item ?? 'cheese', burnt: true }); o.state = 'idle'; o.n = 0; } else if (o.state === 'ready') { const k = Math.min(o.n, cap); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
@@ -492,7 +498,7 @@ export default function Restaurant() {
     let did = false;
     const carried = pizzasIn(G.me.hands);
     if (carried.length) {
-      const room = COUNTER_CAP - s.stock.length;
+      const room = stackCap(s) - s.stock.length;
       if (room <= 0) hint('The counter tower is full! Hand some pizzas to customers first.');
       else { const put = carried.slice(0, room); s.stock.push(...put.map((h) => h.item as Item)); G.me.hands = G.me.hands.filter((h) => !put.includes(h)); clip('plate'); pop(`${s.stock.length} on the counter`, COUNTER); did = true; }
     }
@@ -834,6 +840,7 @@ export default function Restaurant() {
               {[{ name: 'Second oven', ok: lvOk(2) && s.ovens < 2, need: 2, cost: 600, act: () => { if (spend(600)) s.ovens = 2; } },
                 { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 1000, act: () => { if (spend(1000)) s.ovens = 3; } },
                 { name: `Table ${s.tables + 1}`, ok: s.tables < (lvOk(8) ? 6 : lvOk(2) ? 3 : 1), need: s.tables < 3 ? 2 : 8, cost: tableCost(s.tables), act: () => { if (spend(tableCost(s.tables))) s.tables += 1; } },
+                { name: (s.stackLv ?? 0) < 4 ? `Bigger pizza tower (holds ${STACK_CAPS[(s.stackLv ?? 0) + 1]}, bigger orders)` : 'Bigger pizza tower (holds 50)', ok: lvOk(2) && (s.stackLv ?? 0) < 4, need: 2, cost: STACK_COST[Math.min(3, s.stackLv ?? 0)], act: () => { const lv = s.stackLv ?? 0; if (spend(STACK_COST[lv])) { s.stackLv = lv + 1; flash(`Your counter tower now holds ${stackCap(s)} pizzas, and customers order more!`); } } },
                 { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 200 * (s.ovenLv + 1), act: () => { if (spend(200 * (s.ovenLv + 1))) s.ovenLv += 1; } },
               ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(qFor(it.cost))} for this upgrade!`, qFor(it.cost), () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : s.claimed < it.need ? `Level ${it.need}` : 'Got it'}</span></button>)}
             </div>}

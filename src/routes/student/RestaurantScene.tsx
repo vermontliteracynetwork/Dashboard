@@ -140,6 +140,10 @@ function Walker({ m, look, scale, children }: { m: SceneMover; look: StyleLook; 
 }
 // A tall, slightly wobbly stack of pizzas and plates (her words: "pizzas should stack on top of eachother in a tall tower
 // (comedic engagement)").
+// The counter holds up to 50 pizzas (Build Queue 490): the first tower fills on the right of the register, then the
+// left two counters take the rest, at most 17 a tower so every stack stays on screen.
+const TOWER_MAX = 17;
+const TOWER_SLOT: Record<number, number> = { 8: 0, 5: 1, 6: 2 };
 export function Tower({ items, size }: { items: { food: FoodDef | null }[]; size: number }) {
   const g = useRef<THREE.Group>(null);
   useFrame(({ clock }) => { const o = g.current; if (!o) return; const t = clock.elapsedTime; o.children.forEach((c, i) => { c.rotation.z = Math.sin(t * 3 + i * 0.7) * 0.004 * i; c.position.x = Math.sin(t * 2.4 + i) * 0.0025 * i; }); });
@@ -257,7 +261,7 @@ export default function RestaurantScene(p: SceneProps) {
         <Suspense fallback={null}><Walls showWindow={p.showWindow} /></Suspense>
         {/* The counter across the middle, with the register on it. */}
         {/* The counter, the register on top, and the tower of ready pizzas (two stacks of 10, Build Queue 478). */}
-        {[5, 6, 7, 8].map((x) => <group key={x} position={[wx(x), 0, wz(3)]}><Model url={MODEL.counter} fit={1.001} /><Suspense fallback={null}><OnTop base={MODEL.counter} fit={1.001}>{x === 7 && <Model url={MODEL.register} fit={0.42} rot={Math.PI} />}{(x === 8 || x === 5) && p.counterFood.length > (x === 8 ? 0 : 10) && <Tower items={p.counterFood.slice(x === 8 ? 0 : 10, x === 8 ? 10 : 20).map((food) => ({ food }))} size={0.42} />}</OnTop></Suspense></group>)}
+        {[5, 6, 7, 8].map((x) => <group key={x} position={[wx(x), 0, wz(3)]}><Model url={MODEL.counter} fit={1.001} /><Suspense fallback={null}><OnTop base={MODEL.counter} fit={1.001}>{x === 7 && <Model url={MODEL.register} fit={0.42} rot={Math.PI} />}{TOWER_SLOT[x] !== undefined && p.counterFood.length > TOWER_SLOT[x] * TOWER_MAX && <Tower items={p.counterFood.slice(TOWER_SLOT[x] * TOWER_MAX, (TOWER_SLOT[x] + 1) * TOWER_MAX).map((food) => ({ food }))} size={0.42} />}</OnTop></Suspense></group>)}
         {p.props.map((d, i) => <group key={i} position={[wx(d.x), d.lift ?? 0, wz(d.y)]}><Model url={d.model} fit={d.fit} rot={d.rot ?? 0} /></group>)}
         {p.stations.map((st) => (
           <group key={st.key} position={[wx(st.at.x), 0, wz(st.at.y)]}>
