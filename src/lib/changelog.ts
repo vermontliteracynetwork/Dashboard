@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-10-29-bakery-rush",
+    date: "2026-10-29",
+    icon: "⚡",
+    title: "Rush your trays",
+    body: "Every Bakery Tycoon counter has a Rush button. Tap it to push every tray on the belt forward at once, then wait 15 seconds for it to recharge.",
+  },
+  {
     id: "2026-10-29-bakery-baker-levels",
     date: "2026-10-29",
     icon: "🧑‍🍳",

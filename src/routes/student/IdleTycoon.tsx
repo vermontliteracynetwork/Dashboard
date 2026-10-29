@@ -43,6 +43,8 @@ const SHOWCASE_NAME = ['Birthday Cake', 'Strawberry Pudding Cake', 'Blueberry Ca
 interface Own { ovens: number; baker: boolean; price?: number; sold?: number }
 // Build Queue 436 (c): bakers level up as their counter sells 25, 100 and 250 trays, and each level bakes faster.
 const BAKER_AT = [25, 100, 250], BAKER_SPEED = [1, 1.25, 1.5, 2];
+// Build Queue 436 (d): Rush pushes every tray on one belt forward at once, then needs 15 seconds to recharge.
+const RUSH_PUSH = 0.25, RUSH_WAIT = 15;
 const bakerLv = (o: Own) => BAKER_AT.filter((n) => (o.sold ?? 0) >= n).length;
 interface Shop { coins: number; total: number; whisk?: number; book?: Record<string, number>; stickers?: string[]; orders?: number; oven?: number; menu?: Record<string, string[]>; lines: Record<string, Own>; savedAt: number }
 const ovenCost = (l: Line, ovens: number) => Math.round(l.base * Math.pow(1.15, ovens));
@@ -195,6 +197,9 @@ export default function IdleTycoon() {
   // Build Queue 436 (a): the Recipe book, every flavor sold becomes a card with its count.
   const [bookOpen, setBookOpen] = useState(false);
   const [newSticker, setNewSticker] = useState<string | null>(null);
+  const [rushAt, setRushAt] = useState<Record<string, number>>({});
+  const [, setTick] = useState(0);
+  useEffect(() => { const t = window.setInterval(() => setTick((n) => n + 1), 1000); return () => clearInterval(t); }, []);
   // Build Queue 435: the "i" buttons. One explanation open at a time; everything else stays short.
   const [tipOpen, setTipOpen] = useState<string | null>(null);
   // Treats sold this visit, per counter, for the times sentence ("4 trays × $2 = $8").
@@ -374,6 +379,15 @@ export default function IdleTycoon() {
     beltRef.current = { ...beltRef.current, [l.id]: next }; setBelts(beltRef.current);
     once(['whisk', 'ovenIn', 'click'][stageOf(p)] as keyof typeof SND, 120, true);
   };
+  const rush = (l: Line) => {
+    const trays = beltRef.current[l.id] ?? [];
+    if (!trays.length) { once('error', 400, true); flash('Put a tray on the belt first, then Rush it.'); return; }
+    if (Date.now() - (rushAt[l.id] ?? 0) < RUSH_WAIT * 1000) { once('error', 400, true); return; }
+    let ahead = 1.2;
+    const next = trays.map((t) => { const p = Math.max(t.p, Math.min(t.p + RUSH_PUSH, ahead)); ahead = p - GAP; return { ...t, p }; });
+    beltRef.current = { ...beltRef.current, [l.id]: next }; setBelts(beltRef.current);
+    setRushAt((r) => ({ ...r, [l.id]: Date.now() })); clip('whisk'); window.setTimeout(() => clip('ovenIn', true), 120);
+  };
   const toggleFlavor = (line: string, f: string) => {
     const cur = shopRef.current.menu?.[line] ?? menuOf(line), has = cur.includes(f);
     if (has && cur.length <= 1) { clip('error'); flash('Every counter needs at least 1 treat on the menu.'); return; }
@@ -511,6 +525,11 @@ export default function IdleTycoon() {
                 </button>
                 <div className="ty5-mid">
                   <div className="ty5-title"><b>{l.name}</b><span className="ty5-math">{o.ovens} × {money(up)} = {money(up * o.ovens)}{bonus > 0 && <em> +{Math.round(bonus * 100)}%</em>}</span>{n > 0 && <span className="ty5-soldline">Sold {n} × {money(tv)} = {money(n * tv)}</span>}
+                    {(() => { const left = Math.max(0, RUSH_WAIT - (Date.now() - (rushAt[l.id] ?? 0)) / 1000); const ready = left <= 0; return (
+                      <button type="button" className={`btn ty8-rush${ready && trays.length ? ' ready' : ''}`} disabled={!ready} onClick={() => rush(l)} aria-label={ready ? `Rush every ${l.name} tray forward` : `Rush recharging, ${Math.ceil(left)} seconds`} style={{ ['--rush' as string]: `${(1 - left / RUSH_WAIT) * 100}%` }}>
+                        <Px src="ic-bolt" size={18} />{ready ? 'Rush' : `${Math.ceil(left)}s`}
+                      </button>
+                    ); })()}
                     {info(`line-${l.id}`, l.name)}
 </div>
                   <div className="ty5-belt">
@@ -522,7 +541,7 @@ export default function IdleTycoon() {
                     </div>
                     <div className="ty5-prog" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}`} style={{ flexGrow: s2.part }}><i style={{ width: `${front ? Math.max(0, Math.min(1, (front.p - STAGE_START[i]) / s2.part)) * 100 : 0}%` }} /></span>)}</div>
                   </div>
-                  {tip(`line-${l.id}`, <>Tap + Tray to put a tray on the belt, and tap a tray to push it along. A tray sells at the end for {o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 ? `, plus ${Math.round(bonus * 100)}% for groups and flavors` : ''}. Bigger tray adds a treat, Raise price adds {money(l.income)} to each treat, and a baker taps for you. Bakers level up at 25, 100 and 250 trays sold and bake faster each time.</>, `${l.name}. ${o.ovens} ${o.ovens === 1 ? 'treat' : 'treats'} times ${up} ${up === 1 ? 'dollar' : 'dollars'} equals ${up * o.ovens} dollars a tray.${n > 0 ? ` You sold ${n} times ${tv}, which is ${n * tv} dollars.` : ''}`)}
+                  {tip(`line-${l.id}`, <>Tap + Tray to put a tray on the belt, and tap a tray to push it along. A tray sells at the end for {o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 ? `, plus ${Math.round(bonus * 100)}% for groups and flavors` : ''}. Bigger tray adds a treat, Raise price adds {money(l.income)} to each treat, and a baker taps for you. Bakers level up at 25, 100 and 250 trays sold and bake faster each time. Rush pushes every tray forward at once, then recharges for 15 seconds.</>, `${l.name}. ${o.ovens} ${o.ovens === 1 ? 'treat' : 'treats'} times ${up} ${up === 1 ? 'dollar' : 'dollars'} equals ${up * o.ovens} dollars a tray.${n > 0 ? ` You sold ${n} times ${tv}, which is ${n * tv} dollars.` : ''}`)}
                   {pops.filter((x) => x.line === l.id).slice(-2).map((x) => <i key={x.id} className="ty5-pop" aria-hidden>{x.text}</i>)}
                 </div>
                 <div className="ty5-ups">
