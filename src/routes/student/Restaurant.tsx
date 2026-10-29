@@ -72,7 +72,8 @@ const DOOR: P = { x: 0, y: 8 };
 // One counter spot for asking and paying (Build Queue 468a); the line runs left from it, one tile each (473).
 const ORDER_SPOT: P = { x: 6, y: 4 };
 // The line runs down the middle column from the counter (Build Queue 480), then along the bottom row if it is long.
-const lineSpot = (i: number): P => (i < 5 ? { x: ORDER_SPOT.x, y: ORDER_SPOT.y + i } : { x: ORDER_SPOT.x + (i - 4), y: 8 });
+const LINE_MORE: P[] = [{ x: 7, y: 8 }, { x: 8, y: 8 }, { x: 7, y: 7 }, { x: 8, y: 7 }, { x: 5, y: 8 }];
+const lineSpot = (i: number): P => (i < 5 ? { x: ORDER_SPOT.x, y: ORDER_SPOT.y + i } : LINE_MORE[Math.min(i - 5, LINE_MORE.length - 1)]);
 const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
 // The counter holds a tower of up to 20 ready pizzas (two stacks of 10, Build Queue 471 and 478).
 const COUNTER_CAP = 20;
@@ -113,10 +114,11 @@ const SARCASM = ['Took you long enough. I aged a year.', 'Wow, fast food. Very f
 const HAPPY = ['Yum!', 'Best pizza in town!', 'Five stars!', 'So fast!', 'Delicious!'];
 const EVENT_MS = 5 * 60 * 1000;
 const EVENTS = [
-  { id: 'pep', title: 'Pepperoni Flash Sale', text: 'For 5 minutes, lots more customers come in, and pepperoni pizza is 25% off, so almost everyone wants it.', lv: 3 },
-  { id: 'rush', title: 'Lunch Rush', text: 'For 5 minutes, customers come twice as fast and every tip is doubled.', lv: 3 },
-  { id: 'critic', title: 'Food Critic', text: 'A food critic is coming. Hand over their pizzas in under 20 seconds for a $50 bonus.', lv: 5 },
-  { id: 'party', title: 'Birthday Party', text: 'For 5 minutes, groups ask for more pizzas and pay 50% more.', lv: 9 },
+  // `cost`: buy it in the Shop (Build Queue 487); or launch it with 5 questions from the Events button.
+  { id: 'pep', cost: 500, title: 'Pepperoni Flash Sale', text: 'For 5 minutes, lots more customers come in, and pepperoni pizza is 25% off, so almost everyone wants it.', lv: 3 },
+  { id: 'rush', cost: 600, title: 'Lunch Rush', text: 'For 5 minutes, customers come twice as fast and every tip is doubled.', lv: 3 },
+  { id: 'critic', cost: 700, title: 'Food Critic', text: 'A food critic is coming. Hand over their pizzas in under 20 seconds for a $50 bonus.', lv: 5 },
+  { id: 'party', cost: 900, title: 'Birthday Party', text: 'For 5 minutes, groups ask for more pizzas and pay 50% more.', lv: 9 },
 ];
 interface QSet { closing: boolean; closingN: number; levels: boolean; levelsN: number; events: boolean; upgrades: boolean; upgradesN: number }
 // Only special events are on at first (Build Queue 470).
@@ -145,8 +147,11 @@ const NEW_DAY = (): Day => ({ served: 0, pizzas: 0, money: 0, tips: 0, slow: 0, 
 // The cash register quiz (Build Queue 482): while the shop is closed, the register asks questions for as long as the
 // student likes; answers in a row climb a multiplier (her anchors: 1 right is $5, 2 in a row $10, 10 in a row $500), and a
 // wrong answer starts the streak again. This money is Restaurant money only, never classroom money.
-const REG_PAY = [5, 10, 20, 35, 55, 80, 120, 180, 300, 500];
-const regPay = (streak: number) => REG_PAY[Math.min(streak, REG_PAY.length) - 1] ?? 0;
+// Build Queue 486 (her words: "stage 1 (1x) is one question answered. answer two questions at 5x, 3 questions at 10x and
+// so on"): each answer in a row moves up a stage, x1, x5, x10, x15 and on to x45, times $5 a question.
+const REG_MULT = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45];
+const REG_BASE = 5;
+const regPay = (streak: number) => (streak ? REG_BASE * REG_MULT[Math.min(streak, REG_MULT.length) - 1] : 0);
 function RegisterQuiz({ onEarn, onClose, tts }: { onEarn: (n: number) => void; onClose: (total: number) => void; tts?: import('../../types').TTSSettings }) {
   const { next, right } = useGameQuestions('dinerDash');
   const [q, setQ] = useState<MCQuestion>(() => next());
@@ -155,22 +160,23 @@ function RegisterQuiz({ onEarn, onClose, tts }: { onEarn: (n: number) => void; o
   const [count, setCount] = useState(0);
   const bar = (
     <div className="rt-mult" aria-label={`Streak ${streak}, earned $${total} this time`}>
-      <div className="rt-mult-row">{REG_PAY.map((p, i) => <span key={p} className={`rt-mult-s${i < streak ? ' on' : ''}${i === streak - 1 ? ' now' : ''}`}>${p}</span>)}</div>
-      <small>{streak ? `${streak} in a row` : 'Answer to start a streak'} · Earned this time: <b>${total}</b></small>
+      <div className="rt-mult-row">{REG_MULT.map((m, i) => <span key={m} className={`rt-mult-s${i < streak ? ' on' : ''}${i === streak - 1 ? ' now' : ''}`}>x{m}</span>)}</div>
+      <small>{streak ? `${streak} in a row: x${REG_MULT[Math.min(streak, REG_MULT.length) - 1]}, $${regPay(streak)} a question` : `Answer to start a streak ($${REG_BASE} a question at x1)`} · Earned this time: <b>${total}</b></small>
     </div>
   );
   return (
     <QuestionScreen key={`${q.id}-${count}`} prompt={q.prompt} typed={q.typed} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt}
-      done={streak} total={REG_PAY.length} topSlot={bar} whoLabel="Cash register: answer for Restaurant money" ttsSettings={tts}
+      done={streak} total={REG_MULT.length} topSlot={bar} whoLabel="Cash register: answer for Restaurant money" ttsSettings={tts}
       onCorrectAnswer={() => { const k = streak + 1, n = regPay(k); right(q); setStreak(k); setTotal((t) => t + n); onEarn(n); setCount((c) => c + 1); setQ(next(q.id)); }}
       onWrongAnswer={() => setStreak(0)}
       onSkip={() => { setStreak(0); setQ(next(q.id)); setCount((c) => c + 1); }}
       onExit={() => onClose(total)} />
   );
 }
-// Prices, all in $25 steps (Build Queue 485): tables $75 to $175, training $25 to $75 for you and $50 to $150 for the team.
-const tableCost = (have: number) => 50 + 25 * have;
-const trainCost = (who: 'me' | 'server' | 'cook', lvl: number) => (who === 'me' ? 25 : 50) * (lvl + 1);
+// Prices (Build Queue 485, raised four times by 486): tables $300 to $700, training $100 to $300 for you and $200 to $600
+// for the team.
+const tableCost = (have: number) => 200 + 100 * have;
+const trainCost = (who: 'me' | 'server' | 'cook', lvl: number) => (who === 'me' ? 100 : 200) * (lvl + 1);
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 // Five stars, white to start, filled in gold to the average (Build Queue 478).
 function Stars({ value, small }: { value: number; small?: boolean }) {
@@ -184,14 +190,21 @@ function Stars({ value, small }: { value: number; small?: boolean }) {
 
 // Decorations: each has its own empty spot in the room, like Farm Grow's empty plots (Build Queue 462).
 const DECOR: { id: string; name: string; model: string; img: string; at: P; fit: number; rot?: number; lift?: number; cost: number }[] = [
-  { id: 'plant', name: 'House plant', model: '/world/models/interior/houseplant-1.glb', img: `${ICON}d-plant1.png`, at: { x: 0, y: 4 }, fit: 0.6, cost: 25 },
-  { id: 'lamp', name: 'Floor lamp', model: '/world/models/interior/light-floor1.glb', img: `${ICON}d-lamp.png`, at: { x: 0, y: 6 }, fit: 0.45, cost: 50 },
-  { id: 'board', name: 'Menu board', model: '/world/models/props/sandwich-board.glb', img: `${ICON}d-board.png`, at: { x: 10, y: 4 }, fit: 0.6, rot: -0.4, cost: 75 },
-  { id: 'tree', name: 'Potted tree', model: '/world/models/props/potted_tree.glb', img: `${ICON}d-tree.png`, at: { x: 12, y: 3 }, fit: 0.7, cost: 100 },
-  { id: 'cactus', name: 'Cactus', model: '/world/models/props/cactus.glb', img: `${ICON}d-cactus.png`, at: { x: 1, y: 4 }, fit: 0.55, cost: 100 },
-  { id: 'rug', name: 'Round rug', model: '/world/models/interior/carpet-round.glb', img: `${ICON}d-rug.png`, at: { x: 4, y: 5 }, fit: 1.3, cost: 125 },
-  { id: 'plant6', name: 'Big plant', model: '/world/models/interior/houseplant-6.glb', img: `${ICON}d-plant6.png`, at: { x: 13, y: 2 }, fit: 0.7, cost: 150 },
-  { id: 'arcade', name: 'Arcade game', model: '/world/models/restaurant/Arcade_Cabinet.glb', img: `${ICON}d-arcade.png`, at: { x: 3, y: 4 }, fit: 0.8, cost: 200 },
+  { id: 'plant', name: 'House plant', model: '/world/models/interior/houseplant-1.glb', img: `${ICON}d-plant1.png`, at: { x: 0, y: 4 }, fit: 0.6, cost: 100 },
+  { id: 'lamp', name: 'Floor lamp', model: '/world/models/interior/light-floor1.glb', img: `${ICON}d-lamp.png`, at: { x: 0, y: 6 }, fit: 0.45, cost: 200 },
+  { id: 'board', name: 'Menu board', model: '/world/models/props/sandwich-board.glb', img: `${ICON}d-board.png`, at: { x: 10, y: 4 }, fit: 0.6, rot: -0.4, cost: 300 },
+  { id: 'tree', name: 'Potted tree', model: '/world/models/props/potted_tree.glb', img: `${ICON}d-tree.png`, at: { x: 12, y: 3 }, fit: 0.7, cost: 400 },
+  { id: 'cactus', name: 'Cactus', model: '/world/models/props/cactus.glb', img: `${ICON}d-cactus.png`, at: { x: 1, y: 4 }, fit: 0.55, cost: 400 },
+  { id: 'rug', name: 'Round rug', model: '/world/models/interior/carpet-round.glb', img: `${ICON}d-rug.png`, at: { x: 4, y: 5 }, fit: 1.3, cost: 500 },
+  { id: 'plant6', name: 'Big plant', model: '/world/models/interior/houseplant-6.glb', img: `${ICON}d-plant6.png`, at: { x: 13, y: 2 }, fit: 0.7, cost: 600 },
+  { id: 'arcade', name: 'Arcade game', model: '/world/models/restaurant/Arcade_Cabinet.glb', img: `${ICON}d-arcade.png`, at: { x: 3, y: 4 }, fit: 0.8, cost: 800 },
+  // Build Queue 487: more to decorate with.
+  { id: 'flower', name: 'Giant flower', model: '/world/models/props/flower.glb', img: `${ICON}d-flower.png`, at: { x: 11, y: 4 }, fit: 0.55, cost: 200 },
+  { id: 'cactus2', name: 'Tall cactus', model: '/world/models/interior/houseplant-3.glb', img: `${ICON}d-plant3.png`, at: { x: 2, y: 4 }, fit: 0.55, cost: 300 },
+  { id: 'lamp3', name: 'Shade lamp', model: '/world/models/interior/light-floor3.glb', img: `${ICON}d-lamp3.png`, at: { x: 1, y: 6 }, fit: 0.45, cost: 400 },
+  { id: 'sign', name: 'Diner sign', model: '/world/models/restaurant/Diner_Sign_A.glb', img: `${ICON}d-sign.png`, at: { x: 0, y: 2 }, fit: 0.8, rot: Math.PI / 2, cost: 500 },
+  { id: 'booth', name: 'Booth seat', model: '/world/models/restaurant/Booth_Seat_A.glb', img: `${ICON}d-booth.png`, at: { x: 13, y: 5 }, fit: 0.9, rot: -Math.PI / 2, cost: 700 },
+  { id: 'books', name: 'Bookshelf', model: '/world/models/interior/bookshelf.glb', img: `${ICON}d-bookshelf.png`, at: { x: 13, y: 7 }, fit: 0.9, rot: -Math.PI / 2, cost: 900 },
 ];
 // The back of the kitchen and the fixed furniture.
 const FIXED: Placed[] = [
@@ -256,7 +269,7 @@ export default function Restaurant() {
   const [, setTick] = useState(0);
   const [phase, setPhase] = useState<'menu' | 'play'>('menu');
   const [note, setNote] = useState<string | null>(null);
-  const [shop, setShop] = useState<null | 'build' | 'workers' | 'decor'>(null);
+  const [shop, setShop] = useState<null | 'build' | 'workers' | 'decor' | 'events'>(null);
   const [report, setReport] = useState<(Day & { best: boolean; dayNo: number }) | null>(null);
   const [levelUp, setLevelUp] = useState<number | null>(null);
   const [offer, setOffer] = useState<(typeof EVENTS)[number] | null>(null);
@@ -558,7 +571,9 @@ export default function Restaurant() {
   // Upgrade questions follow the price (Build Queue 479): one question for every $10, so an $80 table is 8 questions.
   // Build Queue 485 replaced 479: every price is a multiple of $25, one question per $25, and never more than 10
   // questions; only the big upgrades (third oven, a cook, the top oven) cost $250 and 10 questions.
-  const qFor = (cost: number) => (qs.upgrades ? Math.min(10, Math.max(1, Math.round(cost / 25))) : 0);
+  // Build Queue 486 raised every price four times (the register can earn a lot), so a question now stands for $100 and
+  // the counts stay what 485 set: never more than 10, and only the biggest upgrades reach 10.
+  const qFor = (cost: number) => (qs.upgrades ? Math.min(10, Math.max(1, Math.round(cost / 100))) : 0);
   const plural = (n: number) => `${n} question${n === 1 ? '' : 's'}`;
   const gate = (label: string, n: number, act: () => void, onCancel?: () => void) => { if (n > 0) ask(label, act, onCancel, n); else act(); };
   // Answering closes the level message first, so the questions are in front (Build Queue 468e).
@@ -578,7 +593,7 @@ export default function Restaurant() {
     gate(`Answer ${plural(qFor(cost))} to train ${who === 'me' ? 'yourself' : `your ${who}`}!`, qFor(cost), doIt);
   };
   // Neighbors can be hired (Build Queue 468h): the student picks who, and that Neighbor works in their own look.
-  const HIRE_COST = { server: 200, cook: 250 };
+  const HIRE_COST = { server: 800, cook: 1000 };
   const hire = (who: 'server' | 'cook', npc: string) => {
     const cost = HIRE_COST[who];
     if (s.money < cost) { clip('error'); flash(`You need ${fmt(cost - s.money)} more.`); return; }
@@ -619,7 +634,7 @@ export default function Restaurant() {
         badge: st.state === 'cook' ? <i className="rt-bar3"><em style={{ width: `${(st.t / bakeT) * 100}%` }} /></i> : st.state === 'ready' ? <b className="rt-ready3">{st.n} ready!</b> : st.state === 'burnt' ? <b className="rt-ready3 burnt">Burnt</b> : undefined,
         children: <ModelAt url={OVEN_MODELS[s.theme] ?? OVEN_MODELS[0]} fit={0.92} /> });
     } else if (i === s.ovens) {
-      const need = i === 1 ? 2 : 8, cost = i === 1 ? 150 : 250;
+      const need = i === 1 ? 2 : 8, cost = i === 1 ? 600 : 1000;
       stations.push({ key: `oven${i}`, at: o, label: 'Empty oven spot', tag: s.claimed >= need ? `+ Oven ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy('An oven', cost, need, () => { if (spend(cost)) s.ovens = i + 1; }), children: <EmptySpot /> });
     }
   });
@@ -741,7 +756,7 @@ export default function Restaurant() {
                 ['closing', 'At closing time and between levels', 'closingN', 1, 5],
                 ['levels', 'Between levels', 'levelsN', 10, 15],
                 ['events', 'To launch special events (5 questions)', null, 0, 0],
-                ['upgrades', 'At every upgrade: 1 question for every $25 (never more than 10)', null, 0, 0],
+                ['upgrades', 'At every upgrade: 1 question for every $100 (never more than 10)', null, 0, 0],
               ] as const).map(([k, label, nk, min, max], i) => (
                 <div key={k} className="rt-q-wrap">
                   <button type="button" className={`rt-q${qs[k] ? ' on' : ''}`} aria-pressed={qs[k]} onClick={() => { const next = { ...qs, [k]: !qs[k] }; if (!next.closing && !next.levels && !next.events && !next.upgrades) { clip('error', true); flash('Pick at least one way to get questions.'); return; } clip('click', true); s.qs = next; save(); setTick((n) => n + 1); }}>
@@ -812,12 +827,12 @@ export default function Restaurant() {
         <div className="pf-overlay rt-top" onClick={() => setShop(null)}>
           <div className="pf-panel rt-panel rt-shop" onClick={(e) => e.stopPropagation()}>
             <h2>Shop <small>{fmt(s.money)}</small></h2>
-            <div className="rt-tabs">{(['build', 'workers', 'decor'] as const).map((t) => <button key={t} type="button" className={`btn${shop === t ? ' btn-primary' : ''}`} onClick={() => setShop(t)}>{t === 'build' ? 'Kitchen and tables' : t === 'workers' ? 'Workers and you' : 'Decorate'}</button>)}</div>
+            <div className="rt-tabs">{(['build', 'workers', 'decor', 'events'] as const).map((t) => <button key={t} type="button" className={`btn${shop === t ? ' btn-primary' : ''}`} onClick={() => setShop(t)}>{t === 'build' ? 'Kitchen and tables' : t === 'workers' ? 'Workers and you' : t === 'decor' ? 'Decorate' : 'Special events'}</button>)}</div>
             {shop === 'build' && <div className="rt-items">
-              {[{ name: 'Second oven', ok: lvOk(2) && s.ovens < 2, need: 2, cost: 150, act: () => { if (spend(150)) s.ovens = 2; } },
-                { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 250, act: () => { if (spend(250)) s.ovens = 3; } },
+              {[{ name: 'Second oven', ok: lvOk(2) && s.ovens < 2, need: 2, cost: 600, act: () => { if (spend(600)) s.ovens = 2; } },
+                { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 1000, act: () => { if (spend(1000)) s.ovens = 3; } },
                 { name: `Table ${s.tables + 1}`, ok: s.tables < (lvOk(8) ? 6 : lvOk(2) ? 3 : 1), need: s.tables < 3 ? 2 : 8, cost: tableCost(s.tables), act: () => { if (spend(tableCost(s.tables))) s.tables += 1; } },
-                { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 50 * (s.ovenLv + 1), act: () => { if (spend(50 * (s.ovenLv + 1))) s.ovenLv += 1; } },
+                { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 200 * (s.ovenLv + 1), act: () => { if (spend(200 * (s.ovenLv + 1))) s.ovenLv += 1; } },
               ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(qFor(it.cost))} for this upgrade!`, qFor(it.cost), () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : s.claimed < it.need ? `Level ${it.need}` : 'Got it'}</span></button>)}
             </div>}
             {shop === 'workers' && <div className="rt-items">
@@ -837,6 +852,14 @@ export default function Restaurant() {
             {shop === 'decor' && <div className="rt-items">
               {DECOR.map((d) => <button key={d.id} type="button" className="btn rt-item" disabled={!lvOk(4) || s.decor.includes(d.id)} onClick={() => { if (spend(d.cost)) { s.decor.push(d.id); save(); setTick((n) => n + 1); } }}><img src={d.img} alt="" /><b>{d.name}</b><span>{s.decor.includes(d.id) ? 'Placed' : lvOk(4) ? fmt(d.cost) : 'Level 4'}</span></button>)}
               <p className="rt-small">Every decoration adds 5% to tips.</p>
+            </div>}
+            {shop === 'events' && <div className="rt-items">
+              {EVENTS.map((e) => <button key={e.id} type="button" className="btn rt-item rt-ev" disabled={!lvOk(e.lv) || !!(G.event && G.event.until > nowMs)} onClick={() => {
+                if (!G.open) { hint('Open the shop first, then start an event.'); return; }
+                if (s.money < e.cost) { hint(`You need ${fmt(e.cost - s.money)} more.`); return; }
+                setShop(null); s.money -= e.cost; G.event = { id: e.id, until: Date.now() + (e.id === 'critic' ? 60000 : EVENT_MS) }; clip('level'); save(); flash(`${e.title} is on!`);
+              }}><b>{e.title} · {lvOk(e.lv) ? fmt(e.cost) : `Level ${e.lv}`}</b><span>{e.text}</span></button>)}
+              <p className="rt-small">{G.event && G.event.until > nowMs ? 'An event is running now. Start another when it ends.' : 'Buy one to start it right away while the shop is open.'}</p>
             </div>}
             <button type="button" className="btn btn-primary btn-lg" onClick={() => setShop(null)}>Done</button>
           </div>
