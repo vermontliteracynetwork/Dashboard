@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { speak } from '../../components/ReadAloud';
 import CheeringBuddy from '../../components/CheeringBuddy';
 import { getEconomy } from '../../lib/economy';
 const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
@@ -17,7 +18,7 @@ import QuestionSourcePicker, { type QuestionSourceMode } from '../../components/
 import { findActiveGameplayTask, pickGameplayQuestion } from '../../lib/gameplayAssignment';
 import ExplosionBurst from '../../components/ExplosionBurst';
 import { CastleGround, CastleKeepArt, MapAnimations } from '../../components/CastleMapArt';
-import { CASTLE_GATE, MAP_H, MAP_W, computeSlotPositions, pointAlongPath, toPct } from '../../lib/castleMap';
+import { CASTLE_GATE, GRID, GRID_X, GRID_Y, MAP_H, MAP_W, computeSlotPositions, fromCoord, pointAlongPath, snapToGrid, toCoord, toPct } from '../../lib/castleMap';
 import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import { ATTACKER_THEMES, ENEMIES, MAPS, type MapId, PORTAL_STAGES, TIER_HP, TOWERS, TOWER_COLLAPSE, TOWER_IDS, TOWER_POOF, WISP_CAST, buildWaves, citizen, portalStage, type EnemyDef, type ThemeId, type TowerId, SHOT_ART, type ShotArt } from '../../games/castleDefense/catalog';
 import SheetSprite from '../../games/castleDefense/SheetSprite';
@@ -193,7 +194,12 @@ const ZONE_WIDTH = 100 / TOWER_SLOTS; // each tower slot "owns" an equal stretch
 // art in src/components/CastleMapArt.tsx. Zone targeting is unchanged: the
 // road is still split into TOWER_SLOTS equal stretches by distance, and
 // each plot sits beside the middle of the stretch its tower defends.
-const SLOT_POSITIONS = computeSlotPositions(TOWER_SLOTS);
+const SLOT_POSITIONS = snapToGrid(computeSlotPositions(TOWER_SLOTS));
+// Build Queue 500: every plot's (x, y) on the coordinate plane. With "Place towers: with coordinates" on (the default),
+// a student builds by setting x and y on the coordinate pad and tapping Build here, instead of tapping the plot.
+const SLOT_COORDS = SLOT_POSITIONS.map(toCoord);
+const COORDS_KEY = 'castle.coords';
+const readCoords = () => { try { return localStorage.getItem(COORDS_KEY) !== '0'; } catch { return true; } };
 const TOWER_HEIGHT_BY_TIER = ['72%', '84%', '96%'];
 const HUD_ICON = (name: string) => `/pixel-ui/pixel-ui-free/icons/${name}.png`;
 
@@ -299,6 +305,10 @@ export default function CastleDefense() {
   // Which attackers come (teacher 2026-10-08: more options). Chosen on the menu, remembered here.
   const [theme, setTheme] = useState<ThemeId>(readTheme);
   const [mapId, setMapId] = useState<MapId>(readMap);
+  const [coordsOn, setCoordsOn] = useState(readCoords);
+  const [cursor, setCursor] = useState({ x: 1, y: 1 });
+  const [coordMsg, setCoordMsg] = useState<string | null>(null);
+  const [hintSlot, setHintSlot] = useState<number | null>(null);
   const [waves, setWaves] = useState<string[][]>(() => buildWaves(readTheme(), 5));
   // The Wisp builds every new tower or upgrade: slot index -> build time.
   const [building, setBuilding] = useState<Record<number, number>>({});
@@ -663,6 +673,18 @@ export default function CastleDefense() {
 
 
   const showBoard = phase === 'build' || phase === 'advance';
+  const say = (t: string) => speak(t, student?.ttsSettings);
+  const moveCursor = (k: 'x' | 'y', d: number) => {
+    setCursor((c) => ({ ...c, [k]: Math.max(0, Math.min(k === 'x' ? GRID_X : GRID_Y, c[k] + d)) }));
+    setCoordMsg(null); setHintSlot(null);
+  };
+  const buildAt = () => {
+    const i = SLOT_COORDS.findIndex((c) => c.x === cursor.x && c.y === cursor.y);
+    if (i >= 0) { setCoordMsg(null); setHintSlot(null); setPickerSlot(i); return; }
+    const m = `There is no build plot at (${cursor.x}, ${cursor.y}). Find a round plot, count across for x, then up for y.`;
+    setCoordMsg(m); say(m);
+  };
+  const coordHelp = 'Count across the bottom for x, then up the side for y. Set the numbers, then tap Build here.';
 
   return (
     <div className={`bakery-shell castle-theme${showBoard ? ' playing' : ''}`}>
@@ -704,6 +726,17 @@ export default function CastleDefense() {
                   ))}
                 </div>
               </div>
+              <div className="cd-theme-pick" role="radiogroup" aria-label="How do you place towers?">
+                <span className="cd-theme-title">Place towers</span>
+                <div className="cd-theme-row">
+                  {[{ on: true, icon: '📐', label: 'With coordinates' }, { on: false, icon: '👆', label: 'By tapping' }].map((o) => (
+                    <button key={o.label} type="button" role="radio" aria-checked={coordsOn === o.on} className={`cd-theme-chip${coordsOn === o.on ? ' on' : ''}`}
+                      onClick={() => { setCoordsOn(o.on); try { localStorage.setItem(COORDS_KEY, o.on ? '1' : '0'); } catch { /* fine */ } }}>
+                      <span aria-hidden>{o.icon}</span> {o.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button className="bakery-play-btn" onClick={startGame}>
                 <Icon name="play" size={22} fallback="▶️" /> Play New Game
               </button>
@@ -741,6 +774,24 @@ export default function CastleDefense() {
             <div className={`castle-battlefield${mapId !== 'meadow' ? ` ${mapId}` : ''}`}>
               <CastleGround slots={SLOT_POSITIONS} map={mapId} />
               <MapAnimations slots={SLOT_POSITIONS} map={mapId} />
+              {phase === 'build' && coordsOn && (() => {
+                const c = fromCoord(cursor), h = hintSlot !== null ? SLOT_POSITIONS[hintSlot] : null;
+                return (
+                  <>
+                    <svg className="cd-grid" viewBox={`0 0 ${MAP_W} ${MAP_H}`} aria-hidden>
+                      {Array.from({ length: GRID_X + 1 }, (_, i) => <line key={`v${i}`} x1={i * GRID} y1={0} x2={i * GRID} y2={MAP_H} className={i === 0 ? 'axis' : ''} />)}
+                      {Array.from({ length: GRID_Y + 1 }, (_, j) => <line key={`h${j}`} x1={0} y1={MAP_H - j * GRID} x2={MAP_W} y2={MAP_H - j * GRID} className={j === 0 ? 'axis' : ''} />)}
+                      {h && <><line className="guide hint" x1={h.x} y1={h.y} x2={h.x} y2={MAP_H} /><line className="guide hint" x1={h.x} y1={h.y} x2={0} y2={h.y} /></>}
+                      <line className="guide" x1={c.x} y1={c.y} x2={c.x} y2={MAP_H} />
+                      <line className="guide" x1={c.x} y1={c.y} x2={0} y2={c.y} />
+                    </svg>
+                    {Array.from({ length: GRID_X - 1 }, (_, i) => <span key={`nx${i}`} className={`cd-grid-n x${cursor.x === i + 1 ? ' on' : ''}`} style={{ left: `${((i + 1) / GRID_X) * 100}%` }}>{i + 1}</span>)}
+                    {Array.from({ length: GRID_Y - 1 }, (_, j) => <span key={`ny${j}`} className={`cd-grid-n y${cursor.y === j + 1 ? ' on' : ''}`} style={{ top: `${100 - ((j + 1) / GRID_Y) * 100}%` }}>{j + 1}</span>)}
+                    <span className="cd-grid-n o">0</span>
+                    <span className="cd-cursor" style={toPct(c)} aria-hidden />
+                  </>
+                );
+              })()}
 
               <div className="castle-hud castle-hud-left">
                 <span className="castle-hud-stat" title="Gems to build towers">
@@ -797,9 +848,9 @@ export default function CastleDefense() {
                     key={i}
                     className={`castle-slot${slot ? ' filled' : ''}${justFired ? ' firing' : ''}${canAct ? ' can-act' : ''}`}
                     style={{ ...toPct(SLOT_POSITIONS[i]), zIndex: 10 + Math.round(SLOT_POSITIONS[i].y) }}
-                    onClick={() => setPickerSlot(i)}
+                    onClick={() => { if (coordsOn && !slot) { setHintSlot(i); setCoordMsg(coordHelp); say(`Find this plot on the grid. ${coordHelp}`); return; } setPickerSlot(i); }}
                     disabled={phase !== 'build'}
-                    aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade or remove.` : 'Empty build spot. Tap to build a tower.'}
+                    aria-label={slot ? `${TOWER_META[slot.type].label}, tier ${slot.tier}. Tap to upgrade or remove.` : coordsOn ? 'Empty build plot. Use the coordinates to build here.' : 'Empty build spot. Tap to build a tower.'}
                   >
                     <span className="castle-plot" aria-hidden="true" />
                     {building[i] && <span className="cd-wisp" aria-hidden><SheetSprite sheet={WISP_CAST} /></span>}
@@ -933,11 +984,37 @@ export default function CastleDefense() {
 
             <div className="castle-bar">
               <div className="castle-bar-info">
-                <p className="castle-bar-hint">
-                  {phase === 'build'
-                    ? 'Tap a glowing spot to build a tower. Tap a tower to make it stronger.'
-                    : 'Your towers are defending the castle!'}
-                </p>
+                {phase === 'build' && coordsOn ? (
+                  <>
+                    <div className="cd-coord-pad" role="group" aria-label="Build by coordinates">
+                      <span className="cd-coord-title">📐 Build at</span>
+                      <span className="cd-coord-pair">
+                        <span aria-hidden>(</span>
+                        {(['x', 'y'] as const).map((k, n) => (
+                          <Fragment key={k}>
+                            {n === 1 && <span aria-hidden>,</span>}
+                            <span className="cd-step">
+                              <i aria-hidden>{k}</i>
+                              <button type="button" aria-label={`${k} smaller`} disabled={cursor[k] <= 0} onClick={() => moveCursor(k, -1)}>−</button>
+                              <b aria-live="polite" aria-label={`${k} is ${cursor[k]}`}>{cursor[k]}</b>
+                              <button type="button" aria-label={`${k} bigger`} disabled={cursor[k] >= (k === 'x' ? GRID_X : GRID_Y)} onClick={() => moveCursor(k, 1)}>+</button>
+                            </span>
+                          </Fragment>
+                        ))}
+                        <span aria-hidden>)</span>
+                      </span>
+                      <button type="button" className="cd-coord-go" onClick={buildAt}>Build here</button>
+                      <button type="button" className="cd-coord-say" aria-label="Listen" onClick={() => say(coordMsg ?? `Build at ${cursor.x}, ${cursor.y}. ${coordHelp} Tap a tower to make it stronger.`)}>🔊</button>
+                    </div>
+                    {coordMsg && <p className="castle-bar-hint cd-coord-msg" role="status">{coordMsg}</p>}
+                  </>
+                ) : (
+                  <p className="castle-bar-hint">
+                    {phase === 'build'
+                      ? 'Tap a glowing spot to build a tower. Tap a tower to make it stronger.'
+                      : 'Your towers are defending the castle!'}
+                  </p>
+                )}
                 <div className="castle-preview">
                   <span className="castle-preview-label">{phase === 'build' ? 'Next wave' : 'Attackers left'}</span>
                   {(phase === 'build'

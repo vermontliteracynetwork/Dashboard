@@ -11327,3 +11327,33 @@ span.ssq-mark { cursor: default; }
   .ssq-pal { min-height: 64px; }
   .ssq-pal img { width: 36px; height: 36px; }
 }
+
+/* Castle Defense coordinate plane (Build Queue 500): a grid over the map, numbered axes, the gold point the student
+   sets with the coordinate pad, and dashed lines from it down to x and across to y. */
+.cd-grid { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 6; }
+.cd-grid line { stroke: rgba(255, 255, 255, .5); stroke-width: 1.2px; vector-effect: non-scaling-stroke; }
+.cd-grid line.axis { stroke: #1f2a44; stroke-width: 4px; }
+.cd-grid line.guide { stroke: #ffd34d; stroke-width: 3px; stroke-dasharray: 7 6; }
+.cd-grid line.guide.hint { stroke: #8fd8ff; }
+.cd-grid-n { position: absolute; z-index: 205; transform: translate(-50%, -50%); min-width: 24px; height: 24px; padding: 0 5px; box-sizing: border-box; border-radius: 999px; background: rgba(255, 255, 255, .94); color: #1f2a44; font: 800 .82rem/24px 'Nunito', system-ui, sans-serif; text-align: center; pointer-events: none; box-shadow: 0 1px 3px rgba(0, 0, 0, .3); }
+.cd-grid-n.x { top: calc(100% - 15px); }
+.cd-grid-n.y { left: 15px; }
+.cd-grid-n.o { left: 15px; top: calc(100% - 15px); background: #1f2a44; color: #fff; }
+.cd-grid-n.on { background: #ffd34d; }
+.cd-cursor { position: absolute; z-index: 204; width: 6.5%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; border: 4px solid #ffd34d; box-shadow: 0 0 0 3px rgba(31, 42, 68, .55), 0 0 16px rgba(255, 211, 77, .85); pointer-events: none; transition: left .2s ease, top .2s ease; }
+.cd-cursor::after { content: ''; position: absolute; left: 50%; top: 50%; width: 22%; aspect-ratio: 1; transform: translate(-50%, -50%); border-radius: 50%; background: #ffd34d; }
+@media (prefers-reduced-motion: reduce) { .cd-cursor { transition: none; } }
+.cd-coord-pad { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.cd-coord-title { color: #fff3d6; font: 800 1rem 'Baloo 2', system-ui, sans-serif; }
+.cd-coord-pair { display: inline-flex; align-items: center; gap: 6px; background: #fff8e8; border-radius: 14px; padding: 4px 8px; color: #2b2118; font: 900 1.5rem/1 'Nunito', system-ui, sans-serif; }
+.cd-step { position: relative; display: inline-flex; align-items: center; gap: 4px; }
+.cd-step i { font: italic 800 1.1rem 'Nunito', system-ui, sans-serif; color: #8a6a3a; padding: 0 2px; }
+.cd-coord-msg { color: #ffe08a; }
+.cd-step button { width: 44px; height: 44px; border-radius: 12px; border: 2px solid #c9a46a; background: #fff; color: #2b2118; font: 900 1.4rem/1 'Nunito', system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+.cd-step button:active:not(:disabled) { transform: scale(.93); }
+.cd-step button:disabled { opacity: .4; cursor: default; }
+.cd-step b { min-width: 1.6em; text-align: center; font-variant-numeric: tabular-nums; }
+.cd-coord-go { min-height: 48px; padding: 0 18px; border-radius: 14px; border: 0; background: #f2b632; color: #2b2118; font: 900 1.05rem 'Nunito', system-ui, sans-serif; box-shadow: 0 3px 0 #a87612; cursor: pointer; touch-action: manipulation; }
+.cd-coord-go:active { transform: translateY(2px); box-shadow: 0 1px 0 #a87612; }
+.cd-coord-say { width: 44px; height: 44px; border-radius: 12px; border: 0; background: #fff3d6; font-size: 1.2rem; cursor: pointer; }
+.cd-coord-pad button:focus-visible { outline: 3px solid #8fd8ff; outline-offset: 2px; }

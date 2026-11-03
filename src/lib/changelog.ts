@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-03-castle-coordinates",
+    date: "2026-11-03",
+    icon: "📐",
+    title: "Castle Defense coordinates",
+    body: "Build your towers with coordinates! The map has a grid with numbers. Set x by counting across and y by counting up, then tap Build here to put a tower on that plot.",
+  },
+  {
     id: "2026-11-03-restaurant-fridge",
     date: "2026-11-03",
     icon: "🧊",

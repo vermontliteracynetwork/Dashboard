@@ -97,6 +97,24 @@ export function computeSlotPositions(count: number): Pt[] {
   });
 }
 
+// Build Queue 500 (her words: "allow students to use coordinate planes to place towers and defenses"): the map is a
+// coordinate plane. One grid square is 10 map units; (0, 0) is the bottom left corner, x counts across and y counts up,
+// like the first quadrant in math. Build plots sit exactly on grid points so every plot has whole-number coordinates.
+export const GRID = 10;
+export const GRID_X = MAP_W / GRID, GRID_Y = MAP_H / GRID;
+export const toCoord = (p: Pt): Pt => ({ x: Math.round(p.x / GRID), y: Math.round((MAP_H - p.y) / GRID) });
+export const fromCoord = (c: Pt): Pt => ({ x: c.x * GRID, y: MAP_H - c.y * GRID });
+// Each plot moves to the nearest grid point that stays well off the road and inside the forest ring.
+export function snapToGrid(slots: Pt[]): Pt[] {
+  return slots.map((p) => {
+    const xs = [Math.floor(p.x / GRID), Math.ceil(p.x / GRID)], ys = [Math.floor(p.y / GRID), Math.ceil(p.y / GRID)];
+    const options = xs.flatMap((a) => ys.map((b) => ({ x: a * GRID, y: b * GRID })))
+      .filter((q) => distanceToPath(q.x, q.y) >= 11 && q.x >= GRID && q.x <= MAP_W - GRID && q.y >= GRID && q.y <= MAP_H - GRID)
+      .sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y));
+    return options[0] ?? p;
+  });
+}
+
 export const POND = { x: 52, y: 28, rx: 9.5, ry: 5.8 };
 
 export interface Decor { kind: 'tree' | 'bush' | 'rock'; x: number; y: number; w: number }
