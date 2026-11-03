@@ -3,7 +3,8 @@ import { useLocation } from 'react-router-dom';
 import type { QuizQuestion, SymbolQuestion } from '../../types';
 import SymbolSetEditor from '../teacher/SymbolSetEditor';
 import QuestionScreen from '../../components/QuestionScreen';
-import { blankSymbolQuestion, punctSlot, sentenceToSlots } from '../../lib/symbolSentence';
+import { bankSlots, blankSymbolQuestion, punctSlot, sentenceToSlots } from '../../lib/symbolSentence';
+import { FORMULA_BANK } from '../../lib/formulaBank';
 
 // Test page for symbol sentence questions (Build Queue 253, rebuilt by 494): mockup.html#/symbol shows the teacher's
 // builder; #/symbol?v=1, 2 or 3 shows a student question like her three mockups (everything open; symbols given and
@@ -11,6 +12,8 @@ import { blankSymbolQuestion, punctSlot, sentenceToSlots } from '../../lib/symbo
 const variant = (v: string): SymbolQuestion => {
   const q = blankSymbolQuestion(`v${v}`);
   if (v === '1') return { ...q, prompt: 'Build your own sentence.' };
+  if (v === '5') { const opts = FORMULA_BANK.filter((f) => f.lesson === '1.1').slice(0, 3).map((f) => ({ name: f.formula, slots: bankSlots(f, 'picture') })); return { ...q, mode: 'picture', prompt: 'Pick a formula, then make a sentence about the picture.', imageUrl: '/games/restaurant/icons/pz-cheese.png', slots: opts[0].slots, formulas: opts }; }
+  if (v === '6') { const f = FORMULA_BANK.find((x) => x.lesson === '1.1')!; return { ...q, mode: 'drag', prompt: 'Drag the grammar symbols into the boxes.', slots: bankSlots(f, 'drag') }; }
   if (v === '4') return { ...q, slots: sentenceToSlots('The happy little brown dog ran very quickly to the park!').map((s, i) => (i % 2 ? { ...s, given: false } : s)) };
   const slots = sentenceToSlots('The small cat climbed.').map((s) => (s.pos === 'punctuation' ? punctSlot(s.word, false) : s));
   if (v === '2') return { ...q, slots: slots.map((s) => (s.pos === 'punctuation' ? s : { ...s, given: false })) };

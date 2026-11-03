@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-03-symbolic-grammar",
+    date: "2026-11-03",
+    icon: "🔣",
+    title: "Symbolic Grammar questions",
+    body: "Grammar symbol questions now come in three kinds: fill in the blank words, drag grammar symbols into the boxes, and make a sentence about a picture. For some pictures you get to pick the formula you want to use.",
+  },
+  {
     id: "2026-11-03-castle-coordinates",
     date: "2026-11-03",
     icon: "📐",

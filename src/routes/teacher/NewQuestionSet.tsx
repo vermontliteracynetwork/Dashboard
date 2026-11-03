@@ -45,7 +45,7 @@ export default function NewQuestionSet() {
   ];
 
   const issues = validateQuizQuestions(questions);
-  const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(setType ? [] : ['Pick Multiple choice or Text input.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
+  const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(setType ? [] : ['Pick Multiple choice or Symbolic Grammar.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
   const started = !!name.trim() || questions.some((q) => q.kind === 'mc' ? q.prompt.trim() || q.choices.some((c) => c.trim()) : true);
   useEffect(() => {
     if (!started) return;
@@ -117,19 +117,19 @@ export default function NewQuestionSet() {
               <b>☑️ Multiple choice</b><small>A question and up to four answers. Plays in every game.</small>
             </button>
             <button type="button" role="radio" aria-checked={setType === 'text'} className={`qs-type-btn${setType === 'text' ? ' on' : ''}`} onClick={() => chooseType('text')}>
-              <b>✍️ Text input (symbol sentences)</b><small>Students fill in words and grammar symbols. Plays in assignments and Quiz Mode.</small>
+              <b>🔣 Symbolic Grammar</b><small>Fill in the blank, drag and drop, and picture response questions with grammar symbols, mixed in one set. Plays in assignments and Quiz Mode.</small>
             </button>
           </div>
         </section>
 
         <section className="nqs-step nqs-settings">
           <SettingsList lead={<span className="nqs-num">3</span>} title="Settings" items={settingItems}
-            note={setType === 'text' ? 'Student settings are for the whole set. To change them for one student, open the set after you create it.' : setType === 'mc' ? undefined : 'Pick Text input to see the student settings for symbol sentences.'} />
+            note={setType === 'text' ? 'Student settings are for the whole set. To change them for one student, open the set after you create it.' : setType === 'mc' ? undefined : 'Pick Symbolic Grammar to see the student settings for its questions.'} />
         </section>
 
         {setType && (
           <section className="nqs-step">
-            <div className="nqs-step-head static"><span className="nqs-num">4</span><span className="nqs-step-title">{setType === 'mc' ? 'Questions' : 'Sentences'}</span></div>
+            <div className="nqs-step-head static"><span className="nqs-num">4</span><span className="nqs-step-title">Questions</span></div>
             {setType === 'mc' ? <McTableEditor subject={subject} questions={questions} onChange={setQuestions} /> : <SymbolSetEditor questions={questions} onChange={setQuestions} hideSettings />}
           </section>
         )}

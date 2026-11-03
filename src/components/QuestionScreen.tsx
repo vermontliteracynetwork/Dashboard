@@ -494,7 +494,8 @@ export default function QuestionScreen({
               {whoLabel}
             </div>
           )}
-          {imageUrl && (
+          {/* A symbol sentence shows its picture beside the symbol panel instead (Build Queue 502). */}
+          {imageUrl && !symbolTyped && (
             <div
               style={{
                 background: '#FBF3E3',

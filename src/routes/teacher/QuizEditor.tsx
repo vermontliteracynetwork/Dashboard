@@ -43,6 +43,12 @@ export function getQuestionIssue(q: QuizQuestion): string | null {
   }
   if (q.kind === 'speak') return q.targetWord.trim() ? null : 'Needs the word the student should say.';
   if (q.kind === 'symbol') {
+    const mode = q.mode ?? (q.slots.some((x) => x.pick) ? 'drag' : 'fill');
+    const options = q.formulas?.length ? q.formulas.map((f) => f.slots) : [q.slots];
+    if (options.some((sl) => !sl.some((x) => x.pos !== 'punctuation'))) return 'Add the symbols for this sentence.';
+    if (mode === 'fill' && q.slots.some((x) => x.pick && x.pos !== 'punctuation')) return 'Fill in the blank shows every symbol: put a symbol in each box.';
+    if (mode === 'drag' && !q.slots.some((x) => x.pick)) return 'Drag and drop needs at least one empty symbol box for the student.';
+    if (mode === 'picture' && !q.imageUrl) return 'Add the picture for this picture response.';
     if (!q.slots.length) return 'Add the symbols for this sentence.';
     if (!q.slots.some((x) => !x.given || x.pick)) return 'Leave at least one box for the student: an outline word or an empty symbol box.';
     if (q.slots.some((x) => x.given && !x.word.trim())) return 'Every solid word box needs its word.';

@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { studentSettingsFor } from '../lib/questionFocus';
 import type { SymbolPos, SymbolQuestion, TTSSettings } from '../types';
-import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
+import { DEFAULT_SYMBOL_SETTINGS, MODE_INFO, SYMBOLS, modeOf, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
 import { useTypedSupport } from '../lib/typedSupport';
 import { useVoiceToText } from '../lib/useVoiceToText';
 import { speak } from './ReadAloud';
 import SymbolTip from './SymbolTip';
 import SymbolPanel, { MARKS, MARK_NAME } from './SymbolPanel';
+import ZoomableImage from './ZoomableImage';
 
 // The student side of a symbol sentence question. Build Queue 494 rebuilt the screen from her question set mockups and
 // the Literacy Manipulatives look: the Grammar Symbols and Punctuation panel on the left, the question on the right,
@@ -18,12 +19,45 @@ import SymbolPanel, { MARKS, MARK_NAME } from './SymbolPanel';
 // support levels (Build Queue 273, src/lib/typedSupport.ts) move with the student, every right box gets its ✓ and
 // locks, and the sentence counts as right only when every box is right on the first Check. After two misses, 💡 Help
 // gives a hint for each box still wrong. One note shows at a time, under the sentence (Build Queue 343).
-export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSentence, head }: {
+type AnswerProps = {
   q: SymbolQuestion; disabled: boolean; tts?: TTSSettings;
   onResult: (correct: boolean, said: string) => void; onSentence?: (text: string) => void;
   // The question text and its 🔊 Listen, shown at the top of the right side.
   head?: React.ReactNode;
-}) {
+};
+// The picture (a picture response's, or any question's optional one), above the sentence.
+const Picture = ({ q }: { q: SymbolQuestion }) => (q.imageUrl ? <div className="ssq-pic"><ZoomableImage src={q.imageUrl} alt={q.imageAlt} maxHeight={modeOf(q) === 'picture' ? 220 : 140} /></div> : null);
+
+// Build Queue 502: a picture response with two or more formulas asks the student to pick one first (her words: "they
+// can select from a set of defined formulas (selected by teacher to give options)"), then answers with it. They can go
+// back and pick another until they check.
+export default function SymbolSentenceAnswer(props: AnswerProps) {
+  const { q, tts, head, disabled } = props;
+  const options = modeOf(q) === 'picture' && (q.formulas?.length ?? 0) > 1 ? q.formulas! : null;
+  const [chosen, setChosen] = useState<number | null>(null);
+  if (options && chosen === null) {
+    return (
+      <div className="ssq-c">
+        <div className="ssq-main ssq-choose">
+          {head}
+          <Picture q={q} />
+          <p className="ssq-choose-say">{MODE_INFO.picture.icon} Pick a formula for your sentence:</p>
+          <div className="ssq-choose-list">
+            {options.map((f, i) => (
+              <button key={i} type="button" className="ssq-choice" disabled={disabled} onClick={() => { setChosen(i); speak(f.name || `Formula ${i + 1}`, tts); }}>
+                <span className="ssq-choice-syms" aria-hidden>{f.slots.map((x, k) => (x.pos === 'punctuation' ? <i key={k}>{x.word}</i> : <img key={k} src={SYMBOLS[x.pos].img} alt="" />))}</span>
+                <b>{f.name || `Formula ${i + 1}`}</b>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return <SymbolSentenceInner key={chosen ?? -1} {...props} q={options ? { ...q, slots: options[chosen!].slots } : q} formulaName={options ? options[chosen!].name : undefined} onChangeFormula={options ? () => setChosen(null) : undefined} />;
+}
+
+function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, formulaName, onChangeFormula }: AnswerProps & { formulaName?: string; onChangeFormula?: () => void }) {
   // Build Queue 338: the student's own settings for this set win over the set's.
   const st = { ...DEFAULT_SYMBOL_SETTINGS, ...q.settings, ...studentSettingsFor(q.id) };
   const { level, record } = useTypedSupport();
@@ -158,6 +192,8 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
         <SymbolPanel onPick={pickFromPanel} onMark={markFromPanel} onDrop={dropOn} disabled={disabled} tts={say} />
         <div className="ssq-main">
           {head}
+          <Picture q={q} />
+          {formulaName && <p className="ssq-formula-tag">Your formula: <b>{formulaName}</b></p>}
           <div className="ssq-row" style={{ ['--n' as string]: perRow(slots.filter((s) => s.pos !== 'punctuation').length), ['--extra' as string]: `${slots.some((s) => s.pos === 'punctuation') ? 68 : 0}px` }} role="group" aria-label="Symbol sentence">
             {slots.map((s, i) => {
               if (s.pos === 'punctuation') {
@@ -219,6 +255,7 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
             </div>
           )}
           <div className="ssq-actions">
+            {onChangeFormula && !disabled && tries === 0 && <button type="button" className="btn" onClick={onChangeFormula}>Pick another formula</button>}
             {tries >= 2 && !disabled && <button type="button" className="btn" onClick={help}>💡 Help</button>}
             <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !allFilled} onClick={check}>Check</button>
           </div>

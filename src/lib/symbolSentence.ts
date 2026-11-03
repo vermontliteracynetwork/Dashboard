@@ -1,7 +1,8 @@
 // Symbol sentence question sets (Build Queue 253): her grammar symbols, definitions, a kid word list for
 // the randomizer dice, and the grammar check ("That's not a verb, try again.").
 // Symbols, colors and definitions match her Literacy Manipulatives whiteboard (the same ten pictures).
-import type { SymbolPos, SymbolQuestion, SymbolSettings, SymbolSlot } from '../types';
+import type { SymbolMode, SymbolPos, SymbolQuestion, SymbolSettings, SymbolSlot } from '../types';
+import type { BankFormula } from './formulaBank';
 import { NOUNS, VERBS, ADJECTIVES as GUS_ADJ, ADVERBS as GUS_ADV, PREPOSITIONS, SUBJECT_PRONOUNS, ARTICLES, CONJUNCTIONS, INTERJECTIONS } from '../games/grammarGus/data/wordbank';
 import { PROPER_NOUN_WORDS } from '../games/grammarGus/data/extraNouns';
 import { IRREGULAR_PAST } from '../games/grammarGus/data/irregularVerbs';
@@ -131,7 +132,30 @@ export const fullSentence = (slots: SymbolSlot[], words?: Record<number, string>
 export const perRow = (n: number) => (n <= 6 ? Math.max(1, n) : Math.ceil(n / Math.ceil(n / 6)));
 export const emptySlot = (): SymbolSlot => ({ pos: 'noun', word: '', given: false, pick: true });
 export const punctSlot = (mark = '.', given = false): SymbolSlot => ({ pos: 'punctuation', word: mark, given });
-export const blankSymbolQuestion = (id: string, settings: SymbolSettings = DEFAULT_SYMBOL_SETTINGS): SymbolQuestion => ({ id, kind: 'symbol', prompt: 'Fill in the blank.', slots: [emptySlot(), emptySlot(), emptySlot(), emptySlot(), punctSlot()], settings: { ...settings } });
+// The three Symbolic Grammar question kinds (Build Queue 502). Older sets have no mode: a set with empty symbol boxes
+// reads as Drag and drop, everything else as Fill in the blank.
+export const modeOf = (q: SymbolQuestion): SymbolMode => q.mode ?? (q.slots.some((s) => s.pick) ? 'drag' : 'fill');
+export const MODE_INFO: Record<SymbolMode, { icon: string; label: string; prompt: string; hint: string }> = {
+  fill: { icon: '✏️', label: 'Fill in the blank', prompt: 'Fill in the blank.', hint: 'Every grammar symbol shows. Solid words are given; the student types the outline words.' },
+  drag: { icon: '🧩', label: 'Drag and drop', prompt: 'Drag the grammar symbols into the boxes.', hint: 'The student drags a grammar symbol into every empty box. Symbols and words you place stay; the boxes can also all be blank.' },
+  picture: { icon: '🖼️', label: 'Picture response', prompt: 'Make a sentence about the picture.', hint: 'Add a picture. The student makes a sentence about it with your formula, or picks one of your formula options.' },
+};
+const CONTENT: SymbolPos[] = ['noun', 'propernoun', 'verb', 'adjective', 'adverb'];
+// A formula from her bank as boxes, set up for each kind: fill gives the small words and leaves the naming, doing and
+// describing words for the student; drag gives every word and leaves every symbol box empty; picture leaves every word
+// and the punctuation for the student.
+export function bankSlots(f: BankFormula, mode: SymbolMode): SymbolSlot[] {
+  return f.words.map(([word, pos]) => {
+    if (pos === 'punctuation') return punctSlot(word, mode !== 'picture');
+    if (mode === 'drag') return { pos, word, given: true, pick: true };
+    if (mode === 'picture') return { pos, word, given: false };
+    return { pos, word, given: !CONTENT.includes(pos) };
+  });
+}
+export const blankSymbolQuestion = (id: string, settings: SymbolSettings = DEFAULT_SYMBOL_SETTINGS, mode: SymbolMode = 'fill'): SymbolQuestion => ({
+  id, kind: 'symbol', mode, prompt: MODE_INFO[mode].prompt, settings: { ...settings },
+  slots: mode === 'drag' ? [emptySlot(), emptySlot(), emptySlot(), emptySlot(), punctSlot('.', true)] : [punctSlot('.', mode === 'fill')],
+});
 // Does a grammar symbol fit a word the teacher gave (the student picked the symbol)? Words the app does not know get
 // the benefit of the doubt, like the grammar check.
 export function symbolFits(word: string, pos: SymbolPos, first: boolean): boolean {

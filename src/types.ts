@@ -397,11 +397,19 @@ export type SymbolPos = 'article' | 'adjective' | 'noun' | 'propernoun' | 'verb'
 export interface SymbolSlot { pos: SymbolPos; word: string; given: boolean; pick?: boolean }
 // capitalCheck and punctuationCheck: Build Queue 294 (optional so older sets read as off).
 export interface SymbolSettings { dice: boolean; spellCheck: boolean; grammarCheck: boolean; capitalCheck?: boolean; punctuationCheck?: boolean }
+// Build Queue 502: a Symbolic Grammar question is one of three kinds, and one set can mix them. fill: every symbol
+// shows and the student types the outline words. drag: the student drags grammar symbols into empty boxes. picture:
+// the student writes a sentence about the picture with a formula (formulas: two or more for the student to pick from).
+export type SymbolMode = 'fill' | 'drag' | 'picture';
+export interface SymbolFormula { name: string; slots: SymbolSlot[] }
 export interface SymbolQuestion {
   id: string;
   kind: 'symbol';
   prompt: string;
   slots: SymbolSlot[];
+  mode?: SymbolMode;
+  // Picture response formula options; slots is always the first one.
+  formulas?: SymbolFormula[];
   imageUrl?: string;
   imageAlt?: string;
   settings: SymbolSettings;
