@@ -15,7 +15,7 @@ export const FOCUS_SHARE = 1; // was 0.95 (Build Queue 210); 1 since Build Queue
 export function playableOf(qs: QuizQuestion[]): MCQuestion[] {
   return qs.flatMap((q): MCQuestion[] => {
     if (q.kind === 'mc') return [q];
-    if (q.kind === 'symbol' && q.slots.some((s) => !s.given)) return [{ id: q.id, kind: 'mc', prompt: q.prompt || 'Finish the sentence.', imageUrl: q.imageUrl, imageAlt: q.imageAlt, choices: [], correctIndex: -1, typed: q }];
+    if (q.kind === 'symbol' && q.slots.some((s) => !s.given || s.pick)) return [{ id: q.id, kind: 'mc', prompt: q.prompt || 'Finish the sentence.', imageUrl: q.imageUrl, imageAlt: q.imageAlt, choices: [], correctIndex: -1, typed: q }];
     if (q.kind === 'madlib' && q.text.trim()) return [{ id: q.id, kind: 'mc', prompt: q.prompt || 'Fill in the blanks.', imageUrl: q.imageUrl, imageAlt: q.imageAlt, choices: [], correctIndex: -1, typed: q }];
     return [];
   });

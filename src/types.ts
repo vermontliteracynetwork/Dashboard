@@ -392,7 +392,9 @@ export interface MadLibQuestion {
 // A solid box is a word she set (given); an outline box is one the student types. Set settings: the
 // randomizer dice, the iPad spell check, and the grammar check (is the typed word that part of speech).
 export type SymbolPos = 'article' | 'adjective' | 'noun' | 'propernoun' | 'verb' | 'adverb' | 'pronoun' | 'preposition' | 'conjunction' | 'interjection' | 'punctuation';
-export interface SymbolSlot { pos: SymbolPos; word: string; given: boolean }
+// given: the word is the teacher's (solid) or the student types it (outline). pick (Build Queue 494): the symbol box is
+// left empty and the student puts the grammar symbol in it; `pos` is then ignored.
+export interface SymbolSlot { pos: SymbolPos; word: string; given: boolean; pick?: boolean }
 // capitalCheck and punctuationCheck: Build Queue 294 (optional so older sets read as off).
 export interface SymbolSettings { dice: boolean; spellCheck: boolean; grammarCheck: boolean; capitalCheck?: boolean; punctuationCheck?: boolean }
 export interface SymbolQuestion {

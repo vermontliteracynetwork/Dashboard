@@ -8,7 +8,7 @@ import { IRREGULAR_PAST } from '../games/grammarGus/data/irregularVerbs';
 import { SYMBOL_SENTENCE_PAGES } from './symbolDeck';
 
 export const SYMBOLS: Record<SymbolPos, { name: string; def: string; color: string; img?: string }> = {
-  article: { name: 'Article', def: 'Refers to nouns (a, an, the)', color: '#F0B0C8', img: '/literacy/symbols/article.png' },
+  article: { name: 'Article', def: 'Refers to nouns (a, an, the)', color: '#F0B0C8', img: '/literacy/symbols/article-triangle.svg' },
   adjective: { name: 'Adjective', def: 'Describes nouns (details for things you can touch)', color: '#48B8E0', img: '/literacy/symbols/adjective.png' },
   noun: { name: 'Noun', def: 'Person, place, thing, animal', color: '#D02028', img: '/literacy/symbols/noun.png' },
   propernoun: { name: 'Proper noun', def: 'A specific noun (it has a name)', color: '#D02028', img: '/literacy/symbols/propernoun.png' },
@@ -43,6 +43,8 @@ Object.entries(IRREGULAR_PAST).forEach(([base, past]) => { add(base, 'verb', fal
 ['is', 'are', 'was', 'were', 'am', 'be', 'has', 'have', 'had', 'did', 'does', 'do', 'went', 'go', 'goes', 'said', 'saw', 'made', 'played', 'looked', 'walked', 'danced', 'swam', 'flew', 'read', 'wrote', 'slept'].forEach((w) => add(w, 'verb', false));
 GUS_ADJ.forEach((a) => add(a.word, 'adjective', a.pack === 'core' || a.pack === 'color'));
 GUS_ADV.forEach((a) => add(a.word, 'adverb', a.pack === 'core'));
+// Everyday adverbs the word bank lacks (so "very" is not guessed as a noun when a sentence is typed in).
+['very', 'really', 'too', 'quite', 'always', 'never', 'often', 'soon', 'here', 'there', 'now', 'then', 'today', 'almost'].forEach((w) => add(w, 'adverb', false));
 PREPOSITIONS.forEach((w) => add(w, 'preposition'));
 [...SUBJECT_PRONOUNS, 'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'our', 'their', 'its'].forEach((w) => add(w, 'pronoun', (SUBJECT_PRONOUNS as readonly string[]).includes(w)));
 ARTICLES.forEach((w) => add(w, 'article'));
@@ -123,7 +125,21 @@ export function grammarProblem(word: string, slot: SymbolSlot): string | null {
 export const fullSentence = (slots: SymbolSlot[], words?: Record<number, string>) =>
   slots.map((s, i) => (words && !s.given ? words[i] ?? '' : s.word)).join(' ').replace(/\s+([.!?,])/g, '$1').trim();
 
-export const blankSymbolQuestion = (id: string, settings: SymbolSettings = DEFAULT_SYMBOL_SETTINGS): SymbolQuestion => ({ id, kind: 'symbol', prompt: 'Finish the symbol sentence.', slots: [], settings: { ...settings } });
+// A new sentence starts as four empty boxes and the punctuation (Build Queue 494): the teacher adds symbols and words,
+// and anything she leaves empty is the student's to fill.
+// How many boxes go on one row: up to 6, and a long sentence splits into even rows so the boxes stay big enough to read.
+export const perRow = (n: number) => (n <= 6 ? Math.max(1, n) : Math.ceil(n / Math.ceil(n / 6)));
+export const emptySlot = (): SymbolSlot => ({ pos: 'noun', word: '', given: false, pick: true });
+export const punctSlot = (mark = '.', given = false): SymbolSlot => ({ pos: 'punctuation', word: mark, given });
+export const blankSymbolQuestion = (id: string, settings: SymbolSettings = DEFAULT_SYMBOL_SETTINGS): SymbolQuestion => ({ id, kind: 'symbol', prompt: 'Fill in the blank.', slots: [emptySlot(), emptySlot(), emptySlot(), emptySlot(), punctSlot()], settings: { ...settings } });
+// Does a grammar symbol fit a word the teacher gave (the student picked the symbol)? Words the app does not know get
+// the benefit of the doubt, like the grammar check.
+export function symbolFits(word: string, pos: SymbolPos, first: boolean): boolean {
+  const w = word.trim(), p = posesOf(w);
+  if (pos === 'propernoun' && /^[A-Z]/.test(w) && (!first || !p)) return true;
+  if (!p) return pos !== 'punctuation';
+  return p.has(pos) || (pos === 'noun' && p.has('propernoun'));
+}
 
 // ---------- typed-answer help (Build Queue 273) ----------
 export const isKnownWord = (word: string) => posesOf(word) !== null || isRealWord(word);

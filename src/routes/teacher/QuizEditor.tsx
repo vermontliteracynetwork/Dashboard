@@ -44,7 +44,7 @@ export function getQuestionIssue(q: QuizQuestion): string | null {
   if (q.kind === 'speak') return q.targetWord.trim() ? null : 'Needs the word the student should say.';
   if (q.kind === 'symbol') {
     if (!q.slots.length) return 'Add the symbols for this sentence.';
-    if (!q.slots.some((x) => !x.given)) return 'Double-tap at least one word box so the student fills it in (outline).';
+    if (!q.slots.some((x) => !x.given || x.pick)) return 'Leave at least one box for the student: an outline word or an empty symbol box.';
     if (q.slots.some((x) => x.given && !x.word.trim())) return 'Every solid word box needs its word.';
     return null;
   }

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-03-symbol-sentences",
+    date: "2026-11-03",
+    icon: "🔣",
+    title: "New symbol sentence questions",
+    body: "Symbol sentence questions have a new look. Your grammar symbols are on the left. Type the words in the outline bubbles, and when a symbol box is empty, tap or drag a grammar symbol into it. Tap the circle at the end to pick the punctuation.",
+  },
+  {
     id: "2026-10-29-restaurant-away",
     date: "2026-10-29",
     icon: "⏱️",

@@ -402,73 +402,9 @@ export default function QuestionScreen({
       </div>
   );
 
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 200,
-        background: compact ? 'transparent' : '#FFF6E9',
-        pointerEvents: compact ? 'none' : undefined,
-        fontFamily: "'Lexend', system-ui, sans-serif",
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-      onClick={(e) => e.stopPropagation()}
-    >
-      {!compact && topBar}
-      {/* Main content */}
-      <div style={compact
-        ? { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: 'max(84px, env(safe-area-inset-top)) 16px 96px', overflow: 'auto', pointerEvents: 'none' }
-        : { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(10px, 2.5vh, 32px) 16px', overflow: 'auto' }}>
-        <div
-          style={compact ? {
-            background: '#fff',
-            maxWidth: 470,
-            width: 'min(470px, 100%)',
-            borderRadius: 24,
-            border: '4px solid #F2E8D6',
-            boxShadow: '0 16px 40px rgba(46,42,36,0.28)',
-            padding: '16px 18px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-            pointerEvents: 'auto',
-          } : {
-            background: '#fff',
-            maxWidth: 760,
-            width: '100%',
-            borderRadius: 28,
-            boxShadow: '0 20px 44px rgba(46,42,36,0.14)',
-            // Build Queue 291: "never have scroll for questions": spacing shrinks with the screen height.
-            padding: 'clamp(16px, 3.5vh, 44px) clamp(18px, 4vw, 52px)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'clamp(10px, 2.2vh, 24px)',
-          }}
-        >
-          {compact && topBar}
-          {whoLabel && (
-            <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, background: '#EFE4FF', border: '2px solid #C9B8FF', borderRadius: 999, padding: '4px 16px 4px 6px', fontWeight: 800, fontSize: 18, color: '#2B1452' }}>
-              {whoIcon && <img src={whoIcon} alt="" style={{ width: 36, height: 36 }} />}
-              {whoLabel}
-            </div>
-          )}
-          {imageUrl && (
-            <div
-              style={{
-                background: '#FBF3E3',
-                border: '1px solid #F2E8D6',
-                borderRadius: 20,
-                padding: 16,
-                display: 'flex',
-                justifyContent: 'center',
-              }}
-            >
-              <ZoomableImage src={imageUrl} alt={imageAlt} maxHeight={150} />
-            </div>
-          )}
-
+  // Build Queue 494: a symbol sentence puts the question text at the top of its right side, beside the symbol panel.
+  const symbolTyped = typed?.kind === 'symbol';
+  const promptRow = (
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16 }}>
             <p
               style={{
@@ -504,11 +440,81 @@ export default function QuestionScreen({
               {plain ? <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16.5 8.5a5 5 0 0 1 0 7" /></svg> : '🔊'} Listen
             </button>
           </div>
+  );
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        background: compact ? 'transparent' : '#FFF6E9',
+        pointerEvents: compact ? 'none' : undefined,
+        fontFamily: "'Lexend', system-ui, sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {!compact && topBar}
+      {/* Main content */}
+      <div style={compact
+        ? { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: 'max(84px, env(safe-area-inset-top)) 16px 96px', overflow: 'auto', pointerEvents: 'none' }
+        : { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(10px, 2.5vh, 32px) 16px', overflow: 'auto' }}>
+        <div
+          style={compact ? {
+            background: '#fff',
+            maxWidth: 470,
+            width: 'min(470px, 100%)',
+            borderRadius: 24,
+            border: '4px solid #F2E8D6',
+            boxShadow: '0 16px 40px rgba(46,42,36,0.28)',
+            padding: '16px 18px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 14,
+            pointerEvents: 'auto',
+          } : {
+            background: '#fff',
+            maxWidth: symbolTyped ? 1240 : 760,
+            width: '100%',
+            borderRadius: 28,
+            boxShadow: '0 20px 44px rgba(46,42,36,0.14)',
+            // Build Queue 291: "never have scroll for questions": spacing shrinks with the screen height.
+            padding: 'clamp(16px, 3.5vh, 44px) clamp(18px, 4vw, 52px)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'clamp(10px, 2.2vh, 24px)',
+          }}
+        >
+          {compact && topBar}
+          {whoLabel && (
+            <div style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, background: '#EFE4FF', border: '2px solid #C9B8FF', borderRadius: 999, padding: '4px 16px 4px 6px', fontWeight: 800, fontSize: 18, color: '#2B1452' }}>
+              {whoIcon && <img src={whoIcon} alt="" style={{ width: 36, height: 36 }} />}
+              {whoLabel}
+            </div>
+          )}
+          {imageUrl && (
+            <div
+              style={{
+                background: '#FBF3E3',
+                border: '1px solid #F2E8D6',
+                borderRadius: 20,
+                padding: 16,
+                display: 'flex',
+                justifyContent: 'center',
+              }}
+            >
+              <ZoomableImage src={imageUrl} alt={imageAlt} maxHeight={150} />
+            </div>
+          )}
+
+          {!symbolTyped && promptRow}
 
           {typed && (
             <div style={{ opacity: reading ? 0.55 : 1, transition: 'opacity 0.35s' }}>
               {typed.kind === 'symbol'
-                ? <SymbolSentenceAnswer key={typed.id} q={typed} onSentence={(t) => { sentenceRef.current = t; }} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />
+                ? <SymbolSentenceAnswer key={typed.id} q={typed} head={promptRow} onSentence={(t) => { sentenceRef.current = t; }} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />
                 : <MadLibAnswer key={typed.id} q={typed} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />}
             </div>
           )}

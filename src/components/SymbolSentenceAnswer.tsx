@@ -1,30 +1,35 @@
 import { useEffect, useRef, useState } from 'react';
 import { studentSettingsFor } from '../lib/questionFocus';
-import type { SymbolQuestion, TTSSettings } from '../types';
-import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords } from '../lib/symbolSentence';
+import type { SymbolPos, SymbolQuestion, TTSSettings } from '../types';
+import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
 import { useTypedSupport } from '../lib/typedSupport';
 import { useVoiceToText } from '../lib/useVoiceToText';
 import { speak } from './ReadAloud';
 import SymbolTip from './SymbolTip';
+import SymbolPanel, { MARKS, MARK_NAME } from './SymbolPanel';
 
-// The student side of a symbol sentence question (Build Queue 253): her symbols in a row, each with its
-// word box under it, like her sentence cards. Solid boxes are her words; outline boxes are for the
-// student to type. Tap a symbol to see and hear what it means ("Verb: action word"). With the dice on,
-// 🎲 rolls a word of that kind into the box. With the grammar check on, a word of the wrong kind gets a
-// kind note ("That's not a verb, try again.") and the box stays open to fix. Any word that fits counts.
-// Support levels (Build Queue 273) move with the student (src/lib/typedSupport.ts): level 1 marks each box right
-// or not with no other help; level 2 also says why (not a verb) and says when a word looks misspelled, without
-// fixing it; level 3 turns on the iPad's spell check and autocorrect, shows a list of close spellings to tap, and
-// a 🎤 to say a word into a box. The level works quietly; students never see a level label (Build Queue 291). Every box that is right gets its ✓ and locks; the sentence only counts as right
-// once every box is right. After two misses, 💡 Help gives a hint for each box still wrong.
-const PUNCT_CYCLE = ['.', '!', '?'];
-const PUNCT_NAME: Record<string, string> = { '.': 'period', '!': 'exclamation point', '?': 'question mark' };
-
-export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSentence }: { q: SymbolQuestion; disabled: boolean; tts?: TTSSettings; onResult: (correct: boolean, said: string) => void; onSentence?: (text: string) => void }) {
+// The student side of a symbol sentence question. Build Queue 494 rebuilt the screen from her question set mockups and
+// the Literacy Manipulatives look: the Grammar Symbols and Punctuation panel on the left, the question on the right,
+// and the sentence as a row of boxes, each grammar symbol over its word bubble. A solid bubble is her word; an outline
+// bubble (in the symbol's color) is for the student to type. A symbol box she left empty is for the student to fill:
+// tap a symbol in the panel (it goes in the highlighted box) or drag it onto any empty box. The punctuation circle at
+// the end takes a tap (period, exclamation point, question mark in turn) or a mark from the panel.
+// The checking is the same as before: the grammar check names the word kind that is needed ("That's not a verb"), the
+// support levels (Build Queue 273, src/lib/typedSupport.ts) move with the student, every right box gets its ✓ and
+// locks, and the sentence counts as right only when every box is right on the first Check. After two misses, 💡 Help
+// gives a hint for each box still wrong. One note shows at a time, under the sentence (Build Queue 343).
+export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSentence, head }: {
+  q: SymbolQuestion; disabled: boolean; tts?: TTSSettings;
+  onResult: (correct: boolean, said: string) => void; onSentence?: (text: string) => void;
+  // The question text and its 🔊 Listen, shown at the top of the right side.
+  head?: React.ReactNode;
+}) {
   // Build Queue 338: the student's own settings for this set win over the set's.
   const st = { ...DEFAULT_SYMBOL_SETTINGS, ...q.settings, ...studentSettingsFor(q.id) };
   const { level, record } = useTypedSupport();
   const [vals, setVals] = useState<Record<number, string>>({});
+  const [syms, setSyms] = useState<Record<number, SymbolPos>>({});
+  const [target, setTarget] = useState<number | null>(null);
   const [tip, setTip] = useState<number | null>(null);
   const [notes, setNotes] = useState<Record<number, string>>({});
   const [ok, setOk] = useState<Record<number, boolean>>({});
@@ -34,24 +39,31 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
   const [focus, setFocus] = useState<number | null>(null);
   const inputs = useRef<Record<number, HTMLInputElement | null>>({});
   const icons = useRef<Record<number, HTMLButtonElement | null>>({});
-  // Build Queue 294: with the Punctuation check on, the student picks the punctuation (no default); with the Capital
-  // letter check on, typed words must be capitalized correctly and the iPad does not do it for them.
+  const say = (t: string) => speak(t, tts);
+
+  // Build Queue 294: with the Punctuation check on, the student always picks the punctuation.
   const slots = q.slots.map((s) => (st.punctuationCheck && s.pos === 'punctuation' ? { ...s, given: false } : s));
+  const posAt = (i: number): SymbolPos | undefined => (slots[i].pick ? syms[i] : slots[i].pos);
+  const pickAt = slots.map((s, i) => (s.pick && s.pos !== 'punctuation' ? i : -1)).filter((i) => i >= 0);
+  const typeAt = slots.map((s, i) => (s.given ? -1 : i)).filter((i) => i >= 0);
+  const work = [...new Set([...pickAt, ...typeAt])].sort((a, b) => a - b);
   const firstWord = slots.findIndex((s) => s.pos !== 'punctuation');
+  const allFilled = pickAt.every((i) => syms[i]) && typeAt.every((i) => (vals[i] ?? '').trim());
   const capitalProblem = (i: number, w: string) => {
     if (!st.capitalCheck || !w || slots[i].pos === 'punctuation') return null;
     const cap = /^[A-Z]/.test(w);
     if (i === firstWord && !cap) return 'Start the sentence with a capital letter.';
-    if (i !== firstWord && cap && slots[i].pos !== 'propernoun' && w !== 'I' && !/^I'/.test(w)) return 'Only the first word and names get a capital letter.';
+    if (i !== firstWord && cap && posAt(i) !== 'propernoun' && w !== 'I' && !/^I'/.test(w)) return 'Only the first word and names get a capital letter.';
     return null;
   };
-  const open = slots.map((s, i) => (s.given ? -1 : i)).filter((i) => i >= 0);
-  const allFilled = open.every((i) => (vals[i] ?? '').trim());
-  // Build Queue 291: no "Read my sentence" button; the question's own speaker reads the sentence as it is so far.
-  const spoken = slots.map((s, i) => (s.given ? s.word : vals[i] || SYMBOLS[s.pos].name)).filter((w) => !/^[.!?]$/.test(w) && w !== 'Punctuation').join(' ');
+  const freeTarget = (skip?: number) => pickAt.find((i) => i !== skip && !syms[i] && !ok[i]) ?? null;
+  useEffect(() => { setTarget(freeTarget()); }, [q.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Build Queue 291: the question's own speaker reads the sentence as it is so far.
+  const spoken = slots.map((s, i) => { const p = posAt(i); return s.given ? s.word : vals[i] || (p ? SYMBOLS[p].name : 'blank'); }).filter((w) => !/^[.!?]$/.test(w) && w !== 'Punctuation').join(' ');
   useEffect(() => { onSentence?.(spoken); }, [spoken]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { void loadDictionary(); }, []); // Build Queue 342: the real dictionary for spelling
-  // Build Queue 292 (her words: "if a caption is shown on click, it should be closed on click elsewhere").
+  // Build Queue 292: a symbol's meaning closes on a tap anywhere else.
   useEffect(() => {
     if (tip === null) return;
     const close = (e: PointerEvent) => { const el = icons.current[tip]; if (!el || !el.contains(e.target as Node)) setTip(null); };
@@ -60,116 +72,158 @@ export default function SymbolSentenceAnswer({ q, disabled, tts, onResult, onSen
   }, [tip]);
   const voice = useVoiceToText((heard) => { if (focus !== null && !ok[focus]) setVal(focus, heard.trim().split(/\s+/)[0] ?? ''); }, { continuous: false });
 
-  const setVal = (i: number, v: string) => {
-    setVals((x) => ({ ...x, [i]: v }));
-    setNotes((n) => { if (!(i in n)) return n; const x = { ...n }; delete x[i]; return x; });
+  const clearNote = (i: number) => setNotes((n) => { if (!(i in n)) return n; const x = { ...n }; delete x[i]; return x; });
+  const setVal = (i: number, v: string) => { setVals((x) => ({ ...x, [i]: v })); clearNote(i); };
+  const putSymbol = (i: number, pos: SymbolPos) => {
+    setSyms((x) => ({ ...x, [i]: pos })); clearNote(i);
+    setTarget(freeTarget(i));
+    say(SYMBOLS[pos].name);
   };
+  // A tap in the panel fills the highlighted box (or the next empty one); with nothing to fill it shows the meaning.
+  const pickFromPanel = (pos: SymbolPos) => {
+    const i = target !== null && slots[target]?.pick && !ok[target] ? target : freeTarget();
+    if (i === null) return false;
+    putSymbol(i, pos); return true;
+  };
+  const dropOn = (pos: SymbolPos, i: number) => { if (slots[i]?.pick && slots[i].pos !== 'punctuation' && !ok[i]) putSymbol(i, pos); };
+  const punctAt = slots.findIndex((s, i) => s.pos === 'punctuation' && !s.given && !ok[i]);
+  const markFromPanel = (m: string) => { if (punctAt < 0) { say(MARK_NAME[m]); return; } setVal(punctAt, m); say(MARK_NAME[m]); };
   const showTip = (i: number) => {
-    const info = SYMBOLS[q.slots[i].pos];
+    const p = posAt(i); if (!p) return;
     setTip(tip === i ? null : i);
-    speak(`${info.name}: ${info.def}`, tts);
+    say(`${SYMBOLS[p].name}: ${SYMBOLS[p].def}`);
   };
-  const roll = (i: number) => {
-    const w = randomWord(q.slots[i].pos, vals[i]);
-    if (!w) return;
-    setVal(i, w);
-    speak(w, tts);
-  };
+  const roll = (i: number) => { const p = posAt(i); if (!p) return; const w = randomWord(p, vals[i]); if (!w) return; setVal(i, w); say(w); };
+
   const check = () => {
     const said = fullSentence(slots, vals);
-    if (st.grammarCheck || st.capitalCheck || st.punctuationCheck) {
-      const bad: Record<number, string> = {};
-      const good: Record<number, boolean> = { ...ok };
-      const spell: Record<number, string> = { ...askedSpell };
-      for (const i of open) {
-        if (ok[i]) continue;
-        const w = (vals[i] ?? '').trim();
-        const isPunct = slots[i].pos === 'punctuation';
-        const p = isPunct ? (w === q.slots[i].word.trim() ? null : 'Check the punctuation. Is it telling, asking or a strong feeling?')
-          : (st.grammarCheck ? grammarProblem(w, q.slots[i]) : null) ?? capitalProblem(i, w);
-        // Level 2 and 3 say when a word is not one we know, once, before it gets the benefit of the doubt.
-        const unknown = !p && st.grammarCheck && level >= 2 && q.slots[i].pos !== 'propernoun' && q.slots[i].pos !== 'punctuation' && !isKnownWord(w) && askedSpell[i] !== w.toLowerCase();
-        if (p) bad[i] = level === 1 ? 'Not quite. Try again.' : p;
-        else if (unknown) { bad[i] = 'Check the spelling of this word.'; spell[i] = w.toLowerCase(); }
-        else good[i] = true;
+    const strict = st.grammarCheck || st.capitalCheck || st.punctuationCheck;
+    // The punctuation is fixed only when every word is hers; when the student builds the sentence any mark that ends it counts.
+    const fixed = slots.every((s) => s.pos === 'punctuation' || (s.given && !s.pick));
+    const bad: Record<number, string> = {};
+    const good: Record<number, boolean> = { ...ok };
+    const spell: Record<number, string> = { ...askedSpell };
+    for (const i of work) {
+      if (ok[i]) continue;
+      const s = slots[i], p = posAt(i), w = (s.given ? s.word : vals[i] ?? '').trim();
+      let problem: string | null = null, unknown = false;
+      if (s.pos === 'punctuation') {
+        if (strict) problem = fixed && s.word.trim() ? (w === s.word.trim() ? null : 'Check the punctuation. Is it telling, asking or a strong feeling?') : ((MARKS as readonly string[]).includes(w) ? null : 'Pick the punctuation.');
+      } else if (s.pick && !p) problem = 'Put a grammar symbol in this box.';
+      else {
+        if (s.pick && s.given && !symbolFits(w, p!, i === firstWord)) problem = `That symbol does not fit "${w}". What job does the word do?`;
+        if (!problem && !s.given && strict) {
+          problem = (st.grammarCheck ? grammarProblem(w, { ...s, pos: p! }) : null) ?? capitalProblem(i, w);
+          unknown = !problem && st.grammarCheck && level >= 2 && p !== 'propernoun' && !isKnownWord(w) && askedSpell[i] !== w.toLowerCase();
+        }
       }
-      setOk(good); setAskedSpell(spell);
-      if (Object.keys(bad).length) {
-        setNotes(bad); setTries((t) => t + 1);
-        const first = Number(Object.keys(bad)[0]);
-        speak(level === 1 ? 'Some boxes are not right yet. Try again.' : bad[first], tts);
-        window.setTimeout(() => { inputs.current[first]?.focus(); inputs.current[first]?.select(); }, 40);
-        return;
-      }
+      if (problem) bad[i] = level === 1 ? 'Not quite. Try again.' : problem;
+      else if (unknown) { bad[i] = 'Check the spelling of this word.'; spell[i] = w.toLowerCase(); }
+      else good[i] = true;
     }
-    speak(said, tts);
+    setOk(good); setAskedSpell(spell);
+    if (Object.keys(bad).length) {
+      setNotes(bad); setTries((t) => t + 1);
+      const first = Number(Object.keys(bad)[0]);
+      if (slots[first].pick && !slots[first].given) setTarget(first);
+      say(level === 1 ? 'Some boxes are not right yet. Try again.' : bad[first]);
+      window.setTimeout(() => { const el = inputs.current[first]; if (el) { el.focus(); el.select(); } }, 40);
+      return;
+    }
+    say(said);
     record(tries === 0);
     onResult(tries === 0, said);
   };
   const help = () => {
     const h: Record<number, string> = {};
-    for (const i of open) if (!ok[i]) { const s = SYMBOLS[q.slots[i].pos]; const ex = examplesFor(q.slots[i].pos); h[i] = `This box needs ${/^[aeiou]/i.test(s.name) ? 'an' : 'a'} ${s.name.toLowerCase()}: ${s.def.toLowerCase()}.${ex.length ? ` For example: ${ex.join(', ')}.` : ''}`; }
+    for (const i of work) {
+      if (ok[i]) continue;
+      const s = slots[i], p = posAt(i);
+      if (s.pos === 'punctuation') { h[i] = 'A telling sentence ends with a period, a question with a question mark, and a strong feeling with an exclamation point.'; continue; }
+      if (s.pick && s.given) { h[i] = `Say "${s.word}" in the sentence. Is it a person, place or thing? An action? A word that describes? Pick that symbol.`; continue; }
+      if (!p) { h[i] = 'Pick any grammar symbol for this box, then type a word that fits it.'; continue; }
+      const info = SYMBOLS[p], ex = examplesFor(p);
+      h[i] = `This box needs ${/^[aeiou]/i.test(info.name) ? 'an' : 'a'} ${info.name.toLowerCase()}: ${info.def.toLowerCase()}.${ex.length ? ` For example: ${ex.join(', ')}.` : ''}`;
+    }
     setHints(h);
-    const first = Object.values(h)[0]; if (first) speak(first, tts);
+    const first = Object.values(h)[0]; if (first) say(first);
   };
 
   const withNote = slots.map((_, i) => i).filter((i) => notes[i] || (hints?.[i] && !ok[i]));
   const msgAt = withNote.includes(focus ?? -1) ? focus! : withNote[0] ?? null;
+  const msgPos = msgAt !== null ? posAt(msgAt) : undefined;
   return (
-    <div className="symq stack" style={{ alignItems: 'center' }}>
-      <div className={`symq-row${slots.length >= 9 ? ' xlong' : slots.length >= 6 ? ' long' : ''}`} role="group" aria-label="Symbol sentence">
-        {slots.map((s, i) => {
-          const info = SYMBOLS[s.pos];
-          const sugg = level === 3 && notes[i] && !s.given ? suggestWords(vals[i] ?? '', s.pos) : [];
-          return (
-            <div key={i} className="symq-slot">
-              {s.pos === 'punctuation' ? <span className="symq-icon symq-icon-blank" aria-hidden /> : (
-                <button type="button" ref={(el) => { icons.current[i] = el; }} className="symq-icon" onClick={() => showTip(i)} aria-label={`${info.name}: ${info.def}`}>
-                  {info.img ? <img src={info.img} alt="" draggable={false} /> : <span className="sym-dot">{s.word || '.'}</span>}
-                  <small style={{ color: info.color }}>{info.name.toLowerCase()}</small>
-                </button>
-              )}
-              {tip === i && <SymbolTip anchor={icons.current[i] ?? null} name={info.name} def={info.def} />}
-              {st.punctuationCheck && s.pos === 'punctuation' ? (
-                // Build Queue 340 (her words: "a blank gray square. students can click it until it shows the punctuation they
-                // want (1 click period, 2 exclamation, 3 question)").
-                <button type="button" className={`symq-pcycle${vals[i] ? ' set' : ''}${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} disabled={disabled || !!ok[i]}
-                  aria-label={vals[i] ? `Punctuation: ${PUNCT_NAME[vals[i]]}. Tap to change it.` : 'Punctuation. Tap to choose it.'}
-                  onClick={() => { const m = PUNCT_CYCLE[(PUNCT_CYCLE.indexOf(vals[i] ?? '') + 1) % PUNCT_CYCLE.length]; setVal(i, m); speak(PUNCT_NAME[m], tts); }}>{vals[i] ?? ''}</button>
-              ) : s.given ? (
-                <span className="symq-word given" style={{ ['--c' as string]: info.color, ['--ink' as string]: inkOn(s.pos) }}>{s.word}</span>
-              ) : (
-                <div className="symq-input-wrap">
-                  <input ref={(el) => { inputs.current[i] = el; }} className={`symq-word${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} style={{ ['--c' as string]: info.color, width: `${Math.max(7, (vals[i] ?? '').length + 4, info.name.length + 3)}ch` }}
-                    value={vals[i] ?? ''} placeholder={info.name.toLowerCase()} disabled={disabled} readOnly={!!ok[i]}
-                    spellCheck={level === 3} autoCorrect={level === 3 ? 'on' : 'off'} autoCapitalize={st.capitalCheck ? 'off' : s.pos === 'propernoun' ? 'words' : 'off'} autoComplete="off"
-                    enterKeyHint={i === open[open.length - 1] ? 'done' : 'next'} aria-label={`Type ${/^[aeiou]/i.test(info.name) ? 'an' : 'a'} ${info.name.toLowerCase()}${ok[i] ? ', right' : ''}`}
-                    onFocus={() => setFocus(i)}
-                    onChange={(e) => setVal(i, e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { const nx = open[open.indexOf(i) + 1]; if (nx !== undefined) inputs.current[nx]?.focus(); else if (allFilled) check(); } }} />
-                  {ok[i] && <span className="symq-ok" aria-hidden>✓</span>}
-                  {st.dice && !disabled && !ok[i] && <button type="button" className="symq-dice" onClick={() => roll(i)} aria-label={`Roll a random ${info.name.toLowerCase()}`}>🎲</button>}
-                  {level === 3 && voice.supported && !disabled && !ok[i] && <button type="button" className={`symq-dice${voice.listening && focus === i ? ' live' : ''}`} onClick={() => { setFocus(i); voice.toggle(); }} aria-label={`Say ${/^[aeiou]/i.test(info.name) ? 'an' : 'a'} ${info.name.toLowerCase()}`}>🎤</button>}
+    <div className="ssq-c">
+      <div className="ssq">
+        <SymbolPanel onPick={pickFromPanel} onMark={markFromPanel} onDrop={dropOn} disabled={disabled} tts={say} />
+        <div className="ssq-main">
+          {head}
+          <div className="ssq-row" style={{ ['--n' as string]: perRow(slots.filter((s) => s.pos !== 'punctuation').length), ['--extra' as string]: `${slots.some((s) => s.pos === 'punctuation') ? 68 : 0}px` }} role="group" aria-label="Symbol sentence">
+            {slots.map((s, i) => {
+              if (s.pos === 'punctuation') {
+                return (
+                  <div key={i} className="ssq-slot ssq-slot-mark" data-ssq-slot={i}>
+                    <span className="ssq-spacer" aria-hidden />
+                    {s.given ? <span className="ssq-mark given" role="img" aria-label={`Punctuation: ${MARK_NAME[s.word] ?? s.word}`}>{s.word}</span> : (
+                      // Build Queue 340: tap the circle until it shows the mark (period, exclamation point, question mark).
+                      <button type="button" className={`ssq-mark${vals[i] ? ' set' : ''}${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} disabled={disabled || !!ok[i]}
+                        aria-label={vals[i] ? `Punctuation: ${MARK_NAME[vals[i]]}. Tap to change it.` : 'Punctuation. Tap to choose it.'}
+                        onClick={() => { const m = MARKS[(MARKS.indexOf((vals[i] ?? '') as (typeof MARKS)[number]) + 1) % MARKS.length]; setVal(i, m); say(MARK_NAME[m]); }}>{vals[i] ?? ''}</button>
+                    )}
+                  </div>
+                );
+              }
+              const p = posAt(i), info = p ? SYMBOLS[p] : null, open = !s.given || !!s.pick;
+              const sugg = level === 3 && notes[i] && !s.given && p ? suggestWords(vals[i] ?? '', p) : [];
+              return (
+                <div key={i} className={`ssq-slot${open ? ' open' : ''}`} data-ssq-slot={i}>
+                  <div className={`ssq-sym${open ? ' boxed' : ''}${s.pick && !ok[i] && target === i ? ' target' : ''}${s.pick && notes[i] ? ' fix' : ''}${s.pick && ok[i] ? ' ok' : ''}`}>
+                    <button type="button" ref={(el) => { icons.current[i] = el; }} className="ssq-symbtn"
+                      onClick={() => { if (s.pick && !ok[i] && !disabled) setTarget(i); showTip(i); }}
+                      aria-label={info ? `${info.name}: ${info.def}${s.pick && !ok[i] ? '. Tap a grammar symbol to change it.' : ''}` : 'Empty symbol box. Tap a grammar symbol to put it here.'}>
+                      {info?.img ? <img src={info.img} alt="" draggable={false} /> : <span className="ssq-sym-empty" aria-hidden />}
+                    </button>
+                    {s.pick && ok[i] && <span className="ssq-ok" aria-hidden>✓</span>}
+                  </div>
+                  {tip === i && info && <SymbolTip anchor={icons.current[i] ?? null} name={info.name} def={info.def} />}
+                  {s.given ? (
+                    <span className="ssq-pill solid" style={{ ['--c' as string]: info?.color ?? '#c9c2b4', ['--ink' as string]: p ? inkOn(p) : '#231b33' }}>{s.word}</span>
+                  ) : (
+                    <div className="ssq-pill-wrap">
+                      <input ref={(el) => { inputs.current[i] = el; }} className={`ssq-pill${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} style={{ ['--c' as string]: info?.color ?? '#e3d9c6' }}
+                        value={vals[i] ?? ''} placeholder={info ? info.name.toLowerCase() : ''} disabled={disabled} readOnly={!!ok[i]}
+                        spellCheck={level === 3} autoCorrect={level === 3 ? 'on' : 'off'} autoCapitalize={st.capitalCheck ? 'off' : p === 'propernoun' ? 'words' : 'off'} autoComplete="off"
+                        enterKeyHint={i === typeAt[typeAt.length - 1] ? 'done' : 'next'}
+                        aria-label={info ? `Type ${/^[aeiou]/i.test(info.name) ? 'an' : 'a'} ${info.name.toLowerCase()}${ok[i] ? ', right' : ''}` : 'Type a word'}
+                        onFocus={() => setFocus(i)} onChange={(e) => setVal(i, e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { const nx = typeAt[typeAt.indexOf(i) + 1]; if (nx !== undefined && slots[nx].pos !== 'punctuation') inputs.current[nx]?.focus(); else if (allFilled) check(); } }} />
+                      {ok[i] && <span className="ssq-ok" aria-hidden>✓</span>}
+                    </div>
+                  )}
+                  {!s.given && !disabled && !ok[i] && (st.dice || (level === 3 && voice.supported)) && (
+                    <div className="ssq-tools">
+                      {st.dice && <button type="button" className="ssq-tool" disabled={!p} onClick={() => roll(i)} aria-label={info ? `Roll a random ${info.name.toLowerCase()}` : 'Put a symbol in the box first'}>🎲</button>}
+                      {level === 3 && voice.supported && <button type="button" className={`ssq-tool${voice.listening && focus === i ? ' live' : ''}`} onClick={() => { setFocus(i); voice.toggle(); }} aria-label="Say the word">🎤</button>}
+                    </div>
+                  )}
+                  {msgAt === i && sugg.length > 0 && <span className="ssq-sugg">{sugg.map((w) => <button key={w} type="button" onClick={() => setVal(i, w)}>{w}</button>)}</span>}
                 </div>
-              )}
-              {msgAt === i && sugg.length > 0 && <span className="symq-sugg">{sugg.map((w) => <button key={w} type="button" onClick={() => setVal(i, w)}>{w}</button>)}</span>}
+              );
+            })}
+          </div>
+          {msgAt !== null && (notes[msgAt] || (hints?.[msgAt] && !ok[msgAt])) && (
+            <div className="ssq-msg" role="status" style={{ ['--c' as string]: msgPos ? SYMBOLS[msgPos].color : '#9aa0aa' }}>
+              <b>{slots[msgAt].pos === 'punctuation' ? 'Punctuation' : msgPos ? SYMBOLS[msgPos].name : 'Symbol box'}</b>
+              {notes[msgAt] && <span>{notes[msgAt]}</span>}
+              {hints?.[msgAt] && !ok[msgAt] && <span className="ssq-hint">💡 {hints[msgAt]}</span>}
             </div>
-          );
-        })}
-      </div>
-      {/* Build Queue 343: one note at a time under the sentence (the box that needs fixing first), so the sentence
-          stays on one or two tidy rows and never pushes the Check button off the iPad screen. */}
-      {msgAt !== null && (notes[msgAt] || (hints?.[msgAt] && !ok[msgAt])) && (
-        <div className="symq-msgs" role="status">
-          <b style={{ color: SYMBOLS[slots[msgAt].pos].color }}>{SYMBOLS[slots[msgAt].pos].name}</b>
-          {notes[msgAt] && <span className="symq-note">{notes[msgAt]}</span>}
-          {hints?.[msgAt] && !ok[msgAt] && <span className="symq-hint">💡 {hints[msgAt]}</span>}
+          )}
+          <div className="ssq-actions">
+            {tries >= 2 && !disabled && <button type="button" className="btn" onClick={help}>💡 Help</button>}
+            <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !allFilled} onClick={check}>Check</button>
+          </div>
         </div>
-      )}
-      <div className="row-wrap" style={{ gap: 8, justifyContent: 'center' }}>
-        {tries >= 2 && !disabled && <button type="button" className="btn btn-sm" onClick={help}>💡 Help</button>}
       </div>
-      <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !allFilled} onClick={check}>Check</button>
     </div>
   );
 }
