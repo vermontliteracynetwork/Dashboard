@@ -140,7 +140,6 @@ interface Tray { id: number; p: number; f: string }
 const unitPrice = (l: Line, o: Own) => l.income * ((o.price ?? 0) + 1);
 const priceCost = (l: Line, lv: number) => Math.round(l.base * 3 * Math.pow(1.8, lv));
 const money = (n: number) => `$${n >= 1e9 ? `${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `${(n / 1e6).toFixed(n >= 1e8 ? 0 : 1)}M` : Math.floor(n).toLocaleString()}`;
-const WHO = ['Rosa', 'Mr. Lee', 'Coach Kim', 'Grandpa Joe', 'the school library', 'a birthday party', 'the art club', 'Dr. Patel', 'the fire station', 'Auntie Mae'];
 interface Order { line: string; who: string; qty: number; tip: number }
 // Build Queue 434: animal customers from her Supernature packs walk up to the shop case and leave with each tray (decoration),
 // and one flavor a day is the daily special that sells for double (a tray of the special counts as 2 trays in the sold line).
@@ -156,7 +155,6 @@ const STICKERS: { id: string; name: string; img: string; got: (sh: Shop) => bool
   { id: 'trays-100', name: '100 trays sold', img: `${ART}ui/ic-box.png`, got: (sh) => traysSold(sh) >= 100 },
   { id: 'money-1000', name: '$1,000 earned', img: `${ART}shop/coin.svg`, got: (sh) => sh.total >= 1000 },
   { id: 'whisk', name: 'First whisk', img: `${ART}ui/whisk-bronze.png`, got: (sh) => (sh.whisk ?? 0) >= 1 },
-  { id: 'order', name: 'First special order', img: `${ART}ui/ic-sign.png`, got: (sh) => (sh.orders ?? 0) >= 1 },
   { id: 'recipes-10', name: '10 recipes found', img: `${ART}ui/ic-book.png`, got: (sh) => Object.keys(sh.book ?? {}).length >= 10 },
   { id: 'counters-5', name: '5 counters open', img: `${ART}treats/donuts.png`, got: (sh) => Object.keys(sh.lines).length >= 5 },
   { id: 'gold-whisk', name: 'Golden Whisk', img: `${ART}ui/whisk-gold.png`, got: (sh) => (sh.whisk ?? 0) >= 2 },
@@ -349,17 +347,11 @@ export default function IdleTycoon() {
     return () => { clearInterval(t); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A silly sale idea every 45 seconds, and a special order (a question for a tip) every 70 seconds.
+  // A silly sale idea every 45 seconds. Build Queue 208 (her answer 2: "no rush orders"): no timed special orders.
   useEffect(() => {
     const pickOffer = () => { const ls = openLines(); if (!ls.length) return; const l = ls[Math.floor(Math.random() * ls.length)]; setPromoOffer({ line: l.id, text: PROMOS[Math.floor(Math.random() * PROMOS.length)].replace('{t}', l.name.toLowerCase()) }); };
-    const pickOrder = () => {
-      const ls = openLines(); if (!ls.length) return; const l = ls[Math.floor(Math.random() * ls.length)];
-      const qty = [4, 5, 6, 8, 10, 12][Math.floor(Math.random() * 6)], o = shopRef.current.lines[l.id];
-      setOrder({ line: l.id, who: WHO[Math.floor(Math.random() * WHO.length)], qty, tip: Math.max(10, unitPrice(l, o) * qty * 2) });
-    };
     pickOffer(); const t1 = window.setInterval(pickOffer, 45000);
-    const t0 = window.setTimeout(pickOrder, 20000); const t2 = window.setInterval(pickOrder, 70000);
-    return () => { clearInterval(t1); clearInterval(t2); clearTimeout(t0); };
+    return () => { clearInterval(t1); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 
@@ -429,7 +421,8 @@ export default function IdleTycoon() {
   };
   const openCounter = (l: Line) => {
     if (coinsNow < l.open) { clip('error'); return; }
-    askQ(`Answer to open the ${l.name} counter!`, () => { if (spend(l.open, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ovens: 1, baker: false } } }))) { clip('door'); playCheer(); flash(`The ${l.name} counter is open! Tap it to bake.`); } });
+    // Build Queue 208 (her answer 1: no questions to open a counter or hire a baker).
+    if (spend(l.open, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ovens: 1, baker: false } } }))) { clip('door'); playCheer(); flash(`The ${l.name} counter is open! Tap it to bake.`); }
   };
   const tier = Math.min(2, shop.whisk ?? 0), W = WHISKS[tier];
   const promoPrice = Math.max(30, Math.round(perSec() * 40));
@@ -558,7 +551,7 @@ export default function IdleTycoon() {
                     </div>
                     <div className="ty5-prog" aria-hidden>{STAGES.map((s2, i) => <span key={s2.key} className={`z-${s2.key}`} style={{ flexGrow: s2.part }}><i style={{ width: `${front ? Math.max(0, Math.min(1, (front.p - STAGE_START[i]) / s2.part)) * 100 : 0}%` }} /></span>)}</div>
                   </div>
-                  {tip(`line-${l.id}`, <>Tap + Tray to put a tray on the belt, and tap a tray to push it along. A tray sells at the end for {o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 ? `, plus ${Math.round(bonus * 100)}% for groups and flavors` : ''}. Bigger tray adds a treat, Raise price adds {money(l.income)} to each treat, and a baker taps for you (hiring one asks a question). Bakers level up at 25, 100 and 250 trays sold and bake faster each time. Rush pushes every tray forward at once, then recharges for 15 seconds.</>, `${l.name}. ${o.ovens} ${o.ovens === 1 ? 'treat' : 'treats'} times ${up} ${up === 1 ? 'dollar' : 'dollars'} equals ${up * o.ovens} dollars a tray.${n > 0 ? ` You sold ${n} times ${tv}, which is ${n * tv} dollars.` : ''}`)}
+                  {tip(`line-${l.id}`, <>Tap + Tray to put a tray on the belt, and tap a tray to push it along. A tray sells at the end for {o.ovens} {o.ovens === 1 ? 'treat' : 'treats'} × {money(up)} = {money(up * o.ovens)}{bonus > 0 ? `, plus ${Math.round(bonus * 100)}% for groups and flavors` : ''}. Bigger tray adds a treat, Raise price adds {money(l.income)} to each treat, and a baker taps for you. Bakers level up at 25, 100 and 250 trays sold and bake faster each time. Rush pushes every tray forward at once, then recharges for 15 seconds.</>, `${l.name}. ${o.ovens} ${o.ovens === 1 ? 'treat' : 'treats'} times ${up} ${up === 1 ? 'dollar' : 'dollars'} equals ${up * o.ovens} dollars a tray.${n > 0 ? ` You sold ${n} times ${tv}, which is ${n * tv} dollars.` : ''}`)}
                   {pops.filter((x) => x.line === l.id).slice(-2).map((x) => <i key={x.id} className="ty5-pop" aria-hidden>{x.text}</i>)}
                 </div>
                 <div className="ty5-ups">
@@ -569,8 +562,8 @@ export default function IdleTycoon() {
                     <span><Px src={`${ART}shop/coin.svg`} size={18} /> Price {money(up)} → {money(up + l.income)}</span><em>{money(pc)}</em>
                   </button>
                   {o.baker ? <span className="ty5-up done ty8-baker"><span><Px src="ic-baker" size={18} /> Baker level {bakerLv(o) + 1}</span><span className="ty8-pips" aria-label={`Level ${bakerLv(o) + 1} of 4`}>{BAKER_AT.map((n, i) => <i key={n} className={bakerLv(o) > i ? 'on' : ''} />)}</span>{bakerLv(o) < 3 && <small>{o.sold ?? 0} / {BAKER_AT[bakerLv(o)]} trays</small>}</span>
-                    : <button type="button" className={`ty5-up${coinsNow >= l.baker ? ' can' : ''}`} disabled={coinsNow < l.baker} onClick={() => askQ(`Answer to hire the ${l.name} baker!`, () => { if (spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...s.lines[l.id], baker: true } } }))) { playCheer(); flash(`A baker is working the ${l.name} counter now!`); } })}>
-                      <span><Px src="ic-baker" size={18} /> Hire baker</span><em>{money(l.baker)} <Px src="ic-question" size={14} /></em>
+                    : <button type="button" className={`ty5-up${coinsNow >= l.baker ? ' can' : ''}`} disabled={coinsNow < l.baker} onClick={() => { if (spend(l.baker, (s) => ({ ...s, lines: { ...s.lines, [l.id]: { ...s.lines[l.id], baker: true } } }))) { playCheer(); flash(`A baker is working the ${l.name} counter now!`); } }}>
+                      <span><Px src="ic-baker" size={18} /> Hire baker</span><em>{money(l.baker)}</em>
                     </button>}
                 </div>
               </div>
@@ -579,8 +572,8 @@ export default function IdleTycoon() {
           {nextLocked && (
             <button type="button" className={`ty5-line locked${coinsNow >= nextLocked.open ? ' can' : ''}`} disabled={coinsNow < nextLocked.open} onClick={() => openCounter(nextLocked)}>
               <img src={nextLocked.icon} alt="" />
-              <span><b>Open {nextLocked.name}</b><small>{coinsNow >= nextLocked.open ? 'Answer a question to open it' : `${money(nextLocked.open - coinsNow)} to go`}</small></span>
-              <em>{money(nextLocked.open)} <Px src="ic-question" size={16} /></em>
+              <span><b>Open {nextLocked.name}</b><small>{coinsNow >= nextLocked.open ? 'Tap to open it' : `${money(nextLocked.open - coinsNow)} to go`}</small></span>
+              <em>{money(nextLocked.open)}</em>
             </button>
           )}
         </section>

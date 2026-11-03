@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-03-bakery-tycoon",
+    date: "2026-11-03",
+    icon: "🧁",
+    title: "Bakery Tycoon is smoother",
+    body: "In Bakery Tycoon you can open a new counter or hire a baker right away, with no question first. Special orders no longer pop up.",
+  },
+  {
     id: "2026-11-03-practice-misses",
     date: "2026-11-03",
     icon: "🎯",
