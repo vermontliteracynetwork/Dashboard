@@ -6,6 +6,7 @@ import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, perRow, blankSymbolQuestion, emptySlo
 import { SYMBOL_SENTENCE_PAGES } from '../../lib/symbolDeck';
 import SymbolPanel, { MARK_NAME } from '../../components/SymbolPanel';
 import SymbolSentenceAnswer from '../../components/SymbolSentenceAnswer';
+import SettingsList, { type SettingItem } from '../../components/SettingsList';
 
 // Text input question sets built from her grammar symbols (Build Queue 253), rebuilt by Build Queue 494 to match the
 // student's screen (her mockups: the Grammar Symbols panel on the left, the question text, then the sentence as boxes,
@@ -18,23 +19,23 @@ import SymbolSentenceAnswer from '../../components/SymbolSentenceAnswer';
 // - Tap the punctuation circle to change it: period, exclamation point, question mark, then "the student picks".
 // Quick starts: type a whole sentence and the symbols are placed for her, or start from one of her symbol sentence cards.
 
-export function SymbolSettingsBar({ settings, onChange }: { settings: SymbolSettings; onChange: (s: SymbolSettings) => void }) {
-  const row = (k: keyof SymbolSettings, label: string, hint: string) => (
-    <label className="sym-setting" title={hint}>
-      <input type="checkbox" checked={!!settings[k]} onChange={(e) => onChange({ ...settings, [k]: e.target.checked })} /> {label}
-    </label>
-  );
-  return (
-    <div className="sym-settings" role="group" aria-label="How students answer this set">
-      <b>Student settings</b>
-      {row('dice', '🎲 Randomizer dice', 'A dice next to each box rolls a random word of that kind')}
-      {row('spellCheck', 'Spell check', 'The iPad underlines misspelled words while they type')}
-      {row('grammarCheck', 'Grammar check', 'Checks each typed word is the right kind, for example "That\'s not a verb, try again."')}
-      {/* Build Queue 294 (her words: "give me a setting for capitilzation an punctuation that would require students to check that they are capitilized correctly. puncutation should require the student selecting for every sentence without default"). */}
-      {row('capitalCheck', 'Capital letter check', 'The first word needs a capital letter, names keep theirs, other words start small. The iPad does not capitalize for them.')}
-      {row('punctuationCheck', 'Punctuation check', 'Students pick the punctuation (. ? !) for every sentence. Nothing is filled in for them.')}
-    </div>
-  );
+// The student settings for a text input set, in list form with a plain line and an ⓘ for each (Build Queue 501).
+// Build Queue 294 added the capital letter and punctuation checks (her words: "give me a setting for capitilzation an
+// punctuation that would require students to check that they are capitilized correctly. puncutation should require the
+// student selecting for every sentence without default").
+export function symbolSettingItems(settings: SymbolSettings, onChange: (s: SymbolSettings) => void): SettingItem[] {
+  const item = (key: keyof SymbolSettings, icon: string, label: string, desc: string, help: string): SettingItem =>
+    ({ key, icon, label, desc, help, checked: !!settings[key], onChange: (on) => onChange({ ...settings, [key]: on }) });
+  return [
+    item('dice', '🎲', 'Randomizer dice', 'A dice beside each word box rolls a random word of that kind.', 'Good for a student who gets stuck thinking of a word. The dice only picks words of the right kind, so a noun box gets a noun.'),
+    item('spellCheck', '🔤', 'Spell check', 'The iPad underlines misspelled words while students type.', 'Uses the iPad\'s own spell check and red underline. Turn it off when spelling is part of what you want to see.'),
+    item('grammarCheck', '✅', 'Grammar check', 'Checks that each typed word is the kind its symbol asks for.', 'A word of the wrong kind (a noun in a verb box) gets "That\'s not a verb, try again" and the box stays open to fix. Words the app does not know get the benefit of the doubt.'),
+    item('capitalCheck', '🔠', 'Capital letter check', 'The first word needs a capital letter, and names keep theirs.', 'The iPad stops adding capital letters for the student, so they do it themselves. Other words must start with a small letter.'),
+    item('punctuationCheck', '❓', 'Punctuation check', 'Students pick the punctuation for every sentence.', 'The punctuation circle starts empty and the student taps it to choose a period, exclamation point or question mark. Nothing is filled in for them.'),
+  ];
+}
+export function SymbolSettingsBar({ settings, onChange, title = 'Student settings' }: { settings: SymbolSettings; onChange: (s: SymbolSettings) => void; title?: string }) {
+  return <SettingsList title={title} items={symbolSettingItems(settings, onChange)} />;
 }
 
 // One punctuation box at most, always last.
@@ -121,7 +122,8 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
   );
 }
 
-export default function SymbolSetEditor({ questions, onChange }: { questions: QuizQuestion[]; onChange: (q: QuizQuestion[]) => void }) {
+// hideSettings: the page shows the settings in its own Settings section (the New question set page, Build Queue 501).
+export default function SymbolSetEditor({ questions, onChange, hideSettings = false }: { questions: QuizQuestion[]; onChange: (q: QuizQuestion[]) => void; hideSettings?: boolean }) {
   const qs = questions.filter((q): q is SymbolQuestion => q.kind === 'symbol');
   const settings = qs[0]?.settings ?? DEFAULT_SYMBOL_SETTINGS;
   const [active, setActive] = useState(0);
@@ -136,7 +138,7 @@ export default function SymbolSetEditor({ questions, onChange }: { questions: Qu
   const place = () => { if (!q || !quick.trim()) return; update({ ...q, slots: tidy(sentenceToSlots(quick)) }); setQuick(''); };
   return (
     <div className="stack sym-editor">
-      <SymbolSettingsBar settings={settings} onChange={(s) => onChange(qs.map((x) => ({ ...x, settings: s })))} />
+      {!hideSettings && <SymbolSettingsBar settings={settings} onChange={(s) => onChange(qs.map((x) => ({ ...x, settings: s })))} />}
       <div className="ssq-tabs" role="tablist" aria-label="Sentences">
         {qs.map((x, i) => <button key={x.id} type="button" role="tab" aria-selected={i === ai} className={`ssq-tab${i === ai ? ' on' : ''}`} onClick={() => { setActive(i); setPreview(false); }}>{i + 1}</button>)}
         <button type="button" className="btn btn-sm" onClick={add}>➕ Add a sentence</button>

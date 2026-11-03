@@ -4,10 +4,11 @@ import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { blankMC, sanitizeQuizQuestions, validateQuizQuestions } from './QuizEditor';
 import McTableEditor from './McTableEditor';
-import SymbolSetEditor from './SymbolSetEditor';
-import { blankSymbolQuestion } from '../../lib/symbolSentence';
+import SymbolSetEditor, { symbolSettingItems } from './SymbolSetEditor';
+import SettingsList, { type SettingItem } from '../../components/SettingsList';
+import { DEFAULT_SYMBOL_SETTINGS, blankSymbolQuestion } from '../../lib/symbolSentence';
 import { makeId } from '../../lib/id';
-import type { QuizQuestion, Subject } from '../../types';
+import type { QuizQuestion, Subject, SymbolQuestion, SymbolSettings } from '../../types';
 
 // A brand new question set, built one question at a time (Build Queue 173, teacher 2026-10-14: "give me a
 // "new qustion set" button that takes me to a questoin by quesiton creater (new page that looks like when
@@ -34,6 +35,14 @@ export default function NewQuestionSet() {
     setQuestions(t === 'mc' ? [blankMC()] : [blankSymbolQuestion(makeId())]);
   };
   const [tried, setTried] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(true);
+  // Build Queue 501: every setting in one Settings section (open to start), the same words and ⓘ explanations everywhere.
+  const symSettings = (questions.find((q) => q.kind === 'symbol') as SymbolQuestion | undefined)?.settings ?? DEFAULT_SYMBOL_SETTINGS;
+  const setSymSettings = (v: SymbolSettings) => setQuestions((qs) => qs.map((q) => (q.kind === 'symbol' ? { ...q, settings: v } : q)));
+  const settingItems: SettingItem[] = [
+    { key: 'focus', icon: '⭐', label: 'Focus set', desc: `Makes this the class theme for ${subject === 'math' ? 'math' : 'literacy'} around the games.`, help: 'A starred set is the focus set for its subject: games and the Town Square use it first. Starring a new set takes over from the last one.', checked: isFocus, onChange: setIsFocus },
+    ...(setType === 'text' ? symbolSettingItems(symSettings, setSymSettings) : []),
+  ];
 
   const issues = validateQuizQuestions(questions);
   const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(setType ? [] : ['Pick Multiple choice or Text input.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
@@ -62,55 +71,67 @@ export default function NewQuestionSet() {
       <div className="container stack">
         <Link className="btn btn-sm" to="/teacher/assignments">← Back to Academics</Link>
 
-        {/* One compact header card (Build Queue 181, teacher 2026-10-14: "streamline the header for this so the title,
-            tags, description are nestled closer together"): subject and focus star, then the name as the title, the
-            description right under it, and the tags on one line. */}
-        <div className="content-well stack" style={{ gap: 8 }}>
-          <div className="row-wrap" style={{ gap: 6, alignItems: 'center', justifyContent: 'space-between' }}>
-            <div className="row-wrap" style={{ gap: 6 }} role="radiogroup" aria-label="Subject">
-              {(['math', 'literacy'] as const).map((s) => (
-                <button key={s} type="button" role="radio" aria-checked={subject === s} className={`btn btn-sm ${subject === s ? 'btn-primary' : ''}`} style={{ minHeight: 40 }} onClick={() => setSubject(s)}>
-                  {s === 'math' ? '🔢 Math' : '📚 Literacy'}
-                </button>
-              ))}
+        {/* Build Queue 501 (her words: "make the flow of creating a question set easier in design and ui. the top
+            section can be formatted smaller and collapse different so its smaller"): four numbered steps. Details is
+            one small card that folds into a single summary line; the kind of set; Settings in list form; then the
+            questions. */}
+        <section className={`nqs-step nqs-details${detailsOpen ? ' open' : ''}`}>
+          <button type="button" className="nqs-step-head" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((o) => !o)}>
+            <span className="nqs-num">1</span>
+            <span className="nqs-step-title">Details</span>
+            {!detailsOpen && <span className="nqs-summary">{subject === 'math' ? '🔢 Math' : '📚 Literacy'} · {name.trim() || 'No name yet'}{tags.length ? ` · ${tags.length} tag${tags.length === 1 ? '' : 's'}` : ''}</span>}
+            <i aria-hidden>▾</i>
+          </button>
+          {detailsOpen && (
+            <div className="nqs-details-body">
+              <div className="nqs-line">
+                <div className="nqs-seg" role="radiogroup" aria-label="Subject">
+                  {(['math', 'literacy'] as const).map((sj) => (
+                    <button key={sj} type="button" role="radio" aria-checked={subject === sj} className={subject === sj ? 'on' : ''} onClick={() => setSubject(sj)}>
+                      {sj === 'math' ? '🔢 Math' : '📚 Literacy'}
+                    </button>
+                  ))}
+                </div>
+                <input id="nqs-name" className="input nqs-name" aria-label="Set name" value={name} placeholder="Set name" onChange={(e) => setName(e.target.value)} autoFocus />
+              </div>
+              <input id="nqs-description" className="input nqs-desc" aria-label="Description" placeholder="Short description (optional, shown under the name)" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <div className="nqs-tags">
+                <span className="nqs-label">Tags</span>
+                {tags.map((t) => (
+                  <span key={t} className="tag-pill tag-pill-sm">
+                    {t}{' '}
+                    <button type="button" aria-label={`Remove tag ${t}`} onClick={() => setTags(tags.filter((x) => x !== t))} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}>✕</button>
+                  </span>
+                ))}
+                <input id="nqs-tag" className="input nqs-tag" placeholder="Add a tag" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
+                <button type="button" className="btn btn-sm" disabled={!tagInput.trim()} onClick={addTag}>+ Add</button>
+              </div>
             </div>
-            <button type="button" className={`btn btn-sm ${isFocus ? 'btn-primary' : ''}`} style={{ minHeight: 40 }} onClick={() => setIsFocus(!isFocus)} title="A starred set is shown around the game as this subject's current class theme">
-              {isFocus ? '⭐ Focus set' : '☆ Star as a focus set'}
-            </button>
-          </div>
-          <input id="nqs-name" className="input" aria-label="Set name" value={name} placeholder="New question set name" onChange={(e) => setName(e.target.value)} autoFocus
-            style={{ fontSize: '1.6rem', fontWeight: 800, padding: '8px 12px' }} />
-          <textarea id="nqs-description" className="input" aria-label="Description" rows={2} placeholder="A short description of what this set covers (shown under the title)" value={description} onChange={(e) => setDescription(e.target.value)} style={{ marginTop: -2 }} />
-          <div className="row-wrap" style={{ gap: 6, alignItems: 'center' }}>
-            <strong style={{ fontSize: '0.85rem' }}>Tags</strong>
-            {tags.map((t) => (
-              <span key={t} className="tag-pill tag-pill-sm">
-                {t}{' '}
-                <button type="button" aria-label={`Remove tag ${t}`} onClick={() => setTags(tags.filter((x) => x !== t))} style={{ border: 'none', background: 'none', cursor: 'pointer', fontWeight: 900, padding: '0 0 0 4px' }}>✕</button>
-              </span>
-            ))}
-            <input id="nqs-tag" className="input" style={{ fontSize: '0.82rem', padding: '5px 8px', width: 160, flex: 'none' }} placeholder="Add a tag…" value={tagInput} onChange={(e) => setTagInput(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
-            <button type="button" className="btn chip-filter-sm" disabled={!tagInput.trim()} onClick={addTag}>+ Add</button>
-          </div>
-        </div>
+          )}
+        </section>
 
-        <div className="content-well stack" style={{ gap: 10 }}>
-          <strong>1. What kind of questions?</strong>
-          <div className="qs-type" role="radiogroup" aria-label="Kind of question set">
+        <section className="nqs-step">
+          <div className="nqs-step-head static"><span className="nqs-num">2</span><span className="nqs-step-title">What kind of questions?</span></div>
+          <div className="qs-type nqs-type" role="radiogroup" aria-label="Kind of question set">
             <button type="button" role="radio" aria-checked={setType === 'mc'} className={`qs-type-btn${setType === 'mc' ? ' on' : ''}`} onClick={() => chooseType('mc')}>
               <b>☑️ Multiple choice</b><small>A question and up to four answers. Plays in every game.</small>
             </button>
             <button type="button" role="radio" aria-checked={setType === 'text'} className={`qs-type-btn${setType === 'text' ? ' on' : ''}`} onClick={() => chooseType('text')}>
-              <b>✍️ Text input (symbol sentences)</b><small>Students type the missing words under your grammar symbols. Plays in assignments and Quiz Mode.</small>
+              <b>✍️ Text input (symbol sentences)</b><small>Students fill in words and grammar symbols. Plays in assignments and Quiz Mode.</small>
             </button>
           </div>
-        </div>
+        </section>
+
+        <section className="nqs-step nqs-settings">
+          <SettingsList lead={<span className="nqs-num">3</span>} title="Settings" items={settingItems}
+            note={setType === 'text' ? 'Student settings are for the whole set. To change them for one student, open the set after you create it.' : setType === 'mc' ? undefined : 'Pick Text input to see the student settings for symbol sentences.'} />
+        </section>
 
         {setType && (
-          <div className="content-well stack">
-            <strong>2. {setType === 'mc' ? 'Questions' : 'Sentences'}</strong>
-            {setType === 'mc' ? <McTableEditor subject={subject} questions={questions} onChange={setQuestions} /> : <SymbolSetEditor questions={questions} onChange={setQuestions} />}
-          </div>
+          <section className="nqs-step">
+            <div className="nqs-step-head static"><span className="nqs-num">4</span><span className="nqs-step-title">{setType === 'mc' ? 'Questions' : 'Sentences'}</span></div>
+            {setType === 'mc' ? <McTableEditor subject={subject} questions={questions} onChange={setQuestions} /> : <SymbolSetEditor questions={questions} onChange={setQuestions} hideSettings />}
+          </section>
         )}
 
         <div
