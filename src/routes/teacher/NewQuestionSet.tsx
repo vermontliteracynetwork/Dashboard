@@ -86,20 +86,7 @@ export default function NewQuestionSet() {
             <button type="button" className="btn btn-primary nqs-create" onClick={create}>Create set</button>
           </div>
         </header>
-        <div className="nqs-layout">
-          <nav className="nqs-side" aria-label="Steps">
-            {[
-              { id: 'nqs-s1', label: 'Details', done: !!name.trim(), note: name.trim() ? (subject === 'math' ? 'Math' : 'Literacy') : 'Name needed' },
-              { id: 'nqs-s2', label: 'Kind', done: !!setType, note: setType === 'mc' ? 'Multiple choice' : setType === 'text' ? 'Symbolic Grammar' : 'Not picked' },
-              { id: 'nqs-s3', label: 'Settings', done: !!setType, note: `${settingItems.filter((x) => x.checked).length} on` },
-              { id: 'nqs-s4', label: 'Questions', done: !!setType && !issues.length && questions.length > 0, note: setType ? `${questions.length}${issues.length ? ` · ${issues.length} to fix` : ''}` : 'After the kind' },
-            ].map((st, i) => (
-              <button key={st.id} type="button" className={`nqs-side-item${st.done ? ' done' : ''}`} onClick={() => document.getElementById(st.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                <span className="nqs-side-num" aria-hidden>{st.done ? '✓' : i + 1}</span>
-                <span className="nqs-side-text"><b>{st.label}</b><small>{st.note}</small></span>
-              </button>
-            ))}
-          </nav>
+        <div className="nqs-layout nqs-full">
           <div className="nqs-main">
 
         {/* Build Queue 501 (her words: "make the flow of creating a question set easier in design and ui. the top

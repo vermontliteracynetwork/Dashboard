@@ -62,6 +62,9 @@ Direct teacher rule (2026-10-12): "Ensure that every screen has a text-to-speech
 ## Human voices only
 Direct teacher rule (2026-10-12): "tts voices need to be completely human, no more robot sounds". Every read-aloud goes through `speak()` in `src/components/ReadAloud.tsx`, which plays a real neural voice from `api/tts.ts` (needs `OPENAI_API_KEY` in Vercel) and falls back to the most human device voice (`pickHumanVoice`, never the novelty voices, no big pitch shifts). New characters get a `cloud` voice key in `src/lib/npcVoices.ts`; never call `speechSynthesis` directly in new code.
 
+## Teacher pages are laptop first
+Direct teacher rule (2026-11-03): "Teacher pages should always be optimized for a laptop webpage". Teacher screens (Build Mode, Academics, question sets, reports) are designed for a laptop browser: use the full width of the window, mouse and keyboard friendly, compact rather than tablet sized, and simple (one clear thing at a time, explanations in hover text or an ⓘ).
+
 ## iPad is the priority device for every student view
 Direct, standing teacher instruction: her students use iPads. Every student-facing screen, view, and display (Town Square, Build Mode-adjacent student surfaces, task/quiz UIs, the computer desktop, all of it) must be optimized for iPad first, not just "also work" on it — touch targets, layout at iPad viewport sizes (both orientations), no hover-only affordances, no interactions that assume a mouse or physical keyboard. Claudia's review checklist (`.claude/agents/claudia.md`) treats this as non-negotiable on every review of student-facing work, same tier as the other pass/fail visual standards. Apply this on every change to a student view, not just when explicitly asked.
 

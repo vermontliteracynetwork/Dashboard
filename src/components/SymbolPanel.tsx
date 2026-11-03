@@ -38,7 +38,8 @@ export default function SymbolPanel({ onPick, onMark, onDrop, disabled = false, 
     return () => document.removeEventListener('pointerdown', close);
   }, [tip]);
 
-  const slotAt = (x: number, y: number) => document.elementFromPoint(x, y)?.closest('[data-ssq-slot]') ?? null;
+  // A box, or (in the builder, Build Queue 509) anywhere on the sentence to add a new box there.
+  const slotAt = (x: number, y: number) => { const el = document.elementFromPoint(x, y); return el?.closest('[data-ssq-slot]') ?? el?.closest('[data-ssq-drop]') ?? null; };
   const mark = (el: Element | null) => {
     if (over.current === el) return;
     over.current?.classList.remove('drop-over');
@@ -64,7 +65,7 @@ export default function SymbolPanel({ onPick, onMark, onDrop, disabled = false, 
       // The click that may follow a drag is not a tap; it is cleared right after in case no click comes.
       skipClick.current = true; window.setTimeout(() => { skipClick.current = false; }, 0);
       const el = slotAt(e.clientX, e.clientY);
-      const at = el ? Number(el.getAttribute('data-ssq-slot')) : NaN;
+      const at = el ? (el.hasAttribute('data-ssq-slot') ? Number(el.getAttribute('data-ssq-slot')) : -1) : NaN;
       if (Number.isFinite(at)) onDrop(p.pos, at);
     }
     mark(null); setGhost(null);

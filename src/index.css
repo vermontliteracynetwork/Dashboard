@@ -11580,3 +11580,38 @@ button.nqs-step-head { cursor: pointer; }
 .sgb-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
 .nqs-layout { grid-template-columns: 170px minmax(0, 1fr); }
 .sgb-body { grid-template-columns: 190px minmax(0, 1fr); }
+/* Build Queue 511: the searchable formula drop down. */
+.sgb-pick { position: relative; flex: 1 1 320px; min-width: 0; }
+.sgb-pick-btn { width: 100%; min-height: 40px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px; border-radius: 10px; border: 2px solid #e6dccb; background: #fff; cursor: pointer; font: 600 .9rem 'Lexend', system-ui, sans-serif; color: #3a342a; text-align: left; }
+.sgb-pick-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sgb-pick-pop { position: absolute; z-index: 40; top: calc(100% + 4px); left: 0; width: min(560px, 90vw); background: #fff; border: 1px solid #e0daea; border-radius: 12px; box-shadow: 0 12px 32px rgba(35, 27, 51, .18); padding: 8px; display: flex; flex-direction: column; gap: 6px; }
+.sgb-pick-pop input { min-height: 40px; border-radius: 8px; border: 2px solid #d9d3ef; padding: 0 10px; font: 600 .92rem 'Lexend', system-ui, sans-serif; }
+.sgb-pick-list { max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.sgb-pick-group { display: flex; flex-direction: column; }
+.sgb-pick-group > b { position: sticky; top: 0; background: #fff; padding: 4px 6px; font-size: .74rem; letter-spacing: .04em; text-transform: uppercase; color: #6b6280; }
+.sgb-pick-opt { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 6px 8px; border: 0; border-radius: 8px; background: none; cursor: pointer; text-align: left; font: 600 .88rem 'Lexend', system-ui, sans-serif; color: #2b2438; }
+.sgb-pick-opt:hover, .sgb-pick-opt:focus-visible { background: #f1ecfb; outline: none; }
+.sgb-pick-opt small { color: #6b6280; font-style: italic; flex: none; }
+.sgb-pick-none { margin: 4px 6px; color: #6b6280; font-size: .88rem; }
+.sgb-dragbox { cursor: grab; touch-action: none; }
+.sgb-ghost-empty { width: 48px; height: 48px; border-radius: 12px; border: 3px dashed #c9bb8a; background: #fffdf7; }
+
+/* Build Queue 510 and 512 (her words: "Remove the green check menu on left, shrink the setting section", "simplified,
+   full screen view. Teacher pages should always be optimized for a laptop webpage"): the page uses the whole window,
+   details and the kind of set sit side by side, and the settings are one compact strip. */
+.container.nqs-page { max-width: none; width: 100%; box-sizing: border-box; padding-left: 24px; padding-right: 24px; }
+.nqs-full.nqs-layout { display: block; }
+.nqs-full .nqs-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.nqs-full .nqs-main > #nqs-s3, .nqs-full .nqs-main > #nqs-s4 { grid-column: 1 / -1; }
+.nqs-full .nqs-step { padding: 12px 14px; gap: 10px; }
+.nqs-settings .set-list-rows { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 4px 6px; padding-top: 6px; }
+.nqs-settings .set-row { min-height: 0; padding: 0 2px 0 8px; border-radius: 8px; }
+.nqs-settings .set-row-main { min-height: 36px; gap: 8px; }
+.nqs-settings .set-row-main input { width: 18px; height: 18px; }
+.nqs-settings .set-row-text b { font-size: .88rem; }
+.nqs-settings .set-info-btn { width: 34px; height: 34px; }
+.nqs-settings .set-info-btn::before { width: 22px; height: 22px; }
+.nqs-settings .set-list-note { font-size: .78rem; padding: 2px 4px; }
+.sgb-preview-btn { min-height: 36px; }
+.sgb-preview-note { text-align: left; margin: 0; }
+@media (max-width: 1000px) { .nqs-full .nqs-main { grid-template-columns: minmax(0, 1fr); } }

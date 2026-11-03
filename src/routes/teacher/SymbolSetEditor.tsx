@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { QuizQuestion, SymbolFormula, SymbolMode, SymbolPos, SymbolQuestion, SymbolSettings, SymbolSlot } from '../../types';
 import { BANK_LESSONS, FORMULA_BANK, type BankFormula } from '../../lib/formulaBank';
 import { makeId } from '../../lib/id';
@@ -6,7 +7,7 @@ import ImageUploadField from '../../components/ImageUploadField';
 import { DEFAULT_SYMBOL_SETTINGS, MODE_INFO, SYMBOLS, bankSlots, blankSymbolQuestion, emptySlot, inkOn, modeOf, perRow, punctSlot, sentenceToSlots } from '../../lib/symbolSentence';
 import { SYMBOL_SENTENCE_PAGES } from '../../lib/symbolDeck';
 import SymbolPanel, { MARK_NAME } from '../../components/SymbolPanel';
-import SymbolSentenceAnswer from '../../components/SymbolSentenceAnswer';
+import QuestionScreen from '../../components/QuestionScreen';
 import SettingsList, { InfoTip, type SettingItem } from '../../components/SettingsList';
 
 // Text input question sets built from her grammar symbols (Build Queue 253), rebuilt by Build Queue 494 to match the
@@ -54,21 +55,46 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
   const addBox = (slot: SymbolSlot) => { const s = q.slots.slice(); s.splice(insertAt, 0, slot); setSlots(s); setSel(insertAt); };
   const pick = (pos: SymbolPos) => {
     if (sel !== null && q.slots[sel] && q.slots[sel].pos !== 'punctuation') edit(sel, { pos, pick: false });
-    else addBox({ pos, word: '', given: mode === 'drag', pick: mode === 'drag' ? true : undefined });
+    else addBox({ pos, word: '', given: false });
     return true;
   };
-  const drop = (pos: SymbolPos, i: number) => { if (q.slots[i] && q.slots[i].pos !== 'punctuation') { edit(i, { pos, pick: false }); setSel(i); } };
+  // Build Queue 509 (her words: "I want the symbolic grammar symbols to be drag and drop, similar to the literacy
+  // manipulatives board"): drag a symbol onto a box to change it, or anywhere on the sentence to add a new box with it;
+  // drag a box by its symbol onto another box to move it there.
+  const drop = (pos: SymbolPos, i: number) => {
+    if (i < 0) { addBox({ pos, word: '', given: false }); return; }
+    if (q.slots[i] && q.slots[i].pos !== 'punctuation') { edit(i, { pos, pick: false }); setSel(i); }
+  };
+  const press = useRef<{ from: number; x: number; y: number; moved: boolean } | null>(null);
+  const [ghost, setGhost] = useState<{ img?: string; x: number; y: number } | null>(null);
+  const overEl = useRef<Element | null>(null);
+  const markOver = (el: Element | null) => { if (overEl.current === el) return; overEl.current?.classList.remove('drop-over'); el?.classList.add('drop-over'); overEl.current = el; };
+  const boxAt = (x: number, y: number) => document.elementFromPoint(x, y)?.closest('[data-ssq-slot]') ?? null;
+  const boxDown = (e: React.PointerEvent<HTMLButtonElement>, i: number) => { if (e.button > 0) return; press.current = { from: i, x: e.clientX, y: e.clientY, moved: false }; e.currentTarget.setPointerCapture(e.pointerId); };
+  const boxMove = (e: React.PointerEvent, img?: string) => {
+    const p = press.current; if (!p) return;
+    if (!p.moved && Math.hypot(e.clientX - p.x, e.clientY - p.y) < 8) return;
+    p.moved = true; setGhost({ img, x: e.clientX, y: e.clientY }); markOver(boxAt(e.clientX, e.clientY));
+  };
+  const boxUp = (e: React.PointerEvent, i: number) => {
+    const p = press.current; press.current = null; markOver(null); setGhost(null);
+    if (!p) return;
+    if (!p.moved) { setSel(sel === i ? null : i); return; }
+    const el = boxAt(e.clientX, e.clientY); const to = el ? Number(el.getAttribute('data-ssq-slot')) : NaN;
+    if (Number.isFinite(to) && to !== p.from && q.slots[to]?.pos !== 'punctuation') move(p.from, to);
+  };
   const mark = (m: string) => { if (markAt >= 0) edit(markAt, { word: m, given: true }); else setSlots([...q.slots, punctSlot(m, true)]); };
   const move = (from: number, to: number) => { const s = q.slots.slice(); const [x] = s.splice(from, 1); s.splice(to, 0, x); setSlots(s); setSel(to); };
   const s = sel !== null ? q.slots[sel] : null;
   const wi = sel !== null ? words.indexOf(sel) : -1;
   return (
     <div className="ssq-c">
+      {ghost && createPortal(ghost.img ? <img className="ssq-ghost" src={ghost.img} alt="" style={{ left: ghost.x, top: ghost.y }} /> : <span className="ssq-ghost sgb-ghost-empty" style={{ left: ghost.x, top: ghost.y }} />, document.body)}
       <div className="ssq ssq-edit">
         <SymbolPanel onPick={pick} onMark={mark} onDrop={drop} />
         <div className="ssq-main">
           <input className="ssq-prompt-input" value={q.prompt} onChange={(e) => onUpdate({ ...q, prompt: e.target.value })} placeholder="Question text, for example: Fill in the blank." aria-label="Question text" />
-          <div className="ssq-row" style={{ ['--n' as string]: perRow(q.slots.filter((s) => s.pos !== 'punctuation').length), ['--extra' as string]: `${(q.slots.some((s) => s.pos === 'punctuation') ? 68 : 0) + 68}px` }} role="group" aria-label="Sentence">
+          <div className="ssq-row" style={{ ['--n' as string]: perRow(q.slots.filter((s) => s.pos !== 'punctuation').length), ['--extra' as string]: `${(q.slots.some((s) => s.pos === 'punctuation') ? 68 : 0) + 68}px` }} role="group" aria-label="Sentence" data-ssq-drop="">
             {q.slots.map((x, i) => {
               if (x.pos === 'punctuation') {
                 return (
@@ -84,7 +110,8 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
               return (
                 <div key={i} className={`ssq-slot open${sel === i ? ' sel' : ''}`} data-ssq-slot={i}>
                   <div className={`ssq-sym boxed${sel === i ? ' target' : ''}`}>
-                    <button type="button" className="ssq-symbtn" onClick={() => setSel(sel === i ? null : i)} aria-label={info ? `${info.name}. Tap to choose this box.` : 'Empty symbol box: the student picks the symbol. Tap to choose this box.'}>
+                    <button type="button" className="ssq-symbtn sgb-dragbox" onPointerDown={(e) => boxDown(e, i)} onPointerMove={(e) => boxMove(e, info?.img)} onPointerUp={(e) => boxUp(e, i)} onPointerCancel={() => { press.current = null; markOver(null); setGhost(null); }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSel(sel === i ? null : i); } }} title="Drag to move this box" aria-label={info ? `${info.name}. Tap to choose this box.` : 'Empty symbol box: the student picks the symbol. Tap to choose this box.'}>
                       {info?.img ? <img src={info.img} alt="" draggable={false} /> : <span className="ssq-sym-empty" aria-hidden />}
                     </button>
                   </div>
@@ -120,7 +147,55 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
 }
 
 const lessonFormulas = (lesson: string) => FORMULA_BANK.filter((f) => f.lesson === lesson);
-const bankOption = (f: BankFormula) => `${f.skill} ${f.level} · ${f.formula} · ${f.example}`;
+
+// Build Queue 511 (her words: "Allow formulas to be searchable and in a drop down menu for each question"): a drop down
+// with a search box. It finds a formula by its number (1.1.1), level, formula words, example, lesson or skill name, and
+// also lists her symbol sentence cards. Picking one fills the question.
+type Pickable = { key: string; group: string; title: string; sub: string; search: string; bank?: BankFormula; card?: string };
+const PICKABLE: Pickable[] = [
+  ...FORMULA_BANK.map((f) => ({ key: `b:${f.id}`, group: `${f.lesson} ${f.lessonName}`, title: `${f.skill} ${f.level}  ${f.formula}`, sub: f.example, search: `${f.lesson} ${f.lessonName} ${f.skill} ${f.skillName} ${f.level} ${f.formula} ${f.example} ${f.unitName}`.toLowerCase(), bank: f })),
+  ...SYMBOL_SENTENCE_PAGES.flatMap((pg) => pg.sentences.map((c) => ({ key: `c:${c.id}`, group: `Cards: ${pg.label}`, title: c.sentence, sub: '', search: `${pg.label} ${c.sentence} card`.toLowerCase(), card: c.id }))),
+];
+export function FormulaPicker({ label, current, onPick }: { label: string; current?: string; onPick: (key: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const box = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', close);
+    return () => document.removeEventListener('pointerdown', close);
+  }, [open]);
+  const words = text.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const found = useMemo(() => PICKABLE.filter((p) => words.every((w) => p.search.includes(w))).slice(0, 80), [text]); // eslint-disable-line react-hooks/exhaustive-deps
+  const groups = [...new Set(found.map((p) => p.group))];
+  return (
+    <div className="sgb-pick" ref={box}>
+      <button type="button" className="sgb-pick-btn" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span>{current || label}</span><i aria-hidden>▾</i>
+      </button>
+      {open && (
+        <div className="sgb-pick-pop" role="listbox" aria-label={label}>
+          <input autoFocus value={text} onChange={(e) => setText(e.target.value)} placeholder="Search: 1.1.1, The + Who, dog, verbs..." aria-label="Search formulas"
+            onKeyDown={(e) => { if (e.key === 'Escape') setOpen(false); if (e.key === 'Enter' && found[0]) { onPick(found[0].key); setOpen(false); setText(''); } }} />
+          <div className="sgb-pick-list">
+            {!found.length && <p className="sgb-pick-none">No formula matches "{text}".</p>}
+            {groups.map((gr) => (
+              <div key={gr} className="sgb-pick-group">
+                <b>{gr}</b>
+                {found.filter((p) => p.group === gr).map((p) => (
+                  <button key={p.key} type="button" role="option" aria-selected={false} className="sgb-pick-opt" onClick={() => { onPick(p.key); setOpen(false); setText(''); }}>
+                    <span>{p.title}</span>{p.sub && <small>{p.sub}</small>}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // A picture response's formula options (Build Queue 502): one formula, or two or more for the student to pick from.
 function FormulaOptions({ q, at, onPick, onUpdate }: { q: SymbolQuestion; at: number; onPick: (i: number) => void; onUpdate: (q: SymbolQuestion) => void }) {
@@ -141,10 +216,7 @@ function FormulaOptions({ q, at, onPick, onUpdate }: { q: SymbolQuestion; at: nu
           </button>
         ))}
         <button type="button" className="btn btn-sm" onClick={() => add()}>Add a formula</button>
-        <select value="" aria-label="Add a formula from the formula bank" onChange={(e) => { const f = FORMULA_BANK.find((x) => x.id === e.target.value); if (f) add(f); }}>
-          <option value="">Add from the formula bank</option>
-          {BANK_LESSONS.map((l) => <optgroup key={l.lesson} label={`${l.lesson} ${l.name}`}>{lessonFormulas(l.lesson).map((f) => <option key={f.id} value={f.id}>{bankOption(f)}</option>)}</optgroup>)}
-        </select>
+        <FormulaPicker label="Add from the formula bank" onPick={(k) => { const f = FORMULA_BANK.find((x) => `b:${x.id}` === k); if (f) add(f); }} />
       </div>
       {list.length > 1 && (
         <div className="ssq-formula-name">
@@ -275,15 +347,12 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
             <div className="sgb-sub">
               {bank ? <p className="ssq-bankline" title={`${bank.lesson} ${bank.lessonName} · ${bank.skill} ${bank.skillName}`}><b>{bank.skill} {bank.level}</b> {bank.formula} <span>{bank.example}</span></p> : <span />}
               <span className="sgb-head-gap" />
+              <button type="button" className="btn btn-sm btn-primary sgb-preview-btn" onClick={() => { setPreviewNote(''); setPreview(true); }}>Preview as a student</button>
               <button type="button" className="sgb-link" onClick={() => { const copy: SymbolQuestion = { ...q, id: makeId(), slots: q.slots.map((x) => ({ ...x })), formulas: q.formulas?.map((f) => ({ ...f, slots: f.slots.map((x) => ({ ...x })) })) }; onChange([...qs.slice(0, ai + 1), copy, ...qs.slice(ai + 1)]); go(ai + 1); }}>Duplicate</button>
               <button type="button" className="sgb-link danger" onClick={() => { onChange(qs.filter((x) => x.id !== q.id)); go(Math.max(0, ai - 1)); }}>Delete</button>
             </div>
             <div className="sgb-start">
-              <select value="" aria-label="Start from a formula or a card" onChange={(e) => startFrom(e.target.value)}>
-                <option value="">Start from a formula</option>
-                {BANK_LESSONS.map((l) => <optgroup key={l.lesson} label={`${l.lesson} ${l.name}`}>{lessonFormulas(l.lesson).map((f) => <option key={f.id} value={`b:${f.id}`}>{bankOption(f)}</option>)}</optgroup>)}
-                {SYMBOL_SENTENCE_PAGES.map((pg) => <optgroup key={pg.id} label={`Cards: ${pg.label}`}>{pg.sentences.map((c) => <option key={c.id} value={`c:${c.id}`}>{c.sentence}</option>)}</optgroup>)}
-              </select>
+              <FormulaPicker label="Start from a formula" current={bank ? `${bank.skill} ${bank.level}  ${bank.formula}` : undefined} onPick={startFrom} />
               <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="or type a sentence" aria-label="Type a sentence to place its symbols" onKeyDown={(e) => { if (e.key === 'Enter') place(); }} />
               {quick.trim() && <button type="button" className="btn btn-sm" onClick={place}>Place</button>}
               {mode !== 'picture' && !q.imageUrl && !showPic && <button type="button" className="sgb-link" onClick={() => setShowPic(true)}>Add a picture</button>}
@@ -295,14 +364,16 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
             )}
             {mode === 'picture' && <FormulaOptions q={q} at={at} onPick={setFIdx} onUpdate={update} />}
             <SentenceCard key={`${q.id}-${at}`} q={shown} onUpdate={editShown} />
-            <div className="ssq-preview-bar">
-              <button type="button" className="sgb-link" onClick={() => { setPreview(!preview); setPreviewNote(''); }}>{preview ? 'Hide the student view' : 'Try it as a student'}</button>
-              {previewNote && <span className="ssq-legend">{previewNote}</span>}
-            </div>
+            {previewNote && <p className="ssq-legend sgb-preview-note">{previewNote}</p>}
+            {/* Build Queue 513 (her words: "a button where I can preview the question as a student (regular student facing
+                question view where I can answer accordingly to see the movement and how students would answer and
+                see)"): the real student question screen, full screen, answerable; nothing is saved or counted. */}
             {preview && (
-              <div className="ssq-preview">
-                <SymbolSentenceAnswer key={JSON.stringify(q)} q={q} disabled={false} onResult={(right, said) => setPreviewNote(`${right ? 'Right on the first try' : 'Right after fixing'}: "${said}"`)} head={<p className="ssq-prompt">{q.prompt}</p>} />
-              </div>
+              <QuestionScreen key={JSON.stringify(q)} prompt={q.prompt} choices={[]} correctIndex={-1} done={0} total={1} typed={q} imageUrl={q.imageUrl} imageAlt={q.imageAlt}
+                whoLabel="Preview: this is what a student sees"
+                onCorrectAnswer={() => { setPreview(false); setPreviewNote(`Preview of question ${ai + 1}: answered right.`); }}
+                onWrongAnswer={() => setPreviewNote(`Preview of question ${ai + 1}: answered wrong. Close the preview with the X to keep editing.`)}
+                onExit={() => setPreview(false)} />
             )}
           </section>
         )}
