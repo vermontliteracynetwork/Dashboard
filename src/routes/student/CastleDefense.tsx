@@ -729,10 +729,10 @@ export default function CastleDefense() {
               <div className="cd-theme-pick" role="radiogroup" aria-label="How do you place towers?">
                 <span className="cd-theme-title">Place towers</span>
                 <div className="cd-theme-row">
-                  {[{ on: true, icon: '📐', label: 'With coordinates' }, { on: false, icon: '👆', label: 'By tapping' }].map((o) => (
+                  {[{ on: true, label: 'With coordinates' }, { on: false, label: 'By tapping' }].map((o) => (
                     <button key={o.label} type="button" role="radio" aria-checked={coordsOn === o.on} className={`cd-theme-chip${coordsOn === o.on ? ' on' : ''}`}
                       onClick={() => { setCoordsOn(o.on); try { localStorage.setItem(COORDS_KEY, o.on ? '1' : '0'); } catch { /* fine */ } }}>
-                      <span aria-hidden>{o.icon}</span> {o.label}
+                      {o.label}
                     </button>
                   ))}
                 </div>
@@ -987,7 +987,7 @@ export default function CastleDefense() {
                 {phase === 'build' && coordsOn ? (
                   <>
                     <div className="cd-coord-pad" role="group" aria-label="Build by coordinates">
-                      <span className="cd-coord-title">📐 Build at</span>
+                      <span className="cd-coord-title">Build at</span>
                       <span className="cd-coord-pair">
                         <span aria-hidden>(</span>
                         {(['x', 'y'] as const).map((k, n) => (

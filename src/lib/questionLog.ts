@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useStore } from '../store/store';
 import { NATIVE_GAME_CARDS, QUIZ_MODE_CARD } from './nativeGames';
+import { keyOfQuestion, recordAnswer } from './questionMastery';
 
 // Every question a student sees, in every game (teacher 2026-10-14: "ensure full reports can be pulled
 // by game (all questions prompted to student in a game, their answers, time take to complete, attempts
@@ -64,7 +65,7 @@ export function useQLog(game?: string) {
   useEffect(() => () => close('left'), []); // eslint-disable-line react-hooks/exhaustive-deps
   return {
     show: (prompt: string, answer: string) => { if (ref.current && !ref.current.done && ref.current.prompt === prompt) return; close('skipped'); ref.current = { prompt, answer, start: Date.now(), tries: [], done: false }; },
-    tap: (text: string, correct: boolean) => { const q = ref.current; if (!q || q.done) return; q.tries.push(text); if (correct) close('right'); },
+    tap: (text: string, correct: boolean) => { const q = ref.current; if (!q || q.done) return; if (!q.tries.length) recordAnswer(keyOfQuestion({ prompt: q.prompt }), correct); q.tries.push(text); if (correct) close('right'); },
   };
 }
 // The right answer of any question kind, as words for the report.

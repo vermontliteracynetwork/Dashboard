@@ -47,6 +47,7 @@ No narration between tool calls. Final message is a short `## Done` / `## Test i
 
 ## Copy
 No em dashes anywhere in student- or teacher-facing text.
+Few emojis (direct teacher rule, 2026-11-03: "Remove emojis. They are clutter and unnecessary" for the teacher views, then "lessen use of emojis"): none in teacher views; on student screens only where an emoji is the clearest picture (the 🔊 read-aloud button, a game's own icon), never as decoration on labels, buttons, headings or tips.
 Grammar words (direct teacher rule, 2026-10-07): always say "capital letter" and "punctuation", never "big letter" or "stop mark". Always say past, present and future for time, never "yesterday", "now" or "tomorrow".
 
 ## Grammar Gus: play first, grammar inside

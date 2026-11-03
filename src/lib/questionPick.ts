@@ -23,6 +23,17 @@ export function playableOf(qs: QuizQuestion[]): MCQuestion[] {
 export const hasPlayable = (qs: QuestionSet) => qs.kind === 'quiz' && playableOf(qs.questions).length > 0;
 const mcOf = (qs: QuestionSet) => playableOf(qs.questions);
 
+// How likely each question is to come up for the current student; questionMastery.ts sets this (1 for everyone until then).
+let weigh: (q: MCQuestion) => number = () => 1;
+export function setQuestionWeight(fn: (q: MCQuestion) => number) { weigh = fn; }
+// One question from a list, by those weights.
+export function pickWeighted(list: MCQuestion[], rand: () => number = Math.random): MCQuestion {
+  const weights = list.map((q) => weigh(q));
+  let pick = rand() * weights.reduce((a, b) => a + b, 0), k = 0;
+  while (k < list.length - 1 && pick >= weights[k]) { pick -= weights[k]; k++; }
+  return list[k];
+}
+
 export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand: () => number = Math.random): MCQuestion | null {
   const sets = questionSets.filter((qs) => qs.kind === 'quiz').map((qs) => ({ focus: focusFor(qs), qs: mcOf(qs) })).filter((s) => s.qs.length > 0);
   if (!sets.length) return null;
@@ -33,7 +44,8 @@ export function drawQuestion(questionSets: QuestionSet[], avoidId?: string, rand
     const pool = focus.length ? focus : rest;
     const set = pool[Math.floor(rand() * pool.length)];
     const choices = set.qs.length > 1 && avoidId ? set.qs.filter((q) => q.id !== avoidId) : set.qs;
-    const q = choices[Math.floor(rand() * choices.length)];
+    // Build Queue 505: inside the set, questions this student misses come up more often (questionMastery.ts).
+    const q = pickWeighted(choices, rand);
     if (q.id !== avoidId || tries === 5) return q;
   }
   return null;

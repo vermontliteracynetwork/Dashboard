@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-03-practice-misses",
+    date: "2026-11-03",
+    icon: "🎯",
+    title: "More practice where you need it",
+    body: "Questions you miss now come back more often, so you get extra practice on them. Questions you always get right come up less.",
+  },
+  {
     id: "2026-11-03-symbolic-grammar",
     date: "2026-11-03",
     icon: "🔣",

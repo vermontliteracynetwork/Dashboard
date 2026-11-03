@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { studentSettingsFor } from '../lib/questionFocus';
 import type { SymbolPos, SymbolQuestion, TTSSettings } from '../types';
-import { DEFAULT_SYMBOL_SETTINGS, MODE_INFO, SYMBOLS, modeOf, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
+import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, modeOf, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
 import { useTypedSupport } from '../lib/typedSupport';
 import { useVoiceToText } from '../lib/useVoiceToText';
 import { speak } from './ReadAloud';
@@ -41,7 +41,7 @@ export default function SymbolSentenceAnswer(props: AnswerProps) {
         <div className="ssq-main ssq-choose">
           {head}
           <Picture q={q} />
-          <p className="ssq-choose-say">{MODE_INFO.picture.icon} Pick a formula for your sentence:</p>
+          <p className="ssq-choose-say">Pick a formula for your sentence:</p>
           <div className="ssq-choose-list">
             {options.map((f, i) => (
               <button key={i} type="button" className="ssq-choice" disabled={disabled} onClick={() => { setChosen(i); speak(f.name || `Formula ${i + 1}`, tts); }}>

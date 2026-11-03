@@ -5,7 +5,7 @@
 // CompletionMode/NativeGameId in types.ts for the full shape.
 
 import type { MCQuestion, NativeGameId, QuizRuntimeState, Subject, Task } from '../types';
-import { playableOf } from './questionPick';
+import { pickWeighted, playableOf } from './questionPick';
 
 // Native games only render multiple-choice questions (QuestionScreen's
 // choices/correctIndex shape) — a Matching/FillBlank question in the same
@@ -38,7 +38,8 @@ export function pickGameplayQuestion(task: Task, avoidId?: string): MCQuestion |
   if (pool.length === 1) return pool[0];
   const choices = avoidId ? pool.filter((q) => q.id !== avoidId) : pool;
   const usable = choices.length > 0 ? choices : pool;
-  return usable[Math.floor(Math.random() * usable.length)];
+  // Build Queue 505: missed questions come back more often here too.
+  return pickWeighted(usable);
 }
 
 // Finds the one active, not-yet-completed gameplay-mode task (if any) a

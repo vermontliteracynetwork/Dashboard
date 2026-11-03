@@ -31,3 +31,18 @@ describe('drawQuestion focus share', () => {
     expect(drawQuestion([], undefined, rand)).toBeNull();
   });
 });
+
+// Build Queue 505: questions a student misses come up more often than ones they always get right.
+describe('drawQuestion weighting by past answers', () => {
+  it('draws a missed question several times as often as a mastered one', async () => {
+    const { setQuestionWeight } = await import('../questionPick');
+    const { weightOf } = await import('../questionMastery');
+    const stats = { missed: [1, 3, 0, 1], known: [6, 0, 6, 0] } as Record<string, [number, number, number, number]>;
+    setQuestionWeight((q) => weightOf(q.id.endsWith('-0') ? 'missed' : 'known', stats));
+    const sets = [set('f', true, 2)];
+    let missed = 0; const N = 20000;
+    for (let i = 0; i < N; i++) if (drawQuestion(sets, undefined, rand)!.id === 'f-0') missed++;
+    expect(missed / N).toBeGreaterThan(0.85);
+    setQuestionWeight(() => 1);
+  });
+});

@@ -7,6 +7,7 @@ import { speak } from './ReadAloud';
 import type { NpcVoiceProfile } from '../lib/npcVoices';
 import { Calculator, HighlightableText, Scratchpad, TEXT_SIZES } from './QuestionTools';
 import ZoomableImage from './ZoomableImage';
+import { keyOfQuestion, recordAnswer } from '../lib/questionMastery';
 import { openCheckOnPet } from './CheckOnPet';
 import { currentGameName, logQuestion } from '../lib/questionLog';
 
@@ -248,6 +249,8 @@ export default function QuestionScreen({
     // Any answer already given locks the question: a later tap on the right answer never counts.
     if (answeredCorrectly || feedback === 'wrong' || reading) return;
     if (qlog.current && !qlog.current.done) qlog.current.tries.push(said ?? choices[i] ?? String(i));
+    // Build Queue 505: the answer counts toward how often this question comes back (missed ones come back more).
+    recordAnswer(keyOfQuestion({ prompt, typed }), i === correctIndex);
     if (i === correctIndex) {
       closeLog('right');
       setAnsweredCorrectly(true);
