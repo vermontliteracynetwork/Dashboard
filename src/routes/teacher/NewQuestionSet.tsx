@@ -68,14 +68,45 @@ export default function NewQuestionSet() {
   return (
     <div className="app-shell">
       <TeacherNav />
-      <div className="container stack">
-        <Link className="btn btn-sm" to="/teacher/assignments">← Back to Academics</Link>
+      <div className="container nqs-page">
+        {/* Build Queue 508 (her words: "Use the applicable websites to make the design better. Right now focusing on the
+            teacher side for making question sets", with a list of design galleries): the patterns those app galleries
+            share (navbar.gallery, land-book.com): a sticky page header with a breadcrumb, the title and the main
+            actions top right; a side step menu that shows what is done; quiet cards with one clear heading each. */}
+        <header className="nqs-top">
+          <div className="nqs-top-l">
+            <nav className="nqs-crumb" aria-label="Breadcrumb"><Link to="/teacher/assignments">Academics</Link><span aria-hidden>/</span><span>New question set</span></nav>
+            <h1>{name.trim() || 'New question set'}</h1>
+          </div>
+          <div className="nqs-top-r">
+            <span className={`nqs-status${tried && problems.length ? ' warn' : ''}`} role="status">
+              {tried && problems.length ? `To finish: ${problems[0]}${problems.length > 1 ? ` (${problems.length - 1} more)` : ''}` : `${questions.length} ${questions.length === 1 ? 'question' : 'questions'} · not saved yet`}
+            </span>
+            <button type="button" className="btn nqs-cancel" onClick={() => { if (!started || window.confirm('Leave without saving this new set?')) navigate('/teacher/assignments'); }}>Cancel</button>
+            <button type="button" className="btn btn-primary nqs-create" onClick={create}>Create set</button>
+          </div>
+        </header>
+        <div className="nqs-layout">
+          <nav className="nqs-side" aria-label="Steps">
+            {[
+              { id: 'nqs-s1', label: 'Details', done: !!name.trim(), note: name.trim() ? (subject === 'math' ? 'Math' : 'Literacy') : 'Name needed' },
+              { id: 'nqs-s2', label: 'Kind', done: !!setType, note: setType === 'mc' ? 'Multiple choice' : setType === 'text' ? 'Symbolic Grammar' : 'Not picked' },
+              { id: 'nqs-s3', label: 'Settings', done: !!setType, note: `${settingItems.filter((x) => x.checked).length} on` },
+              { id: 'nqs-s4', label: 'Questions', done: !!setType && !issues.length && questions.length > 0, note: setType ? `${questions.length}${issues.length ? ` · ${issues.length} to fix` : ''}` : 'After the kind' },
+            ].map((st, i) => (
+              <button key={st.id} type="button" className={`nqs-side-item${st.done ? ' done' : ''}`} onClick={() => document.getElementById(st.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                <span className="nqs-side-num" aria-hidden>{st.done ? '✓' : i + 1}</span>
+                <span className="nqs-side-text"><b>{st.label}</b><small>{st.note}</small></span>
+              </button>
+            ))}
+          </nav>
+          <div className="nqs-main">
 
         {/* Build Queue 501 (her words: "make the flow of creating a question set easier in design and ui. the top
             section can be formatted smaller and collapse different so its smaller"): four numbered steps. Details is
             one small card that folds into a single summary line; the kind of set; Settings in list form; then the
             questions. */}
-        <section className={`nqs-step nqs-details${detailsOpen ? ' open' : ''}`}>
+        <section id="nqs-s1" className={`nqs-step nqs-details${detailsOpen ? ' open' : ''}`}>
           <button type="button" className="nqs-step-head" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((o) => !o)}>
             <span className="nqs-num">1</span>
             <span className="nqs-step-title">Details</span>
@@ -110,7 +141,7 @@ export default function NewQuestionSet() {
           )}
         </section>
 
-        <section className="nqs-step">
+        <section id="nqs-s2" className="nqs-step">
           <div className="nqs-step-head static"><span className="nqs-num">2</span><span className="nqs-step-title">What kind of questions?</span></div>
           <div className="qs-type nqs-type" role="radiogroup" aria-label="Kind of question set">
             <button type="button" role="radio" aria-checked={setType === 'mc'} className={`qs-type-btn${setType === 'mc' ? ' on' : ''}`} onClick={() => chooseType('mc')}>
@@ -122,33 +153,18 @@ export default function NewQuestionSet() {
           </div>
         </section>
 
-        <section className="nqs-step nqs-settings">
+        <section id="nqs-s3" className="nqs-step nqs-settings">
           <SettingsList lead={<span className="nqs-num">3</span>} title="Settings" items={settingItems}
             note={setType === 'text' ? 'Student settings are for the whole set. To change them for one student, open the set after you create it.' : setType === 'mc' ? undefined : 'Pick Symbolic Grammar to see the student settings for its questions.'} />
         </section>
 
         {setType && (
-          <section className="nqs-step">
+          <section id="nqs-s4" className="nqs-step">
             <div className="nqs-step-head static"><span className="nqs-num">4</span><span className="nqs-step-title">Questions</span></div>
             {setType === 'mc' ? <McTableEditor subject={subject} questions={questions} onChange={setQuestions} /> : <SymbolSetEditor questions={questions} onChange={setQuestions} hideSettings />}
           </section>
         )}
 
-        <div
-          className="chrome-frame row-wrap"
-          style={{ position: 'sticky', bottom: 8, zIndex: 5, padding: '10px 14px', gap: 10, alignItems: 'center', justifyContent: 'space-between', background: '#FFF6D6' }}
-          role="status"
-        >
-          <span style={{ fontWeight: 700 }}>
-            {tried && problems.length ? `To finish: ${problems[0]}${problems.length > 1 ? ` (and ${problems.length - 1} more)` : ''}` : `New set: ${questions.length} ${questions.length === 1 ? 'question' : 'questions'}, not saved yet`}
-          </span>
-          <div className="row" style={{ gap: 8 }}>
-            <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { if (!started || window.confirm('Leave without saving this new set?')) navigate('/teacher/assignments'); }}>
-              Cancel
-            </button>
-            <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={create}>
-              Create set
-            </button>
           </div>
         </div>
       </div>

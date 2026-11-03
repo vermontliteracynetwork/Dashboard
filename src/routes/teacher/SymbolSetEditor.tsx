@@ -270,11 +270,14 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
                 ))}
                 <InfoTip label="Kinds of questions" text={`${(Object.keys(MODE_INFO) as SymbolMode[]).map((m) => `${MODE_INFO[m].label}: ${MODE_INFO[m].hint}`).join(' ')} Tap a box, then a symbol to put it in. A solid word is yours; an outline word is typed by the student (double-tap a word to switch).`} />
               </div>
+
+            </div>
+            <div className="sgb-sub">
+              {bank ? <p className="ssq-bankline" title={`${bank.lesson} ${bank.lessonName} · ${bank.skill} ${bank.skillName}`}><b>{bank.skill} {bank.level}</b> {bank.formula} <span>{bank.example}</span></p> : <span />}
               <span className="sgb-head-gap" />
               <button type="button" className="sgb-link" onClick={() => { const copy: SymbolQuestion = { ...q, id: makeId(), slots: q.slots.map((x) => ({ ...x })), formulas: q.formulas?.map((f) => ({ ...f, slots: f.slots.map((x) => ({ ...x })) })) }; onChange([...qs.slice(0, ai + 1), copy, ...qs.slice(ai + 1)]); go(ai + 1); }}>Duplicate</button>
               <button type="button" className="sgb-link danger" onClick={() => { onChange(qs.filter((x) => x.id !== q.id)); go(Math.max(0, ai - 1)); }}>Delete</button>
             </div>
-            {bank && <p className="ssq-bankline" title={`${bank.lesson} ${bank.lessonName} · ${bank.skill} ${bank.skillName}`}><b>{bank.skill} {bank.level}</b> {bank.formula} <span>{bank.example}</span></p>}
             <div className="sgb-start">
               <select value="" aria-label="Start from a formula or a card" onChange={(e) => startFrom(e.target.value)}>
                 <option value="">Start from a formula</option>
