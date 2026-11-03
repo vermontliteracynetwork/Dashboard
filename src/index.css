@@ -11489,3 +11489,52 @@ button.nqs-step-head { cursor: pointer; }
 .set-row-main { min-height: 40px; }
 .set-row .set-info-btn { width: 40px; height: 40px; }
 .set-list-note { grid-column: 1 / -1; }
+
+/* Build Queue 507: the Symbolic Grammar builder as a question list on the left and one question on the right. */
+.sgb { display: flex; flex-direction: column; gap: 10px; container: sgb / inline-size; }
+.sgb-body { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 14px; align-items: start; }
+.sgb-list { position: sticky; top: 8px; display: flex; flex-direction: column; gap: 6px; border: 2px solid #ece7f7; border-radius: 14px; background: #faf8ff; padding: 8px; }
+.sgb-list-head { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; font-size: .9rem; }
+.sgb-list-head span { color: #6b6280; font-weight: 700; }
+.sgb-list ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; max-height: 420px; overflow-y: auto; }
+.sgb-item { width: 100%; display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 8px; border: 0; border-radius: 10px; background: none; cursor: pointer; text-align: left; font: inherit; color: #3a342a; }
+.sgb-item:hover { background: #f1ecfb; }
+.sgb-item.on { background: #5a3d9e; color: #fff; }
+.sgb-n { font-weight: 800; font-size: .85rem; min-width: 1.4em; }
+.sgb-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .85rem; }
+.sgb-add { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; border-top: 1px solid #ece7f7; }
+.sgb-add select, .sgb-start select, .sgb-dialog select { min-height: 40px; border-radius: 10px; border: 2px solid #e6dccb; padding: 0 8px; font: 600 .9rem 'Lexend', system-ui, sans-serif; background: #fff; max-width: 100%; }
+.sgb-edit { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.sgb-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sgb-head-gap { flex: 1; }
+.sgb-link { min-height: 40px; padding: 0 10px; border: 0; background: none; color: #2e5aa8; font: 700 .88rem 'Lexend', system-ui, sans-serif; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.sgb-link.danger { color: #b3261e; }
+.sgb-start { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sgb-start select { flex: 1 1 260px; }
+.sgb-start input { flex: 1 1 180px; min-height: 40px; border-radius: 10px; border: 2px solid #e6dccb; padding: 0 10px; font: 600 .9rem 'Lexend', system-ui, sans-serif; }
+.sgb .ssq-bankline { margin: 0; align-self: flex-start; }
+.sgb-dialog .pf-panel { max-width: 460px; display: flex; flex-direction: column; gap: 12px; }
+.sgb-dialog h3 { margin: 0; }
+.sgb-kinds { display: flex; flex-direction: column; gap: 2px; }
+.sgb-dialog-row { display: flex; justify-content: flex-end; gap: 8px; }
+@container sgb (max-width: 700px) {
+  .sgb-body { grid-template-columns: minmax(0, 1fr); }
+  .sgb-list { position: static; }
+  .sgb-list ol { flex-direction: row; overflow-x: auto; max-height: none; }
+  .sgb-item { width: auto; }
+  .sgb-t { display: none; }
+  .sgb-add { flex-direction: row; border-top: 0; }
+}
+/* Build Queue 507: in the builder the symbols sit in one row above the sentence (names on hover), so the sentence
+   gets the full width. */
+.ssq-edit.ssq { grid-template-columns: minmax(0, 1fr); }
+.ssq-edit .ssq-panel { flex-direction: row; flex-wrap: wrap; gap: 8px; }
+.ssq-edit .ssq-box-sym { flex: 1 1 380px; }
+.ssq-edit .ssq-box-marks { flex: 0 1 auto; }
+.ssq-edit .ssq-box-head { display: none; }
+.ssq-edit .ssq-pal-grid { grid-template-columns: repeat(10, minmax(0, 1fr)); padding: 4px; }
+.ssq-edit .ssq-pal { min-height: 44px; }
+.ssq-edit .ssq-pal span { display: none; }
+.ssq-edit .ssq-pal img { width: 30px; height: 30px; }
+.ssq-edit .ssq-mark-grid { padding: 4px 8px; gap: 6px; }
+.ssq-edit .ssq-mark-btn { width: 36px; height: 36px; font-size: 1.2rem; }
