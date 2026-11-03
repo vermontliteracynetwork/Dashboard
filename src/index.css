@@ -11112,6 +11112,7 @@ button.ptb-thumb { height: 96px; width: 100%; border: 1px dashed #c7cbd4; paddin
 .rt-bar3 em { display: block; height: 100%; background: linear-gradient(90deg, #d9a83a, #ff8a3c); }
 .rt-ready3 { background: #555034; color: #fff; border-radius: 10px; padding: 2px 8px; font-size: 0.85rem; box-shadow: 0 3px 0 #1e200f; }
 .rt-ready3.burnt { background: #555; box-shadow: 0 3px 0 #333; }
+.rt-ready3.cold { background: #2e6f9e; box-shadow: 0 3px 0 #1d4a6b; }
 .rt-lv3 { background: #555034; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: grid; place-items: center; font-size: 12px; }
 .rt-b3 { display: flex; align-items: center; gap: 4px; background: #fff; border: 2px solid #c9bb8a; border-bottom-width: 4px; border-radius: 14px; padding: 4px 8px; font-style: normal; white-space: nowrap; }
 .rt-b3 img { width: 34px; height: 34px; object-fit: contain; }

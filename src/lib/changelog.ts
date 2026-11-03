@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-03-restaurant-fridge",
+    date: "2026-11-03",
+    icon: "🧊",
+    title: "Store pizzas in the fridge",
+    body: "In the Restaurant, tap the pizza tower to pick pizzas up, then tap the fridge to store them. Tap the fridge again to take them out and stack them back on the counter. Your server can use the fridge too. The floor tiles are bigger, so tapping is easier.",
+  },
+  {
     id: "2026-11-03-symbol-sentences",
     date: "2026-11-03",
     icon: "🔣",

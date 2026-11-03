@@ -34,7 +34,7 @@ export interface Placed { model: string; x: number; y: number; fit: number; rot?
 export interface FoodDef { model: string; parts?: { model: string; x: number; z: number; s: number; ry: number }[]; pizza?: 'plain' | 'pepperoni' | 'burnt' }
 export interface SceneMover { x: number; y: number; path: P[]; show: { food: FoodDef | null; trash?: boolean }[] }
 export interface SceneGuest { id: number; m: SceneMover; look: StyleLook; bubble: React.ReactNode | null; side?: number }
-export interface SceneStation { key: string; at: P; label: string; onTap: () => void; badge?: React.ReactNode; tag?: string; glow?: 'ready' | 'burnt' | 'cook' | null; children?: React.ReactNode }
+export interface SceneStation { key: string; at: P; label: string; onTap: () => void; badge?: React.ReactNode; tag?: string; glow?: 'ready' | 'burnt' | 'cook' | null; children?: React.ReactNode; hit?: [number, number, number] }
 
 // Grid tile to world position (one tile is one unit).
 export const wx = (x: number) => x - (COLS - 1) / 2;
@@ -158,22 +158,32 @@ function MoveSwitch({ moveRef, look, scale, carrying }: { moveRef: React.RefObje
 // The camera (Build Queue 467, her words: "rather than a full top down view, give it more of the angle view that the cat
 // pizza game does"): a perspective camera looking into the room from the front at about 40 degrees, the way Cat Pizza
 // shows its shop, pulled back just far enough that the whole room fits the iPad screen in either orientation.
-const ELEV = (40 * Math.PI) / 180;
-const FOV = 32;
+// Build Queue 498 (her words: "increase the size of the tiles on the ground so clicks are easier"): the camera looks
+// down more steeply (52 degrees) through a narrower lens, so the floor tiles are much taller on screen and the
+// back rows are nearly as big as the front ones, and the room fills the screen edge to edge with less margin.
+// An iPad held upright looks down more (62 degrees), since there the room is as wide as the screen and only taller
+// tiles can grow.
+const ELEV_WIDE = (52 * Math.PI) / 180, ELEV_TALL = (62 * Math.PI) / 180;
+const FOV = 24;
 function Rig({ minX }: { minX: number }) {
   const { camera, size } = useThree();
   useLayoutEffect(() => {
     const cam = camera as THREE.PerspectiveCamera;
     cam.fov = FOV; cam.aspect = size.width / size.height; cam.near = 0.5; cam.far = 200;
+    const ELEV = size.width < size.height ? ELEV_TALL : ELEV_WIDE;
     // With the new dining room the camera pulls back and slides left so both rooms fit.
     const left = wx(minX) - 0.5, right = COLS / 2;
     const target = new THREE.Vector3((left + right) / 2, 0.3, 0.5);
-    const corners = [[left - 0.6, 0, -ROWS / 2 - 0.2], [right + 0.6, 0, -ROWS / 2 - 0.2], [left - 0.6, 0, ROWS / 2 + 0.3], [right + 0.6, 0, ROWS / 2 + 0.3], [left, 1.5, -ROWS / 2], [right, 1.5, -ROWS / 2]].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+    const corners = [[left - 0.2, 0, -ROWS / 2 - 0.1], [right + 0.2, 0, -ROWS / 2 - 0.1], [left - 0.2, 0, ROWS / 2 + 0.2], [right + 0.2, 0, ROWS / 2 + 0.2], [left, 1.45, -ROWS / 2], [right, 1.45, -ROWS / 2]].map(([x, y, z]) => new THREE.Vector3(x, y, z));
+    // The bottom 110 pixels stay clear for the Bake bar, so the front row and the door are never under it.
+    const bottom = -1 + (2 * 110) / Math.max(300, size.height), top = 0.97;
     const place = (d: number) => { cam.position.set(target.x, target.y + Math.sin(ELEV) * d, target.z + Math.cos(ELEV) * d); cam.lookAt(target); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); };
-    const fits = (d: number) => { place(d); return corners.every((c) => { const v = c.clone().project(cam); return Math.abs(v.x) <= 0.97 && Math.abs(v.y) <= 0.95; }); };
-    let lo = 4, hi = 80;
-    for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; }
-    place(hi);
+    const fits = (d: number) => { place(d); return corners.every((c) => { const v = c.clone().project(cam); return Math.abs(v.x) <= 0.99 && v.y <= top && v.y >= bottom; }); };
+    const fit = () => { let lo = 2, hi = 80; for (let i = 0; i < 30; i++) { const mid = (lo + hi) / 2; if (fits(mid)) hi = mid; else lo = mid; } return hi; };
+    // Slide the aim point front to back and keep the closest camera that fits: the room as big as the screen allows.
+    let best = { d: Infinity, z: 0.5 };
+    for (let z = -2; z <= 3; z += 0.25) { target.z = z; const d = fit(); if (d < best.d) best = { d, z }; }
+    target.z = best.z; place(best.d);
   }, [camera, size, minX]);
   return null;
 }
@@ -283,8 +293,9 @@ export default function RestaurantScene(p: SceneProps) {
         {p.stations.map((st) => (
           <group key={st.key} position={[wx(st.at.x), 0, wz(st.at.y)]}>
             {st.children}
-            <mesh position={[0, 0.5, 0]} onPointerDown={(e) => { e.stopPropagation(); st.onTap(); }}>
-              <boxGeometry args={[1, 1, 1]} />
+            {/* The tap box covers the whole model (a tall fridge, a pizza tower), Build Queue 498. */}
+            <mesh position={[0, (st.hit?.[1] ?? 1) / 2, 0]} onPointerDown={(e) => { e.stopPropagation(); st.onTap(); }}>
+              <boxGeometry args={st.hit ?? [1, 1, 1]} />
               <meshBasicMaterial transparent opacity={0} depthWrite={false} />
             </mesh>
             {(st.tag || st.badge) && (

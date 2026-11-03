@@ -72,13 +72,20 @@ const ROLES: Record<Role, { name: string; cost: number; lv: number; wage: number
   drive: { name: 'Drive through attendant', cost: 900, lv: 6, wage: 40, post: { x: 12, y: 2 }, look: defaultLook('squirrel'), job: 'Carries pizzas from the tower to the drive through window for every car.', skills: ['speed'] },
 };
 // What the team did while the student was answering questions (Build Queue 492).
-interface Away { baked: number; stacked: number; cleaned: number; takeout: number; drive: number; money: number }
-const NO_AWAY: Away = { baked: 0, stacked: 0, cleaned: 0, takeout: 0, drive: 0, money: 0 };
+interface Away { baked: number; stacked: number; fridged: number; cleaned: number; takeout: number; drive: number; money: number }
+const NO_AWAY: Away = { baked: 0, stacked: 0, fridged: 0, cleaned: 0, takeout: 0, drive: 0, money: 0 };
 
 // The room. Kitchen along the top wall, the counter and register in the middle, tables in the dining room, the door at the
 // bottom left and the drive through window on the right wall.
 const OVENS: P[] = [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }];
 const TRASH: P = { x: 12, y: 1 };
+// The fridge in the back corner stores pizzas (Build Queue 497, her words: "allow students to use the fridge as storage
+// for pizzas (removing pizzas from counter needs to happen by click of pizza and click of fridge). Employees can move
+// pizzas too. Pizzas can be added back to counter."): tap the pizza tower to pick pizzas up, tap the fridge to put them
+// in; tap the fridge with empty hands to take them out, then tap the counter to stack them again.
+const FRIDGE: P = { x: 0, y: 1 };
+const FRIDGE_CAP = 50;
+const TOWER_AT: P = { x: 8, y: 3 };
 const COUNTER: P = { x: 6, y: 3 };
 const WINDOW: P = { x: 13, y: 4 };
 // Tables sit left and right of the middle column, which is kept clear for the line (Build Queue 480).
@@ -98,7 +105,7 @@ const ORDER_SPOT: P = { x: 6, y: 4 };
 // The line runs down the middle column from the counter (Build Queue 480), then along the bottom row if it is long.
 const LINE_MORE: P[] = [{ x: 7, y: 8 }, { x: 8, y: 8 }, { x: 7, y: 7 }, { x: 8, y: 7 }, { x: 5, y: 8 }];
 const lineSpot = (i: number): P => (i < 5 ? { x: ORDER_SPOT.x, y: ORDER_SPOT.y + i } : LINE_MORE[Math.min(i - 5, LINE_MORE.length - 1)]);
-const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
+const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, fridge: { x: FRIDGE.x, y: 2 }, tower: { x: TOWER_AT.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
 // The counter holds a tower of up to 20 ready pizzas (two stacks of 10, Build Queue 471 and 478).
 // The counter tower grows with the "Bigger pizza tower" upgrade (Build Queue 490, her words: "give upgrade skill to sell
 // more pizzas in larger stacks. add an upgrade where stacks can increase to 15, 20, 25, and 50 at a time").
@@ -162,7 +169,7 @@ interface Save {
   ovens: number; ovenLv: number; tables: number; shelves: number; stock: Item[]; decor: string[];
   me: Skill; server?: Skill; cook?: Skill; best: number; day: number; served: number;
   qs?: QSet; staff?: Partial<Record<Role, string>>; hints?: boolean; ratings?: number[]; stackLv?: number;
-  janitor?: Skill; takeout?: Skill; drive?: Skill; annex?: boolean;
+  janitor?: Skill; takeout?: Skill; drive?: Skill; annex?: boolean; fridge?: Item[];
 }
 const FRESH: Save = { money: 0, total: 0, level: 1, claimed: 1, xp: 0, theme: 0, ovens: 1, ovenLv: 0, tables: 1, shelves: 0, stock: [], decor: [], me: { speed: 0, carry: 0, acc: 0 }, best: 0, day: 0, served: 0, ratings: [] };
 type Hand = { item: Item | 'trash'; burnt?: boolean };
@@ -234,7 +241,9 @@ const DECOR: { id: string; name: string; model: string; img: string; at: P; fit:
   { id: 'cactus2', name: 'Tall cactus', model: '/world/models/interior/houseplant-3.glb', img: `${ICON}d-plant3.png`, at: { x: 2, y: 4 }, fit: 0.55, cost: 300 },
   { id: 'lamp3', name: 'Shade lamp', model: '/world/models/interior/light-floor3.glb', img: `${ICON}d-lamp3.png`, at: { x: 1, y: 6 }, fit: 0.45, cost: 400 },
   { id: 'sign', name: 'Diner sign', model: '/world/models/restaurant/Diner_Sign_A.glb', img: `${ICON}d-sign.png`, at: { x: 0, y: 2 }, fit: 0.8, rot: Math.PI / 2, cost: 500 },
-  { id: 'booth', name: 'Booth seat', model: '/world/models/restaurant/Booth_Seat_A.glb', img: `${ICON}d-booth.png`, at: { x: 13, y: 5 }, fit: 0.9, rot: -Math.PI / 2, cost: 700 },
+  // Build Queue 499 (her words: "Move the booths away from the drive through window so it’s not hard to touch"): the
+  // booth sits in the front corner, three tiles down from the window, with the bookshelf beside it.
+  { id: 'booth', name: 'Booth seat', model: '/world/models/restaurant/Booth_Seat_A.glb', img: `${ICON}d-booth.png`, at: { x: 13, y: 8 }, fit: 0.9, rot: -Math.PI / 2, cost: 700 },
   { id: 'books', name: 'Bookshelf', model: '/world/models/interior/bookshelf.glb', img: `${ICON}d-bookshelf.png`, at: { x: 13, y: 7 }, fit: 0.9, rot: -Math.PI / 2, cost: 900 },
 ];
 // The back of the kitchen and the fixed furniture.
@@ -292,10 +301,10 @@ export default function Restaurant() {
   const localKey = student ? `rt-save:${student.id}` : '';
   const savedRow = styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Save> | undefined;
   const saved: Partial<Save> = savedRow ?? (() => { try { return localKey ? JSON.parse(localStorage.getItem(localKey) ?? '{}') as Partial<Save> : {}; } catch { return {}; } })();
-  const load = (v: Partial<Save>): Save => ({ ...FRESH, ...v, me: { ...FRESH.me, ...(v.me ?? {}) }, stock: Array.isArray(v.stock) ? v.stock.filter((x) => x in ITEMS) : [], ratings: Array.isArray(v.ratings) ? v.ratings : [] });
-  const g = useRef<{ s: Save; me: Mover; guests: Guest[]; cars: Car[]; ovens: Oven[]; server: Mover; cook: Mover; janitor: Mover; takeout: Mover; drive: Mover; away: Away | null; open: boolean; day: Day; nextGuest: number; nextCar: number; event: { id: string; until: number } | null; nextEvent: number; burnAfter: number; spawnQ: Guest[]; staffHome: boolean; mess: Record<number, boolean> } | null>(null);
+  const load = (v: Partial<Save>): Save => ({ ...FRESH, ...v, me: { ...FRESH.me, ...(v.me ?? {}) }, stock: Array.isArray(v.stock) ? v.stock.filter((x) => x in ITEMS) : [], fridge: Array.isArray(v.fridge) ? v.fridge.filter((x) => x in ITEMS) : [], ratings: Array.isArray(v.ratings) ? v.ratings : [] });
+  const g = useRef<{ s: Save; me: Mover; guests: Guest[]; cars: Car[]; ovens: Oven[]; server: Mover; cook: Mover; janitor: Mover; takeout: Mover; drive: Mover; away: Away | null; open: boolean; day: Day; nextGuest: number; nextCar: number; event: { id: string; until: number } | null; nextEvent: number; burnAfter: number; spawnQ: Guest[]; staffHome: boolean; mess: Record<number, boolean>; svFridge: boolean } | null>(null);
   if (!g.current) {
-    g.current = { s: load(saved), me: mover({ x: 6, y: 2 }), guests: [], cars: [], ovens: Array.from({ length: 3 }, () => ({ state: 'idle', t: 0, n: 0 })), server: mover(ROLES.server.post), cook: mover(ROLES.cook.post), janitor: mover(ROLES.janitor.post), takeout: mover(ROLES.takeout.post), drive: mover(ROLES.drive.post), away: null, open: false, day: NEW_DAY(), nextGuest: 0, nextCar: 0, event: null, nextEvent: Date.now() + 120000, burnAfter: 18, spawnQ: [], staffHome: true, mess: {} };
+    g.current = { s: load(saved), me: mover({ x: 6, y: 2 }), guests: [], cars: [], ovens: Array.from({ length: 3 }, () => ({ state: 'idle', t: 0, n: 0 })), server: mover(ROLES.server.post), cook: mover(ROLES.cook.post), janitor: mover(ROLES.janitor.post), takeout: mover(ROLES.takeout.post), drive: mover(ROLES.drive.post), away: null, open: false, day: NEW_DAY(), nextGuest: 0, nextCar: 0, event: null, nextEvent: Date.now() + 120000, burnAfter: 18, spawnQ: [], staffHome: true, mess: {}, svFridge: false };
   }
   const [, setTick] = useState(0);
   const [phase, setPhase] = useState<'menu' | 'play'>('menu');
@@ -468,7 +477,8 @@ export default function Restaurant() {
     if (s2.stock.length + ready >= stackCap(s2)) return;
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'idle'); if (oi < 0) return;
     const menu2 = menuFor(s2.level, s2.theme);
-    const want = G2.guests.find((c) => c.state === 'line' && s2.stock.filter((x) => x === c.item).length < c.n)?.item ?? G2.cars.find((c) => c.state === 'wait' && s2.stock.filter((x) => x === c.item).length < c.n)?.item;
+    const have = (it: Item) => s2.stock.filter((x) => x === it).length + (s2.fridge ?? []).filter((x) => x === it).length;
+    const want = G2.guests.find((c) => c.state === 'line' && have(c.item) < c.n)?.item ?? G2.cars.find((c) => c.state === 'wait' && have(c.item) < c.n)?.item;
     const item = want && menu2.includes(want) ? want : menu2.includes(bakeRef.current) ? bakeRef.current : menu2[0];
     ck.path = route(ck, use.oven(oi)); ck.job = () => { const o = G2.ovens[oi]; if (o.state === 'idle') { o.state = 'cook'; o.item = item; o.t = 0; o.n = batch(s2); tally('baked', o.n); } };
   }
@@ -476,10 +486,17 @@ export default function Restaurant() {
     const G2 = g.current!, s2 = G2.s, sv = G2.server, cap = 4 + (s2.server?.carry ?? 0) * 3;
     const room = cap - sv.hands.length;
     const more = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'ready');
+    const fr = (s2.fridge ??= []);
+    // Pizzas that did not fit on a full counter go in the fridge (Build Queue 497).
+    if (G2.svFridge && pizzasIn(sv.hands).length) { sv.path = route(sv, use.fridge); sv.job = () => { const put = pizzasIn(sv.hands).slice(0, FRIDGE_CAP - fr.length); fr.push(...put.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !put.includes(h)); G2.svFridge = false; tally('fridged', put.length); }; return; }
     // A trained server fills their tower from every ready oven before carrying it all to the counter (Build Queue 483).
     if (pizzasIn(sv.hands).length && room > 0 && more >= 0) { sv.path = route(sv, use.oven(more)); sv.job = () => { const o = G2.ovens[more]; if (o.state === 'ready') { const k = Math.min(o.n, cap - sv.hands.length); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
-    if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = stackCap(s2) - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); tally('stacked', give.length); }; return; }
+    if (pizzasIn(sv.hands).length) { sv.path = route(sv, use.counter); sv.job = () => { const room = stackCap(s2) - s2.stock.length; const give = pizzasIn(sv.hands).slice(0, room); s2.stock.push(...give.map((h) => h.item as Item)); sv.hands = sv.hands.filter((h) => !give.includes(h)); tally('stacked', give.length); if (pizzasIn(sv.hands).length && fr.length < FRIDGE_CAP) G2.svFridge = true; }; return; }
     if (sv.hands.some((h) => h.item === 'trash' || h.burnt)) { sv.path = route(sv, use.trash); sv.job = () => { sv.hands = []; }; return; }
+    // A customer or car is waiting on pizzas that are in the fridge: bring them out to the counter.
+    const need = [...G2.guests.filter((c) => c.state === 'line').sort((a, b) => a.arrived - b.arrived), ...G2.cars.filter((c) => c.state === 'wait')]
+      .map((c) => ({ item: c.item, n: c.n - s2.stock.filter((x) => x === c.item).length })).find((w) => w.n > 0 && fr.includes(w.item));
+    if (need && !sv.hands.length && s2.stock.length < stackCap(s2)) { sv.path = route(sv, use.fridge); sv.job = () => { const k = Math.min(need.n, cap, stackCap(s2) - s2.stock.length); for (let j = 0; j < k; j++) { const at = fr.indexOf(need.item); if (at < 0) break; fr.splice(at, 1); sv.hands.push({ item: need.item }); } }; return; }
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && (o.state === 'ready' || o.state === 'burnt'));
     if (oi >= 0) { sv.path = route(sv, use.oven(oi)); sv.job = () => { const o = G2.ovens[oi]; if (o.state === 'burnt') { sv.hands.push({ item: o.item ?? 'cheese', burnt: true }); o.state = 'idle'; o.n = 0; } else if (o.state === 'ready') { const k = Math.min(o.n, cap); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
     // With a custodian on the team, cleaning is their job.
@@ -555,7 +572,8 @@ export default function Restaurant() {
     if (c) {
       const have = s.stock.filter((x) => x === c.item).length;
       if (have >= c.n) { handOver(c); return; }
-      if (!did) hint(`${c.name} wants ${c.n} ${ITEMS[c.item].name.toLowerCase()}${c.n === 1 ? '' : 's'}. The counter has ${have}. Bake ${c.n - have} more!`);
+      const cold = (s.fridge ?? []).filter((x) => x === c.item).length;
+      if (!did) hint(`${c.name} wants ${c.n} ${ITEMS[c.item].name.toLowerCase()}${c.n === 1 ? '' : 's'}. The counter has ${have}.${cold ? ` The fridge has ${cold}.` : ` Bake ${c.n - have} more!`}`);
       return;
     }
     // A car waiting at the drive through: pick its pizzas up from the tower to carry to the window.
@@ -565,6 +583,34 @@ export default function Restaurant() {
       if (k > 0) { for (let j = 0; j < k; j++) { s.stock.splice(s.stock.indexOf(car.item), 1); G.me.hands.push({ item: car.item }); } clip('plate'); flash(`Carry them to the drive through window.`); return; }
     }
     if (!did) hint(s.stock.length ? 'No one is in line right now. Your tower is ready for them.' : 'Bake some pizzas, then stack them here.');
+  };
+  // The pizza tower: tap it to pick pizzas up off the counter (to carry to the fridge); carrying pizzas, it stacks them.
+  const atTower = () => {
+    if (pizzasIn(G.me.hands).length) { atCounter(); return; }
+    if (!s.stock.length) return hint('The tower is empty. Bake some pizzas first.');
+    const room = carryMax - G.me.hands.length; if (room <= 0) return hint(`Your hands are full (you can carry ${carryMax}).`);
+    const took = s.stock.splice(Math.max(0, s.stock.length - room));
+    took.forEach((item) => G.me.hands.push({ item }));
+    clip('plate'); pop(`Picked up ${took.length}`, TOWER_AT); flash('Tap the fridge to store them, or the counter to put them back.'); save();
+  };
+  const atFridge = () => {
+    const fr = (s.fridge ??= []);
+    const carried = pizzasIn(G.me.hands);
+    if (carried.length) {
+      const room = FRIDGE_CAP - fr.length;
+      if (room <= 0) return hint(`The fridge is full (it holds ${FRIDGE_CAP}). Take some out first.`);
+      const put = carried.slice(0, room); fr.push(...put.map((h) => h.item as Item)); G.me.hands = G.me.hands.filter((h) => !put.includes(h));
+      clip('lid'); pop(`${fr.length} in the fridge`, FRIDGE); save(); return;
+    }
+    if (G.me.hands.length) return hint('That goes in the trash, not the fridge!');
+    if (!fr.length) return hint('The fridge is empty. Tap the pizza tower to pick pizzas up, then tap the fridge to store them.');
+    // Take out what the next customer wants first, then anything else.
+    const want = G.guests.filter((x) => x.state === 'line').sort((a, b) => a.arrived - b.arrived)[0]?.item ?? G.cars.find((x) => x.state === 'wait')?.item;
+    const order = [...fr.map((it, i) => ({ it, i })).filter((x) => x.it === want), ...fr.map((it, i) => ({ it, i })).filter((x) => x.it !== want)].slice(0, carryMax);
+    const takeIdx = new Set(order.map((x) => x.i));
+    order.forEach((x) => G.me.hands.push({ item: x.it }));
+    s.fridge = fr.filter((_, i) => !takeIdx.has(i));
+    clip('lid'); pop(`Took out ${order.length}`, FRIDGE); flash('Tap the counter to stack them on the tower.'); save();
   };
   const atTable = (i: number) => {
     if (G.mess[i]) { if (G.me.hands.length >= carryMax) return hint('Your hands are full.'); G.mess[i] = false; G.me.hands.push({ item: 'trash' }); clip('scrub'); return; }
@@ -720,7 +766,7 @@ export default function Restaurant() {
   OVENS.forEach((o, i) => {
     if (i < s.ovens) {
       const st = G.ovens[i];
-      stations.push({ key: `oven${i}`, at: o, label: `Oven ${i + 1}`, onTap: () => go(use.oven(i), () => atOven(i)), glow: st.state === 'idle' ? null : st.state,
+      stations.push({ key: `oven${i}`, at: o, label: `Oven ${i + 1}`, hit: [1, 1.2, 1], onTap: () => go(use.oven(i), () => atOven(i)), glow: st.state === 'idle' ? null : st.state,
         badge: st.state === 'cook' ? <i className="rt-bar3"><em style={{ width: `${(st.t / bakeT) * 100}%` }} /></i> : st.state === 'ready' ? <b className="rt-ready3">{st.n} ready!</b> : st.state === 'burnt' ? <b className="rt-ready3 burnt">Burnt</b> : undefined,
         children: <ModelAt url={OVEN_MODELS[s.theme] ?? OVEN_MODELS[0]} fit={0.92} /> });
     } else if (i === s.ovens) {
@@ -728,10 +774,13 @@ export default function Restaurant() {
       stations.push({ key: `oven${i}`, at: o, label: 'Empty oven spot', tag: s.claimed >= need ? `+ Oven ${fmt(cost)}` : `Level ${need}`, onTap: () => offerBuy('An oven', cost, need, () => { if (spend(cost)) s.ovens = i + 1; }), children: <EmptySpot /> });
     }
   });
+  const inFridge = (s.fridge ?? []).length;
+  stations.push({ key: 'fridge', at: FRIDGE, label: `Fridge: ${inFridge} pizza${inFridge === 1 ? '' : 's'} stored. Tap to store or take out pizzas`, onTap: () => go(use.fridge, atFridge), hit: [1, 1.9, 1], badge: inFridge ? <b className="rt-ready3 cold">🧊 {inFridge}</b> : undefined });
+  if (s.stock.length) stations.push({ key: 'tower', at: TOWER_AT, label: 'Pizza tower: tap to pick pizzas up', onTap: () => go(use.tower, atTower), hit: [1, 1.2 + Math.min(17, s.stock.length) * 0.085, 1] });
   stations.push({ key: 'trash', at: TRASH, label: 'Trash can', onTap: () => go(use.trash, atTrash), children: <ModelAt url={TRASH_MODEL} fit={0.55} /> });
   stations.push({ key: 'counter', at: COUNTER, label: 'Counter: stack pizzas and hand them over', tag: `${s.stock.length} pizza${s.stock.length === 1 ? '' : 's'} on the counter`, onTap: () => go(use.counter, atCounter) });
   if (!G.open) stations.push({ key: 'register', at: { x: 7, y: COUNTER.y }, label: 'Cash register: answer questions for money', tag: 'Cash register questions', onTap: () => go({ x: 7, y: 2 }, () => { clip('cash', true); setRegQuiz(true); }) });
-  if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', onTap: () => go(use.window, atWindow) });
+  if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', hit: [1, 1.6, 1], onTap: () => go(use.window, atWindow) });
   const tableCap = s.annex ? TABLES.length : lvOk(8) ? MAIN_TABLES : lvOk(2) ? 3 : 1;
   TABLES.forEach((p, i) => {
     const cap = tableCap;
@@ -994,6 +1043,7 @@ export default function Restaurant() {
         const rows: [string, string][] = [
           ...(away.baked ? [[`${nm('cook')} baked`, `${away.baked} pizzas`] as [string, string]] : []),
           ...(away.stacked ? [[`${nm('server')} stacked on the counter`, `${away.stacked} pizzas`] as [string, string]] : []),
+          ...(away.fridged ? [[`${nm('server')} put in the fridge`, `${away.fridged} pizzas`] as [string, string]] : []),
           ...(away.cleaned ? [['Tables cleaned', `${away.cleaned}`] as [string, string]] : []),
           ...(away.takeout ? [[`${nm('takeout')} served takeout customers`, `${away.takeout}`] as [string, string]] : []),
           ...(away.drive ? [[`${nm('drive')} served drive through cars`, `${away.drive}`] as [string, string]] : []),
