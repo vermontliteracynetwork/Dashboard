@@ -401,13 +401,15 @@ export interface SymbolSettings { dice: boolean; spellCheck: boolean; grammarChe
 // shows and the student types the outline words. drag: the student drags grammar symbols into empty boxes. picture:
 // the student writes a sentence about the picture with a formula (formulas: two or more for the student to pick from).
 export type SymbolMode = 'fill' | 'drag' | 'picture';
-export interface SymbolFormula { name: string; slots: SymbolSlot[] }
+export interface SymbolFormula { name: string; slots: SymbolSlot[]; bankId?: string }
 export interface SymbolQuestion {
   id: string;
   kind: 'symbol';
   prompt: string;
   slots: SymbolSlot[];
   mode?: SymbolMode;
+  // The formula bank entry it came from (Build Queue 504), so the builder can show its number and example.
+  bankId?: string;
   // Picture response formula options; slots is always the first one.
   formulas?: SymbolFormula[];
   imageUrl?: string;

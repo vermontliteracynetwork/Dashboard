@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 // checkbox, its name, a one line plain description, and an ⓘ that shows the full explanation on hover or tap.
 export interface SettingItem { key: string; icon?: string; label: string; desc: string; help: string; checked: boolean; onChange: (on: boolean) => void }
 
-function InfoTip({ label, text }: { label: string; text: string }) {
+export function InfoTip({ label, text }: { label: string; text: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLSpanElement | null>(null);
   useEffect(() => {
@@ -29,7 +29,7 @@ export default function SettingsList({ title, items, note, defaultOpen = true, l
   return (
     <section className={`set-list${open ? ' open' : ''}`}>
       <button type="button" className="set-list-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        {lead}<span className="set-list-title">{lead ? title : `⚙️ ${title}`}</span>
+        {lead}<span className="set-list-title">{title}</span>
         <small>{on} of {items.length} on</small>
         <i aria-hidden>▾</i>
       </button>
@@ -37,14 +37,12 @@ export default function SettingsList({ title, items, note, defaultOpen = true, l
         <ul className="set-list-rows">
           {items.map((it) => (
             <li key={it.key} className={`set-row${it.checked ? ' on' : ''}`}>
-              <label className="set-row-main" title={it.help}>
+              {/* Build Queue 504: just the name in the row; what it does shows on hover and in the ⓘ. */}
+              <label className="set-row-main" title={it.desc}>
                 <input type="checkbox" checked={it.checked} onChange={(e) => it.onChange(e.target.checked)} />
-                <span className="set-row-text">
-                  <b>{it.icon && <span aria-hidden>{it.icon} </span>}{it.label}</b>
-                  <small>{it.desc}</small>
-                </span>
+                <span className="set-row-text"><b>{it.label}</b></span>
               </label>
-              <InfoTip label={it.label} text={it.help} />
+              <InfoTip label={it.label} text={`${it.desc} ${it.help}`} />
             </li>
           ))}
           {note && <li className="set-list-note">{note}</li>}

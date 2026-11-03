@@ -7,7 +7,7 @@ import { DEFAULT_SYMBOL_SETTINGS, MODE_INFO, SYMBOLS, bankSlots, blankSymbolQues
 import { SYMBOL_SENTENCE_PAGES } from '../../lib/symbolDeck';
 import SymbolPanel, { MARK_NAME } from '../../components/SymbolPanel';
 import SymbolSentenceAnswer from '../../components/SymbolSentenceAnswer';
-import SettingsList, { type SettingItem } from '../../components/SettingsList';
+import SettingsList, { InfoTip, type SettingItem } from '../../components/SettingsList';
 
 // Text input question sets built from her grammar symbols (Build Queue 253), rebuilt by Build Queue 494 to match the
 // student's screen (her mockups: the Grammar Symbols panel on the left, the question text, then the sentence as boxes,
@@ -92,14 +92,13 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
                     value={x.word} placeholder={x.given ? 'your word' : 'word'} onFocus={() => setSel(i)}
                     aria-label={`${info ? info.name : 'Empty box'} word. ${x.given ? 'Solid: your word' : 'Outline: the student types it'}. Double-tap to switch.`}
                     onChange={(e) => edit(i, { word: e.target.value })} onDoubleClick={() => edit(i, { given: !x.given })} />
-                  <small className="ssq-cap">{x.pick ? 'Student picks symbol' : info!.name}</small>
+                  {x.pick && <small className="ssq-cap" title="The student drags a symbol into this box">Empty</small>}
                 </div>
               );
             })}
             <div className="ssq-slot ssq-slot-add">
               <span className="ssq-spacer" aria-hidden />
-              <button type="button" className="ssq-add" onClick={() => addBox(mode === 'drag' ? emptySlot() : { pos: 'noun', word: '', given: false })} aria-label="Add a box">+</button>
-              <small className="ssq-cap">Add a box</small>
+              <button type="button" className="ssq-add" title="Add a box" onClick={() => addBox(mode === 'drag' ? emptySlot() : { pos: 'noun', word: '', given: false })} aria-label="Add a box">+</button>
             </div>
           </div>
           {s && s.pos !== 'punctuation' ? (
@@ -113,9 +112,7 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
               <button type="button" className="btn btn-sm" disabled={wi < 0 || wi >= words.length - 1} onClick={() => move(sel!, words[wi + 1])} aria-label="Move right">Move ▶</button>
               <button type="button" className="btn btn-sm btn-danger" onClick={() => { setSlots(q.slots.filter((_, k) => k !== sel)); setSel(null); }}>Remove box</button>
             </div>
-          ) : (
-            <p className="ssq-legend">{MODE_INFO[mode].hint} Tap a box, then a symbol to put it in. A <b>solid</b> word is yours; an <b>outline</b> word is typed by the student (double-tap a word to switch).</p>
-          )}
+          ) : null}
         </div>
       </div>
     </div>
@@ -123,18 +120,18 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
 }
 
 const lessonFormulas = (lesson: string) => FORMULA_BANK.filter((f) => f.lesson === lesson);
-const bankOption = (f: BankFormula) => `${f.skill} ${f.level}: ${f.formula} (${f.example})`;
+const bankOption = (f: BankFormula) => `${f.skill} ${f.level} · ${f.formula} · ${f.example}`;
 
 // A picture response's formula options (Build Queue 502): one formula, or two or more for the student to pick from.
 function FormulaOptions({ q, at, onPick, onUpdate }: { q: SymbolQuestion; at: number; onPick: (i: number) => void; onUpdate: (q: SymbolQuestion) => void }) {
   const list = q.formulas?.length ? q.formulas : [{ name: '', slots: q.slots }];
   const save = (fs: SymbolFormula[]) => onUpdate({ ...q, formulas: fs.length > 1 ? fs : undefined, slots: fs[0].slots });
-  const add = (f?: BankFormula) => { const fs = [...list, f ? { name: f.formula, slots: bankSlots(f, 'picture') } : { name: `Formula ${list.length + 1}`, slots: [punctSlot('.', false)] }]; save(fs); onPick(fs.length - 1); };
+  const add = (f?: BankFormula) => { const fs = [...list, f ? { name: f.formula, slots: bankSlots(f, 'picture'), bankId: f.id } : { name: `Formula ${list.length + 1}`, slots: [punctSlot('.', false)] }]; save(fs); onPick(fs.length - 1); };
   return (
     <div className="ssq-formulas">
       <div className="ssq-formulas-head">
         <b>Formulas for this picture</b>
-        <small>{list.length > 1 ? `The student picks one of these ${list.length} formulas.` : 'Every student uses this formula. Add another to let them choose.'}</small>
+        <InfoTip label="Formulas for this picture" text={list.length > 1 ? `The student picks one of these ${list.length} formulas, then makes a sentence about the picture with it.` : 'Every student uses this formula. Add another formula to let them choose.'} />
       </div>
       <div className="ssq-formula-chips" role="tablist" aria-label="Formula options">
         {list.map((f, i) => (
@@ -143,9 +140,9 @@ function FormulaOptions({ q, at, onPick, onUpdate }: { q: SymbolQuestion; at: nu
             {f.name || `Formula ${i + 1}`}
           </button>
         ))}
-        <button type="button" className="btn btn-sm" onClick={() => add()}>➕ Add a formula</button>
+        <button type="button" className="btn btn-sm" onClick={() => add()}>Add a formula</button>
         <select value="" aria-label="Add a formula from the formula bank" onChange={(e) => { const f = FORMULA_BANK.find((x) => x.id === e.target.value); if (f) add(f); }}>
-          <option value="">Add from the formula bank…</option>
+          <option value="">Add from the formula bank</option>
           {BANK_LESSONS.map((l) => <optgroup key={l.lesson} label={`${l.lesson} ${l.name}`}>{lessonFormulas(l.lesson).map((f) => <option key={f.id} value={f.id}>{bankOption(f)}</option>)}</optgroup>)}
         </select>
       </div>
@@ -186,10 +183,10 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
     const fs = formulas.map((f, i) => (i === at ? { ...f, slots: nq.slots } : f));
     update({ ...nq, formulas: fs, slots: fs[0].slots });
   };
-  const setSlots = (slots: SymbolSlot[], name?: string) => {
+  const setSlots = (slots: SymbolSlot[], name?: string, bankId?: string) => {
     if (!q || !shown) return;
-    if (name && formulas) update({ ...q, formulas: formulas.map((f, i) => (i === at ? { ...f, name, slots } : f)), slots: at === 0 ? slots : q.slots });
-    else editShown({ ...shown, slots });
+    if (name && formulas) update({ ...q, formulas: formulas.map((f, i) => (i === at ? { ...f, name, slots, bankId } : f)), slots: at === 0 ? slots : q.slots });
+    else editShown({ ...shown, slots, bankId });
   };
   const place = () => { if (!quick.trim()) return; const sl = sentenceToSlots(quick).map((x) => (x.pos === 'punctuation' ? x : mode === 'drag' ? { ...x, pick: true } : mode === 'picture' ? { ...x, given: false } : x)); setSlots(sl); setQuick(''); };
   const setMode = (m: SymbolMode) => {
@@ -207,73 +204,78 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
     const fs = lessonFormulas(lesson);
     const made: SymbolQuestion[] = [];
     for (const f of fs) {
-      if (kinds.fill) made.push({ ...blankSymbolQuestion(makeId(), settings, 'fill'), slots: bankSlots(f, 'fill') });
-      if (kinds.drag) made.push({ ...blankSymbolQuestion(makeId(), settings, 'drag'), slots: bankSlots(f, 'drag') });
+      if (kinds.fill) made.push({ ...blankSymbolQuestion(makeId(), settings, 'fill'), slots: bankSlots(f, 'fill'), bankId: f.id });
+      if (kinds.drag) made.push({ ...blankSymbolQuestion(makeId(), settings, 'drag'), slots: bankSlots(f, 'drag'), bankId: f.id });
     }
     if (kinds.picture && fs.length) {
       // Up to four different formulas from the lesson (the first example of each), in lesson order.
       const uniq = fs.filter((f, i) => fs.findIndex((x) => x.formula === f.formula) === i).slice(0, 4);
-      const opts = uniq.map((f) => ({ name: f.formula, slots: bankSlots(f, 'picture') }));
-      made.push({ ...blankSymbolQuestion(makeId(), settings, 'picture'), prompt: opts.length > 1 ? 'Pick a formula, then make a sentence about the picture.' : MODE_INFO.picture.prompt, slots: opts[0].slots, formulas: opts.length > 1 ? opts : undefined });
+      const opts = uniq.map((f) => ({ name: f.formula, slots: bankSlots(f, 'picture'), bankId: f.id }));
+      made.push({ ...blankSymbolQuestion(makeId(), settings, 'picture'), bankId: uniq[0]?.id, prompt: opts.length > 1 ? 'Pick a formula, then make a sentence about the picture.' : MODE_INFO.picture.prompt, slots: opts[0].slots, formulas: opts.length > 1 ? opts : undefined });
     }
     if (!made.length) return;
     // A brand new set's one empty sentence is replaced instead of kept.
     const keep = qs.filter((x) => x.slots.some((sl) => sl.pos !== 'punctuation'));
     onChange([...keep, ...made]); go(keep.length);
   };
+  const bankKey = formulas ? formulas[at]?.bankId : q?.bankId;
+  const bank = bankKey ? FORMULA_BANK.find((f) => f.id === bankKey) : undefined;
+  const [showPic, setShowPic] = useState(false);
   const lessonCount = lessonFormulas(lesson).length;
   const willMake = (kinds.fill ? lessonCount : 0) + (kinds.drag ? lessonCount : 0) + (kinds.picture && lessonCount ? 1 : 0);
   return (
     <div className="stack sym-editor">
       {!hideSettings && <SymbolSettingsBar settings={settings} onChange={(s) => onChange(qs.map((x) => ({ ...x, settings: s })))} />}
       <div className="ssq-lesson" role="group" aria-label="Add questions from a lesson">
-        <b>📚 Add questions from a lesson</b>
+        <b>Add from a lesson</b>
         <select value={lesson} onChange={(e) => setLesson(e.target.value)} aria-label="Lesson">
           {BANK_LESSONS.map((l) => <option key={l.lesson} value={l.lesson}>{l.lesson} {l.name} ({l.count} formula{l.count === 1 ? '' : 's'})</option>)}
         </select>
         {(Object.keys(MODE_INFO) as SymbolMode[]).map((m) => (
-          <label key={m} className="ssq-lesson-kind"><input type="checkbox" checked={kinds[m]} onChange={(e) => setKinds({ ...kinds, [m]: e.target.checked })} /> {MODE_INFO[m].icon} {MODE_INFO[m].label}</label>
+          <label key={m} className="ssq-lesson-kind"><input type="checkbox" checked={kinds[m]} onChange={(e) => setKinds({ ...kinds, [m]: e.target.checked })} /> {MODE_INFO[m].label}</label>
         ))}
         <button type="button" className="btn btn-sm btn-primary" disabled={!willMake} onClick={addLesson}>Add {willMake} question{willMake === 1 ? '' : 's'}</button>
       </div>
       <div className="ssq-tabs" role="tablist" aria-label="Questions">
-        {qs.map((x, i) => <button key={x.id} type="button" role="tab" aria-selected={i === ai} className={`ssq-tab${i === ai ? ' on' : ''}`} onClick={() => go(i)} title={MODE_INFO[modeOf(x)].label}><span aria-hidden>{MODE_INFO[modeOf(x)].icon}</span> {i + 1}</button>)}
-        {(Object.keys(MODE_INFO) as SymbolMode[]).map((m) => <button key={m} type="button" className="btn btn-sm" onClick={() => add(m)}>➕ {MODE_INFO[m].label}</button>)}
+        {qs.map((x, i) => <button key={x.id} type="button" role="tab" aria-selected={i === ai} className={`ssq-tab${i === ai ? ' on' : ''}`} onClick={() => go(i)} title={MODE_INFO[modeOf(x)].label}><i className={`ssq-kind k-${modeOf(x)}`} aria-label={MODE_INFO[modeOf(x)].label} />{i + 1}</button>)}
+        {(Object.keys(MODE_INFO) as SymbolMode[]).map((m) => <button key={m} type="button" className="btn btn-sm" onClick={() => add(m)}>+ {MODE_INFO[m].label}</button>)}
       </div>
       {!q || !shown ? <p className="ssq-legend">Add a question to start.</p> : <>
         <div className="ssq-modes" role="radiogroup" aria-label="Kind of question">
           {(Object.keys(MODE_INFO) as SymbolMode[]).map((m) => (
-            <button key={m} type="button" role="radio" aria-checked={mode === m} className={`ssq-mode${mode === m ? ' on' : ''}`} onClick={() => setMode(m)}>
-              <b>{MODE_INFO[m].icon} {MODE_INFO[m].label}</b><small>{MODE_INFO[m].hint}</small>
+            <button key={m} type="button" role="radio" aria-checked={mode === m} className={`ssq-mode${mode === m ? ' on' : ''}`} onClick={() => setMode(m)} title={MODE_INFO[m].hint}>
+              <i className={`ssq-kind k-${m}`} aria-hidden />{MODE_INFO[m].label}
             </button>
           ))}
+          <InfoTip label="Kinds of questions" text={`${(Object.keys(MODE_INFO) as SymbolMode[]).map((m) => `${MODE_INFO[m].label}: ${MODE_INFO[m].hint}`).join(' ')} Tap a box, then a symbol to put it in. A solid word is yours; an outline word is typed by the student (double-tap a word to switch).`} />
+          {bank && <span className="ssq-bankline" title={`${bank.lesson} ${bank.lessonName} · ${bank.skill} ${bank.skillName}`}><b>{bank.skill} {bank.level}</b> {bank.formula} <span>{bank.example}</span></span>}
         </div>
         <div className="ssq-quick">
           <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="Type a whole sentence: The small cat ran." aria-label="Type a sentence to place its symbols" onKeyDown={(e) => { if (e.key === 'Enter') place(); }} />
           <button type="button" className="btn btn-sm" disabled={!quick.trim()} onClick={place}>Place symbols</button>
-          <select value="" aria-label="Start from the formula bank" onChange={(e) => { const f = FORMULA_BANK.find((x) => x.id === e.target.value); if (f) setSlots(bankSlots(f, mode), f.formula); }}>
-            <option value="">From the formula bank…</option>
+          <select value="" aria-label="Start from the formula bank" onChange={(e) => { const f = FORMULA_BANK.find((x) => x.id === e.target.value); if (f) setSlots(bankSlots(f, mode), f.formula, f.id); }}>
+            <option value="">From the formula bank</option>
             {BANK_LESSONS.map((l) => <optgroup key={l.lesson} label={`${l.lesson} ${l.name}`}>{lessonFormulas(l.lesson).map((f) => <option key={f.id} value={f.id}>{bankOption(f)}</option>)}</optgroup>)}
           </select>
           <select value="" aria-label="Start from one of your symbol sentence cards" onChange={(e) => {
             const card = SYMBOL_SENTENCE_PAGES.flatMap((p) => p.sentences).find((c) => c.id === e.target.value);
             if (card) { const end = card.sentence.trim().slice(-1); setSlots([...card.words.map((w) => ({ pos: w.wordClass, word: w.word, given: mode !== 'picture', pick: mode === 'drag' ? true : undefined })), punctSlot(/[.!?]/.test(end) ? end : '.', mode !== 'picture')]); }
           }}>
-            <option value="">From a card…</option>
+            <option value="">From a card</option>
             {SYMBOL_SENTENCE_PAGES.map((p) => <optgroup key={p.id} label={p.label}>{p.sentences.map((c) => <option key={c.id} value={c.id}>{c.sentence}</option>)}</optgroup>)}
           </select>
           <span className="ssq-quick-gap" />
-          <button type="button" className="btn btn-sm" onClick={() => { const copy: SymbolQuestion = { ...q, id: makeId(), slots: q.slots.map((x) => ({ ...x })), formulas: q.formulas?.map((f) => ({ ...f, slots: f.slots.map((x) => ({ ...x })) })) }; onChange([...qs.slice(0, ai + 1), copy, ...qs.slice(ai + 1)]); go(ai + 1); }}>⧉ Duplicate</button>
+          <button type="button" className="btn btn-sm" onClick={() => { const copy: SymbolQuestion = { ...q, id: makeId(), slots: q.slots.map((x) => ({ ...x })), formulas: q.formulas?.map((f) => ({ ...f, slots: f.slots.map((x) => ({ ...x })) })) }; onChange([...qs.slice(0, ai + 1), copy, ...qs.slice(ai + 1)]); go(ai + 1); }}>Duplicate</button>
           <button type="button" className="btn btn-sm btn-danger" onClick={() => { onChange(qs.filter((x) => x.id !== q.id)); go(Math.max(0, ai - 1)); }}>Delete</button>
         </div>
-        {/* A picture is required for a picture response and optional for the others. */}
-        <div className="sym-pic">
+        {/* A picture is required for a picture response; for the others it hides behind a small button. */}
+        {mode !== 'picture' && !q.imageUrl && !showPic ? <button type="button" className="btn btn-sm ssq-addpic" onClick={() => setShowPic(true)}>Add a picture</button> : <div className="sym-pic">
           <ImageUploadField label={mode === 'picture' ? 'Picture (the student makes a sentence about it)' : 'Picture (optional)'} value={q.imageUrl} onChange={(imageUrl) => update({ ...q, imageUrl: imageUrl || undefined })} altValue={q.imageAlt} onAltChange={(imageAlt) => update({ ...q, imageAlt: imageAlt || undefined })} />
-        </div>
+        </div>}
         {mode === 'picture' && <FormulaOptions q={q} at={at} onPick={setFIdx} onUpdate={update} />}
         <SentenceCard key={`${q.id}-${at}`} q={shown} onUpdate={editShown} />
         <div className="ssq-preview-bar">
-          <button type="button" className={`btn${preview ? ' btn-primary' : ''}`} onClick={() => { setPreview(!preview); setPreviewNote(''); }}>{preview ? 'Hide the student view' : '👀 Try it as a student'}</button>
+          <button type="button" className={`btn${preview ? ' btn-primary' : ''}`} onClick={() => { setPreview(!preview); setPreviewNote(''); }}>{preview ? 'Hide the student view' : 'Try it as a student'}</button>
           {previewNote && <span className="ssq-legend">{previewNote}</span>}
         </div>
         {preview && (

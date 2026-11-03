@@ -79,7 +79,7 @@ export default function NewQuestionSet() {
           <button type="button" className="nqs-step-head" aria-expanded={detailsOpen} onClick={() => setDetailsOpen((o) => !o)}>
             <span className="nqs-num">1</span>
             <span className="nqs-step-title">Details</span>
-            {!detailsOpen && <span className="nqs-summary">{subject === 'math' ? '🔢 Math' : '📚 Literacy'} · {name.trim() || 'No name yet'}{tags.length ? ` · ${tags.length} tag${tags.length === 1 ? '' : 's'}` : ''}</span>}
+            {!detailsOpen && <span className="nqs-summary">{subject === 'math' ? 'Math' : 'Literacy'} · {name.trim() || 'No name yet'}{tags.length ? ` · ${tags.length} tag${tags.length === 1 ? '' : 's'}` : ''}</span>}
             <i aria-hidden>▾</i>
           </button>
           {detailsOpen && (
@@ -88,7 +88,7 @@ export default function NewQuestionSet() {
                 <div className="nqs-seg" role="radiogroup" aria-label="Subject">
                   {(['math', 'literacy'] as const).map((sj) => (
                     <button key={sj} type="button" role="radio" aria-checked={subject === sj} className={subject === sj ? 'on' : ''} onClick={() => setSubject(sj)}>
-                      {sj === 'math' ? '🔢 Math' : '📚 Literacy'}
+                      {sj === 'math' ? 'Math' : 'Literacy'}
                     </button>
                   ))}
                 </div>
@@ -114,10 +114,10 @@ export default function NewQuestionSet() {
           <div className="nqs-step-head static"><span className="nqs-num">2</span><span className="nqs-step-title">What kind of questions?</span></div>
           <div className="qs-type nqs-type" role="radiogroup" aria-label="Kind of question set">
             <button type="button" role="radio" aria-checked={setType === 'mc'} className={`qs-type-btn${setType === 'mc' ? ' on' : ''}`} onClick={() => chooseType('mc')}>
-              <b>☑️ Multiple choice</b><small>A question and up to four answers. Plays in every game.</small>
+              <b>Multiple choice</b><small>A question and up to four answers. Plays in every game.</small>
             </button>
             <button type="button" role="radio" aria-checked={setType === 'text'} className={`qs-type-btn${setType === 'text' ? ' on' : ''}`} onClick={() => chooseType('text')}>
-              <b>🔣 Symbolic Grammar</b><small>Fill in the blank, drag and drop, and picture response questions with grammar symbols, mixed in one set. Plays in assignments and Quiz Mode.</small>
+              <b>Symbolic Grammar</b><small>Fill in the blank, drag and drop, and picture response questions with grammar symbols, mixed in one set. Plays in assignments and Quiz Mode.</small>
             </button>
           </div>
         </section>
@@ -140,14 +140,14 @@ export default function NewQuestionSet() {
           role="status"
         >
           <span style={{ fontWeight: 700 }}>
-            {tried && problems.length ? `✏️ To finish: ${problems[0]}${problems.length > 1 ? ` (and ${problems.length - 1} more)` : ''}` : `✏️ New set: ${questions.length} ${questions.length === 1 ? 'question' : 'questions'}, not saved yet`}
+            {tried && problems.length ? `To finish: ${problems[0]}${problems.length > 1 ? ` (and ${problems.length - 1} more)` : ''}` : `New set: ${questions.length} ${questions.length === 1 ? 'question' : 'questions'}, not saved yet`}
           </span>
           <div className="row" style={{ gap: 8 }}>
             <button type="button" className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => { if (!started || window.confirm('Leave without saving this new set?')) navigate('/teacher/assignments'); }}>
               Cancel
             </button>
             <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={create}>
-              💾 Create set
+              Create set
             </button>
           </div>
         </div>

@@ -11442,3 +11442,50 @@ button.nqs-step-head { cursor: pointer; }
 .ssq-choice-syms { display: flex; align-items: center; gap: 6px; }
 .ssq-choice-syms img { width: 40px; height: 40px; object-fit: contain; }
 .ssq-choice-syms i { font: 900 1.6rem 'Nunito', system-ui, sans-serif; font-style: normal; color: #6b6474; }
+
+/* Build Queue 504: a compact Symbolic Grammar builder. No emojis; kinds are marked with a small colored dot; the
+   explanations live in hover text and the ⓘ; the symbols in the builder are smaller. */
+.ssq-kind { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; flex: none; }
+.ssq-kind.k-fill { background: #2e7bb8; }
+.ssq-kind.k-drag { background: #d9a83a; }
+.ssq-kind.k-picture { background: #3fa466; }
+.sym-editor { gap: 10px; }
+.ssq-modes { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ssq-mode { flex-direction: row; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 10px; font-weight: 700; font-size: .92rem; }
+.ssq-bankline { display: inline-flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; margin-left: auto; padding: 6px 10px; border-radius: 10px; background: #f6f3fc; font-size: .88rem; color: #3a342a; }
+.ssq-bankline span { color: #6b6280; font-style: italic; }
+.ssq-lesson { padding: 6px 10px; gap: 6px 10px; font-size: .92rem; }
+.ssq-lesson select { min-height: 40px; }
+.ssq-lesson-kind { min-height: 40px; font-weight: 600; }
+.ssq-tabs { gap: 6px; }
+.ssq-tab { min-width: 40px; min-height: 40px; font-size: .9rem; display: inline-flex; align-items: center; justify-content: center; }
+.ssq-quick input, .ssq-quick select { min-height: 40px; }
+.ssq-addpic { align-self: flex-start; }
+.ssq-formulas { padding: 8px 10px; gap: 6px; }
+.ssq-formulas-head { align-items: center; }
+.ssq-fchip { min-height: 40px; font-size: .85rem; }
+.ssq-fchip-syms img { width: 18px; height: 18px; }
+/* Smaller symbols in the builder card. */
+.ssq-edit { padding: 12px; }
+.ssq-edit.ssq { grid-template-columns: minmax(170px, 200px) minmax(0, 1fr); gap: 14px; }
+.ssq-edit .ssq-row { --box: clamp(40px, calc((100cqi - var(--extra) - var(--n) * 14px) / var(--n) - 24px), 64px); gap: 12px 10px; }
+.ssq-edit .ssq-sym { border-radius: 14px; }
+.ssq-edit .ssq-symbtn { padding: 10%; }
+.ssq-edit .ssq-pill { min-height: 40px; border-width: 3px; font-size: .95rem; }
+.ssq-edit .ssq-mark { width: 40px; height: 48px; font-size: 1.5rem; margin-top: -4px; }
+.ssq-edit .ssq-add { width: 40px; height: 40px; font-size: 1.2rem; }
+.ssq-edit .ssq-pal-grid { gap: 2px; padding: 6px; }
+.ssq-edit .ssq-pal { min-height: 52px; padding: 4px 2px; gap: 2px; }
+.ssq-edit .ssq-pal img { width: 28px; height: 28px; }
+.ssq-edit .ssq-pal span { font-size: .64rem; }
+.ssq-edit .ssq-box-head { min-height: 38px; font-size: .88rem; padding: 0 10px; }
+.ssq-edit .ssq-mark-btn { width: 40px; height: 40px; font-size: 1.3rem; }
+.ssq-edit .ssq-prompt-input { font-size: 1.15rem; padding: 6px 10px; }
+.ssq-edit .ssq-main { gap: 12px; }
+.ssq-edit-tools .btn, .ssq-seg button { min-height: 36px; font-size: .85rem; }
+/* Settings: just the names in two columns; the ⓘ and hover say what each one does. */
+.set-list-rows { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px; }
+.set-row { padding: 2px 4px 2px 10px; }
+.set-row-main { min-height: 40px; }
+.set-row .set-info-btn { width: 40px; height: 40px; }
+.set-list-note { grid-column: 1 / -1; }

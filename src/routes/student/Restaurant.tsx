@@ -400,7 +400,8 @@ export default function Restaurant() {
           const takeout = s.claimed >= 5 && (freeTable === undefined || Math.random() < 0.35);
           if (freeTable === undefined && !takeout) break;
           const n = Math.min(stackCap(s), 1 + Math.floor(Math.random() * (wantMax(s.level) + (s.level > 1 ? STACK_ORDER[s.stackLv ?? 0] : 0))) + (party ? 1 : 0));
-          const c: Guest = { id: uid++, ...pickNeighbor(), m: mover(DOOR), state: 'walk-in', item, n, takeout, table: takeout ? -1 : freeTable!, arrived: now, critic: G.event?.id === 'critic' && G.event.until > now && !G.guests.some((x) => x.critic) };
+          const who = pickNeighbor(); if (!who) break;
+          const c: Guest = { id: uid++, ...who, m: mover(DOOR), state: 'walk-in', item, n, takeout, table: takeout ? -1 : freeTable!, arrived: now, critic: G.event?.id === 'critic' && G.event.until > now && !G.guests.some((x) => x.critic) };
           if (!takeout) taken.add(freeTable!);
           G.spawnQ.push(c);
         }
@@ -455,12 +456,16 @@ export default function Restaurant() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A different Neighbor each time when there are enough of them (never someone on the team).
-  function pickNeighbor() {
-    const st = g.current!.s.staff ?? {};
-    const team = Object.values(st); const list = nbRef.current.filter((n) => !team.includes(n.id)); const inside = new Set(g.current!.guests.filter((c) => c.state !== 'leave').map((c) => c.npc));
-    const free = list.filter((n) => !inside.has(n.id)); const pool = free.length ? free : list;
+  // Build Queue 503 (her words: "make sure two of the same neighbor (ex two Yogas) are never duplicated and in at the
+  // same time"): anyone already in the room (walking in, in line, eating or still on the way out) or waiting at the door
+  // is never picked again; when every Neighbor is already here, nobody new comes in until someone leaves.
+  function pickNeighbor(): { npc: string; name: string } | null {
+    const G0 = g.current!, team = Object.values(G0.s.staff ?? {});
+    const here = new Set([...G0.guests, ...G0.spawnQ].map((c) => c.npc));
+    const pool = nbRef.current.filter((n) => !team.includes(n.id) && !here.has(n.id));
+    if (!nbRef.current.length) return { npc: '', name: 'A Neighbor' };
     const n = pool[Math.floor(Math.random() * pool.length)];
-    return n ? { npc: n.id, name: n.name } : { npc: '', name: 'A Neighbor' };
+    return n ? { npc: n.id, name: n.name } : null;
   }
   // The line at the counter: first come, first served, one tile each.
   function reline() {
