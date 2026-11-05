@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { footLiftFor, pickIdle, pickWalk } from '../../lib/petClips';
 import { feedFromInventory } from '../../lib/petFood';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -170,7 +170,7 @@ function RoomWalls({ roomW, roomD, color, mode }: { roomW: number; roomD: number
       {walls.map((w, i) => (
         <mesh key={i} ref={(el) => { refs.current[i] = el; }} position={[w.x, WALL_HEIGHT / 2, w.z]} scale={[1, WALL_HEIGHT, 1]}>
           <boxGeometry args={[w.sx, 1, w.sz]} />
-          {color.startsWith('data:') ? <WallpaperMaterial url={color} across={Math.max(w.sx, w.sz)} /> : <meshStandardMaterial color={color} />}
+          <meshStandardMaterial color={color} />
         </mesh>
       ))}
     </>
@@ -286,20 +286,6 @@ function StarterScaleLoader({ item, onScale }: { item: PlaceableItem; onScale: (
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scene]);
   return null;
-}
-
-// A student's drawn wallpaper square, repeated about every 0.8 m.
-function WallpaperMaterial({ url, across }: { url: string; across: number }) {
-  const base = useTexture(url);
-  const tex = useMemo(() => {
-    const t = base.clone();
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(across / 0.8, 1 / 0.8);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.needsUpdate = true;
-    return t;
-  }, [base, across]);
-  return <meshStandardMaterial map={tex} />;
 }
 
 function FloorMaterial({ path }: { path: string }) {
@@ -885,8 +871,6 @@ function YardGate({ z, onWalk }: { z: number; onWalk?: () => void }) {
   );
 }
 
-const PaintStudio = lazy(() => import('../../components/PaintStudio'));
-
 export default function HomeRoom() {
   useLockBodyScroll();
   const navigate = useNavigate();
@@ -925,8 +909,6 @@ export default function HomeRoom() {
   const [scales, setScales] = useState<Record<string, number>>({});
   const [armedId, setArmedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  // Paint screen (teacher 2026-11-05): a home item, the wallpaper or the floor.
-  const [painting, setPainting] = useState<'item' | 'wall' | 'floor' | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   // Direct teacher request: "give a clear room/clear all feature that
@@ -1828,25 +1810,6 @@ export default function HomeRoom() {
             </div>
           )}
 
-          {painting && (
-            <Suspense fallback={null}>
-              <PaintStudio
-                kind={painting === 'item' ? 'item' : 'tile'}
-                title={painting === 'item' ? `Paint your ${selected?.label ?? 'item'}` : painting === 'wall' ? 'Draw your wallpaper' : 'Draw your floor'}
-                start={painting === 'item' ? (selected?.tintColor?.startsWith('design:') ? selected.tintColor.slice(7) : undefined)
-                  : painting === 'wall' ? (activeRoom.wallColor?.startsWith('data:') ? activeRoom.wallColor : undefined)
-                  : (activeRoom.floorTexture?.startsWith('data:') ? activeRoom.floorTexture : undefined)}
-                onClose={() => setPainting(null)}
-                onSave={(url) => {
-                  if (painting === 'item' && selected) updateWorldObject(selected.id, { tintColor: `design:${url}` });
-                  if (painting === 'wall') updateHomeRoom(activeRoom.id, { wallColor: url });
-                  if (painting === 'floor') updateHomeRoom(activeRoom.id, { floorTexture: url });
-                  setPainting(null); flashSaved();
-                }}
-              />
-            </Suspense>
-          )}
-
           {selected && !armedItem && (
             <div style={{ position: 'fixed', top: 70, left: '50%', transform: 'translateX(-50%)', zIndex: 60, background: '#fff', borderRadius: 12, padding: '8px 10px', boxShadow: '0 2px 10px rgba(0,0,0,0.25)', display: 'flex', gap: 6, alignItems: 'center' }}>
               {isPicturePath(selected.modelPath) ? <>
@@ -1858,7 +1821,6 @@ export default function HomeRoom() {
               </>}
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Smaller" onClick={() => resizeSelected(1 / 1.15)}>－</button>
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Bigger" onClick={() => resizeSelected(1.15)}>＋</button>
-              {!isPicturePath(selected.modelPath) && <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Paint it" aria-label="Paint it" onClick={() => setPainting('item')}>🖌️</button>}
               <button
                 className="btn btn-sm"
                 style={{ minHeight: 44, background: confirmDeleteId === selected.id ? '#c0392b' : undefined, color: confirmDeleteId === selected.id ? '#fff' : undefined }}
@@ -1899,7 +1861,6 @@ export default function HomeRoom() {
                       />
                     ))}
                   </div>
-                  <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 12, width: '100%', marginBottom: 8 }} onClick={() => setPainting('wall')}>🖌️ Draw my wallpaper</button>
                   <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>Floor</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                     {FLOOR_TEXTURE_OPTIONS.map((opt) => (
@@ -1913,7 +1874,6 @@ export default function HomeRoom() {
                       </button>
                     ))}
                   </div>
-                  <button className="btn btn-sm" style={{ minHeight: 44, fontSize: 12, width: '100%', marginBottom: 8 }} onClick={() => setPainting('floor')}>🖌️ Draw my floor</button>
                   {interiorRooms.length > 1 && (
                     <button
                       className="btn btn-sm"
