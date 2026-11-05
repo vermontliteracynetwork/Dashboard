@@ -123,6 +123,37 @@ export function useModelSize(path: string, normalizeArg?: boolean): THREE.Vector
   }, [scene, normalize]);
 }
 
+// Painted designs: one texture per drawing, shared by every copy.
+const designCache = new Map<string, THREE.Texture>();
+function designTexture(url: string): THREE.Texture {
+  let t = designCache.get(url);
+  if (!t) {
+    t = new THREE.TextureLoader().load(url);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    designCache.set(url, t);
+  }
+  return t;
+}
+// Box-projected UVs from the model's bounds: each face takes the drawing
+// from the side it faces most.
+function boxUVs(g: THREE.BufferGeometry, world: THREE.Matrix4, min: THREE.Vector3, inv: THREE.Vector3): THREE.BufferGeometry {
+  if (!g.attributes.normal) g.computeVertexNormals();
+  const pos = g.attributes.position, nor = g.attributes.normal;
+  const uv = new Float32Array(pos.count * 2);
+  const p = new THREE.Vector3(), n = new THREE.Vector3();
+  const nm = new THREE.Matrix3().getNormalMatrix(world);
+  for (let i = 0; i < pos.count; i++) {
+    p.fromBufferAttribute(pos, i).applyMatrix4(world).sub(min).multiply(inv);
+    n.fromBufferAttribute(nor, i).applyMatrix3(nm);
+    const ax = Math.abs(n.x), ay = Math.abs(n.y), az = Math.abs(n.z);
+    const [u, v] = ay >= ax && ay >= az ? [p.x, p.z] : ax >= az ? [p.z, p.y] : [p.x, p.y];
+    uv[i * 2] = u; uv[i * 2 + 1] = v;
+  }
+  g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  return g;
+}
+
 function useRecenteredScene(path: string, tintColor?: string, opacity?: number, normalize = false) {
   const { scene } = useGLTF(path);
   return useMemo(() => {
@@ -142,7 +173,26 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number, 
     clone.position.set(-center.x * k, (-box.min.y + lift) * k, -center.z * k);
     clone.scale.multiplyScalar(k);
     size.multiplyScalar(k);
-    if (tintColor || opacity !== undefined) {
+    // A student's own painted design (teacher 2026-11-05): tintColor is
+    // `design:<png data url>`, wrapped around the model like a box, so the
+    // drawing shows on every side whatever the model's own UV layout is.
+    const design = tintColor?.startsWith('design:') ? designTexture(tintColor.slice(7)) : null;
+    if (design) {
+      clone.updateMatrixWorld(true);
+      const placed = new THREE.Box3().setFromObject(clone), span = placed.getSize(new THREE.Vector3());
+      const inv = new THREE.Vector3(1 / Math.max(span.x, 1e-3), 1 / Math.max(span.y, 1e-3), 1 / Math.max(span.z, 1e-3));
+      clone.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        child.geometry = boxUVs(child.geometry.clone(), child.matrixWorld, placed.min, inv);
+        const paint = (mat: THREE.Material) => {
+          const m = new THREE.MeshStandardMaterial({ map: design, roughness: 0.8 });
+          if (opacity !== undefined) { m.transparent = true; m.opacity = opacity; }
+          mat.dispose?.();
+          return m;
+        };
+        child.material = Array.isArray(child.material) ? child.material.map(paint) : paint(child.material);
+      });
+    } else if (tintColor || opacity !== undefined) {
       const color = tintColor ? new THREE.Color(tintColor) : null;
       clone.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-05-paint-home",
+    date: "2026-11-05",
+    icon: "🖌️",
+    title: "Paint your own furniture, wallpaper and floors",
+    body: "In your home, tap an item, then tap the paint brush. Draw, erase or fill with color to make it your own. You can also draw one square for your wallpaper or floor, and it repeats across the whole room.",
+  },
+  {
     id: "2026-11-03-practice-misses",
     date: "2026-11-03",
     icon: "🎯",
