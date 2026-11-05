@@ -157,3 +157,9 @@ export function playClip(url: string, vol = 0.8) {
   if (buf !== 'loading') loadBuffer(url);
   try { const a = new Audio(url); a.volume = Math.min(1, vol * level); void a.play().catch(() => {}); } catch { /* no audio */ }
 }
+
+// Build Queue 516 (her words: "up chime for correct, boing for incorrect or try again"): her two answer sounds, used by
+// every question screen.
+export const ANSWER_RIGHT = '/sounds/up-chime.mp3', ANSWER_WRONG = '/sounds/boing.wav';
+preloadClips([ANSWER_RIGHT, ANSWER_WRONG]);
+export const playAnswer = (right: boolean) => playClip(right ? ANSWER_RIGHT : ANSWER_WRONG, right ? 0.8 : 0.6);

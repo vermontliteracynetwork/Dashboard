@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { playAnswer } from '../lib/miniSfx';
 import { recordStreakCorrect } from '../lib/streak';
 import type { MadLibQuestion, SymbolQuestion, TTSSettings } from '../types';
 import SymbolSentenceAnswer from './SymbolSentenceAnswer';
@@ -251,6 +252,7 @@ export default function QuestionScreen({
     if (qlog.current && !qlog.current.done) qlog.current.tries.push(said ?? choices[i] ?? String(i));
     // Build Queue 505: the answer counts toward how often this question comes back (missed ones come back more).
     recordAnswer(keyOfQuestion({ prompt, typed }), i === correctIndex);
+    playAnswer(i === correctIndex);
     if (i === correctIndex) {
       closeLog('right');
       setAnsweredCorrectly(true);

@@ -11615,3 +11615,22 @@ button.nqs-step-head { cursor: pointer; }
 .sgb-preview-btn { min-height: 36px; }
 .sgb-preview-note { text-align: left; margin: 0; }
 @media (max-width: 1000px) { .nqs-full .nqs-main { grid-template-columns: minmax(0, 1fr); } }
+
+/* Build Queue 517: the paint designer for home items, wallpaper and floor tiles. iPad first: big canvas, big buttons. */
+.pd-overlay { position: fixed; inset: 0; z-index: 400; background: rgba(15, 23, 42, 0.55); display: grid; place-items: center; padding: 12px; }
+.pd-panel { background: #fff; color: #1f2937; border-radius: 16px; width: min(860px, 100%); max-height: calc(100vh - 24px); overflow: auto; padding: 14px; display: grid; gap: 12px; font-family: system-ui, sans-serif; }
+.pd-head, .pd-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pd-foot { justify-content: flex-end; }
+.pd-head b { font-size: 18px; }
+.pd-body { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+.pd-canvas { width: min(440px, 100%, calc(100vh - 200px)); aspect-ratio: 1; image-rendering: pixelated; border: 2px solid #cbd5e1; border-radius: 10px; touch-action: none; background: #fff; }
+.pd-tools { flex: 1 1 240px; display: grid; gap: 10px; align-content: start; }
+.pd-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.pd-row .btn { min-height: 44px; min-width: 64px; }
+.pd-on { background: #3e7c6b !important; color: #fff !important; }
+.pd-colors { display: grid; grid-template-columns: repeat(6, 44px); gap: 6px; }
+.pd-swatch { width: 44px; height: 44px; border-radius: 10px; border: 2px solid #cbd5e1; padding: 0; cursor: pointer; }
+.pd-swatch.on { border: 3px solid #1f2937; box-shadow: 0 0 0 2px #fff inset; }
+.pd-tilebox { display: grid; gap: 4px; }
+.pd-tile { width: 144px; height: 144px; background-size: 48px 48px; background-repeat: repeat; border-radius: 8px; border: 1px solid #cbd5e1; image-rendering: pixelated; }
+.pd-foot .btn { min-height: 48px; }

@@ -142,14 +142,43 @@ function useRecenteredScene(path: string, tintColor?: string, opacity?: number, 
     clone.position.set(-center.x * k, (-box.min.y + lift) * k, -center.z * k);
     clone.scale.multiplyScalar(k);
     size.multiplyScalar(k);
+    // Build Queue 517: a student's own drawing (a data URL in tintColor) wraps the whole item. Box projection UVs, so it
+    // shows on every model even when the model's own UVs are missing or squashed into one spot.
+    const design = tintColor?.startsWith('data:') ? new THREE.TextureLoader().load(tintColor) : null;
+    if (design) {
+      design.colorSpace = THREE.SRGBColorSpace; design.wrapS = design.wrapT = THREE.RepeatWrapping;
+      clone.updateMatrixWorld(true);
+      const b2 = new THREE.Box3().setFromObject(clone);
+      const span = Math.max(b2.max.x - b2.min.x, b2.max.y - b2.min.y, b2.max.z - b2.min.z) || 1;
+      const v = new THREE.Vector3(), nrm = new THREE.Vector3();
+      clone.traverse((child) => {
+        if (!(child instanceof THREE.Mesh)) return;
+        const g = (child.geometry as THREE.BufferGeometry).clone();
+        if (!g.attributes.normal) g.computeVertexNormals();
+        const pos = g.attributes.position, nor = g.attributes.normal, uv = new Float32Array(pos.count * 2);
+        const nm = new THREE.Matrix3().getNormalMatrix(child.matrixWorld);
+        for (let i = 0; i < pos.count; i++) {
+          v.fromBufferAttribute(pos, i).applyMatrix4(child.matrixWorld);
+          nrm.fromBufferAttribute(nor, i).applyMatrix3(nm);
+          const ax = Math.abs(nrm.x), ay = Math.abs(nrm.y), az = Math.abs(nrm.z);
+          const [a, b] = ax >= ay && ax >= az ? [v.z, v.y] : ay >= az ? [v.x, v.z] : [v.x, v.y];
+          uv[i * 2] = a / span; uv[i * 2 + 1] = b / span;
+        }
+        g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+        child.geometry = g;
+      });
+    }
     if (tintColor || opacity !== undefined) {
-      const color = tintColor ? new THREE.Color(tintColor) : null;
+      const color = tintColor && !design ? new THREE.Color(tintColor) : null;
       clone.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return;
         const applyTint = (mat: THREE.Material) => {
           const cloned = mat.clone();
           if (color && (cloned instanceof THREE.MeshStandardMaterial || cloned instanceof THREE.MeshPhongMaterial || cloned instanceof THREE.MeshBasicMaterial)) {
             cloned.color = color;
+          }
+          if (design && (cloned instanceof THREE.MeshStandardMaterial || cloned instanceof THREE.MeshPhongMaterial || cloned instanceof THREE.MeshBasicMaterial)) {
+            cloned.map = design; cloned.color = new THREE.Color('#ffffff'); cloned.needsUpdate = true;
           }
           if (opacity !== undefined) {
             cloned.transparent = true;

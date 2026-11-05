@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import PaintDesigner from '../../components/PaintDesigner';
 import { footLiftFor, pickIdle, pickWalk } from '../../lib/petClips';
 import { feedFromInventory } from '../../lib/petFood';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -170,7 +171,7 @@ function RoomWalls({ roomW, roomD, color, mode }: { roomW: number; roomD: number
       {walls.map((w, i) => (
         <mesh key={i} ref={(el) => { refs.current[i] = el; }} position={[w.x, WALL_HEIGHT / 2, w.z]} scale={[1, WALL_HEIGHT, 1]}>
           <boxGeometry args={[w.sx, 1, w.sz]} />
-          <meshStandardMaterial color={color} />
+          {color.startsWith('data:') ? <WallpaperMaterial url={color} len={Math.max(w.sx, w.sz)} /> : <meshStandardMaterial color={color} />}
         </mesh>
       ))}
     </>
@@ -288,11 +289,22 @@ function StarterScaleLoader({ item, onScale }: { item: PlaceableItem; onScale: (
   return null;
 }
 
-function FloorMaterial({ path }: { path: string }) {
+// Build Queue 517: a student's own drawn wallpaper square, repeated about every 1.25 meters along the wall.
+function WallpaperMaterial({ url, len }: { url: string; len: number }) {
+  const tex = useMemo(() => {
+    const t = new THREE.TextureLoader().load(url);
+    t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.repeat.set(len / 1.25, WALL_HEIGHT / 1.25);
+    return t;
+  }, [url, len]);
+  return <meshStandardMaterial map={tex} />;
+}
+
+function FloorMaterial({ path, size = 10 }: { path: string; size?: number }) {
   const tex = useTexture(path);
   useMemo(() => {
     tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(2.5, 2.5);
+    // Her drawn floor square repeats about every meter; the ready made floors keep their own size.
+    if (path.startsWith('data:')) tex.repeat.set(size, size); else tex.repeat.set(2.5, 2.5);
     tex.colorSpace = THREE.SRGBColorSpace;
   }, [tex]);
   return <meshStandardMaterial map={tex} />;
@@ -909,6 +921,7 @@ export default function HomeRoom() {
   const [scales, setScales] = useState<Record<string, number>>({});
   const [armedId, setArmedId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [designFor, setDesignFor] = useState<'item' | 'wall' | 'floor' | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   // Direct teacher request: "give a clear room/clear all feature that
@@ -1619,7 +1632,7 @@ export default function HomeRoom() {
               <planeGeometry args={[roomW, roomD]} />
               {activeRoom.floorTexture ? (
                 <Suspense fallback={<meshStandardMaterial color={DEFAULT_FLOOR_COLOR} />}>
-                  <FloorMaterial path={activeRoom.floorTexture} />
+                  <FloorMaterial path={activeRoom.floorTexture} size={Math.max(roomW, roomD)} />
                 </Suspense>
               ) : (
                 <meshStandardMaterial color={DEFAULT_FLOOR_COLOR} />
@@ -1680,6 +1693,20 @@ export default function HomeRoom() {
           />
         ))}
       </Canvas>
+      {designFor && (designFor !== 'item' || selected) && (
+        <PaintDesigner
+          title={designFor === 'item' ? `Design your ${(selected?.customName || selected?.label || 'item').toLowerCase()}` : designFor === 'wall' ? 'Draw a wallpaper square' : 'Draw a floor square'}
+          tile={designFor !== 'item'}
+          initial={designFor === 'item' ? selected?.tintColor : designFor === 'wall' ? activeRoom?.wallColor : activeRoom?.floorTexture}
+          onClose={() => setDesignFor(null)}
+          onSave={(url) => {
+            if (designFor === 'item' && selected) updateWorldObject(selected.id, { tintColor: url });
+            else if (designFor === 'wall' && activeRoom) updateHomeRoom(activeRoom.id, { wallColor: url });
+            else if (designFor === 'floor' && activeRoom) updateHomeRoom(activeRoom.id, { floorTexture: url });
+            setDesignFor(null); flashSaved();
+          }}
+        />
+      )}
       {trainingPet && (
         <PetTalk pet={trainingPet} onClose={() => setTrainingPetId(null)} onCue={(k) => cuePet(trainingPet.id, k)} />
       )}
@@ -1819,6 +1846,8 @@ export default function HomeRoom() {
                 <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate left" onClick={() => rotateSelected(-15)}>↺</button>
                 <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Rotate right" onClick={() => rotateSelected(15)}>↻</button>
               </>}
+              {!isPicturePath(selected.modelPath) && <button className="btn btn-sm" style={{ minHeight: 44 }} title="Paint and design this item" onClick={() => setDesignFor('item')}>🖌️ Design</button>}
+              {!isPicturePath(selected.modelPath) && selected.tintColor?.startsWith('data:') && <button className="btn btn-sm" style={{ minHeight: 44 }} title="Take your design off" onClick={() => { updateWorldObject(selected.id, { tintColor: undefined }); flashSaved(); }}>Plain</button>}
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Smaller" onClick={() => resizeSelected(1 / 1.15)}>－</button>
               <button className="btn btn-sm" style={{ minHeight: 44, minWidth: 44 }} title="Bigger" onClick={() => resizeSelected(1.15)}>＋</button>
               <button
@@ -1861,6 +1890,7 @@ export default function HomeRoom() {
                       />
                     ))}
                   </div>
+                  <button className="btn btn-sm" style={{ minHeight: 40, fontSize: 12, marginBottom: 8 }} onClick={() => setDesignFor('wall')}>🖌️ Draw my wallpaper</button>
                   <div style={{ fontSize: 11, fontWeight: 800, marginBottom: 4 }}>Floor</div>
                   <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
                     {FLOOR_TEXTURE_OPTIONS.map((opt) => (
@@ -1873,6 +1903,7 @@ export default function HomeRoom() {
                         {opt.label}
                       </button>
                     ))}
+                    <button className="btn btn-sm" style={{ minHeight: 32, fontSize: 11, background: activeRoom.floorTexture?.startsWith('data:') ? '#3e7c6b' : undefined, color: activeRoom.floorTexture?.startsWith('data:') ? '#fff' : undefined }} onClick={() => setDesignFor('floor')}>🖌️ Draw my floor</button>
                   </div>
                   {interiorRooms.length > 1 && (
                     <button

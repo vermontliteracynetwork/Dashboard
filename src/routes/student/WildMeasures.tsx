@@ -3,7 +3,7 @@ import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import LeaveButton from '../../components/LeaveButton';
 import { speak } from '../../components/ReadAloud';
-import { playClip, preloadClips } from '../../lib/miniSfx';
+import { ANSWER_RIGHT, ANSWER_WRONG, playClip, preloadClips } from '../../lib/miniSfx';
 import { playCheer } from '../../lib/petSounds';
 import { useAfterschoolGame } from '../../lib/afterschool';
 import { payForAnswers } from '../../lib/gameEarnings';
@@ -22,7 +22,7 @@ import {
 // measurement question. Build Queue 407 (her answers): no coins; each right answer pays $1 Class Cash to the bank when
 // the student leaves, and earns XP, with XP bonuses at 10, 25 and 45 right answers. Kept 2D.
 
-const RIGHT = '/sounds/worldbox/right.mp3', WRONG = '/sounds/worldbox/wrong.mp3';
+const RIGHT = ANSWER_RIGHT, WRONG = ANSWER_WRONG;
 const TILE = 10;
 type Saved = { world2?: World; right?: number; exact?: number; tries?: number; xp?: number };
 type Ask = { q: Question; exactOnly?: boolean; then?: (w: World, right: boolean) => World };

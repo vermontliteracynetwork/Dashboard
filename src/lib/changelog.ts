@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-05-home-design",
+    date: "2026-11-05",
+    icon: "🖌️",
+    title: "Design your own furniture, wallpaper and floors",
+    body: "At home in Build Mode, tap a piece of furniture and press Design. Draw on it with a brush, erase, or fill with the paint bucket. In the Room panel you can draw one square that repeats as your wallpaper or your floor.",
+  },
+  {
+    id: "2026-11-05-answer-sounds",
+    date: "2026-11-05",
+    icon: "🔔",
+    title: "New answer sounds",
+    body: "A right answer plays a happy chime. A wrong answer plays a boing, so you know to try again.",
+  },
+  {
     id: "2026-11-03-bakery-tycoon",
     date: "2026-11-03",
     icon: "🧁",
