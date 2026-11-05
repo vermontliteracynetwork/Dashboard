@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { QuizQuestion, SymbolFormula, SymbolMode, SymbolPos, SymbolQuestion, SymbolSettings, SymbolSlot } from '../../types';
-import { BANK_LESSONS, FORMULA_BANK, type BankFormula } from '../../lib/formulaBank';
+import type { BankFormula } from '../../lib/formulaBank';
+import { ALL_FORMULAS, ALL_LESSONS } from '../../lib/masterFormulas';
 import { makeId } from '../../lib/id';
 import ImageUploadField from '../../components/ImageUploadField';
 import { DEFAULT_SYMBOL_SETTINGS, MODE_INFO, SYMBOLS, bankSlots, blankSymbolQuestion, emptySlot, inkOn, modeOf, perRow, punctSlot, sentenceToSlots } from '../../lib/symbolSentence';
@@ -146,14 +147,14 @@ function SentenceCard({ q, onUpdate }: { q: SymbolQuestion; onUpdate: (q: Symbol
   );
 }
 
-const lessonFormulas = (lesson: string) => FORMULA_BANK.filter((f) => f.lesson === lesson);
+const lessonFormulas = (lesson: string) => ALL_FORMULAS.filter((f) => f.lesson === lesson);
 
 // Build Queue 511 (her words: "Allow formulas to be searchable and in a drop down menu for each question"): a drop down
 // with a search box. It finds a formula by its number (1.1.1), level, formula words, example, lesson or skill name, and
 // also lists her symbol sentence cards. Picking one fills the question.
 type Pickable = { key: string; group: string; title: string; sub: string; search: string; bank?: BankFormula; card?: string };
 const PICKABLE: Pickable[] = [
-  ...FORMULA_BANK.map((f) => ({ key: `b:${f.id}`, group: `${f.lesson} ${f.lessonName}`, title: `${f.skill} ${f.level}  ${f.formula}`, sub: f.example, search: `${f.lesson} ${f.lessonName} ${f.skill} ${f.skillName} ${f.level} ${f.formula} ${f.example} ${f.unitName}`.toLowerCase(), bank: f })),
+  ...ALL_FORMULAS.map((f) => ({ key: `b:${f.id}`, group: f.n ? 'Sentence Formulas (master list order)' : `${f.lesson} ${f.lessonName}`, title: f.n ? `${f.n}. ${f.skill} ${f.code}  ${f.formula}` : `${f.skill} ${f.level}  ${f.formula}`, sub: f.n ? `${f.example}  Levels ${f.level}` : f.example, search: `${f.n ?? ''} ${f.code ?? ''} ${f.lesson} ${f.lessonName} ${f.skill} ${f.skillName} ${f.level} ${f.formula} ${f.example} ${f.unitName}`.toLowerCase(), bank: f })),
   ...SYMBOL_SENTENCE_PAGES.flatMap((pg) => pg.sentences.map((c) => ({ key: `c:${c.id}`, group: `Cards: ${pg.label}`, title: c.sentence, sub: '', search: `${pg.label} ${c.sentence} card`.toLowerCase(), card: c.id }))),
 ];
 export function FormulaPicker({ label, current, onPick }: { label: string; current?: string; onPick: (key: string) => void }) {
@@ -216,7 +217,7 @@ function FormulaOptions({ q, at, onPick, onUpdate }: { q: SymbolQuestion; at: nu
           </button>
         ))}
         <button type="button" className="btn btn-sm" onClick={() => add()}>Add a formula</button>
-        <FormulaPicker label="Add from the formula bank" onPick={(k) => { const f = FORMULA_BANK.find((x) => `b:${x.id}` === k); if (f) add(f); }} />
+        <FormulaPicker label="Add from the formula bank" onPick={(k) => { const f = ALL_FORMULAS.find((x) => `b:${x.id}` === k); if (f) add(f); }} />
       </div>
       {list.length > 1 && (
         <div className="ssq-formula-name">
@@ -237,7 +238,7 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
   const [preview, setPreview] = useState(false);
   const [previewNote, setPreviewNote] = useState('');
   const [fIdx, setFIdx] = useState(0);
-  const [lesson, setLesson] = useState(BANK_LESSONS.find((l) => l.lesson === '1.1')?.lesson ?? BANK_LESSONS[0].lesson);
+  const [lesson, setLesson] = useState(ALL_LESSONS.find((l) => l.lesson === '1.1')?.lesson ?? ALL_LESSONS[0].lesson);
   const [kinds, setKinds] = useState<Record<SymbolMode, boolean>>({ fill: true, drag: true, picture: false });
   const ai = Math.max(0, Math.min(active, qs.length - 1));
   const q = qs[ai];
@@ -291,13 +292,13 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
     onChange([...keep, ...made]); go(keep.length);
   };
   const bankKey = formulas ? formulas[at]?.bankId : q?.bankId;
-  const bank = bankKey ? FORMULA_BANK.find((f) => f.id === bankKey) : undefined;
+  const bank = bankKey ? ALL_FORMULAS.find((f) => f.id === bankKey) : undefined;
   const [showPic, setShowPic] = useState(false);
   const [lessonOpen, setLessonOpen] = useState(false);
   const lessonCount = lessonFormulas(lesson).length;
   const willMake = (kinds.fill ? lessonCount : 0) + (kinds.drag ? lessonCount : 0) + (kinds.picture && lessonCount ? 1 : 0);
   const startFrom = (v: string) => {
-    if (v.startsWith('b:')) { const f = FORMULA_BANK.find((x) => x.id === v.slice(2)); if (f) setSlots(bankSlots(f, mode), f.formula, f.id); }
+    if (v.startsWith('b:')) { const f = ALL_FORMULAS.find((x) => x.id === v.slice(2)); if (f) setSlots(bankSlots(f, mode), f.formula, f.id); }
     if (v.startsWith('c:')) {
       const card = SYMBOL_SENTENCE_PAGES.flatMap((pg) => pg.sentences).find((c) => c.id === v.slice(2));
       if (card) { const end = card.sentence.trim().slice(-1); setSlots([...card.words.map((w) => ({ pos: w.wordClass, word: w.word, given: mode !== 'picture', pick: mode === 'drag' ? true : undefined })), punctSlot(/[.!?]/.test(end) ? end : '.', mode !== 'picture')]); }
@@ -383,7 +384,7 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
           <div className="pf-panel" role="dialog" aria-label="Add questions from a lesson" onClick={(e) => e.stopPropagation()}>
             <h3>Add questions from a lesson</h3>
             <select value={lesson} onChange={(e) => setLesson(e.target.value)} aria-label="Lesson">
-              {BANK_LESSONS.map((l) => <option key={l.lesson} value={l.lesson}>{l.lesson} {l.name} ({l.count})</option>)}
+              {ALL_LESSONS.map((l) => <option key={l.lesson} value={l.lesson}>{l.lesson} {l.name} ({l.count})</option>)}
             </select>
             <div className="sgb-kinds">
               {(Object.keys(MODE_INFO) as SymbolMode[]).map((m) => (

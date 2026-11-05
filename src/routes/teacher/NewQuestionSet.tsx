@@ -59,7 +59,7 @@ export default function NewQuestionSet() {
     setTried(true);
     if (problems.length) return;
     const id = addQuestionSet({
-      name: name.trim(), subject, kind: 'quiz', questions: sanitizeQuizQuestions(questions), cards: [], tags,
+      name: name.trim(), subject: setType === 'text' ? 'literacy' : subject, kind: 'quiz', questions: sanitizeQuizQuestions(questions), cards: [], tags,
       description: description.trim() || undefined, isFocus: isFocus || undefined, focusedAt: isFocus ? new Date().toISOString() : undefined,
     });
     navigate(`/teacher/question-sets/${id}`, { replace: true });
@@ -105,7 +105,7 @@ export default function NewQuestionSet() {
               <div className="nqs-line">
                 <div className="nqs-seg" role="radiogroup" aria-label="Subject">
                   {(['math', 'literacy'] as const).map((sj) => (
-                    <button key={sj} type="button" role="radio" aria-checked={subject === sj} className={subject === sj ? 'on' : ''} onClick={() => setSubject(sj)}>
+                    <button key={sj} type="button" role="radio" aria-checked={subject === sj} className={subject === sj ? 'on' : ''} disabled={setType === 'text' && sj === 'math'} title={setType === 'text' && sj === 'math' ? 'Symbolic Grammar sets are always literacy.' : undefined} onClick={() => setSubject(sj)}>
                       {sj === 'math' ? 'Math' : 'Literacy'}
                     </button>
                   ))}
