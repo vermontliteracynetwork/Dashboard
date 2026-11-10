@@ -11648,3 +11648,17 @@ button.nqs-step-head { cursor: pointer; }
 .set-hint-field label { font-weight: 700; white-space: nowrap; margin: 0; }
 .set-hint-field input { flex: 1; min-width: 0; }
 .mct-hint input { min-width: 140px; }
+
+/* Build Queue 527: the question's picture, full size over the question for its first 3 seconds, then it shrinks away. */
+.qs-pic-first { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 24px; background: rgba(255, 246, 233, 0.97); animation: qsPicOut 3s ease-in forwards; }
+.qs-pic-first img { max-width: min(92vw, 1100px); max-height: 86vh; object-fit: contain; border-radius: 18px; background: #fff; box-shadow: 0 10px 40px rgba(60, 40, 0, 0.2); }
+@keyframes qsPicOut { 0%, 85% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.35) translateY(-20vh); } }
+@media (prefers-reduced-motion: reduce) { .qs-pic-first { animation: none; } }
+
+/* Build Queue 526: a question's picture, big in a pop up from the builder table. */
+.mct-thumb { width: 44px; height: 44px; padding: 0; border: 1px dashed #c9bfe0; border-radius: 8px; background: #fff; cursor: zoom-in; display: grid; place-items: center; overflow: hidden; font-size: 18px; }
+.mct-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.mct-lightbox .pf-panel { width: min(900px, 94vw); max-height: 92vh; overflow: auto; display: grid; gap: 12px; }
+.mct-lb-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.mct-lb-img { width: 100%; max-height: 62vh; object-fit: contain; background: #f7f5fb; border-radius: 10px; }
+.mct-lb-broken { margin: 0; padding: 14px; background: #fdecea; color: #8a1f17; border-radius: 10px; font-weight: 700; }

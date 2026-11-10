@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-big-pictures",
+    date: "2026-11-10",
+    icon: "🖼️",
+    title: "See the whole picture first",
+    body: "When a question has a picture, it shows big for 3 seconds so you can look at all of it. Then it shrinks and you read the question.",
+  },
+  {
     id: "2026-11-10-island-drive",
     date: "2026-11-10",
     icon: "🚗",

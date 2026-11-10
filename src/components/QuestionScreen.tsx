@@ -107,6 +107,8 @@ export interface QuestionScreenProps {
 const LETTERS = 'ABCDEFGHIJ';
 const CORRECT_PAUSE_MS = 900;
 const READ_FIRST_MS = 3000; // Build Queue 241: answers wait 3 seconds so the question gets read first
+// Build Queue 527: a question's picture shows full size over the question for 3 seconds first; the reading wait starts after.
+const PIC_FIRST_MS = 3000;
 
 function ProgressPips({ done, total }: { done: number; total: number }) {
   const safeTotal = Math.max(total, 1);
@@ -199,6 +201,8 @@ export default function QuestionScreen({
   // Read first (Build Queue 241): for 3 seconds after a question appears the answers show as solid
   // tiles and taps do nothing, so students read before they pick. Report timing starts after it.
   const [reading, setReading] = useState(true);
+  const [picFirst, setPicFirst] = useState(false);
+  const picTimer = useRef<number | undefined>(undefined);
   const readTimer = useRef<number | null>(null);
   // The question log for the teacher's reports (2026-10-14): every answer tapped, the time taken and
   // how the question ended. A new prompt or leaving the screen closes the open entry.
@@ -235,19 +239,24 @@ export default function QuestionScreen({
     setAnsweredCorrectly(false);
     setShowExitConfirm(false);
     setMarked(new Set());
-    shownAt.current = Date.now() + READ_FIRST_MS;
+    const lead = imageUrl && typed?.kind !== 'symbol' ? PIC_FIRST_MS : 0;
+    shownAt.current = Date.now() + lead + READ_FIRST_MS;
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
     closeLog('skipped');
-    qlog.current = { prompt, answer: choices[correctIndex] ?? '', start: Date.now() + READ_FIRST_MS, tries: [], done: false };
+    qlog.current = { prompt, answer: choices[correctIndex] ?? '', start: Date.now() + lead + READ_FIRST_MS, tries: [], done: false };
     setReading(true);
+    setPicFirst(!!lead);
+    if (picTimer.current) window.clearTimeout(picTimer.current);
+    if (lead) picTimer.current = window.setTimeout(() => setPicFirst(false), lead);
     if (readTimer.current) window.clearTimeout(readTimer.current);
-    readTimer.current = window.setTimeout(() => { setReading(false); const q = qlog.current; if (q && !q.done) q.start = Date.now(); shownAt.current = Date.now(); }, READ_FIRST_MS);
+    readTimer.current = window.setTimeout(() => { setReading(false); const q = qlog.current; if (q && !q.done) q.start = Date.now(); shownAt.current = Date.now(); }, lead + READ_FIRST_MS);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qKey]);
 
   useEffect(() => () => {
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
     if (readTimer.current) window.clearTimeout(readTimer.current);
+    if (picTimer.current) window.clearTimeout(picTimer.current);
     closeLog('left');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -736,6 +745,11 @@ export default function QuestionScreen({
         </div>
       )}
       {hint && <HintCard text={hint} qKey={qKey} />}
+      {picFirst && imageUrl && (
+        <div className="qs-pic-first" role="img" aria-label={imageAlt || 'The picture for this question'}>
+          <img src={imageUrl} alt="" />
+        </div>
+      )}
     </div>
   );
 }
