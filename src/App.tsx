@@ -30,6 +30,7 @@ import GymWatcher from './components/GymWatcher';
 import CheckOnPetHost from './components/CheckOnPet';
 import { usePetOverhaulRefunds } from './lib/petOverhaul';
 import CastleDefense from './routes/student/CastleDefense';
+import YogasRevenge from './routes/student/YogasRevenge';
 import LiteracyManipulativesEmbed from './routes/student/LiteracyManipulativesEmbed';
 import TeacherLogin from './routes/teacher/TeacherLogin';
 import TeacherHome from './routes/teacher/TeacherHome';
@@ -223,6 +224,7 @@ export default function App() {
           <Route path="/student/grammar-gus/classic" element={<Suspense fallback={<div className="app-shell center-screen"><p>Warming up the machine…</p></div>}><GrammarGusMachine /></Suspense>} />
           <Route path="/student/quiz-mode" element={<QuizMode />} />
           <Route path="/student/castle-defense" element={<CastleDefense />} />
+          <Route path="/student/yogas-revenge" element={<YogasRevenge />} />
           <Route path="/student/space-bowling" element={<Suspense fallback={<div className="app-shell center-screen"><p>Fueling the rocket…</p></div>}><SpaceBowling /></Suspense>} />
           <Route
             path="/student/chess"

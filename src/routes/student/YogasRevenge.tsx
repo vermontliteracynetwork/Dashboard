@@ -1,0 +1,1041 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useStore } from '../../store/store';
+import QuestionScreen from '../../components/QuestionScreen';
+import { drawQuestion } from '../../lib/questionPick';
+import { generateAutoQuestion } from '../../lib/autoQuestions';
+import { sfx } from '../../lib/miniSfx';
+import { speak } from '../../components/ReadAloud';
+import { useStreak, streakGoal } from '../../lib/streak';
+import { todayISO } from '../../lib/dates';
+import { useDueAssignments } from '../../components/AssignmentAlert';
+import type { MCQuestion } from '../../types';
+
+// Yoga's Revenge (Build Queue 531, 533, 534): the kids' own game. A side scrolling pixel beat 'em up (walk along the road
+// and up and down it) starring Yoga, a black dog with a white chest. Every level has its own background and the same
+// shape (her rule): a mini challenge in the first minutes, a medium mid level challenge, then the boss; 10 to 20 minutes
+// long, with a checkpoint at every mini challenge and about every 5 minutes. Level 1, Vermont Countryside: a squirrel
+// gets Yoga lost off the trail, then trash can monsters, then the angry Tire Stack. Level 2, Maple Street: Timmy the pug,
+// the strange sound, the Sound Monster. Each level earns a new dog; the dog is picked at the start of a level and stays
+// for it; every dog levels up from play time to Master at level 10. Learn mode asks a question before each fight; Play
+// mode (open once today's streak and assignments are done) swaps every question for a tap tap clicker. No blood: beaten
+// monsters poof into smoke and sparkles.
+
+const W = 480, H = 270;
+const BELT_TOP = 172, BELT_H = 82;
+const sy = (d: number) => BELT_TOP + d * BELT_H;
+const GRAV = 620;
+const ART = '/games/yoga/';
+const CP_EVERY = 300; // seconds between time based checkpoints (her rule: about every 5 minutes)
+const DOG_LEVEL_SECS = 900; // about one full level of play per dog level; level 10 is Master
+
+type Sheet = { img: HTMLCanvasElement | HTMLImageElement; fw: number; fh: number; n: number };
+function load(src: string) { return new Promise<HTMLImageElement>((res) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => res(i); i.src = src; }); }
+// Yoga is the pack's dark dog repainted black, with a white blaze on the chest like the real Yoga.
+function yogaColors(img: HTMLImageElement, fw: number) {
+  const c = document.createElement('canvas'); c.width = img.width || 1; c.height = img.height || 1;
+  const g = c.getContext('2d')!; g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height), p = d.data, frames = Math.round(c.width / fw);
+  for (let f = 0; f < frames; f++) {
+    let x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1;
+    for (let y = 0; y < c.height; y++) for (let x = f * fw; x < (f + 1) * fw; x++) if (p[(y * c.width + x) * 4 + 3] > 0) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    for (let y = 0; y < c.height; y++) for (let x = f * fw; x < (f + 1) * fw; x++) {
+      const i = (y * c.width + x) * 4; if (p[i + 3] === 0) continue;
+      const r = p[i], gg = p[i + 1], b = p[i + 2], lum = (r + gg + b) / 3;
+      const fx = (x - x0) / Math.max(1, x1 - x0), fy = (y - y0) / Math.max(1, y1 - y0);
+      if (r > b + 25 && r > gg && fx > 0.55 && fx < 0.86 && fy > 0.3 && fy < 0.68) { p[i] = 245; p[i + 1] = 245; p[i + 2] = 240; continue; }
+      if (r > 200 && gg > 200 && b > 200) continue;
+      const v = Math.round(14 + (lum / 255) * 52); p[i] = v; p[i + 1] = v; p[i + 2] = v + 4;
+    }
+  }
+  g.putImageData(d, 0, 0); return c;
+}
+
+// ---------- dogs ----------
+type DogId = 'yoga' | 'mochi' | 'spot' | 'luna' | 'bruno';
+const DOGS: Record<DogId, { name: string; blurb: string; speed: number; power: number; color: string; from: number }> = {
+  yoga: { name: 'Yoga', blurb: 'Brave black dog with a white chest. Good at everything.', speed: 1, power: 1, color: '#22222a', from: 0 },
+  mochi: { name: 'Mochi', blurb: 'Speedy shiba. Fast feet, quick bites.', speed: 1.25, power: 0.85, color: '#e8a046', from: 1 },
+  spot: { name: 'Spot', blurb: 'Spotty and bouncy. Jumps extra high.', speed: 1.05, power: 1, color: '#9aa0a8', from: 2 },
+  luna: { name: 'Luna', blurb: 'Husky with a huge bark.', speed: 1, power: 1, color: '#4a4f63', from: 3 },
+  bruno: { name: 'Bruno', blurb: 'Big rottie. Slow but very strong.', speed: 0.85, power: 1.4, color: '#2b1d14', from: 4 },
+};
+const dogLevel = (secs: number) => Math.min(10, Math.floor(secs / DOG_LEVEL_SECS));
+const PERKS: { at: number; text: string }[] = [
+  { at: 1, text: 'Bites 5% stronger every level' }, { at: 3, text: '+1 heart' }, { at: 5, text: 'Bark recharges faster' },
+  { at: 7, text: 'Zoomies charge faster' }, { at: 8, text: '+1 more heart' }, { at: 10, text: 'MASTER: giant bark every time' },
+];
+
+// ---------- levels ----------
+type FoeKind = 'can' | 'bigcan' | 'rat' | 'bird' | 'tires' | 'sound';
+type Stage =
+  | { kind: 'home'; x: number }
+  | { kind: 'talk'; x: number; who: string; portrait?: string; lines: string[] }
+  | { kind: 'wave'; x: number; foes: FoeKind[]; label: string }
+  | { kind: 'mini'; x: number; what: 'squirrel' | 'sound' }
+  | { kind: 'mid'; x: number; label: string; waves: FoeKind[][] }
+  | { kind: 'boss'; x: number; boss: 'tires' | 'sound' }
+  | { kind: 'dash'; x: number }
+  | { kind: 'clear'; x: number };
+interface Level { name: string; theme: 'vermont' | 'town'; end: number; reward: DogId | null; stages: Stage[] }
+const w = (x: number, label: string, ...foes: FoeKind[]): Stage => ({ kind: 'wave', x, foes, label });
+const LEVELS: Level[] = [
+  {
+    name: 'Vermont Countryside', theme: 'vermont', end: 7900, reward: 'mochi',
+    stages: [
+      { kind: 'home', x: 680 },
+      w(1000, 'Fence post', 'can', 'can'),
+      { kind: 'mini', x: 1400, what: 'squirrel' },
+      w(2050, 'Red barn', 'can', 'rat', 'can'),
+      w(2550, 'Maple trees', 'can', 'can', 'rat'),
+      w(3050, 'Hay bales', 'can', 'can', 'can'),
+      w(3550, 'Covered bridge', 'bigcan', 'rat', 'rat'),
+      { kind: 'mid', x: 4150, label: 'Garbage Gang!', waves: [['bigcan', 'can', 'can', 'rat'], ['bigcan', 'bigcan', 'can', 'rat', 'rat']] },
+      w(4850, 'Pumpkin patch', 'can', 'can', 'rat', 'rat'),
+      w(5350, 'Apple orchard', 'bigcan', 'can', 'can'),
+      w(5850, 'Sugar shack', 'can', 'can', 'can', 'rat', 'rat'),
+      w(6350, 'Farm stand', 'bigcan', 'bigcan', 'rat'),
+      w(6850, 'End of the road', 'can', 'can', 'can', 'can'),
+      { kind: 'boss', x: 7400, boss: 'tires' },
+      { kind: 'dash', x: 7480 },
+      { kind: 'clear', x: 7560 },
+    ],
+  },
+  {
+    name: 'Maple Street', theme: 'town', end: 7900, reward: 'spot',
+    stages: [
+      { kind: 'talk', x: 300, who: 'Timmy', portrait: `${ART}timmy.png`, lines: ['Hey! You are the dog who beat the Tire Stack!', 'I keep hearing a strange sound on Maple Street. BZZZ... WHOOM...', 'Can you follow it? Look for fuzzy squiggles. Each one makes it clearer!'] },
+      w(750, 'Bus stop', 'rat', 'bird', 'can'),
+      { kind: 'mini', x: 1250, what: 'sound' },
+      w(1900, 'Hot dog cart', 'can', 'rat', 'rat', 'bird'),
+      w(2400, 'Mailboxes', 'can', 'can', 'bird'),
+      w(2900, 'Fire hydrant', 'bigcan', 'rat', 'bird'),
+      w(3400, 'Parking lot', 'can', 'can', 'rat', 'rat'),
+      { kind: 'mid', x: 4000, label: 'Bird Swarm!', waves: [['bird', 'bird', 'bird', 'rat'], ['bird', 'bird', 'bigcan', 'bird', 'rat']] },
+      w(4700, 'Corner store', 'can', 'can', 'bird', 'bird'),
+      w(5200, 'Playground', 'bigcan', 'rat', 'rat', 'bird'),
+      w(5700, 'Library', 'can', 'can', 'can', 'bird'),
+      w(6200, 'School', 'bigcan', 'bigcan', 'bird', 'rat'),
+      w(6700, 'The loud corner', 'can', 'can', 'bird', 'bird', 'rat'),
+      { kind: 'boss', x: 7300, boss: 'sound' },
+      { kind: 'dash', x: 7380 },
+      { kind: 'clear', x: 7460 },
+    ],
+  },
+];
+
+// ---------- save ----------
+interface Save {
+  points: number; up: { heart: number; bite: number; zoom: number; bark: number };
+  lvl: number; stage: number; x: number; levelDog: DogId | null; cleared: number;
+  dogs: Partial<Record<DogId, number>>; harness: boolean; collar: boolean;
+}
+const NEW_SAVE: Save = { points: 0, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, harness: false, collar: false };
+const saveKey = (id: string) => `yoga.save2.${id}`;
+const readSave = (id: string): Save => { try { return { ...NEW_SAVE, ...JSON.parse(localStorage.getItem(saveKey(id)) || '{}') }; } catch { return { ...NEW_SAVE }; } };
+const writeSave = (id: string, s: Save) => { try { localStorage.setItem(saveKey(id), JSON.stringify(s)); } catch { /* private mode */ } };
+const SHOP: { k: keyof Save['up']; name: string; desc: string; cost: number; max: number }[] = [
+  { k: 'heart', name: 'Extra Heart', desc: '+1 heart', cost: 30, max: 3 },
+  { k: 'bite', name: 'Chomp Power', desc: 'Bites hit harder', cost: 40, max: 3 },
+  { k: 'zoom', name: 'Zoomies', desc: 'Run faster', cost: 30, max: 2 },
+  { k: 'bark', name: 'Bark Battery', desc: 'Bark more often', cost: 30, max: 3 },
+];
+
+// ---------- power ups (Build Queue 535: "lots of power ups were requested") ----------
+type PuId = 'heart_container' | 'half_heart' | 'golden_heart' | 'star_power' | 'shield_pickup' | 'speed_boots' | 'magnet' | 'double_jump_feather' | 'bomb_pickup' | 'invincibility_crystal' | 'oneup_sprout' | 'key';
+const PU: Record<PuId, { name: string; secs: number; weight: number }> = {
+  half_heart: { name: 'Snack: +1 heart', secs: 0, weight: 16 }, golden_heart: { name: 'Golden Heart: all hearts back!', secs: 0, weight: 5 },
+  heart_container: { name: 'Heart Box: +1 heart this level!', secs: 0, weight: 3 }, star_power: { name: 'Star Power! Nothing can hurt you!', secs: 8, weight: 6 },
+  shield_pickup: { name: 'Shield: blocks 2 hits', secs: 0, weight: 8 }, speed_boots: { name: 'Speed Boots! Super fast paws!', secs: 12, weight: 9 },
+  magnet: { name: 'Treat Magnet!', secs: 15, weight: 9 }, double_jump_feather: { name: 'Feather: double jump!', secs: 20, weight: 8 },
+  bomb_pickup: { name: 'Bark Bomb! KABOOM!', secs: 0, weight: 7 }, invincibility_crystal: { name: 'Zoomies Crystal: Zoomies ready!', secs: 0, weight: 7 },
+  oneup_sprout: { name: 'Extra Life Sprout!', secs: 0, weight: 3 }, key: { name: 'Key: a treat chest opens!', secs: 0, weight: 6 },
+};
+const randPu = (): PuId => { const ids = Object.keys(PU) as PuId[], total = ids.reduce((n, k) => n + PU[k].weight, 0); let r = Math.random() * total; for (const k of ids) { r -= PU[k].weight; if (r <= 0) return k; } return 'half_heart'; };
+
+// ---------- entities ----------
+interface Foe { id: number; kind: FoeKind; x: number; d: number; z: number; vx: number; vd: number; hp: number; max: number; face: 1 | -1; atk: number; cd: number; hurt: number; stun: number; t: number; happy?: number; phase?: number }
+interface Shot { x: number; d: number; z: number; vx: number; ttl: number; kind: 'bark' | 'soda' | 'tire' | 'ring'; big?: boolean; r?: number; hit?: Set<number> }
+interface Fx { x: number; y: number; t: number; ttl: number; kind: 'spark' | 'poof' | 'text' | 'heal' | 'bolt' | 'dizzy' | 'confetti' | 'flag'; text?: string; color?: string; vx?: number; vy?: number; screen?: boolean }
+interface Pick { x: number; d: number; kind: 'leash' | 'bags' | 'treats' | 'bone' | 'treat' | 'pu'; t: number; pu?: PuId }
+interface Sniff { x: number; d: number; found: boolean }
+const FOE_STATS: Record<FoeKind, { hp: number; speed: number; reach: number; dmg: number }> = {
+  can: { hp: 5, speed: 34, reach: 26, dmg: 1 }, bigcan: { hp: 10, speed: 26, reach: 32, dmg: 1 },
+  rat: { hp: 2, speed: 70, reach: 20, dmg: 1 }, bird: { hp: 2, speed: 60, reach: 22, dmg: 1 },
+  tires: { hp: 40, speed: 0, reach: 40, dmg: 1 }, sound: { hp: 46, speed: 0, reach: 40, dmg: 1 },
+};
+let NEXT_ID = 1;
+const mkFoe = (kind: FoeKind, x: number, d: number, extra = 0): Foe => ({ id: NEXT_ID++, kind, x, d, z: kind === 'bird' ? 46 : 0, vx: 0, vd: 0, hp: FOE_STATS[kind].hp + extra, max: FOE_STATS[kind].hp + extra, face: -1, atk: 0, cd: 1 + Math.random(), hurt: 0, stun: 0, t: Math.random() * 5, phase: 0 });
+
+type Gate = { why: 'wave' | 'mid' | 'boss' | 'revive'; then: () => void } | null;
+type Screen = 'title' | 'pick' | 'levels' | 'shop' | 'play' | 'clear';
+const GATE_TITLE: Record<NonNullable<Gate>['why'], string> = { wave: 'Get ready to fight!', mid: 'Big challenge ahead!', boss: 'Power up for the boss!', revive: 'Help your dog get back up!' };
+
+export default function YogasRevenge() {
+  const navigate = useNavigate();
+  const studentId = useStore((s) => s.currentStudentId) ?? 'guest';
+  const questionSets = useStore((s) => s.questionSets);
+  const streak = useStreak(studentId);
+  const due = useDueAssignments();
+  const today = todayISO();
+  const streakDone = streak.lastSavedDay === today || (streak.today?.day === today && (streak.today?.correct ?? 0) >= streakGoal());
+  // Play mode (her rule): open once today's streak questions and assignments are done; a new assignment closes it again.
+  const playOpen = streakDone && due.length === 0;
+
+  const [save, setSaveState] = useState<Save>(() => readSave(studentId));
+  const saveRef = useRef(save);
+  const setSave = useCallback((s: Save) => { saveRef.current = s; setSaveState(s); writeSave(studentId, s); }, [studentId]);
+  const patch = useCallback((p: Partial<Save>) => setSave({ ...saveRef.current, ...p }), [setSave]);
+  const [screen, setScreen] = useState<Screen>('title');
+  const [pickFor, setPickFor] = useState(0); // the level the dog picker starts
+  const [dog, setDog] = useState<DogId>(save.levelDog ?? 'yoga');
+  const [playMode, setPlayMode] = useState(false);
+  const [gate, setGate] = useState<Gate>(null);
+  const [q, setQ] = useState<MCQuestion | null>(null);
+  const [talk, setTalk] = useState<{ who: string; lines: string[]; i: number; portrait?: string; then?: () => void } | null>(null);
+  const [voiceOn, setVoiceOn] = useState(true);
+  const [offer, setOffer] = useState(false);
+  const [cleared, setCleared] = useState<{ lvl: number; dog: DogId; reward: DogId | null; mins: number } | null>(null);
+  const [, setHud] = useState(0);
+
+  const cv = useRef<HTMLCanvasElement | null>(null);
+  const art = useRef<Record<string, Sheet>>({});
+  const bg = useRef<Record<string, HTMLImageElement>>({});
+  const keys = useRef<Record<string, boolean>>({});
+  const stick = useRef({ x: 0, y: 0, on: false, id: -1, ox: 0, oy: 0 });
+  const paused = useRef(true);
+  const api = useRef<{ act?: (k: string) => void; dash?: (yes: boolean) => void }>({});
+  const G = useRef({
+    p: { x: 60, d: 0.5, z: 0, vz: 0, face: 1 as 1 | -1, hp: 5, max: 5, inv: 0, atk: 0, combo: 0, lastAtk: 0, barkCd: 0, superM: 0, hurt: 0, walk: 0, ko: false, chase: 0 },
+    foes: [] as Foe[], shots: [] as Shot[], fx: [] as Fx[], picks: [] as Pick[], sniffs: [] as Sniff[],
+    cam: 0, lock: null as null | { l: number; r: number }, stage: 0, active: false, sub: 0,
+    hits: 0, hitT: 0, shake: 0, bag: [] as string[], dash: 0, dashPts: 0, time: 0, banner: '', bannerT: 0,
+    lost: 0, mini: '' as '' | 'squirrel' | 'sound', squirrel: null as null | { x: number; d: number; t: number },
+    cpT: 0, levelT: 0, xpFlush: 0, fade: 0,
+    pw: {} as Partial<Record<PuId, number>>, shield: 0, lives: 0, jumps: 0,
+  });
+
+  // ---------- assets ----------
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      const names = ['dog1-Idle', 'dog1-Walk', 'dog1-Attack', 'dog1-Hurt', 'dog2-Idle', 'dog2-Walk', 'dog2-Attack', 'dog2-Hurt', 'rat-walk', 'rat-hurt', 'bird-walk', 'dogs', 'vfx-lightning', 'vfx-heal', 'vfx-dizzy'];
+      const bgs = ['autumn-1_sky', 'autumn-2_mountains', 'autumn-3_hills', 'autumn-4_forest', 'autumn-5_foreground', 'harvest-1_sky', 'harvest-2_mountains', 'harvest-3_hills', 'harvest-4_forest', 'harvest-5_foreground', 'st-fire_hydrant', 'st-mailbox', 'st-hotdog_cart', 'st-vending_machine', 'st-bollard', 'st-info_bus', 'st-parking', 'st-caution_sign'];
+      const pus = (Object.keys(PU) as PuId[]).map((k) => `pu/${k}`);
+      const imgs = await Promise.all([...names, ...bgs, ...pus].map((n) => load(`${ART}${n}.png`)));
+      try { await document.fonts.load('16px m5x7'); } catch { /* falls back to monospace */ }
+      if (!live) return;
+      const a: Record<string, Sheet> = {};
+      names.forEach((n, i) => {
+        const im = imgs[i];
+        if (n.startsWith('dog1')) a[n] = { img: yogaColors(im, 48), fw: 48, fh: 48, n: Math.max(1, Math.round(im.width / 48)) };
+        else if (n.startsWith('dog2')) a[n] = { img: im, fw: 48, fh: 48, n: Math.max(1, Math.round(im.width / 48)) };
+        else if (n === 'dogs') a[n] = { img: im, fw: 64, fh: 64, n: 6 };
+        else if (n === 'vfx-lightning') a[n] = { img: im, fw: 32, fh: 48, n: 6 };
+        else a[n] = { img: im, fw: 32, fh: 32, n: Math.max(1, Math.round(im.width / 32)) };
+      });
+      art.current = a;
+      bgs.forEach((n, i) => { bg.current[n] = imgs[names.length + i]; });
+      pus.forEach((n, i) => { bg.current[n] = imgs[names.length + bgs.length + i]; });
+    })();
+    return () => { live = false; };
+  }, []);
+
+  const say = useCallback((text: string) => { if (voiceOn) speak(text); }, [voiceOn]);
+  useEffect(() => { if (talk) say(talk.lines[talk.i]); }, [talk, say]);
+
+  // ---------- starting a level ----------
+  const begin = (lvl: number, d: DogId, fresh: boolean) => {
+    const g = G.current, s = saveRef.current;
+    const stage = fresh ? 0 : s.stage, x = fresh ? 60 : s.x;
+    if (fresh || s.lvl !== lvl) setSave({ ...s, lvl, stage: 0, x: 60, levelDog: d });
+    setDog(d);
+    const dl = dogLevel(s.dogs[d] ?? 0);
+    const maxHp = 5 + s.up.heart + (s.harness ? 1 : 0) + (dl >= 3 ? 1 : 0) + (dl >= 8 ? 1 : 0);
+    g.p = { ...g.p, x, d: 0.5, z: 0, vz: 0, hp: maxHp, max: maxHp, inv: 1, ko: false, superM: 0, atk: 0, combo: 0, chase: 0 };
+    g.foes = []; g.shots = []; g.fx = []; g.picks = []; g.sniffs = []; g.stage = stage; g.active = false; g.lock = null; g.hits = 0; g.sub = 0;
+    g.lost = 0; g.mini = ''; g.squirrel = null; g.dash = 0; g.cpT = 0; g.levelT = 0; g.fade = 0; g.pw = {}; g.shield = 0; g.lives = 0; g.jumps = 0;
+    g.cam = Math.max(0, x - 140);
+    g.bag = LEVELS[lvl].stages[0].kind === 'home' && stage === 0 ? [] : ['leash', 'bags', 'treats'];
+    if (LEVELS[lvl].stages[0].kind === 'home' && stage === 0) g.picks.push({ x: 220, d: 0.25, kind: 'leash', t: 0 }, { x: 390, d: 0.75, kind: 'bags', t: 0 }, { x: 560, d: 0.4, kind: 'treats', t: 0 });
+    setScreen('play'); paused.current = false;
+    g.banner = `Level ${lvl + 1}: ${LEVELS[lvl].name}`; g.bannerT = 3;
+    if (lvl === 0 && stage === 0) {
+      paused.current = true;
+      setTalk({ who: 'Sam', lines: [`${DOGS[d].name}! Want to go for a walk on the country road?`, 'Help me find the leash, the poop bags and the treats. Then we can go!', 'Oh no... it is trash day. To a dog, every trash can is a monster!'], i: 0, then: () => { paused.current = false; } });
+    }
+  };
+
+  // ---------- questions or the clicker ----------
+  const ask = useCallback((why: NonNullable<Gate>['why'], then: () => void) => {
+    paused.current = true;
+    if (!playMode) setQ(drawQuestion(questionSets) ?? generateAutoQuestion());
+    setGate({ why, then });
+  }, [playMode, questionSets]);
+  const gateRef = useRef<Gate>(null);
+  gateRef.current = gate;
+  const passGate = useCallback(() => { const g = gateRef.current; gateRef.current = null; setGate(null); setQ(null); paused.current = false; g?.then(); }, []);
+
+  // ---------- the game loop ----------
+  useEffect(() => {
+    if (screen !== 'play') return;
+    const ctx = cv.current?.getContext('2d'); if (!ctx) return;
+    ctx.imageSmoothingEnabled = false;
+    let raf = 0, last = performance.now();
+    const g = G.current, lvl = saveRef.current.lvl, L = LEVELS[lvl];
+    const stats = DOGS[dog];
+    const dl = () => dogLevel(saveRef.current.dogs[dog] ?? 0);
+    const power = () => stats.power * (1 + saveRef.current.up.bite * 0.35) * (1 + dl() * 0.05);
+    const baseSpeed = 92 * stats.speed * (1 + saveRef.current.up.zoom * 0.15) * (1 + dl() * 0.02);
+    let speed = baseSpeed;
+    const barkCdMax = () => Math.max(0.7, 2.4 - saveRef.current.up.bark * 0.45) * (dl() >= 5 ? 0.75 : 1);
+    const bigBark = () => saveRef.current.collar || dog === 'luna' || dl() >= 10;
+
+    const addFx = (f: Omit<Fx, 't'>) => g.fx.push({ ...f, t: 0 });
+    const confetti = (n = 24) => { for (let i = 0; i < n; i++) addFx({ x: Math.random() * W, y: 30, ttl: 1.8, kind: 'confetti', screen: true, color: ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][i % 4], vx: (Math.random() - 0.5) * 60, vy: 30 + Math.random() * 60 }); };
+    const checkpoint = (why: string) => {
+      patch({ stage: g.stage, x: Math.round(g.p.x), lvl });
+      g.cpT = 0; addFx({ x: g.p.x, y: sy(g.p.d) - 50, ttl: 2, kind: 'flag' });
+      g.banner = `Checkpoint saved! ${why}`; g.bannerT = 2.2; sfx.chime();
+    };
+    const words = ['POW!', 'BONK!', 'CHOMP!', 'WHAM!', 'BOOF!'];
+    const hitFoe = (e: Foe, dmg: number, kb: number, from: number) => {
+      if (e.hp <= 0 || e.happy) return;
+      e.hp -= dmg; e.hurt = 0.25; e.x += kb * from; e.atk = 0;
+      g.hits = g.hitT > 0 ? g.hits + 1 : 1; g.hitT = 1.6;
+      g.p.superM = Math.min(100, g.p.superM + (dl() >= 7 ? 10 : 7));
+      addFx({ x: e.x, y: sy(e.d) - 18 - e.z, ttl: 0.25, kind: 'spark' });
+      if (Math.random() < 0.45) addFx({ x: e.x, y: sy(e.d) - 44 - e.z, ttl: 0.7, kind: 'text', text: words[Math.floor(Math.random() * words.length)], color: '#ffe14d', vy: -30 });
+      g.shake = Math.min(6, g.shake + 2); sfx.bonk();
+      if (e.hp <= 0) {
+        if (e.kind === 'tires' || e.kind === 'sound') { e.hp = 0; e.happy = 0.01; sfx.chime(); return; }
+        addFx({ x: e.x, y: sy(e.d) - 14 - e.z, ttl: 0.6, kind: 'poof' });
+        addFx({ x: e.x, y: sy(e.d) - 34, ttl: 0.9, kind: 'text', text: e.kind === 'rat' ? 'SCAT!' : e.kind === 'bird' ? 'SHOO!' : 'POOF!', color: '#ffffff', vy: -26 });
+        sfx.pop();
+        const r = Math.random();
+        if (r < 0.14) g.picks.push({ x: e.x, d: e.d, kind: 'pu', pu: randPu(), t: 0 }); else if (r < 0.3) g.picks.push({ x: e.x, d: e.d, kind: 'bone', t: 0 }); else if (r < 0.8) g.picks.push({ x: e.x, d: e.d, kind: 'treat', t: 0 });
+      }
+    };
+    const hurtPlayer = (dmg: number, from: number) => {
+      const p = g.p; if (p.inv > 0 || p.ko || (g.pw.star_power ?? 0) > 0) return;
+      if (g.shield > 0) { g.shield -= 1; p.inv = 0.8; addFx({ x: p.x, y: sy(p.d) - 30, ttl: 0.6, kind: 'text', text: 'BLOCKED!', color: '#7fd7ff', vy: -24 }); sfx.bonk(); return; }
+      p.hp -= dmg; p.inv = 1.1; p.hurt = 0.35; p.x += 18 * from; g.shake = 5; sfx.thud();
+      addFx({ x: p.x, y: sy(p.d) - 34, ttl: 0.6, kind: 'text', text: 'YIP!', color: '#ff8a8a', vy: -24 });
+      if (p.hp <= 0 && g.lives > 0) { g.lives -= 1; p.hp = p.max; p.inv = 2; addFx({ x: p.x, y: sy(p.d) - 24, ttl: 0.9, kind: 'heal' }); g.banner = 'Extra life used! Keep going!'; g.bannerT = 2; sfx.chime(); return; }
+      if (p.hp <= 0) { p.hp = 0; p.ko = true; ask('revive', () => { p.hp = p.max; p.ko = false; p.inv = 2; addFx({ x: p.x, y: sy(p.d) - 20, ttl: 0.9, kind: 'heal' }); sfx.chime(); }); }
+    };
+    const spawn = (list: FoeKind[], at: number) => {
+      const extra = Math.floor(g.stage / 4) + lvl * 2; // a little tougher as the level goes on
+      list.forEach((k, i) => { const side = i % 2 === 0 ? 1 : -1; g.foes.push(mkFoe(k, at + side * (150 + i * 22), 0.12 + ((i * 0.37) % 0.8), k === 'rat' || k === 'bird' ? 0 : extra)); });
+    };
+    const nextStage = () => { g.active = false; g.lock = null; g.sub = 0; g.stage += 1; };
+    const startFight = () => {
+      const st = L.stages[g.stage]; if (!st) return;
+      if (st.kind === 'wave') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label}: trash monsters!`; g.bannerT = 2; spawn(st.foes, st.x); }
+      else if (st.kind === 'mid') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label} Wave 1 of ${st.waves.length}`; g.bannerT = 2.4; sfx.horn(); spawn(st.waves[0], st.x); }
+      else if (st.kind === 'boss') {
+        g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 };
+        g.foes.push(mkFoe(st.boss, st.x + 150, 0.5)); sfx.horn();
+        g.banner = st.boss === 'tires' ? 'BOSS: The Tire Stack!' : 'BOSS: The Sound Monster!'; g.bannerT = 2.5; paused.current = true;
+        setTalk(st.boss === 'tires'
+          ? { who: 'Tire Stack', lines: ['We used to roll down this road on a real car!', 'Now we are thrown away and all alone. GRRR! Nobody gets past us!'], i: 0, then: () => { paused.current = false; } }
+          : { who: 'Sound Monster', lines: ['BZZZ... WHOOOM... SKREEEE!', 'I am the strange sound! You found me. Now try to quiet me!'], i: 0, then: () => { paused.current = false; } });
+      }
+    };
+    const startMini = (what: 'squirrel' | 'sound') => {
+      g.active = true; g.mini = what;
+      if (what === 'squirrel') {
+        g.squirrel = { x: g.p.x + 50, d: g.p.d, t: 0 }; g.p.chase = 2.6;
+        g.banner = 'SQUIRREL!!!'; g.bannerT = 2; sfx.boing();
+        addFx({ x: g.p.x, y: sy(g.p.d) - 52, ttl: 1.2, kind: 'text', text: '!!!', color: '#ffe14d', vy: -10 });
+      } else {
+        g.lock = { l: g.p.x - 60, r: g.p.x + 420 };
+        g.sniffs = [0, 1, 2].map((i) => ({ x: g.p.x + 90 + i * 110 + Math.random() * 30, d: [0.15, 0.8, 0.45][i], found: false }));
+        spawn(['bird', 'rat'], g.p.x + 200);
+        g.banner = 'Track the strange sound: find 3 squiggles!'; g.bannerT = 2.6; sfx.whoosh();
+      }
+    };
+    const endMini = () => {
+      g.sniffs = []; g.foes = []; g.mini = ''; g.lost = 0; g.fade = 0.8;
+      g.banner = 'Back on the trail!'; g.bannerT = 2;
+      g.picks.push({ x: g.p.x + 50, d: g.p.d, kind: 'pu', pu: randPu(), t: 0 });
+      nextStage(); checkpoint('Mini challenge done.');
+    };
+    const reachStage = () => {
+      const st = L.stages[g.stage]; if (!st || g.active) return;
+      if (st.kind === 'home') {
+        if (g.p.x > st.x - 30 && g.bag.length < 3) { g.p.x = st.x - 30; g.banner = 'Find all 3 walk items first!'; g.bannerT = 1.2; }
+        if (g.bag.length >= 3 && g.p.x >= st.x) nextStage();
+        return;
+      }
+      if (g.p.x < st.x - 60) return;
+      if (st.kind === 'talk') { g.active = true; paused.current = true; setTalk({ who: st.who, portrait: st.portrait, lines: st.lines, i: 0, then: () => { paused.current = false; nextStage(); } }); }
+      else if (st.kind === 'wave') ask('wave', startFight);
+      else if (st.kind === 'mid') ask('mid', startFight);
+      else if (st.kind === 'boss') { checkpoint('Boss ahead!'); ask('boss', startFight); }
+      else if (st.kind === 'mini') startMini(st.what);
+      else if (st.kind === 'dash') { g.active = true; paused.current = true; setOffer(true); }
+      else if (st.kind === 'clear') {
+        g.active = true; paused.current = true;
+        const s = saveRef.current, nextLvl = Math.min(LEVELS.length - 1, lvl + 1);
+        const done = Math.max(s.cleared, lvl + 1);
+        setSave({ ...s, cleared: done, lvl: lvl + 1 < LEVELS.length ? nextLvl : lvl, stage: 0, x: 60, levelDog: null, dogs: { ...s.dogs, [dog]: (s.dogs[dog] ?? 0) + g.xpFlush } });
+        g.xpFlush = 0;
+        setCleared({ lvl, dog, reward: s.cleared < lvl + 1 ? L.reward : null, mins: Math.round(g.levelT / 60) });
+        setScreen('clear'); sfx.chime();
+      }
+    };
+
+    const step = (dt: number) => {
+      const p = g.p; g.time += dt; g.levelT += dt; g.cpT += dt; g.xpFlush += dt; g.fade = Math.max(0, g.fade - dt);
+      // the dog grows from play time (one bar); saved every 10 seconds
+      if (g.xpFlush >= 10) {
+        const s = saveRef.current, before = dogLevel(s.dogs[dog] ?? 0), secs = (s.dogs[dog] ?? 0) + g.xpFlush; g.xpFlush = 0;
+        patch({ dogs: { ...s.dogs, [dog]: secs } });
+        const after = dogLevel(secs);
+        if (after > before) { g.banner = after === 10 ? `${stats.name} is a MASTER dog!` : `${stats.name} reached dog level ${after}!`; g.bannerT = 3; confetti(); sfx.chime(); const perk = PERKS.find((k) => k.at === after); if (perk) addFx({ x: p.x, y: sy(p.d) - 60, ttl: 2.4, kind: 'text', text: perk.text, color: '#9cf6ff', vy: -8 }); }
+      }
+      // --- treat dash ---
+      if (g.dash > 0) {
+        g.dash -= dt;
+        if (Math.random() < dt * 3.2) g.picks.push({ x: g.cam + 30 + Math.random() * (W - 60), d: Math.random(), kind: 'treat', t: 0 });
+        if (g.dash <= 0) { g.dash = 0; g.picks = g.picks.filter((k) => k.kind !== 'treat'); g.banner = `Treat Dash: ${g.dashPts} puppy points!`; g.bannerT = 2.4; sfx.chime(); confetti(); nextStage(); }
+      }
+      // --- squirrel chase: Yoga runs off and gets lost ---
+      if (g.squirrel) {
+        const sq = g.squirrel; sq.t += dt; sq.x += 150 * dt; sq.d = 0.5 + Math.sin(sq.t * 5) * 0.3;
+        if (p.chase > 0) {
+          p.chase -= dt; p.face = 1; p.x += speed * 1.6 * dt; p.d += (sq.d - p.d) * dt * 3; p.walk += dt;
+          if (p.chase <= 0) {
+            g.squirrel = null; g.lost = 1; g.fade = 0.8;
+            g.lock = { l: p.x - 60, r: p.x + 420 };
+            g.sniffs = [0, 1, 2].map((i) => ({ x: p.x + 90 + i * 110 + Math.random() * 30, d: [0.2, 0.85, 0.45][i], found: false }));
+            spawn(['rat', 'rat', 'bird'], p.x + 220);
+            paused.current = true;
+            setTalk({ who: 'Uh oh...', lines: ['The squirrel got away up a tree. Now where is the trail?', 'Sniff out the 3 paw print spots to find the way back. Watch out for critters!'], i: 0, then: () => { paused.current = false; } });
+          }
+        }
+      }
+      // --- power up timers ---
+      (Object.keys(g.pw) as PuId[]).forEach((k) => { g.pw[k] = Math.max(0, (g.pw[k] ?? 0) - dt); if (!g.pw[k]) delete g.pw[k]; });
+      speed = baseSpeed * (g.pw.speed_boots ? 1.6 : 1);
+      if (g.pw.magnet) g.picks.forEach((k) => { if (k.kind === 'treat' || k.kind === 'bone' || k.kind === 'pu') { k.x += Math.sign(p.x - k.x) * Math.min(Math.abs(p.x - k.x), 220 * dt); k.d += (p.d - k.d) * Math.min(1, dt * 4); } });
+      if (g.pw.star_power) g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && e.hurt <= 0 && Math.abs(e.x - p.x) < 22 && Math.abs(e.d - p.d) < 0.14) hitFoe(e, 2, 24, e.x > p.x ? 1 : -1); });
+      // --- player ---
+      let mx = (keys.current.arrowright || keys.current.d ? 1 : 0) - (keys.current.arrowleft || keys.current.a ? 1 : 0);
+      let md = (keys.current.arrowdown || keys.current.s ? 1 : 0) - (keys.current.arrowup || keys.current.w ? 1 : 0);
+      if (stick.current.on) { mx = stick.current.x; md = stick.current.y; }
+      if (p.ko || p.chase > 0) { mx = 0; md = 0; }
+      const slow = p.atk > 0 && p.z === 0 ? 0.25 : 1;
+      p.x += mx * speed * dt * slow; p.d = Math.max(0, Math.min(1, p.d + md * (speed / 160) * dt * slow));
+      if (Math.abs(mx) > 0.15) p.face = mx > 0 ? 1 : -1;
+      if (p.chase <= 0) p.walk = Math.abs(mx) + Math.abs(md) > 0.15 ? p.walk + dt : 0;
+      const lo = g.lock ? g.lock.l + 12 : g.cam + 10, hi = g.lock ? g.lock.r - 12 : Math.min(L.end, g.cam + W + 400);
+      if (p.chase <= 0) p.x = Math.max(Math.max(12, lo), Math.min(hi, p.x));
+      if (p.z > 0 || p.vz > 0) { p.vz -= GRAV * dt; p.z = Math.max(0, p.z + p.vz * dt); if (p.z === 0) p.vz = 0; }
+      p.inv = Math.max(0, p.inv - dt); p.hurt = Math.max(0, p.hurt - dt); p.barkCd = Math.max(0, p.barkCd - dt);
+      if (p.atk > 0) {
+        const before = p.atk; p.atk -= dt;
+        if (before > 0.16 && p.atk <= 0.16) {
+          const air = p.z > 6;
+          g.foes.forEach((e) => {
+            const big = e.kind === 'tires' || e.kind === 'sound', dx = (e.x - p.x) * p.face;
+            if (dx > -6 && dx < (big ? 52 : 36) && Math.abs(e.d - p.d) < (big ? 0.3 : 0.16) && Math.abs(e.z - p.z) < 40) hitFoe(e, (air || p.combo === 3 ? 2 : 1) * power(), p.combo === 3 || air ? 22 : 6, p.face);
+          });
+        }
+      }
+      g.hitT = Math.max(0, g.hitT - dt);
+      // --- camera ---
+      const want = Math.max(0, Math.min(L.end - W, p.x - W * 0.38));
+      g.cam += (want - g.cam) * Math.min(1, dt * 5);
+      if (g.lock) g.cam = Math.max(g.lock.l, Math.min(g.lock.r - W, g.cam));
+      // --- foes ---
+      g.foes.forEach((e) => {
+        e.t += dt; e.hurt = Math.max(0, e.hurt - dt); e.stun = Math.max(0, e.stun - dt);
+        if (e.happy) { e.happy += dt; return; }
+        if (e.hp <= 0) return;
+        if (e.kind === 'tires' || e.kind === 'sound') { boss(e, dt); return; }
+        const S = FOE_STATS[e.kind];
+        if (e.stun > 0 || e.hurt > 0) return;
+        const tx = p.x + (e.x > p.x ? 26 : -26), dx = tx - e.x, dd = p.d - e.d;
+        e.face = p.x > e.x ? 1 : -1;
+        if (e.atk > 0) { e.atk -= dt; if (e.atk <= 0) { e.cd = 1.2 + Math.random() * 1.2; if (Math.abs(p.x - e.x) < S.reach + 6 && Math.abs(dd) < 0.15) hurtPlayer(S.dmg, e.face); } return; }
+        e.cd -= dt;
+        if ((e.kind === 'can' || e.kind === 'bigcan') && e.cd < 0 && Math.abs(dx) > 70 && Math.abs(dd) < 0.12 && Math.random() < dt * 0.6) {
+          g.shots.push({ x: e.x, d: e.d, z: 18, vx: e.face * 120, ttl: 2.5, kind: 'soda' }); e.cd = 2.5; sfx.whoosh(); return;
+        }
+        if (Math.abs(dx) < 8 && Math.abs(dd) < 0.08) { if (e.cd <= 0) e.atk = e.kind === 'rat' ? 0.25 : 0.45; return; }
+        const sp = g.dash ? 0 : S.speed;
+        e.x += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt);
+        e.d += Math.sign(dd) * Math.min(Math.abs(dd), (sp / 170) * dt);
+        if (e.kind === 'bird') e.z = 30 + Math.sin(e.t * 4) * 8 + (Math.abs(dx) < 40 ? -22 : 0);
+      });
+      for (let i = 0; i < g.foes.length; i++) for (let j = i + 1; j < g.foes.length; j++) {
+        const a = g.foes[i], b = g.foes[j]; if (a.hp <= 0 || b.hp <= 0) continue;
+        if (Math.abs(a.x - b.x) < 16 && Math.abs(a.d - b.d) < 0.08) { a.d = Math.max(0, a.d - 0.004); b.d = Math.min(1, b.d + 0.004); }
+      }
+      // --- shots ---
+      g.shots.forEach((s) => {
+        s.ttl -= dt; s.x += s.vx * dt;
+        if (s.kind === 'bark') {
+          g.foes.forEach((e) => {
+            if (e.hp <= 0 || s.hit?.has(e.id)) return;
+            const big = e.kind === 'tires' || e.kind === 'sound';
+            if (Math.abs(e.x - s.x) < (s.big ? 22 : 14) && Math.abs(e.d - s.d) < (s.big || big ? 0.3 : 0.16)) {
+              (s.hit ??= new Set()).add(e.id); hitFoe(e, (s.big ? 3 : 1) * stats.power, 10, Math.sign(s.vx));
+              if (!big) { e.stun = 1.4; addFx({ x: e.x, y: sy(e.d) - 44 - e.z, ttl: 1.4, kind: 'dizzy' }); }
+              if (!s.big) s.ttl = 0;
+            }
+          });
+        } else if (s.kind === 'ring') {
+          s.r = (s.r ?? 0) + 120 * dt;
+          if (Math.abs(Math.abs(p.x - s.x) - (s.r ?? 0)) < 10 && p.z < 10 && !s.hit?.size) { (s.hit ??= new Set()).add(0); hurtPlayer(1, p.x > s.x ? 1 : -1); }
+        } else if (Math.abs(p.x - s.x) < 14 && Math.abs(p.d - s.d) < 0.12 && p.z < 14) { hurtPlayer(1, Math.sign(s.vx) as 1 | -1); s.ttl = 0; }
+      });
+      g.shots = g.shots.filter((s) => s.ttl > 0);
+      // --- sniff spots (the mini challenges) ---
+      g.sniffs.forEach((k) => {
+        if (k.found || Math.abs(k.x - p.x) > 18 || Math.abs(k.d - p.d) > 0.14) return;
+        k.found = true; sfx.chime();
+        const n = g.sniffs.filter((x) => x.found).length;
+        addFx({ x: k.x, y: sy(k.d) - 30, ttl: 1.2, kind: 'text', text: g.lost ? 'SNIFF SNIFF!' : 'BZZT! Clearer!', color: '#9cf6ff', vy: -20 });
+        g.banner = `${n} of 3 found`; g.bannerT = 1.6;
+        if (n < 3) spawn(g.lost ? ['rat'] : ['bird'], k.x + 120);
+      });
+      if (g.sniffs.length && g.sniffs.every((k) => k.found) && g.foes.every((e) => e.hp <= 0)) endMini();
+      // --- pick ups ---
+      g.picks.forEach((k) => {
+        k.t += dt;
+        if (Math.abs(k.x - p.x) < 18 && Math.abs(k.d - p.d) < 0.14 && p.z < 16) {
+          k.t = -99;
+          if (k.kind === 'bone') { p.hp = Math.min(p.max, p.hp + 2); addFx({ x: p.x, y: sy(p.d) - 24, ttl: 0.9, kind: 'heal' }); sfx.chime(); }
+          else if (k.kind === 'treat') { patch({ points: saveRef.current.points + 1 }); if (g.dash) g.dashPts += 1; addFx({ x: p.x, y: sy(p.d) - 44, ttl: 0.7, kind: 'text', text: '+1', color: '#ffd23f', vy: -40 }); sfx.coin(); }
+          else if (k.kind === 'pu' && k.pu) {
+            const id = k.pu, info = PU[id];
+            if (info.secs) g.pw[id] = info.secs;
+            if (id === 'half_heart') p.hp = Math.min(p.max, p.hp + 1);
+            if (id === 'golden_heart') p.hp = p.max;
+            if (id === 'heart_container') { p.max += 1; p.hp = p.max; }
+            if (id === 'shield_pickup') g.shield = 2;
+            if (id === 'oneup_sprout') g.lives += 1;
+            if (id === 'invincibility_crystal') p.superM = 100;
+            if (id === 'key') for (let i = 0; i < 10; i++) g.picks.push({ x: p.x + (Math.random() - 0.5) * 160, d: Math.random(), kind: 'treat', t: 0 });
+            if (id === 'bomb_pickup') { g.shake = 12; g.foes.forEach((e) => { if (e.hp > 0 && e.x > g.cam - 20 && e.x < g.cam + W + 20) { addFx({ x: e.x, y: sy(e.d) - 10, ttl: 0.6, kind: 'poof' }); hitFoe(e, e.kind === 'tires' || e.kind === 'sound' ? 5 : 99, 20, e.x > p.x ? 1 : -1); } }); sfx.thud(); }
+            addFx({ x: p.x, y: sy(p.d) - 56, ttl: 1.6, kind: 'text', text: info.name, color: '#ffe14d', vy: -14 }); addFx({ x: p.x, y: sy(p.d) - 20, ttl: 0.9, kind: 'heal' }); sfx.chime();
+            g.banner = info.name; g.bannerT = 1.6;
+          }
+          else { g.bag.push(k.kind); addFx({ x: p.x, y: sy(p.d) - 48, ttl: 1.2, kind: 'text', text: `Got the ${k.kind === 'bags' ? 'poop bags' : k.kind}!`, color: '#9cf6ff', vy: -20 }); sfx.chime(); if (g.bag.length >= 3) { g.banner = 'Ready for the walk! Go right!'; g.bannerT = 2; } }
+        }
+      });
+      g.picks = g.picks.filter((k) => k.t >= 0 && k.t < 14);
+      g.fx.forEach((f) => { f.t += dt; if (f.vx) f.x += f.vx * dt; if (f.vy) { f.y += f.vy * dt; if (f.kind === 'confetti') f.vy += 30 * dt; } });
+      g.fx = g.fx.filter((f) => f.t < f.ttl);
+      g.shake = Math.max(0, g.shake - dt * 18); g.bannerT = Math.max(0, g.bannerT - dt);
+      // --- fights finishing ---
+      const st = L.stages[g.stage];
+      if (g.active && !g.mini && (st?.kind === 'wave' || st?.kind === 'mid') && g.foes.every((e) => e.hp <= 0)) {
+        g.foes = [];
+        if (st.kind === 'mid' && g.sub + 1 < st.waves.length) {
+          g.sub += 1; g.banner = `${st.label} Wave ${g.sub + 1} of ${st.waves.length}`; g.bannerT = 2.2; sfx.horn(); spawn(st.waves[g.sub], st.x);
+        } else {
+          g.banner = 'All clear! GO >'; g.bannerT = 2; sfx.chime();
+          if (Math.random() < 0.6 || st.kind === 'mid') g.picks.push({ x: p.x + p.face * 50, d: p.d, kind: 'pu', pu: randPu(), t: 0 });
+          const wasMid = st.kind === 'mid';
+          nextStage();
+          if (wasMid) checkpoint('Big challenge beaten!'); else if (g.cpT >= CP_EVERY) checkpoint('');
+        }
+      }
+      const bossDone = g.foes.find((e) => (e.kind === 'tires' || e.kind === 'sound') && e.happy && e.happy > 3.2);
+      if (bossDone) {
+        g.foes = []; paused.current = true;
+        if (bossDone.kind === 'tires') {
+          if (!saveRef.current.harness) { patch({ harness: true }); p.max += 1; }
+          p.hp = p.max;
+          setTalk({ who: 'Tire Stack', lines: ['Wait... you are not mean at all. You just wanted a walk!', 'We got recycled into a shiny rubber harness. Now we get to go on adventures with you!', 'You got the Rubber Harness: +1 heart!'], i: 0, then: () => { paused.current = false; nextStage(); } });
+        } else {
+          setTalk({ who: 'Sound Monster', lines: ['Oh! The strange sound was just me, lonely and loud.', 'Here, take my power: a collar with a SUPER SONIC BARK!', 'You got the Super Sonic Collar! Every bark is huge now.'], i: 0, then: () => { paused.current = false; patch({ collar: true }); nextStage(); } });
+        }
+        confetti();
+      }
+      reachStage();
+    };
+
+    const boss = (e: Foe, dt: number) => {
+      const p = g.p, half = e.hp < e.max / 2;
+      e.face = p.x > e.x ? 1 : -1;
+      if (e.hurt > 0) return;
+      e.cd -= dt * (half ? 1.5 : 1);
+      if (e.kind === 'tires') {
+        if (e.phase === 1) {
+          e.z = Math.max(0, e.z + e.vd * dt); e.vd -= GRAV * dt; e.x += e.vx * dt;
+          if (e.z === 0 && e.vd < 0) { e.phase = 0; g.shake = 8; sfx.thud(); addFx({ x: e.x, y: sy(e.d), ttl: 0.5, kind: 'poof' }); if (Math.abs(p.x - e.x) < 46 && Math.abs(p.d - e.d) < 0.3 && p.z < 8) hurtPlayer(1, e.face); }
+          return;
+        }
+        if (e.cd <= 0) {
+          if (Math.random() < 0.55) { const n = half ? 2 : 1; for (let i = 0; i < n; i++) g.shots.push({ x: e.x + 20 * e.face, d: i === 0 ? p.d : Math.random(), z: 0, vx: e.face * (130 + i * 30), ttl: 4, kind: 'tire' }); sfx.whoosh(); e.cd = 1.6; }
+          else { e.phase = 1; e.vd = 260; e.vx = (p.x - e.x) / 0.85; e.d += (p.d - e.d) * 0.6; e.cd = 2.2; sfx.boing(); }
+        }
+        e.d += (p.d - e.d) * dt * 0.6;
+      } else {
+        e.z = 18 + Math.sin(e.t * 2.4) * 8; e.d += (p.d - e.d) * dt * 0.5;
+        if (e.cd <= 0) {
+          const r = Math.random();
+          if (r < 0.5) { g.shots.push({ x: e.x, d: e.d, z: 0, vx: 0, ttl: 2.6, kind: 'ring', r: 10 }); sfx.horn(); e.cd = 1.8; g.banner = 'JUMP over the sound rings!'; g.bannerT = 1; }
+          else if (r < 0.8) { e.x = g.cam + (p.x - g.cam > W / 2 ? 80 : W - 80); addFx({ x: e.x, y: sy(e.d) - 30, ttl: 0.6, kind: 'poof' }); sfx.whoosh(); e.cd = 1.2; }
+          else { g.foes.push(mkFoe('bird', e.x, Math.random())); e.cd = 2.4; }
+        }
+      }
+    };
+
+    // ---------- drawing ----------
+    const R = (x: number, y: number, ww: number, hh: number, c: string) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(ww), Math.round(hh)); };
+    const sprite = (sh: Sheet | undefined, f: number, x: number, y: number, flip: boolean, row = 0) => {
+      if (!sh) return;
+      const fr = Math.floor(f) % sh.n;
+      ctx.save();
+      if (flip) { ctx.translate(Math.round(x + sh.fw), Math.round(y)); ctx.scale(-1, 1); ctx.drawImage(sh.img, fr * sh.fw, row * sh.fh, sh.fw, sh.fh, 0, 0, sh.fw, sh.fh); }
+      else ctx.drawImage(sh.img, fr * sh.fw, row * sh.fh, sh.fw, sh.fh, Math.round(x), Math.round(y), sh.fw, sh.fh);
+      ctx.restore();
+    };
+    const layer = (name: string, f: number, y: number, scale = 1.5) => {
+      const im = bg.current[name]; if (!im?.width) return;
+      const ww = im.width * scale, hh = im.height * scale, off = ((g.cam * f) % ww + ww) % ww;
+      for (let x = -off; x < W; x += ww) ctx.drawImage(im, Math.round(x), y, ww, hh);
+    };
+    const HOUSE = ['#e07a5f', '#81b29a', '#f2cc8f', '#6d9dc5', '#c58fd0', '#e9a3b6', '#a3c46b'];
+    const PROPS = ['st-fire_hydrant', 'st-mailbox', 'st-info_bus', 'st-bollard', 'st-hotdog_cart', 'st-vending_machine', 'st-parking', 'st-caution_sign'];
+    const drawWorld = () => {
+      const c = g.cam;
+      if (L.theme === 'vermont') {
+        const pre = g.lost ? 'harvest' : 'autumn';
+        R(0, 0, W, H, '#f6c27a');
+        layer(`${pre}-1_sky`, 0.02, 0); layer(`${pre}-2_mountains`, 0.12, 0); layer(`${pre}-3_hills`, 0.25, 0); layer(`${pre}-4_forest`, 0.45, 0);
+        layer(`${pre}-5_foreground`, 0.7, -44);
+        // the country dirt road
+        R(0, BELT_TOP - 6, W, H, g.lost ? '#7a6a3a' : '#c9a26a');
+        for (let i = -1; i < 14; i++) { const x = i * 38 - ((c * 1) % 38); R(x + 6, BELT_TOP + 12 + (i % 3) * 18, 6, 3, g.lost ? '#5f5230' : '#a98450'); R(x + 20, BELT_TOP + 40 + (i % 2) * 22, 4, 3, '#8f8a82'); }
+        R(0, BELT_TOP - 6, W, 3, g.lost ? '#4f6a2a' : '#7a9a3a');
+        for (let i = -1; i < 8; i++) { const x = i * 70 - (c % 70); R(x, BELT_TOP + 30, 3, 2, '#d8462b'); R(x + 30, BELT_TOP + 60, 3, 2, '#e88a2a'); }
+        if (g.lost) { ctx.fillStyle = 'rgba(30, 40, 20, 0.25)'; ctx.fillRect(0, 0, W, H); }
+        if (c < 900) { const gx = 680 - c; R(gx, 128, 6, 46, '#8a6a4a'); R(gx - 4, 124, 14, 6, '#6b4a2b'); }
+      } else {
+        const sky = ['#6fc3ff', '#94d4ff', '#bde4ff']; sky.forEach((col, i) => R(0, i * 30, W, 30, col)); R(0, 90, W, 50, sky[2]);
+        for (let i = 0; i < 6; i++) { const x = ((i * 170 - c * 0.15) % (W + 120) + W + 120) % (W + 120) - 60; R(x, 22 + (i % 3) * 14, 40, 8, '#ffffffcc'); R(x + 8, 16 + (i % 3) * 14, 24, 8, '#ffffffcc'); }
+        for (let i = -1; i < 14; i++) { const x = i * 46 - ((c * 0.35) % 46); R(x, 106, 30, 30, '#4f9a58'); R(x + 6, 98, 18, 10, '#5fb06a'); }
+        const first = Math.floor((c - 200) / 220);
+        for (let i = Math.max(0, first); i < first + 5; i++) {
+          const hx = i * 220 + 40 - c, col = HOUSE[i % HOUSE.length];
+          R(hx, 76, 150, 72, col); R(hx - 8, 66, 166, 12, '#5a3e36'); R(hx + 10, 58, 130, 10, '#6b4a40');
+          R(hx + 62, 106, 26, 42, '#6b4a2b'); R(hx + 82, 126, 3, 3, '#ffd23f');
+          R(hx + 16, 94, 30, 22, '#cfeeff'); R(hx + 104, 94, 30, 22, '#cfeeff'); R(hx + 30, 94, 2, 22, '#fff'); R(hx + 118, 94, 2, 22, '#fff');
+        }
+        R(0, 148, W, 22, '#69b85a');
+        R(0, BELT_TOP - 6, W, 38, '#cfc6b8');
+        for (let i = -1; i < 14; i++) { const x = i * 40 - (c % 40); R(x, BELT_TOP - 6, 1, 38, '#b5ab9c'); }
+        const pf = Math.floor(c / 160);
+        for (let i = pf; i < pf + 5; i++) { const im = bg.current[PROPS[((i % PROPS.length) + PROPS.length) % PROPS.length]]; if (im?.width) ctx.drawImage(im, Math.round(i * 160 + 90 - c), BELT_TOP - 4 - im.height); }
+        R(0, BELT_TOP + 32, W, 4, '#8f8a82'); R(0, BELT_TOP + 36, W, H, '#55585f');
+        for (let i = -1; i < 10; i++) { const x = i * 60 - (c % 60); R(x, 238, 30, 3, '#f2d64b'); }
+      }
+    };
+    // Her wheelie bin with a mad face (her picture plus the prop: dark grey bin, lid flipped open with trash and a pizza
+    // box poking out, green slime on the rim, a wheel, thick angry brows and a frown).
+    const drawCan = (e: Foe, x: number, y: number) => {
+      const big = e.kind === 'bigcan', s = big ? 1.35 : 1, ww = 24 * s, hh = 30 * s;
+      const flash = e.hurt > 0, wind = e.atk > 0;
+      const body = flash ? '#ffffff' : big ? '#3f6b4a' : '#55595f', dark = flash ? '#dddddd' : big ? '#2c4f36' : '#3d4045', line = '#1e1f22';
+      const top = y - hh;
+      for (let r = 0; r < hh; r++) { const inset = Math.round((r / hh) * 3 * s); R(x - ww / 2 + inset, top + r, ww - inset * 2, 1, body); }
+      R(x - ww / 2, top, 1, hh, line); R(x + ww / 2 - 1, top, 1, hh, line); R(x - ww / 2 + 3 * s, y - 1, ww - 6 * s, 1, line);
+      R(x - ww / 2 + 3, top + 4, 2, hh - 8, flash ? '#fff' : big ? '#5a8a66' : '#6e7379');
+      for (let i = 1; i < 3; i++) R(x - ww / 2 + 2, top + (hh / 3) * i + 6, ww - 4, 1, dark);
+      R(x + ww / 2 - 7 * s, y - 6 * s, 7 * s, 7 * s, line); R(x + ww / 2 - 6 * s, y - 5 * s, 5 * s, 5 * s, '#2a2b2f'); R(x + ww / 2 - 4 * s, y - 3 * s, 1, 1, '#777');
+      // trash poking out
+      const peek = wind ? 7 : 3 + Math.abs(Math.sin(e.t * 5)) * 2;
+      R(x - ww / 2 + 4, top - peek, 8, peek, '#f2b33d'); R(x - 2, top - peek - 2, 7, peek + 2, '#8fd3e8'); R(x + 4, top - peek + 1, 6, peek - 1, '#e8873a');
+      R(x - ww / 2 + 3, top - peek - 3, 10, 3, '#d8a36a'); R(x - ww / 2 + 5, top - peek - 2, 2, 1, '#d64b3b');
+      // rim with slime
+      R(x - ww / 2 - 2, top - 2, ww + 4, 4, flash ? '#fff' : dark); R(x - ww / 2 - 2, top + 2, ww + 4, 1, line);
+      { R(x - ww / 2 + 2, top + 2, 3, 3, '#7cc04a'); R(x + 3, top + 2, 2, 4, '#7cc04a'); R(x + ww / 2 - 6, top + 2, 3, 2, '#7cc04a'); }
+      // lid flipped open, hinged at the back
+      const open = wind ? 1 : e.stun > 0 ? 0.6 : 0.35 + Math.abs(Math.sin(e.t * 6)) * 0.25;
+      ctx.save(); ctx.translate(Math.round(x + (ww / 2) * -e.face), Math.round(top - 2)); ctx.rotate(-e.face * open * -1.1);
+      ctx.fillStyle = flash ? '#fff' : dark; ctx.fillRect(e.face > 0 ? 0 : -ww - 4, -4, ww + 4, 4);
+      ctx.fillStyle = line; ctx.fillRect(e.face > 0 ? 0 : -ww - 4, -5, ww + 4, 1);
+      ctx.restore();
+      // the mad face
+      const fx = x + e.face * 1, ey = top + 9 * s;
+      R(fx - 3, ey - 6, 1, 3, line); R(fx - 1, ey - 7, 1, 3, line); R(fx + 1, ey - 6, 1, 3, line);
+      R(fx - 8 * s, ey - 3, 6 * s, 2, line); R(fx - 8 * s + 4 * s, ey - 2, 2 * s, 2, line);
+      R(fx + 2 * s, ey - 3, 6 * s, 2, line); R(fx + 2 * s, ey - 2, 2 * s, 2, line);
+      R(fx - 7 * s, ey, 5 * s, 3 * s, '#ffffff'); R(fx + 2 * s, ey, 5 * s, 3 * s, '#ffffff');
+      R(fx - 5 * s + e.face, ey + 1, 2, 2, line); R(fx + 4 * s + e.face, ey + 1, 2, 2, line);
+      const my = ey + 8 * s;
+      R(fx - 4 * s, my + 2, 2, 1, line); R(fx - 2 * s, my, 4 * s, 1, line); R(fx + 2 * s, my + 2, 2, 1, line); R(fx - 3 * s, my + 1, 1, 1, line); R(fx + 2 * s, my + 1, 1, 1, line);
+      if (wind) R(x - 1, top - 24, 3, 6, '#ff4d4d');
+    };
+    const drawTires = (e: Foe, x: number, y: number) => {
+      const happy = !!e.happy;
+      for (let i = 0; i < 4; i++) {
+        const ty = y - 12 - i * 16 + (e.hurt > 0 ? Math.sin(e.t * 60) * 2 : 0), tw = 48 - i * 2;
+        R(x - tw / 2, ty - 7, tw, 14, e.hurt > 0 ? '#ffffff' : '#2a2a2e'); R(x - tw / 2 + 4, ty - 3, tw - 8, 6, '#1a1a1d');
+        for (let k = 0; k < 6; k++) R(x - tw / 2 + 4 + k * (tw / 6), ty - 7, 3, 2, '#55555c');
+      }
+      const ey = y - 58;
+      if (happy) { R(x - 12, ey, 8, 3, '#fff'); R(x + 4, ey, 8, 3, '#fff'); R(x - 8, ey + 10, 16, 3, '#ffd23f'); R(x - 10, ey + 8, 3, 3, '#ffd23f'); R(x + 7, ey + 8, 3, 3, '#ffd23f'); }
+      else { R(x - 13, ey - 2, 9, 8, '#fff'); R(x + 4, ey - 2, 9, 8, '#fff'); R(x - 9 + e.face * 2, ey + 1, 4, 4, '#d22'); R(x + 8 + e.face * 2, ey + 1, 4, 4, '#d22'); R(x - 14, ey - 5, 10, 3, '#111'); R(x + 4, ey - 5, 10, 3, '#111'); R(x - 8, ey + 10, 16, 3, '#111'); }
+    };
+    const squiggle = (x: number, y: number, k: number, amp: number, col: string) => {
+      ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2;
+      for (let j = 0; j < 3; j++) { ctx.beginPath(); for (let i = 0; i <= 18; i++) { const px = x - 27 + i * 3, py = y - j * 7 + Math.sin(i * 0.9 + g.time * 6 + j) * amp + (Math.random() - 0.5) * k; if (i) ctx.lineTo(px, py); else ctx.moveTo(px, py); } ctx.stroke(); }
+      ctx.restore();
+    };
+    const drawSound = (e: Foe, x: number, y: number) => {
+      const happy = !!e.happy;
+      ctx.save(); ctx.strokeStyle = happy ? '#ffd23f' : e.hurt > 0 ? '#ffffff' : '#c86bff'; ctx.lineWidth = 2;
+      for (let k = 0; k < 6; k++) {
+        ctx.beginPath();
+        for (let a = 0; a <= 32; a++) { const ang = (a / 32) * Math.PI * 2, rr = 18 + k * 3 + Math.sin(ang * (3 + k) + e.t * (4 + k)) * (happy ? 1 : 4); const px = x + Math.cos(ang) * rr, py = y - 34 + Math.sin(ang) * rr * 0.8; if (a) ctx.lineTo(px, py); else ctx.moveTo(px, py); }
+        ctx.globalAlpha = 0.35 + k * 0.1; ctx.stroke();
+      }
+      ctx.restore();
+      R(x - 9, y - 40, 6, 6, '#fff'); R(x + 3, y - 40, 6, 6, '#fff'); R(x - 7, y - 38, 3, 3, '#222'); R(x + 5, y - 38, 3, 3, '#222');
+      R(x - 6, y - 28, 12, happy ? 3 : 6, happy ? '#ffd23f' : '#3a0b52');
+    };
+    const drawPick = (k: Pick) => {
+      const x = k.x - g.cam, y = sy(k.d) - 6 - Math.abs(Math.sin(k.t * 4)) * 4;
+      R(x - 6, sy(k.d) - 1, 12, 2, '#00000033');
+      if (k.kind === 'bone') { R(x - 6, y - 2, 12, 4, '#fff8e8'); R(x - 8, y - 4, 4, 4, '#fff8e8'); R(x - 8, y + 1, 4, 4, '#fff8e8'); R(x + 4, y - 4, 4, 4, '#fff8e8'); R(x + 4, y + 1, 4, 4, '#fff8e8'); }
+      else if (k.kind === 'treat') { R(x - 4, y - 4, 8, 8, '#c8813a'); R(x - 2, y - 2, 2, 2, '#8a5222'); R(x + 1, y + 1, 2, 2, '#8a5222'); }
+      else if (k.kind === 'pu') { const im = bg.current[`pu/${k.pu}`]; ctx.globalAlpha = 0.35 + Math.sin(k.t * 6) * 0.2; R(x - 11, y - 18, 22, 22, '#fff6a8'); ctx.globalAlpha = 1; if (im?.width) ctx.drawImage(im, Math.round(x - 12), Math.round(y - 19), 24, 24); }
+      else if (k.kind === 'leash') { R(x - 7, y - 6, 14, 3, '#d63b3b'); R(x + 5, y - 6, 3, 12, '#d63b3b'); R(x - 9, y - 8, 5, 7, '#aaa'); }
+      else if (k.kind === 'bags') { R(x - 5, y - 7, 10, 12, '#3bb273'); R(x - 2, y - 9, 4, 3, '#2a8a57'); }
+      else { R(x - 6, y - 8, 12, 14, '#ffcf5a'); R(x - 6, y - 8, 12, 3, '#e8a43a'); R(x - 2, y - 3, 4, 4, '#c8813a'); }
+      if (k.kind !== 'treat' && k.kind !== 'bone' && k.kind !== 'pu') { ctx.globalAlpha = 0.5 + Math.sin(k.t * 6) * 0.3; R(x - 1, y - 18, 2, 6, '#fff'); R(x - 3, y - 16, 6, 2, '#fff'); ctx.globalAlpha = 1; }
+    };
+    const drawPlayer = () => {
+      const p = g.p, x = p.x - g.cam, y = sy(p.d);
+      ctx.globalAlpha = 0.35; R(x - 14, y - 2, 28, 4, '#000'); ctx.globalAlpha = 1;
+      if (p.inv > 0 && Math.floor(p.inv * 12) % 2 === 0 && !p.ko) return;
+      const a = art.current, flip = p.face < 0;
+      if (g.pw.star_power) { ctx.globalAlpha = 0.5; R(x - 20, y - 44 - p.z, 40, 40, ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][Math.floor(g.time * 12) % 4]); ctx.globalAlpha = 1; }
+      if (g.shield > 0) { ctx.save(); ctx.strokeStyle = '#7fd7ff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.ellipse(x, y - 22 - p.z, 26, 24, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      if (g.pw.speed_boots && p.walk > 0) { ctx.globalAlpha = 0.5; R(x - p.face * 26, y - 20 - p.z, 10, 2, '#fff'); R(x - p.face * 30, y - 12 - p.z, 12, 2, '#fff'); ctx.globalAlpha = 1; }
+      if (dl() >= 10) { ctx.globalAlpha = 0.35 + Math.sin(g.time * 6) * 0.15; R(x - 18, y - 40 - p.z, 36, 36, '#ffd23f'); ctx.globalAlpha = 1; }
+      if (dog === 'yoga' || dog === 'mochi') {
+        const pre = dog === 'yoga' ? 'dog1' : 'dog2';
+        const sh = p.ko || p.hurt > 0 ? a[`${pre}-Hurt`] : p.atk > 0 ? a[`${pre}-Attack`] : p.walk > 0 ? a[`${pre}-Walk`] : a[`${pre}-Idle`];
+        sprite(sh, p.atk > 0 ? ((0.32 - p.atk) / 0.32) * 4 : p.walk > 0 ? p.walk * 12 : g.time * 6, x - 24, y - 46 - p.z, flip);
+      } else {
+        sprite(a.dogs, p.walk > 0 ? p.walk * 10 : 0, x - 32, y - 58 - p.z, !flip, dog === 'spot' ? 0 : dog === 'luna' ? 2 : 3);
+        if (p.atk > 0) R(x + p.face * 18, y - 30 - p.z, 4, 4, '#fff');
+      }
+      if (saveRef.current.collar) R(x + (flip ? -10 : 6), y - 28 - p.z, 5, 2, '#5b8cff');
+      if (p.ko) { ctx.fillStyle = '#fff'; ctx.font = 'bold 10px monospace'; ctx.fillText('z z z', x - 10, y - 52); }
+    };
+    const outline = (t: string, x: number, y: number, size: number, col: string, align: CanvasTextAlign = 'left') => { ctx.save(); ctx.font = size >= 14 ? `${Math.round(size * 1.15)}px m5x7, monospace` : `bold ${size}px monospace`; ctx.textAlign = align; ctx.lineWidth = Math.max(3, size / 4); ctx.strokeStyle = '#1b1430'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); ctx.restore(); };
+    const draw = () => {
+      ctx.save();
+      if (g.shake > 0) ctx.translate((Math.random() - 0.5) * g.shake, (Math.random() - 0.5) * g.shake);
+      drawWorld();
+      if (lvl === 0 && g.cam < 600) { const bx = 120 - g.cam, by = sy(0.1); R(bx - 5, by - 30, 10, 10, '#f0c9a0'); R(bx - 6, by - 32, 12, 4, '#4a2b1a'); R(bx - 6, by - 20, 12, 12, '#3b82f6'); R(bx - 5, by - 8, 4, 8, '#334'); R(bx + 1, by - 8, 4, 8, '#334'); }
+      if (lvl === 1 && g.cam < 700) { const tx = 300 - g.cam, ty = sy(0.05); R(tx - 10, ty - 14, 20, 12, '#d9a441'); R(tx + 6, ty - 20, 10, 10, '#d9a441'); R(tx + 10, ty - 16, 6, 4, '#3a2a1a'); R(tx - 8, ty - 4, 3, 4, '#d9a441'); R(tx + 4, ty - 4, 3, 4, '#d9a441'); }
+      g.sniffs.forEach((k) => {
+        if (k.found) return; const x = k.x - g.cam, y = sy(k.d);
+        if (g.lost) { ctx.globalAlpha = 0.6 + Math.sin(g.time * 5) * 0.3; for (let i = 0; i < 3; i++) { R(x - 8 + i * 6, y - 4 - (i % 2) * 4, 4, 3, '#3a2a1a'); R(x - 9 + i * 6, y - 7 - (i % 2) * 4, 2, 2, '#3a2a1a'); R(x - 6 + i * 6, y - 7 - (i % 2) * 4, 2, 2, '#3a2a1a'); } R(x - 1, y - 22, 2, 2, '#fff8a8'); ctx.globalAlpha = 1; }
+        else { ctx.globalAlpha = 0.45 + g.sniffs.filter((s) => s.found).length * 0.18; squiggle(x, y - 22, 6, 6, '#c86bff'); ctx.globalAlpha = 1; }
+      });
+      if (g.squirrel) { const x = g.squirrel.x - g.cam, y = sy(g.squirrel.d), hop = Math.abs(Math.sin(g.squirrel.t * 12)) * 6; R(x - 6, y - 10 - hop, 10, 7, '#b5651d'); R(x + 2, y - 14 - hop, 6, 6, '#b5651d'); R(x + 6, y - 12 - hop, 1, 1, '#111'); R(x - 12, y - 20 - hop, 7, 12, '#d9822b'); R(x - 14, y - 22 - hop, 5, 5, '#d9822b'); }
+      type D = { y: number; f: () => void };
+      const list: D[] = [];
+      g.picks.forEach((k) => list.push({ y: sy(k.d) - 1, f: () => drawPick(k) }));
+      g.foes.forEach((e) => {
+        const x = e.x - g.cam, y = sy(e.d);
+        list.push({ y, f: () => {
+          if (e.hp <= 0 && !e.happy) return;
+          ctx.globalAlpha = 0.35; R(x - 12, y - 2, 24, 4, '#000'); ctx.globalAlpha = 1;
+          if (e.kind === 'can' || e.kind === 'bigcan') drawCan(e, x, y - e.z);
+          else if (e.kind === 'tires') drawTires(e, x, y - e.z);
+          else if (e.kind === 'sound') drawSound(e, x, y - e.z);
+          else if (e.kind === 'rat') sprite(e.hurt > 0 ? art.current['rat-hurt'] : art.current['rat-walk'], e.t * 10, x - 16, y - 30, e.face < 0);
+          else sprite(art.current['bird-walk'], e.t * 12, x - 16, y - 32 - e.z, e.face < 0);
+          if ((e.kind === 'tires' || e.kind === 'sound') && !e.happy) { R(x - 30, y - 94, 60, 5, '#000'); R(x - 29, y - 93, 58 * Math.max(0, e.hp / e.max), 3, '#ff4d6d'); }
+        } });
+      });
+      g.shots.forEach((s) => list.push({ y: sy(s.d), f: () => {
+        const x = s.x - g.cam, y = sy(s.d) - s.z;
+        if (s.kind === 'bark') { ctx.save(); ctx.strokeStyle = s.big ? '#7fd7ff' : '#ffffff'; ctx.lineWidth = 2; for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(x - Math.sign(s.vx) * k * 6, y - 22, (s.big ? 10 : 6) + k * 4, -0.9, 0.9); ctx.stroke(); } ctx.restore(); }
+        else if (s.kind === 'soda') { const sp = Math.floor(s.ttl * 12) % 2; R(x - 3, y - 5, 6 + sp * 2, 9 - sp * 2, '#c0392b'); R(x - 3, y - 5, 6, 2, '#bbbbbb'); R(x - 1, y - 1, 2, 2, '#ffffff'); }
+        else if (s.kind === 'tire') { R(x - 8, y - 16, 16, 16, '#2a2a2e'); R(x - 4, y - 12, 8, 8, '#555'); }
+        else { ctx.save(); ctx.strokeStyle = '#c86bff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, sy(s.d), s.r ?? 0, (s.r ?? 0) * 0.25, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
+      } }));
+      list.push({ y: sy(g.p.d) + 0.5, f: drawPlayer });
+      list.sort((a, b) => a.y - b.y).forEach((d) => d.f());
+      g.fx.forEach((f) => {
+        const x = f.screen ? f.x : f.x - g.cam, k = f.t / f.ttl;
+        if (f.kind === 'spark') { ctx.save(); ctx.strokeStyle = '#fff6a8'; ctx.lineWidth = 2; for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + 0.3, r1 = 4 + k * 6, r2 = 12 + k * 14; ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * r1, f.y + Math.sin(a) * r1); ctx.lineTo(x + Math.cos(a) * r2, f.y + Math.sin(a) * r2); ctx.stroke(); } R(x - 4, f.y - 4, 8, 8, '#ffffff'); ctx.restore(); }
+        else if (f.kind === 'poof') { ctx.save(); ctx.globalAlpha = 1 - k; ctx.fillStyle = '#f2efe8'; for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ctx.beginPath(); ctx.arc(x + Math.cos(a) * k * 18, f.y + Math.sin(a) * k * 10, 6 - k * 3, 0, Math.PI * 2); ctx.fill(); } R(x - 1 + k * 14, f.y - k * 16, 2, 2, '#ffd23f'); R(x - k * 14, f.y - 4 - k * 12, 2, 2, '#ffd23f'); ctx.restore(); }
+        else if (f.kind === 'text') { ctx.save(); ctx.globalAlpha = Math.min(1, (1 - k) * 2); outline(f.text ?? '', x, f.y, 12, f.color ?? '#fff', 'center'); ctx.restore(); }
+        else if (f.kind === 'heal') sprite(art.current['vfx-heal'], k * 6, x - 16, f.y - 16, false);
+        else if (f.kind === 'dizzy') sprite(art.current['vfx-dizzy'], f.t * 10, x - 16, f.y - 8, false);
+        else if (f.kind === 'bolt') sprite(art.current['vfx-lightning'], k * 6, x - 16, f.y - 44, false);
+        else if (f.kind === 'confetti') R(x, f.y, 3, 4, f.color ?? '#fff');
+        else if (f.kind === 'flag') { R(x, f.y, 2, 26, '#6b4a2b'); R(x + 2, f.y + Math.sin(f.t * 8), 14, 9, '#3bb273'); R(x + 6, f.y + 3, 4, 3, '#fff'); }
+      });
+      ctx.restore();
+      if (g.fade > 0) { ctx.fillStyle = `rgba(255,255,255,${Math.min(1, g.fade)})`; ctx.fillRect(0, 0, W, H); }
+      // HUD: portrait card, hearts, zoomies meter, dog level bar, points, combo
+      const p = g.p, s = saveRef.current, secs = (s.dogs[dog] ?? 0) + g.xpFlush, lv = dogLevel(secs);
+      R(6, 6, 170, 44, '#1b1430'); R(7, 7, 168, 42, '#2d2350');
+      R(10, 10, 28, 28, stats.color); R(14, 17, 5, 5, '#fff'); R(27, 17, 5, 5, '#fff'); R(16, 19, 2, 2, '#111'); R(29, 19, 2, 2, '#111'); R(19, 28, 8, 3, '#111'); if (dog === 'yoga') R(20, 33, 6, 5, '#fff');
+      outline(stats.name.toUpperCase(), 42, 18, 10, '#ffe14d'); outline(lv >= 10 ? 'MASTER' : `LV ${lv}`, 128, 18, 9, lv >= 10 ? '#ffd23f' : '#9cf6ff');
+      for (let i = 0; i < p.max; i++) { const hx = 42 + i * 11, on = i < p.hp ? '#ff4d6d' : '#55476b'; R(hx, 23, 9, 7, on); R(hx + 1, 21, 3, 2, on); R(hx + 5, 21, 3, 2, on); R(hx + 2, 30, 5, 2, on); }
+      R(42, 35, 128, 4, '#000'); R(42, 35, 128 * (p.superM / 100), 4, p.superM >= 100 ? (Math.floor(g.time * 8) % 2 ? '#7fd7ff' : '#ffffff') : '#5b8cff');
+      R(42, 42, 128, 3, '#000'); R(42, 42, 128 * (lv >= 10 ? 1 : (secs % DOG_LEVEL_SECS) / DOG_LEVEL_SECS), 3, '#ffd23f');
+      outline(`${s.points} PP`, 182, 18, 11, '#ffd23f');
+      let hx2 = 236;
+      const badge = (id: PuId, label: string) => { const im = bg.current[`pu/${id}`]; R(hx2, 6, 22, 22, '#1b1430'); if (im?.width) ctx.drawImage(im, hx2 + 1, 7, 20, 20); outline(label, hx2 + 11, 36, 9, '#ffffff', 'center'); hx2 += 26; };
+      (Object.keys(g.pw) as PuId[]).forEach((id) => badge(id, `${Math.ceil(g.pw[id] ?? 0)}`));
+      if (g.shield > 0) badge('shield_pickup', `x${g.shield}`);
+      if (g.lives > 0) badge('oneup_sprout', `x${g.lives}`);
+      if (g.hitT > 0 && g.hits > 1) outline(`${g.hits} HITS`, 182, 40, 18, '#7dff6a');
+      if (g.dash > 0) outline(`TREAT DASH ${Math.ceil(g.dash)}s   ${g.dashPts} treats`, W / 2, 70, 15, '#ffffff', 'center');
+      const st2 = L.stages[g.stage];
+      if (!g.active && st2 && st2.kind !== 'home' && !g.lock && Math.floor(g.time * 2) % 2 === 0 && g.p.x < st2.x - 80) outline('GO >', W - 70, 112, 18, '#ffe14d');
+      if (g.bannerT > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, g.bannerT * 2); outline(g.banner, W / 2, 94, 15, '#ffffff', 'center'); ctx.restore(); }
+      if (lvl === 0 && g.stage === 0) ['leash', 'bags', 'treats'].forEach((it, i) => { R(W - 92 + i * 28, 8, 24, 24, '#1b1430'); R(W - 91 + i * 28, 9, 22, 22, g.bag.includes(it) ? '#3b8f5a' : '#2d2350'); ctx.fillStyle = '#fff'; ctx.font = '8px monospace'; ctx.fillText(it === 'bags' ? 'bags' : it.slice(0, 5), W - 90 + i * 28, 24); });
+      // level progress along the road
+      const prog = Math.min(1, g.p.x / L.end); R(W / 2 - 60, H - 8, 120, 3, '#00000066'); R(W / 2 - 60, H - 8, 120 * prog, 3, '#ffe14d'); R(W / 2 - 61 + 120 * prog, H - 11, 3, 9, '#ffffff');
+    };
+
+    const frame = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (!paused.current) step(dt);
+      draw();
+      raf = requestAnimationFrame(frame);
+    };
+
+    api.current.act = (k: string) => {
+      const p = g.p; if (paused.current || p.ko || p.chase > 0) return;
+      if (k === 'bite') { if (p.atk > 0.08) return; p.combo = g.time - p.lastAtk < 0.55 ? (p.combo % 3) + 1 : 1; p.lastAtk = g.time; p.atk = 0.32; sfx.click(); }
+      else if (k === 'jump') { if (p.z > 0 && !(g.pw.double_jump_feather && g.jumps < 2)) return; g.jumps = p.z > 0 ? g.jumps + 1 : 1; p.vz = (dog === 'spot' ? 270 : 230) * (g.pw.double_jump_feather ? 1.15 : 1); sfx.boing(); }
+      else if (k === 'bark') { if (p.barkCd > 0) return; p.barkCd = barkCdMax(); const big = bigBark(); g.shots.push({ x: p.x + p.face * 18, d: p.d, z: 0, vx: p.face * 230, ttl: big ? 1.4 : 0.9, kind: 'bark', big }); sfx.horn(); addFx({ x: p.x + p.face * 22, y: sy(p.d) - 44, ttl: 0.6, kind: 'text', text: big ? 'AROOO!' : 'WOOF!', color: '#ffffff', vy: -20 }); }
+      else if (k === 'super') {
+        if (p.superM < 100) return; p.superM = 0; g.shake = 10; sfx.chime();
+        addFx({ x: p.x, y: sy(p.d) - 54, ttl: 1, kind: 'text', text: 'ZOOMIES!', color: '#7fd7ff', vy: -10 });
+        g.foes.forEach((e) => { if (e.x > g.cam - 20 && e.x < g.cam + W + 20 && e.hp > 0) { addFx({ x: e.x, y: sy(e.d), ttl: 0.6, kind: 'bolt' }); hitFoe(e, 4 * power(), 16, e.x > p.x ? 1 : -1); } });
+      }
+    };
+    api.current.dash = (yes: boolean) => {
+      setOffer(false); paused.current = false;
+      if (yes) { g.dash = 60; g.dashPts = 0; g.lock = { l: g.cam, r: g.cam + W }; g.banner = 'TREAT DASH! Grab every treat!'; g.bannerT = 2; sfx.horn(); }
+      else nextStage();
+    };
+    const kd = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase(); keys.current[k] = true;
+      if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) e.preventDefault();
+      if (k === 'z' || k === 'j') api.current.act?.('bite'); else if (k === 'x' || k === 'k' || k === ' ') api.current.act?.('jump'); else if (k === 'c' || k === 'l') api.current.act?.('bark'); else if (k === 'v' || k === ';') api.current.act?.('super');
+    };
+    const ku = (e: KeyboardEvent) => { keys.current[e.key.toLowerCase()] = false; };
+    const hudTick = window.setInterval(() => setHud((n) => (n + 1) % 1000), 250);
+    window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
+    raf = requestAnimationFrame(frame);
+    return () => {
+      cancelAnimationFrame(raf); window.clearInterval(hudTick);
+      window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku);
+      if (g.xpFlush > 0) { const s = saveRef.current, n = { ...s, dogs: { ...s.dogs, [dog]: (s.dogs[dog] ?? 0) + g.xpFlush } }; writeSave(studentId, n); saveRef.current = n; setSaveState(n); g.xpFlush = 0; }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [screen, dog]);
+
+  // ---------- touch stick ----------
+  const stickDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    stick.current = { x: 0, y: 0, on: true, id: e.pointerId, ox: r.left + r.width / 2, oy: r.top + r.height / 2 };
+    e.currentTarget.setPointerCapture(e.pointerId); stickMove(e);
+  };
+  const stickMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const s = stick.current; if (!s.on || e.pointerId !== s.id) return;
+    const dx = (e.clientX - s.ox) / 44, dy = (e.clientY - s.oy) / 44, len = Math.hypot(dx, dy);
+    s.x = len > 1 ? dx / len : dx; s.y = len > 1 ? dy / len : dy;
+  };
+  const stickUp = () => { stick.current = { ...stick.current, on: false, x: 0, y: 0 }; };
+
+  const unlocked = (id: DogId) => save.cleared >= DOGS[id].from;
+  const buy = (k: keyof Save['up']) => {
+    const item = SHOP.find((s) => s.k === k)!, s = saveRef.current;
+    if (s.points < item.cost || s.up[k] >= item.max) return;
+    patch({ points: s.points - item.cost, up: { ...s.up, [k]: s.up[k] + 1 } }); sfx.coin();
+  };
+  const p = G.current.p;
+  const midLevel = save.stage > 0 && !!save.levelDog;
+  const curLvl = Math.min(save.lvl, LEVELS.length - 1);
+  const allDone = save.cleared >= LEVELS.length;
+  const openPicker = (lvl: number) => { setPickFor(lvl); setScreen('pick'); };
+
+  return (
+    <div className="yr-root">
+      {screen === 'play' && (
+        <>
+          <canvas ref={cv} width={W} height={H} className="yr-canvas" aria-label="Yoga's Revenge game" />
+          <div className="yr-top">
+            <button type="button" className="yr-pill" onClick={() => { paused.current = true; setScreen('title'); }}>Pause</button>
+            <button type="button" className="yr-pill" aria-pressed={voiceOn} onClick={() => setVoiceOn((v) => !v)} aria-label={voiceOn ? 'Turn read aloud off' : 'Turn read aloud on'}>{voiceOn ? '🔊' : '🔇'}</button>
+            {playMode && <span className="yr-mode">Play mode</span>}
+          </div>
+          <div className="yr-stick" onPointerDown={stickDown} onPointerMove={stickMove} onPointerUp={stickUp} onPointerCancel={stickUp} aria-label="Move">
+            <div className="yr-knob" style={{ transform: `translate(${stick.current.x * 34}px, ${stick.current.y * 34}px)` }} />
+          </div>
+          <div className="yr-btns">
+            <button type="button" className="yr-btn yr-bite" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('bite'); }}>Bite</button>
+            <button type="button" className="yr-btn yr-jump" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('jump'); }}>Jump</button>
+            <button type="button" className={`yr-btn yr-bark${p.barkCd > 0 ? ' cool' : ''}`} onPointerDown={(e) => { e.preventDefault(); api.current.act?.('bark'); }}>Bark</button>
+            <button type="button" className={`yr-btn yr-super${p.superM >= 100 ? ' ready' : ''}`} onPointerDown={(e) => { e.preventDefault(); api.current.act?.('super'); }}>Zoomies</button>
+          </div>
+          <p className="yr-keys">Keys: arrows move, Z bite, X jump, C bark, V zoomies</p>
+        </>
+      )}
+
+      {screen === 'title' && (
+        <div className="yr-menu">
+          <h1 className="yr-logo">YOGA'S<br />REVENGE</h1>
+          <p className="yr-tag">{allDone ? 'You beat every level so far! Replay any level to grow your dogs to Master.' : `Level ${curLvl + 1}: ${LEVELS[curLvl].name}`}</p>
+          <div className="yr-mode-pick" role="radiogroup" aria-label="Mode">
+            <button type="button" role="radio" aria-checked={!playMode} className={!playMode ? 'on' : ''} onClick={() => setPlayMode(false)}>Learn mode<small>A question before each fight</small></button>
+            <button type="button" role="radio" aria-checked={playMode} className={playMode ? 'on' : ''} disabled={!playOpen} onClick={() => setPlayMode(true)}>Play mode<small>{playOpen ? 'Tap tap challenges, no questions' : 'Opens when today\'s streak and assignments are done'}</small></button>
+          </div>
+          <div className="yr-menu-btns">
+            {midLevel && <button type="button" className="yr-big" onClick={() => begin(curLvl, save.levelDog!, false)}>Continue with {DOGS[save.levelDog!].name} <small>From your last checkpoint</small></button>}
+            {!allDone && <button type="button" className={midLevel ? 'yr-small' : 'yr-big'} onClick={() => openPicker(curLvl)}>{midLevel ? `Restart level ${curLvl + 1}` : `Start level ${curLvl + 1}`}</button>}
+            <div className="yr-row">
+              <button type="button" className="yr-small" onClick={() => setScreen('levels')}>Levels</button>
+              <button type="button" className="yr-small" onClick={() => setScreen('shop')}>Treat shop ({save.points} PP)</button>
+              <button type="button" className="yr-small" onClick={() => navigate('/student/games')}>Leave</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {screen === 'levels' && (
+        <div className="yr-menu">
+          <h2 className="yr-h">Levels</h2>
+          <div className="yr-dogs">
+            {LEVELS.map((l, i) => (
+              <button key={l.name} type="button" className="yr-dog" disabled={i > save.cleared} onClick={() => openPicker(i)}>
+                <b>Level {i + 1}: {l.name}</b><small>{i < save.cleared ? 'Beaten. Play again to level up your dogs.' : i === save.cleared ? 'Up next' : 'Locked'}{l.reward ? ` · Earns ${DOGS[l.reward].name}` : ''}</small>
+              </button>
+            ))}
+            <div className="yr-dog yr-soon"><b>Level {LEVELS.length + 1}</b><small>Coming soon. Tell your teacher your ideas!</small></div>
+          </div>
+          <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back</button>
+        </div>
+      )}
+
+      {screen === 'pick' && (
+        <div className="yr-menu">
+          <h2 className="yr-h">Level {pickFor + 1}: pick your dog</h2>
+          <p className="yr-tag">Your dog stays with you for the whole level. Every minute you play makes it stronger.</p>
+          <div className="yr-dogs">
+            {(Object.keys(DOGS) as DogId[]).map((id) => {
+              const on = unlocked(id), secs = save.dogs[id] ?? 0, lv = dogLevel(secs);
+              return (
+                <button key={id} type="button" className="yr-dog" disabled={!on} onClick={() => begin(pickFor, id, true)}>
+                  <span className="yr-dog-face" style={{ background: DOGS[id].color }}>{id === 'yoga' && <i className="yr-blaze" />}</span>
+                  <b>{DOGS[id].name} {on && <em className={lv >= 10 ? 'yr-master' : ''}>{lv >= 10 ? 'MASTER' : `Lv ${lv}`}</em>}</b>
+                  <small>{on ? DOGS[id].blurb : `Beat level ${DOGS[id].from} to unlock`}</small>
+                  {on && <span className="yr-xp" aria-label={`Dog level ${lv} of 10`}><span style={{ width: `${lv >= 10 ? 100 : ((secs % DOG_LEVEL_SECS) / DOG_LEVEL_SECS) * 100}%` }} /></span>}
+                  {on && <small className="yr-perk">{PERKS.filter((k) => k.at <= lv).map((k) => k.text).join(' · ') || 'Play to earn skills'}</small>}
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back</button>
+        </div>
+      )}
+
+      {screen === 'shop' && (
+        <div className="yr-menu">
+          <h2 className="yr-h">Treat shop</h2>
+          <p className="yr-tag">You have {save.points} puppy points. Collect treats from beaten monsters and the Treat Dash.</p>
+          <div className="yr-dogs">
+            {SHOP.map((it) => (
+              <button key={it.k} type="button" className="yr-dog" disabled={save.points < it.cost || save.up[it.k] >= it.max} onClick={() => buy(it.k)}>
+                <b>{it.name}</b><small>{it.desc}. Level {save.up[it.k]} of {it.max}</small><span className="yr-cost">{save.up[it.k] >= it.max ? 'Maxed' : `${it.cost} PP`}</span>
+              </button>
+            ))}
+          </div>
+          <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back</button>
+        </div>
+      )}
+
+      {screen === 'clear' && cleared && (
+        <div className="yr-menu yr-win">
+          <h2 className="yr-h">LEVEL {cleared.lvl + 1} COMPLETE!</h2>
+          <p className="yr-tag">{LEVELS[cleared.lvl].name} beaten with {DOGS[cleared.dog].name} in about {cleared.mins} minutes.</p>
+          {cleared.reward && <p className="yr-tag"><b>New dog unlocked: {DOGS[cleared.reward].name}!</b> {DOGS[cleared.reward].blurb}</p>}
+          {cleared.lvl + 1 < LEVELS.length
+            ? <button type="button" className="yr-big" onClick={() => openPicker(cleared.lvl + 1)}>Level {cleared.lvl + 2}: {LEVELS[cleared.lvl + 1].name}</button>
+            : <p className="yr-tag">That is every level for now. More are coming!</p>}
+          <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back to the start</button>
+        </div>
+      )}
+
+      {talk && (
+        <div className="yr-talk" onClick={() => { if (talk.i < talk.lines.length - 1) setTalk({ ...talk, i: talk.i + 1 }); else { const t = talk; setTalk(null); t.then?.(); } }}>
+          {talk.portrait && <img src={talk.portrait} alt="" className="yr-portrait" />}
+          <div className="yr-talk-box"><b>{talk.who}</b><p>{talk.lines[talk.i]}</p><small>Tap to continue</small></div>
+        </div>
+      )}
+
+      {offer && (
+        <div className="yr-overlay">
+          <div className="yr-card">
+            <h3>Treat Dash!</h3>
+            <p>Bonus round: grab as many treats as you can in 1 minute. Each one is a puppy point for the Treat shop.</p>
+            <div className="yr-row">
+              <button type="button" className="yr-big" onClick={() => api.current.dash?.(true)}>Let's go!</button>
+              <button type="button" className="yr-small" onClick={() => api.current.dash?.(false)}>Skip it</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gate && !playMode && q && (
+        <QuestionScreen prompt={q.prompt} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt} done={0} total={1}
+          whoLabel={GATE_TITLE[gate.why]} onCorrectAnswer={passGate}
+          onWrongAnswer={() => window.setTimeout(() => setQ(drawQuestion(questionSets, q.id) ?? generateAutoQuestion()), 1500)}
+          onExit={() => { setGate(null); setQ(null); setScreen('title'); }} />
+      )}
+      {gate && playMode && <Clicker title={GATE_TITLE[gate.why]} onDone={passGate} />}
+    </div>
+  );
+}
+
+// Play mode's stand in for a question: tap the big bone, with bounces, pops, a filling meter and confetti.
+function Clicker({ title, onDone }: { title: string; onDone: () => void }) {
+  const need = 10;
+  const [n, setN] = useState(0);
+  const [pops, setPops] = useState<{ id: number; x: number; y: number }[]>([]);
+  const done = n >= need;
+  useEffect(() => { if (!done) return; sfx.chime(); const t = window.setTimeout(onDone, 1100); return () => window.clearTimeout(t); }, [done, onDone]);
+  const tap = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (done) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    setN((v) => v + 1); sfx.pop();
+    setPops((ps) => [...ps.slice(-8), { id: Date.now() + Math.random(), x: e.clientX - r.left, y: e.clientY - r.top }]);
+  };
+  return (
+    <div className="yr-overlay">
+      <div className={`yr-card yr-clicker${done ? ' done' : ''}`}>
+        <h3>{done ? 'WOOF-TASTIC!' : title}</h3>
+        <p>{done ? 'Here we go!' : `Tap the bone ${need} times!`}</p>
+        <button type="button" className="yr-bone" onPointerDown={tap} aria-label={`Tap the bone. ${n} of ${need}`} style={{ transform: `scale(${1 + (n % 2) * 0.08}) rotate(${(n % 3) - 1}deg)` }}>
+          <span className="yr-bone-n">{Math.min(n, need)}</span>
+          {pops.map((p) => <i key={p.id} className="yr-pop" style={{ left: p.x, top: p.y }}>+1</i>)}
+        </button>
+        <div className="yr-meter"><span style={{ width: `${(Math.min(n, need) / need) * 100}%` }} /></div>
+        {done && <div className="yr-confetti" aria-hidden>{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 6) * 0.05}s`, background: ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][i % 4] }} />)}</div>}
+      </div>
+    </div>
+  );
+}

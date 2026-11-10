@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-yogas-revenge",
+    date: "2026-11-10",
+    icon: "🐕",
+    title: "New game: Yoga's Revenge",
+    body: "Play as Yoga, a black dog with a white chest. It is trash day and the trash cans are monsters! Bite, jump, bark and grab power ups. Beat the Tire Stack, then the Sound Monster. Every level you beat gives you a new dog, and your dogs grow stronger the more you play.",
+  },
+  {
     id: "2026-11-10-assignment-alert",
     date: "2026-11-10",
     icon: "📣",

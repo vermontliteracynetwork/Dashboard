@@ -12,22 +12,15 @@ import { speak } from './ReadAloud';
 const SNOOZE_MS = 2 * 60 * 1000;
 const LABEL = { math: 'Math', literacy: 'Literacy' } as const;
 
-export default function AssignmentAlert() {
-  const { pathname, state } = useLocation();
-  // A game opened from the assignment's own game picker IS the assignment, so it is never interrupted.
-  const doingIt = !!(state as { assignment?: boolean } | null)?.assignment;
-  const navigate = useNavigate();
+// Today's assignments that still have work, per subject (also used by games, e.g. Yoga's Revenge Play mode).
+export function useDueAssignments() {
   const role = useStore((s) => s.role);
   const studentId = useStore((s) => s.currentStudentId);
   const assignments = useStore((s) => s.assignments);
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
-  const [snoozedUntil, setSnoozedUntil] = useState(0);
-  const [, tick] = useState(0);
-  const seen = useRef('');
-
   const today = todayISO();
-  const due = useMemo(() => {
+  return useMemo(() => {
     if (role !== 'student' || !studentId) return [];
     const live = assignments.filter((a) => a.studentId === studentId && !a.deletedAt && a.startDate <= today && a.endDate >= today);
     return (['math', 'literacy'] as const).filter((subj) => live.some((a) => a.subject === subj)).map((subj) => {
@@ -37,6 +30,18 @@ export default function AssignmentAlert() {
       return { subj, left: Math.max(0, tasks.length - done), ids: live.filter((a) => a.subject === subj).map((a) => a.id).join(',') };
     }).filter((d) => d.left > 0);
   }, [role, studentId, assignments, rotations, progress, today]);
+}
+
+export default function AssignmentAlert() {
+  const { pathname, state } = useLocation();
+  // A game opened from the assignment's own game picker IS the assignment, so it is never interrupted.
+  const doingIt = !!(state as { assignment?: boolean } | null)?.assignment;
+  const navigate = useNavigate();
+  const role = useStore((s) => s.role);
+  const due = useDueAssignments();
+  const [snoozedUntil, setSnoozedUntil] = useState(0);
+  const [, tick] = useState(0);
+  const seen = useRef('');
 
   const key = due.map((d) => d.ids).join('|');
   // A newly assigned piece of work shows right away, even during a snooze.
