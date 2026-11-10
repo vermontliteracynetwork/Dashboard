@@ -74,14 +74,15 @@ const PERKS: { at: number; text: string }[] = [
 ];
 
 // ---------- levels ----------
-type FoeKind = 'can' | 'bigcan' | 'rat' | 'bird' | 'shroom' | 'tires' | 'sound';
+type FoeKind = 'can' | 'bigcan' | 'rat' | 'bird' | 'shroom' | 'tires' | 'sound' | 'gshroom';
+const isBoss = (k: FoeKind) => k === 'tires' || k === 'sound' || k === 'gshroom';
 type Stage =
   | { kind: 'home'; x: number }
   | { kind: 'talk'; x: number; who: string; portrait?: string; lines: string[] }
   | { kind: 'wave'; x: number; foes: FoeKind[]; label: string }
   | { kind: 'mini'; x: number; what: 'squirrel' | 'sound' }
   | { kind: 'mid'; x: number; label: string; waves: FoeKind[][]; intro: string[] }
-  | { kind: 'boss'; x: number; boss: 'tires' | 'sound' }
+  | { kind: 'boss'; x: number; boss: 'tires' | 'sound' | 'gshroom' }
   | { kind: 'dash'; x: number }
   | { kind: 'clear'; x: number };
 // Build Queue 542 (her words: "each level should be like a quest. they should start the level with a short narrative, not revealing the mini battles or supprises, but the mid battle and ending").
@@ -126,7 +127,7 @@ const LEVELS: Level[] = [
       { kind: 'mid', x: 5300, label: 'Mini battle 3: Mushroom Ring!', intro: ['The biggest Mushroom ring yet!', 'Use your bag. Giggle Potion helps!'], waves: [['shroom', 'shroom', 'shroom'], ['shroom', 'shroom', 'shroom', 'shroom']] },
       w(6000, 'Sunset hill', 'shroom', 'shroom', 'rat', 'bird'),
       w(6600, 'Deep woods', 'shroom', 'shroom', 'shroom'),
-      { kind: 'boss', x: 7300, boss: 'sound' },
+      { kind: 'boss', x: 7300, boss: 'gshroom' }, // Build Queue 563: the Giant Mushroom
       { kind: 'dash', x: 7380 },
       { kind: 'clear', x: 7460 },
     ],
@@ -228,7 +229,7 @@ const makeSpots = (x0: number): Sniff[] => { const real = [0, 1, 2, 3, 4].sort((
 const FOE_STATS: Record<FoeKind, { hp: number; speed: number; reach: number; dmg: number }> = {
   can: { hp: 5, speed: 34, reach: 26, dmg: 1 }, bigcan: { hp: 10, speed: 26, reach: 32, dmg: 1 },
   rat: { hp: 2, speed: 70, reach: 20, dmg: 1 }, shroom: { hp: 3, speed: 48, reach: 24, dmg: 1 }, bird: { hp: 2, speed: 60, reach: 22, dmg: 1 },
-  tires: { hp: 40, speed: 0, reach: 40, dmg: 1 }, sound: { hp: 46, speed: 0, reach: 40, dmg: 1 },
+  tires: { hp: 40, speed: 0, reach: 40, dmg: 1 }, sound: { hp: 46, speed: 0, reach: 40, dmg: 1 }, gshroom: { hp: 50, speed: 0, reach: 44, dmg: 1 },
 };
 let NEXT_ID = 1;
 const mkFoe = (kind: FoeKind, x: number, d: number, extra = 0): Foe => ({ id: NEXT_ID++, kind, x, d, z: kind === 'bird' ? 46 : 0, vx: 0, vd: 0, hp: FOE_STATS[kind].hp + extra, max: FOE_STATS[kind].hp + extra, face: -1, atk: 0, cd: 1 + Math.random(), hurt: 0, stun: 0, t: Math.random() * 5, phase: 0 });
@@ -268,8 +269,7 @@ export default function YogasRevenge() {
   const [panel, setPanel] = useState<null | 'settings' | 'shop' | 'stats' | 'records'>(null);
   const [vw, setVw] = useState(fitW);
   useEffect(() => { const on = () => setVw(fitW()); window.addEventListener('resize', on); return () => window.removeEventListener('resize', on); }, []);
-  const lastJump = useRef(0);
-
+  
   const cv = useRef<HTMLCanvasElement | null>(null);
   const art = useRef<Record<string, Sheet>>({});
   const bg = useRef<Record<string, HTMLImageElement>>({});
@@ -279,9 +279,7 @@ export default function YogasRevenge() {
   const api = useRef<{ act?: (k: string) => void; dash?: (yes: boolean) => void; use?: (id: ItemId) => void; dog?: () => { x: number; y: number; r: number } | null; pause?: (on: boolean) => void; ready?: () => { bark: boolean; zoom: boolean }; xp?: (n: number) => void; giggleAt?: (x: number, y: number) => boolean }>({});
   // Build Queue 545: drag a power up from the bag onto Yoga, or double tap Yoga for the pie menu.
   const [drag, setDrag] = useState<{ id: ItemId; x: number; y: number; moved: boolean } | null>(null);
-  const [pie, setPie] = useState<{ x: number; y: number } | null>(null);
   const [help, setHelp] = useState(false);
-  const lastTap = useRef(0);
   const G = useRef({
     p: { x: 60, d: 0.5, z: 0, vz: 0, face: 1 as 1 | -1, hp: 5, max: 5, inv: 0, atk: 0, combo: 0, lastAtk: 0, barkCd: 0, superM: 0, hurt: 0, walk: 0, ko: false, chase: 0 },
     foes: [] as Foe[], shots: [] as Shot[], fx: [] as Fx[], picks: [] as Pick[], sniffs: [] as Sniff[],
@@ -393,9 +391,9 @@ export default function YogasRevenge() {
       if (id === 'oneup_sprout') g.lives += 1;
       if (id === 'invincibility_crystal') p.superM = 100;
       if (id === 'key') for (let i = 0; i < 10; i++) g.picks.push({ x: p.x + (Math.random() - 0.5) * 160, d: Math.random(), kind: 'treat', t: 0 });
-      if (id === 'potion_purple') g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && e.x > g.cam - 20 && e.x < g.cam + W + 20 && e.kind !== 'tires' && e.kind !== 'sound') { e.giggle = 5; e.stun = 5; } });
-      if (id === 'potion_turquoise') g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && e.x > g.cam - 20 && e.x < g.cam + W + 20) e.bubble = e.kind === 'tires' || e.kind === 'sound' ? 1.2 : 2; });
-      if (id === 'bomb_pickup') { g.shake = 12; g.foes.forEach((e) => { if (e.hp > 0 && e.x > g.cam - 20 && e.x < g.cam + W + 20) { addFx({ x: e.x, y: sy(e.d) - 10, ttl: 0.6, kind: 'poof' }); hitFoe(e, e.kind === 'tires' || e.kind === 'sound' ? 5 : 99, 20, e.x > p.x ? 1 : -1); } }); play('boom', 0.85); }
+      if (id === 'potion_purple') g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && e.x > g.cam - 20 && e.x < g.cam + W + 20 && !isBoss(e.kind)) { e.giggle = 5; e.stun = 5; } });
+      if (id === 'potion_turquoise') g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && e.x > g.cam - 20 && e.x < g.cam + W + 20) e.bubble = isBoss(e.kind) ? 1.2 : 2; });
+      if (id === 'bomb_pickup') { g.shake = 12; g.foes.forEach((e) => { if (e.hp > 0 && e.x > g.cam - 20 && e.x < g.cam + W + 20) { addFx({ x: e.x, y: sy(e.d) - 10, ttl: 0.6, kind: 'poof' }); hitFoe(e, isBoss(e.kind) ? 5 : 99, 20, e.x > p.x ? 1 : -1); } }); play('boom', 0.85); }
       addFx({ x: p.x, y: sy(p.d) - 56, ttl: 1.6, kind: 'text', text: info.name, color: '#ffe14d', vy: -14 }); addFx({ x: p.x, y: sy(p.d) - 20, ttl: 0.9, kind: 'heal' }); sfx.chime();
       g.banner = info.name; g.bannerT = 1.6;
     };
@@ -406,7 +404,7 @@ export default function YogasRevenge() {
     const hitFoe = (e: Foe, dmg: number, kb: number, from: number) => {
       if (e.hp <= 0 || e.happy || e.spin) return;
       if (e.armor && e.stun <= 0) { e.squash = 0.12; addFx({ x: e.x, y: sy(e.d) - 40 - e.z, ttl: 0.6, kind: 'text', text: 'CLANK!', color: '#c0c6cc', vy: -20 }); sfx.bonk(); return; }
-      if ((e.kind === 'tires' || e.kind === 'sound') && !(e.weak && e.weak > 0)) { dmg *= 0.2; if (Math.random() < 0.4) addFx({ x: e.x, y: sy(e.d) - 70, ttl: 0.7, kind: 'text', text: e.kind === 'tires' ? 'BOING! Too bouncy!' : 'Too fuzzy!', color: '#ffb3b3', vy: -20 }); }
+      if (isBoss(e.kind) && !(e.weak && e.weak > 0)) { dmg *= 0.2; if (Math.random() < 0.4) addFx({ x: e.x, y: sy(e.d) - 70, ttl: 0.7, kind: 'text', text: e.kind === 'tires' ? 'BOING! Too bouncy!' : 'Too fuzzy!', color: '#ffb3b3', vy: -20 }); }
       e.hp -= dmg; e.hurt = 0.25; e.squash = 0.22; e.x += kb * from; e.atk = 0;
       g.hits = g.hitT > 0 ? g.hits + 1 : 1; g.hitT = 1.6; if (g.hits >= 5 && g.hits % 5 === 0) bump('best', g.hits, true);
       g.p.superM = Math.min(100, g.p.superM + (dl() >= 7 ? 5 : 3));
@@ -414,7 +412,7 @@ export default function YogasRevenge() {
       if (Math.random() < 0.45) addFx({ x: e.x, y: sy(e.d) - 44 - e.z, ttl: 0.7, kind: 'text', text: words[Math.floor(Math.random() * words.length)], color: '#ffe14d', vy: -30 });
       g.shake = Math.min(6, g.shake + 2); sfx.bonk(); if (kb >= 20) play('impact', 0.4);
       if (e.hp <= 0) {
-        if (e.kind === 'tires' || e.kind === 'sound') { e.hp = 0; e.happy = 0.01; play('boom', 0.75); sfx.chime(); bump('bosses'); gainXp(150); return; }
+        if (isBoss(e.kind)) { e.hp = 0; e.happy = 0.01; play('boom', 0.75); sfx.chime(); bump('bosses'); gainXp(150); return; }
         bump('monsters'); if (e.kind === 'can' || e.kind === 'bigcan') bump('cans');
         // Silly exits (her rule: only silly, funny, animated reactions): rats and birds run off, bins spin and poof.
         if (e.kind === 'rat' || e.kind === 'bird') { e.flee = from || 1; e.hp = 0; addFx({ x: e.x, y: sy(e.d) - 30 - e.z, ttl: 0.9, kind: 'text', text: e.kind === 'rat' ? 'EEP EEP!' : 'SQUAWK!', color: '#ffffff', vy: -26 }); sfx.boing(); bump('monsters'); if (Math.random() < 0.5) g.picks.push({ x: e.x, d: e.d, kind: 'treat', t: 0 }); return; }
@@ -447,8 +445,10 @@ export default function YogasRevenge() {
       else if (st.kind === 'boss') {
         g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 };
         g.foes.push(mkFoe(st.boss, st.x + 150, 0.5)); play('growl', 0.9);
-        g.banner = st.boss === 'tires' ? 'BOSS: The Tire Stack!' : 'BOSS: The Sound Monster!'; g.bannerT = 2.5; paused.current = true;
-        setTalk(st.boss === 'tires'
+        g.banner = st.boss === 'tires' ? 'BOSS: The Tire Stack!' : st.boss === 'gshroom' ? 'BOSS: The Giant Mushroom!' : 'BOSS: The Sound Monster!'; g.bannerT = 2.5; paused.current = true;
+        setTalk(st.boss === 'gshroom'
+          ? { who: 'Giant Mushroom', lines: ['I am the BIGGEST mushroom in the woods!', 'STOMP STOMP! Feel the ground shake!', 'Tip: jump the shock wave, then bite.'], i: 0, then: () => { paused.current = false; } }
+          : st.boss === 'tires'
           ? { who: 'Tire Stack', lines: ['We used to roll on a real car!', 'Now we are trash. GRRR!', 'Tip: watch for when they wobble.'], i: 0, then: () => { paused.current = false; } }
           : { who: 'Sound Monster', lines: ['BZZZ! WHOOOM! SKREEE!', 'You found me! Now quiet me!', 'Tip: when does it go quiet?'], i: 0, then: () => { paused.current = false; } });
       }
@@ -534,6 +534,8 @@ export default function YogasRevenge() {
       }
       // Build Queue 550 (her words: "ALWAYS have supplies that are collected appear in walking direction/path from user. they must always be in reach"): every new drop lands ahead of the dog, in its lane.
       g.picks.forEach((k) => { if (k.placed) return; k.placed = true; if (k.kind === 'leash' || k.kind === 'bags' || k.kind === 'treats' || k.z) return; if (g.dash) { k.d = p.d; return; } k.x = p.x + p.face * (46 + Math.random() * 40); k.d = p.d; });
+      // Build Queue 566 (her words: "everything they need to collect will be on that exact path"): one path, so every pick up sits on it.
+      g.picks.forEach((k) => { k.d = p.d; });
       // --- power up timers ---
       (Object.keys(g.pw) as PuId[]).forEach((k) => { g.pw[k] = Math.max(0, (g.pw[k] ?? 0) - dt); if (!g.pw[k]) delete g.pw[k]; });
       speed = baseSpeed * (g.pw.speed_boots ? 1.6 : 1);
@@ -560,10 +562,12 @@ export default function YogasRevenge() {
       g.swing = Math.max(0, g.swing - dt);
       // obstacles: blocked unless high enough; landing on top lets you walk over; treats float above some
       for (const o of g.obs) {
-        if (p.x + 16 > o.x && p.x - 16 < o.x + o.w && p.z < o.h - 2) { p.x = p.x < o.x + o.w / 2 ? o.x - 16 : o.x + o.w + 16; if (Math.abs(mx) > 0.2 && Math.random() < 0.05) { addFx({ x: p.x, y: sy(p.d) - 70, ttl: 0.8, kind: 'text', text: o.h > 24 ? 'Too tall! Double tap Jump!' : 'Jump!', color: '#ffe14d', vy: -18 }); } }
+        if (p.x + 16 > o.x && p.x - 16 < o.x + o.w && p.z < o.h - 2) { p.x = p.x < o.x + o.w / 2 ? o.x - 16 : o.x + o.w + 16; if (Math.abs(mx) > 0.2 && Math.random() < 0.05) { addFx({ x: p.x, y: sy(p.d) - 70, ttl: 0.8, kind: 'text', text: o.h > 24 ? 'Too tall! High jump!' : 'Jump!', color: '#ffe14d', vy: -18 }); } }
       }
       if (p.z > 0 || p.vz > 0) {
         p.vz -= GRAV * dt; p.z = Math.max(0, p.z + p.vz * dt);
+        // Build Queue 565: the whole dog stays in view, even on a double jump (its top never goes past the top of the picture).
+        { const top = sy(p.d) - 50 * PS - 6; if (p.z > top) { p.z = top; p.vz = Math.min(p.vz, 0); } }
         if (p.z === 0) { const fall = p.vz; p.vz = 0; if (g.pw.potion_lime && fall < -150) { g.shake = 7; addFx({ x: p.x, y: sy(p.d) - 6, ttl: 0.5, kind: 'poof' }); addFx({ x: p.x, y: sy(p.d) - 40, ttl: 0.6, kind: 'text', text: 'BOING!', color: '#b6ff5c', vy: -20 }); sfx.boing(); g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && Math.abs(e.x - p.x) < 60 && Math.abs(e.d - p.d) < 0.3) hitFoe(e, 2 * power(), 26, e.x > p.x ? 1 : -1); }); } }
       }
       p.inv = Math.max(0, p.inv - dt); p.hurt = Math.max(0, p.hurt - dt); p.barkCd = Math.max(0, p.barkCd - dt);
@@ -572,7 +576,7 @@ export default function YogasRevenge() {
         if (before > 0.16 && p.atk <= 0.16) {
           const air = p.z > 6;
           g.foes.forEach((e) => {
-            const big = e.kind === 'tires' || e.kind === 'sound', dx = (e.x - p.x) * p.face;
+            const big = isBoss(e.kind), dx = (e.x - p.x) * p.face;
             const wp = g.weapon ? WEAPONS[g.weapon.id] : null, grow = g.pw.potion_gold ? 1.5 : 1;
             const reach = ((big ? 80 : 60) + (wp ? wp.len * SC : 0)) * grow, spinAll = !!wp && p.combo === 3;
             if ((spinAll ? Math.abs(dx) < reach : dx > -6 && dx < reach) && Math.abs(e.d - p.d) < (big ? 0.3 : 0.16) * grow && Math.abs(e.z - p.z) < 40) {
@@ -594,10 +598,10 @@ export default function YogasRevenge() {
         e.squash = Math.max(0, (e.squash ?? 0) - dt);
         if (e.spin) { e.spin -= dt; e.z = Math.sin((0.6 - e.spin) / 0.6 * Math.PI) * 26; if (e.spin <= 0) { e.spin = 0; e.hp = 0; e.z = 0; addFx({ x: e.x, y: sy(e.d) - 14, ttl: 0.6, kind: 'poof' }); sfx.pop(); } return; }
         if (e.flee) { e.x += e.flee * 220 * dt; if (e.kind === 'bird') e.z += 70 * dt; if (Math.abs(e.x - g.cam - W / 2) > W) e.flee = 0; return; }
-        if (e.bubble) { e.bubble -= dt; e.z += 30 * dt; if (e.bubble <= 0) { e.bubble = 0; if (e.kind !== 'tires' && e.kind !== 'sound') { e.hp = 0; e.z = 0; addFx({ x: e.x, y: sy(e.d) - 40, ttl: 0.6, kind: 'poof' }); addFx({ x: e.x, y: sy(e.d) - 50, ttl: 0.8, kind: 'text', text: 'POP!', color: '#7fd7ff', vy: -20 }); sfx.pop(); bump('monsters'); } else e.z = 0; } return; }
+        if (e.bubble) { e.bubble -= dt; e.z += 30 * dt; if (e.bubble <= 0) { e.bubble = 0; if (!isBoss(e.kind)) { e.hp = 0; e.z = 0; addFx({ x: e.x, y: sy(e.d) - 40, ttl: 0.6, kind: 'poof' }); addFx({ x: e.x, y: sy(e.d) - 50, ttl: 0.8, kind: 'text', text: 'POP!', color: '#7fd7ff', vy: -20 }); sfx.pop(); bump('monsters'); } else e.z = 0; } return; }
         if (e.giggle) { e.giggle -= dt; e.stun = Math.max(e.stun, 0.1); if (Math.random() < dt * 2) addFx({ x: e.x, y: sy(e.d) - 40 - e.z, ttl: 0.7, kind: 'text', text: ['HA HA!', 'HEE HEE!', 'TEE HEE!'][Math.floor(Math.random() * 3)], color: '#d9a7ff', vy: -20 }); if (e.giggle <= 0) e.giggle = 0; }
         if (e.hp <= 0) return;
-        if (e.kind === 'tires' || e.kind === 'sound') { boss(e, dt); return; }
+        if (isBoss(e.kind)) { boss(e, dt); return; }
         const S = FOE_STATS[e.kind];
         if (e.stun > 0 || e.hurt > 0) return;
         const tx = p.x + (e.x > p.x ? 44 : -44), dx = tx - e.x, dd = p.d - e.d;
@@ -623,7 +627,7 @@ export default function YogasRevenge() {
         if (s.kind === 'bark') {
           g.foes.forEach((e) => {
             if (e.hp <= 0 || s.hit?.has(e.id)) return;
-            const big = e.kind === 'tires' || e.kind === 'sound';
+            const big = isBoss(e.kind);
             if (Math.abs(e.x - s.x) < (s.big ? 22 : 14) && Math.abs(e.d - s.d) < (s.big || big ? 0.3 : 0.16)) {
               (s.hit ??= new Set()).add(e.id); hitFoe(e, (s.big ? 3 : 1) * stats.power, 10, Math.sign(s.vx));
               if (!big) { e.stun = 1.4; addFx({ x: e.x, y: sy(e.d) - 44 - e.z, ttl: 1.4, kind: 'dizzy' }); }
@@ -686,13 +690,16 @@ export default function YogasRevenge() {
           if (wasMid) { gainXp(100); checkpoint('Mini battle won!'); } else if (g.cpT >= CP_EVERY) checkpoint('');
         }
       }
-      const bossDone = g.foes.find((e) => (e.kind === 'tires' || e.kind === 'sound') && e.happy && e.happy > 3.2);
+      const bossDone = g.foes.find((e) => isBoss(e.kind) && e.happy && e.happy > 3.2);
       if (bossDone) {
         g.foes = []; paused.current = true;
         if (bossDone.kind === 'tires') {
           if (!saveRef.current.harness) { patch({ harness: true }); p.max += 1; }
           p.hp = p.max;
           setTalk({ who: 'Tire Stack', lines: ['You just wanted a walk!', 'We became a harness! Let us come too!', 'Rubber Harness: +1 heart!'], i: 0, then: () => { paused.current = false; nextStage(); } });
+        } else if (bossDone.kind === 'gshroom') {
+          p.superM = 100;
+          setTalk({ who: 'Giant Mushroom', lines: ['POOF! I just wanted to be big and scary.', 'Take my Lucky Spores!', 'Your Zoomies are full!'], i: 0, then: () => { paused.current = false; nextStage(); } });
         } else {
           setTalk({ who: 'Sound Monster', lines: ['The sound was just me. Lonely!', 'Take my Super Sonic Collar!', 'Every bark is huge now!'], i: 0, then: () => { paused.current = false; patch({ collar: true }); nextStage(); } });
         }
@@ -706,13 +713,17 @@ export default function YogasRevenge() {
       e.face = p.x > e.x ? 1 : -1;
       if (e.hurt > 0) return;
       e.cd -= dt * (half ? 1.5 : 1); e.weak = Math.max(0, (e.weak ?? 0) - dt);
-      if (e.kind === 'tires') {
+      if (e.kind === 'tires' || e.kind === 'gshroom') {
         if (e.phase === 1) {
           e.z = Math.max(0, e.z + e.vd * dt); e.vd -= GRAV * dt; e.x += e.vx * dt;
+          if (e.z === 0 && e.vd < 0 && e.kind === 'gshroom') { g.shots.push({ x: e.x, d: e.d, z: 0, vx: 0, ttl: 2.2, kind: 'ring', r: 10 }); g.banner = 'JUMP the shock wave!'; g.bannerT = 1; }
           if (e.z === 0 && e.vd < 0) { e.phase = 0; e.weak = 1.8; e.cd = Math.max(e.cd, 1.8); g.shake = 8; play('impact', 0.6); addFx({ x: e.x, y: sy(e.d), ttl: 0.5, kind: 'poof' }); if (Math.abs(p.x - e.x) < 46 && Math.abs(p.d - e.d) < 0.3 && p.z < 8) hurtPlayer(1, e.face); }
           return;
         }
-        if (e.cd <= 0) {
+        if (e.cd <= 0 && e.kind === 'gshroom') {
+          if (Math.random() < 0.65) { e.phase = 1; e.vd = 300; e.vx = (p.x - e.x) / 0.95; e.cd = 2.4; play('growl', 0.6); }
+          else { g.foes.push(mkFoe('shroom', e.x + e.face * 40, p.d)); addFx({ x: e.x + e.face * 40, y: sy(p.d) - 20, ttl: 0.6, kind: 'poof' }); e.cd = 2.6; sfx.boing(); }
+        } else if (e.cd <= 0) {
           if (Math.random() < 0.55) { const n = half ? 2 : 1; for (let i = 0; i < n; i++) g.shots.push({ x: e.x + 20 * e.face, d: i === 0 ? p.d : Math.random(), z: 0, vx: e.face * (130 + i * 30), ttl: 4, kind: 'tire' }); sfx.whoosh(); e.cd = 1.6; }
           else { e.phase = 1; e.vd = 260; e.vx = (p.x - e.x) / 0.85; e.d += (p.d - e.d) * 0.6; e.cd = 2.2; sfx.boing(); }
         }
@@ -927,14 +938,15 @@ export default function YogasRevenge() {
           if (e.kind === 'shroom') { const sh = e.hurt > 0 ? 'shroom-Hit' : e.atk > 0 ? 'shroom-Attack' : 'shroom-Run', im = bg.current[sh]; if (im?.width) { const n = Math.round(im.width / 80), f = Math.floor(e.t * 12) % n; ctx.save(); if (e.face < 0) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); } ctx.drawImage(im, f * 80, 0, 80, 64, Math.round(x - 40), Math.round(y - e.z - 50), 80, 64); ctx.restore(); } }
           else if (e.kind === 'can' || e.kind === 'bigcan') drawCan(e, x, y - e.z);
           else if (e.kind === 'tires') drawTires(e, x, y - e.z);
+          else if (e.kind === 'gshroom') { const sh = e.happy ? 'shroom-Hit' : e.hurt > 0 ? 'shroom-Hit' : e.phase === 1 ? 'shroom-Attack' : 'shroom-Run', im = bg.current[sh]; if (im?.width) { const n = Math.round(im.width / 80), f = Math.floor(e.t * 10) % n; ctx.save(); if (e.happy) ctx.globalAlpha = Math.max(0, 1 - e.happy / 3.2); if (e.face < 0) { ctx.translate(x, 0); ctx.scale(-1, 1); ctx.translate(-x, 0); } ctx.drawImage(im, f * 80, 0, 80, 64, Math.round(x - 66), Math.round(y - e.z - 86), 132, 106); ctx.restore(); } }
           else if (e.kind === 'sound') drawSound(e, x, y - e.z);
           else if (e.kind === 'rat') sprite(e.hurt > 0 ? art.current['rat-hurt'] : art.current['rat-walk'], e.t * (e.flee ? 24 : 10), x - 16, y - 30, (e.flee ? e.flee : e.face) < 0);
           else sprite(art.current['bird-walk'], e.t * 12, x - 16, y - 32 - e.z, (e.flee ? e.flee : e.face) < 0);
           ctx.restore();
           if (e.bubble) { ctx.save(); ctx.strokeStyle = '#bfefff'; ctx.fillStyle = 'rgba(191,239,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y - e.z - 18, 22, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); R(x - 10, y - e.z - 32, 4, 4, '#ffffff'); ctx.restore(); }
           if (e.stun > 0 && !e.giggle && (e.kind === 'can' || e.kind === 'bigcan')) { for (let i = 0; i < 3; i++) { const a = g.time * 5 + i * 2.1; R(x + Math.cos(a) * 12 - 1, y - e.z - 42 + Math.sin(a) * 3, 3, 3, '#ffe14d'); } }
-          if ((e.kind === 'tires' || e.kind === 'sound') && !e.happy && e.weak) { for (let i = 0; i < 4; i++) { const a = g.time * 6 + i * 1.6; R(x + Math.cos(a) * 20, y - e.z - 76 + Math.sin(a) * 4, 4, 4, '#ffe14d'); } }
-          if ((e.kind === 'tires' || e.kind === 'sound') && !e.happy) { R(x - 40, y - 140, 80, 6, '#000'); R(x - 39, y - 139, 78 * Math.max(0, e.hp / e.max), 4, '#ff4d6d'); }
+          if (isBoss(e.kind) && !e.happy && e.weak) { for (let i = 0; i < 4; i++) { const a = g.time * 6 + i * 1.6; R(x + Math.cos(a) * 20, y - e.z - 76 + Math.sin(a) * 4, 4, 4, '#ffe14d'); } }
+          if (isBoss(e.kind) && !e.happy) { R(x - 40, y - 140, 80, 6, '#000'); R(x - 39, y - 139, 78 * Math.max(0, e.hp / e.max), 4, '#ff4d6d'); }
         } });
       });
       g.shots.forEach((s) => list.push({ y: sy(s.d), f: () => {
@@ -1014,7 +1026,7 @@ export default function YogasRevenge() {
       if (!hit.length) return false;
       const s = saveRef.current, have = s.inv?.potion_purple ?? 0; if (have <= 0) return false;
       patch({ inv: { ...s.inv, potion_purple: have - 1 } });
-      hit.forEach((e) => { const boss = e.kind === 'tires' || e.kind === 'sound'; e.giggle = boss ? 2 : 5; e.stun = e.giggle; addFx({ x: e.x, y: sy(e.d) - 30 - e.z, ttl: 0.6, kind: 'swirl', row: 1 }); addFx({ x: e.x, y: sy(e.d) - 64 - e.z, ttl: 1.2, kind: 'text', text: 'HA HA HA!', color: '#d9a7ff', vy: -18 }); });
+      hit.forEach((e) => { const boss = isBoss(e.kind); e.giggle = boss ? 2 : 5; e.stun = e.giggle; addFx({ x: e.x, y: sy(e.d) - 30 - e.z, ttl: 0.6, kind: 'swirl', row: 1 }); addFx({ x: e.x, y: sy(e.d) - 64 - e.z, ttl: 1.2, kind: 'text', text: 'HA HA HA!', color: '#d9a7ff', vy: -18 }); });
       sfx.pop(); bump('powerups'); return true;
     };
     api.current.ready = () => ({ bark: g.p.barkCd <= 0, zoom: g.p.superM >= 100 });
@@ -1072,8 +1084,8 @@ export default function YogasRevenge() {
     <div className="yr-root" onPointerDownCapture={(e) => { const b = (e.target as HTMLElement).closest('button'); if (b && !b.classList.contains('yr-jumpbtn') && !b.classList.contains('yr-bone') && !b.disabled) sfx.click(); }}>
       {screen === 'play' && (
         <div className="yr-play">
-          <canvas ref={cv} width={vw} height={H} className="yr-canvas" aria-label="Yoga's Revenge game. Double tap Yoga for the power up menu."
-            onPointerDown={(e) => { const d = api.current.dog?.(); if (!d || paused.current) return; if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > d.r) return; const now = performance.now(); if (now - lastTap.current < 380) { lastTap.current = 0; api.current.pause?.(true); setPie({ x: d.x, y: d.y }); sfx.pop(); } else lastTap.current = now; }} />
+          <canvas ref={cv} width={vw} height={H} className="yr-canvas" aria-label="Yoga's Revenge game"
+/>
           {drag && drag.moved && <div className="yr-ghost" style={{ left: drag.x, top: drag.y }}><ItemIcon id={drag.id} /></div>}
           <div className="yr-corner">
             <button type="button" className="yr-bookbtn" aria-label="Help: how to play" onClick={() => { if (gate || talk || offer) return; paused.current = true; setHelp(true); }}><img src="/games/yoga/ui/book.png" alt="" /></button>
@@ -1082,10 +1094,13 @@ export default function YogasRevenge() {
           <div className="yr-knob-base" onPointerDown={stickDown} onPointerMove={stickMove} onPointerUp={stickUp} onPointerCancel={stickUp} aria-label="Move: drag the knob">
             <div className="yr-knob-top" style={{ transform: `translate(${stick.current.x * 38}px, ${stick.current.y * 38}px)` }} />
           </div>
-          <button type="button" className="yr-jumpbtn" aria-label="Jump. Double tap for a high jump"
-            onPointerDown={(e) => { e.preventDefault(); const now = performance.now(); if (now - lastJump.current < 300) { api.current.act?.('high'); lastJump.current = 0; } else { api.current.act?.('jump'); lastJump.current = now; } }}>
-            <span>JUMP</span>
-          </button>
+          {/* Build Queue 564 (her words: "change the jump button back to be multiple buttons, no more pie menu") */}
+          <div className="yr-actions">
+            <button type="button" className="yr-jumpbtn" aria-label="Jump" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('jump'); }}><span>JUMP</span></button>
+            <button type="button" className="yr-act yr-act-high" aria-label="High jump" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('high'); }}><span>HIGH</span><span>JUMP</span></button>
+            <button type="button" className="yr-act yr-act-bark" aria-label="Bark" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('bark'); setHud((n) => n + 1); }}><span>BARK</span></button>
+            <button type="button" className={`yr-act yr-act-zoom${api.current.ready?.().zoom ? ' ready' : ''}`} aria-label="Zoomies" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('super'); setHud((n) => n + 1); }}><span>ZOOM</span></button>
+          </div>
           <div className="yr-hotbar" aria-label="Bag">
             {Array.from({ length: 7 }, (_, i) => {
               const owned = STORE.filter((it) => (save.inv?.[it.id] ?? 0) > 0), it = owned[i];
@@ -1094,8 +1109,8 @@ export default function YogasRevenge() {
                   onPointerMove={(e) => { if (drag && it && drag.id === it.id) setDrag({ ...drag, x: e.clientX, y: e.clientY, moved: drag.moved || Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6 }); }}
                   onPointerUp={(e) => {
                     if (!drag || !it) return; const d = api.current.dog?.(); setDrag(null);
-                    if (it.id === 'potion_purple' && api.current.giggleAt?.(e.clientX, e.clientY)) setSaveState(readSave(studentId));
-                    else if (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < d.r * 1.3) { api.current.use?.(it.id); setSaveState(readSave(studentId)); }
+                    if (it.id === 'potion_purple' && drag.moved && api.current.giggleAt?.(e.clientX, e.clientY)) setSaveState(readSave(studentId));
+                    else if (!drag.moved || (d && Math.hypot(e.clientX - d.x, e.clientY - d.y) < d.r * 1.3)) { api.current.use?.(it.id); setSaveState(readSave(studentId)); }
                   }} onPointerCancel={() => setDrag(null)}>
                   {it && <ItemIcon id={it.id} />}
                   {it && <b>{save.inv?.[it.id]}</b>}
@@ -1103,28 +1118,6 @@ export default function YogasRevenge() {
               );
             })}
           </div>
-          {pie && (() => {
-            const ready = api.current.ready?.() ?? { bark: false, zoom: false };
-            const opts: { key: string; label: string; icon: React.ReactNode; go: () => void; off?: boolean }[] = [
-              { key: 'bark', label: 'Bark', icon: <b className="yr-pie-word">WOOF</b>, go: () => api.current.act?.('bark'), off: !ready.bark },
-              { key: 'zoom', label: 'Zoomies', icon: <b className="yr-pie-word">ZOOM</b>, go: () => api.current.act?.('super'), off: !ready.zoom },
-              ...STORE.filter((it) => (save.inv?.[it.id] ?? 0) > 0).slice(0, 8).map((it) => ({ key: it.id, label: it.name, icon: <ItemIcon id={it.id} />, go: () => { api.current.use?.(it.id); setSaveState(readSave(studentId)); } })),
-            ];
-            const close = () => { setPie(null); api.current.pause?.(false); };
-            const R0 = Math.min(122, Math.max(92, opts.length * 15));
-            return (
-              <div className="yr-pie-back" onPointerDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-                <div className="yr-pie" style={{ left: Math.min(window.innerWidth - R0 - 46, Math.max(R0 + 46, pie.x)), top: Math.min(window.innerHeight - R0 - 46, Math.max(R0 + 46, pie.y)) }}>
-                  <button type="button" className="yr-pie-hub" onClick={close} aria-label="Close">✕</button>
-                  {opts.map((o, i) => { const a = -Math.PI / 2 + (i / opts.length) * Math.PI * 2; return (
-                    <button key={o.key} type="button" className={`yr-pie-opt${o.off ? ' off' : ''}`} disabled={o.off} aria-label={o.label} style={{ transform: `translate(${Math.cos(a) * R0}px, ${Math.sin(a) * R0}px)`, animationDelay: `${i * 0.03}s` }} onClick={() => { close(); o.go(); }}>
-                      {o.icon}<small>{o.label}</small>{save.inv?.[o.key as ItemId] ? <em>{save.inv?.[o.key as ItemId]}</em> : null}
-                    </button>
-                  ); })}
-                </div>
-              </div>
-            );
-          })()}
         </div>
       )}
 
@@ -1365,10 +1358,10 @@ function ItemIcon({ id }: { id: ItemId }) {
 // a paper book with one page per move. Turn pages with the arrows or a swipe; each page reads itself aloud on 🔊.
 const HELP_PAGES: { title: string; img: string; text: (dog: string) => string }[] = [
   { title: 'Walk', img: '/games/yoga/ui/ring.png', text: (d) => `Drag the knob left or right to walk. Push it far to run. ${d} only goes left and right.` },
-  { title: 'Jump', img: '/games/yoga/pu/double_jump_feather.png', text: () => 'Tap JUMP to hop over hay and rocks. Tap it twice fast for a high jump over crates.' },
+  { title: 'Jump', img: '/games/yoga/pu/double_jump_feather.png', text: () => 'Tap JUMP to hop over hay and rocks. Tap HIGH JUMP to get over tall crates.' },
   { title: 'Bite', img: '/games/yoga/vfx-dizzy.png', text: (d) => `Walk up to a monster. ${d} bites all by itself!` },
-  { title: 'Bark and Zoomies', img: '/games/yoga/pu/potion_orange.png', text: (d) => `Double tap ${d} for the dog menu: Bark, Zoomies and your bag. Zoomies fill up when you win battles.` },
-  { title: 'Your bag', img: '/games/yoga/loot/bag.png', text: (d) => `Drag a power up onto ${d} to use it. Drag the Giggle Potion onto monsters to make them laugh and freeze!` },
+  { title: 'Bark and Zoomies', img: '/games/yoga/pu/potion_orange.png', text: () => 'Tap BARK to push monsters back. Win battles to fill the Zoomies bar, then tap ZOOM to run super fast!' },
+  { title: 'Your bag', img: '/games/yoga/loot/bag.png', text: () => 'Tap a power up in your bag to use it. Drag the Giggle Potion onto monsters to make them laugh and freeze!' },
   { title: 'Hearts', img: '/games/yoga/pu/heart_container.png', text: () => 'Your hearts are in the top corner. A hit takes one heart. Snacks and hearts fill them back up.' },
   { title: 'XP and coins', img: '/games/yoga/loot/coins.png', text: () => 'Win mini battles and the main battle to earn XP. XP turns into coins. Spend coins in the Store.' },
   { title: 'Settings', img: '/games/yoga/pu/key.png', text: () => 'The gear pauses the game. In Settings: Learn or Play mode, the Store, My dogs and sound.' },
