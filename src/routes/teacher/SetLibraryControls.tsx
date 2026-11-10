@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { uploadImage } from '../../lib/upload';
 import { useStore } from '../../store/store';
 import { makeId } from '../../lib/id';
 import { parseCSV } from '../../lib/csv';
@@ -16,6 +17,8 @@ interface QuizProps {
   // authored here already). Only affects the quiz-kind Create Activity
   // path; QuestionSetDetail.tsx's own real set editor keeps every control.
   minimal?: boolean;
+  // Build Queue 523: pictures named with their question number (1.png, Question 1.jpg) go onto those questions.
+  onPictures?: (byNumber: Record<number, string>) => void;
 }
 interface DrillProps {
   kind: 'drill';
@@ -32,6 +35,29 @@ export default function SetLibraryControls(props: QuizProps | DrillProps) {
   const [savingName, setSavingName] = useState<string | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const picRef = useRef<HTMLInputElement>(null);
+  const [picBusy, setPicBusy] = useState(false);
+
+  // Build Queue 523 (her words: "add a button where i can easily upload images after uploading the csv. in images, they
+  // should be numbered with question number (ex. 1.png) or labeled like question 1"): the first number in each file
+  // name is the question number.
+  const handlePictures = async (files: FileList) => {
+    if (props.kind !== 'quiz' || !props.onPictures) return;
+    const total = props.current.length;
+    const byNumber: Record<number, string> = {};
+    const skipped: string[] = [];
+    setPicBusy(true);
+    for (const f of Array.from(files)) {
+      const n = Number(f.name.replace(/\.[^.]+$/, '').match(/\d+/)?.[0]);
+      if (!n || n > total) { skipped.push(f.name); continue; }
+      try { byNumber[n] = await uploadImage(f); } catch { skipped.push(f.name); }
+    }
+    setPicBusy(false);
+    const got = Object.keys(byNumber).length;
+    if (got) props.onPictures(byNumber);
+    setUploadNotice(`Added ${got} picture${got === 1 ? '' : 's'}${got ? ` (question${got === 1 ? '' : 's'} ${Object.keys(byNumber).sort((a, b) => +a - +b).join(', ')})` : ''}.${skipped.length ? ` Not matched to a question: ${skipped.join(', ')}. Name each picture with its question number, like 1.png or Question 1.png.` : ''}`);
+    if (picRef.current) picRef.current.value = '';
+  };
 
   const matching = questionSets.filter((s) => s.kind === props.kind && s.subject === props.subject);
 
@@ -100,6 +126,12 @@ export default function SetLibraryControls(props: QuizProps | DrillProps) {
         )}
 
         <button className="btn btn-sm" onClick={() => fileRef.current?.click()}>📤 Upload a CSV</button>
+        {props.kind === 'quiz' && props.onPictures && (
+          <button className="btn btn-sm" disabled={picBusy || !props.current.length} title="Pick all the pictures at once. Name each one with its question number, like 1.png or Question 1.png." onClick={() => picRef.current?.click()}>
+            {picBusy ? 'Uploading pictures...' : 'Upload pictures'}
+          </button>
+        )}
+        <input ref={picRef} type="file" accept="image/*" multiple hidden onChange={(e) => e.target.files?.length && void handlePictures(e.target.files)} />
         <a
           className="btn btn-sm"
           href="https://docs.google.com/spreadsheets/d/1pCzJ-M00kcz4yfJ45Ma04f1I0GQV4tUiDtH03OYmoGw/copy"

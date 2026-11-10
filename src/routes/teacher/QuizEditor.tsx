@@ -378,7 +378,7 @@ export default function QuizEditor({ subject, questions, onChange, simplified }:
 
   return (
     <div className="stack">
-      <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} minimal={simplified} />
+      <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} onPictures={(byN) => onChange(questions.map((q, i) => (byN[i + 1] && 'imageUrl' in q ? { ...q, imageUrl: byN[i + 1] } : byN[i + 1] && q.kind === 'mc' ? { ...q, imageUrl: byN[i + 1] } : q)))} minimal={simplified} />
       {questions.map((q, i) => (
         <QuestionRow key={q.id} index={i} q={q} issue={getQuestionIssue(q) ?? undefined} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)}
           onApplyAll={(st) => onChange(questions.map((x) => (x.kind === 'madlib' ? { ...x, settings: { ...st } } : x)))} />

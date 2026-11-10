@@ -12,7 +12,7 @@ export default function McTableEditor({ subject, questions, onChange }: { subjec
   const upd = (id: string, patch: Partial<MCQuestion>) => onChange(mcs.map((q) => (q.id === id ? { ...q, ...patch } : q)));
   return (
     <div className="stack" style={{ gap: 8 }}>
-      <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...mcs, ...items.filter((q): q is MCQuestion => q.kind === 'mc')])} />
+      <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...mcs, ...items.filter((q): q is MCQuestion => q.kind === 'mc')])} onPictures={(byN) => onChange(mcs.map((q, i) => (byN[i + 1] ? { ...q, imageUrl: byN[i + 1] } : q)))} />
       <div className="mct-wrap">
         <table className="mct">
           <thead><tr><th>#</th><th>Question</th>{L.map((l) => <th key={l}>Answer {l}</th>)}<th>Picture</th><th /></tr></thead>
