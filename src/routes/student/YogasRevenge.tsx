@@ -84,13 +84,7 @@ interface Level { quest: { title: string; lines: string[] }; name: string; theme
 const w = (x: number, label: string, ...foes: FoeKind[]): Stage => ({ kind: 'wave', x, foes, label });
 const LEVELS: Level[] = [
   {
-    quest: { title: 'Quest 1: The Trash Day Trail', lines: [
-      'Far out in the Vermont countryside, where the maple trees turn red and gold, Yoga is ready for a long walk down the old country road.',
-      'But today is trash day. To a dog, every trash can on that road is a grumbling, lid-flapping monster.',
-      'Halfway down the road, the Garbage Gang is waiting to block the way. They will not let anyone pass.',
-      'And at the very end of the road, something big, round and very grumpy has been left behind... and it does NOT want visitors.',
-      'Your quest: get Yoga all the way to the end of the trail!',
-    ] },
+    quest: { title: 'Quest 1: The Trash Day Trail', lines: ['Fall in Vermont. Yoga is ready for a long walk.', 'But it is trash day. To a dog, trash cans are MONSTERS!', 'Halfway down the road, the Garbage Gang waits.', 'At the end, something big, round and grumpy...', 'Quest: reach the end of the trail!'] },
     name: 'Vermont Countryside', theme: 'vermont', end: 7900, reward: 'mochi',
     stages: [
       { kind: 'home', x: 680 },
@@ -100,7 +94,7 @@ const LEVELS: Level[] = [
       w(2550, 'Maple trees', 'can', 'can', 'shroom'),
       w(3050, 'Hay bales', 'can', 'can', 'can'),
       w(3550, 'Covered bridge', 'bigcan', 'rat', 'rat'),
-      { kind: 'mid', x: 4150, label: 'Garbage Gang!', intro: ['MID BATTLE: The Garbage Gang blocks the whole road!', 'These bins slam their lids shut and lock them. A bite just goes CLANK and bounces off.', 'Two waves are coming. Try different moves to find their weak spot. Guess and check!'], waves: [['bigcan', 'can', 'can', 'rat'], ['bigcan', 'bigcan', 'can', 'rat', 'rat']] },
+      { kind: 'mid', x: 4150, label: 'Garbage Gang!', intro: ['The Garbage Gang blocks the road!', 'Locked lids go CLANK. Find their weak spot!'], waves: [['bigcan', 'can', 'can', 'rat'], ['bigcan', 'bigcan', 'can', 'rat', 'rat']] },
       w(4850, 'Pumpkin patch', 'can', 'can', 'rat', 'rat'),
       w(5350, 'Apple orchard', 'bigcan', 'shroom', 'shroom', 'can'),
       w(5850, 'Sugar shack', 'can', 'can', 'can', 'rat', 'rat'),
@@ -112,23 +106,17 @@ const LEVELS: Level[] = [
     ],
   },
   {
-    quest: { title: 'Quest 2: The Strange Sound', lines: [
-      'The walk led into town. On Maple Street, something is wrong: a strange sound is buzzing and whooming between the houses.',
-      'Nobody knows where it is coming from, and the neighbors are getting nervous.',
-      'In the middle of the street, a swarm of birds guards the way and will try to scare Yoga off.',
-      'At the loud corner at the end of the street, whatever is making that noise is waiting.',
-      'Your quest: follow the sound, find it, and quiet it!',
-    ] },
+    quest: { title: 'Quest 2: The Strange Sound', lines: ['A strange sound is buzzing on Maple Street.', 'A bird swarm guards the middle of the street.', 'Something loud waits at the corner.', 'Quest: find the sound and quiet it!'] },
     name: 'Maple Street', theme: 'town', end: 7900, reward: 'spot',
     stages: [
-      { kind: 'talk', x: 300, who: 'Timmy', portrait: `${ART}timmy.png`, lines: ['Hey! You are the dog who beat the Tire Stack!', 'I keep hearing a strange sound on Maple Street. BZZZ... WHOOM...', 'Can you follow it? Look for fuzzy squiggles. Each one makes it clearer!'] },
+      { kind: 'talk', x: 300, who: 'Timmy', portrait: `${ART}timmy.png`, lines: ['Hey! You beat the Tire Stack!', 'Hear that? BZZZ... WHOOM...', 'Follow the fuzzy squiggles!'] },
       w(750, 'Bus stop', 'rat', 'bird', 'can'),
       { kind: 'mini', x: 1250, what: 'sound' },
       w(1900, 'Hot dog cart', 'can', 'rat', 'rat', 'bird'),
       w(2400, 'Mailboxes', 'can', 'can', 'bird'),
       w(2900, 'Fire hydrant', 'bigcan', 'rat', 'bird'),
       w(3400, 'Parking lot', 'can', 'can', 'rat', 'rat'),
-      { kind: 'mid', x: 4000, label: 'Bird Swarm!', intro: ['MID BATTLE: A Bird Swarm guards the middle of Maple Street!', 'Birds fly too high for most bites, and a locked dumpster rolls in with them.', 'Two waves. Figure out which moves reach the sky and which open a locked lid!'], waves: [['bird', 'bird', 'bird', 'rat'], ['bird', 'bird', 'bigcan', 'bird', 'rat']] },
+      { kind: 'mid', x: 4000, label: 'Bird Swarm!', intro: ['A Bird Swarm! Plus a locked dumpster.', 'Which moves reach the sky?'], waves: [['bird', 'bird', 'bird', 'rat'], ['bird', 'bird', 'bigcan', 'bird', 'rat']] },
       w(4700, 'Corner store', 'can', 'can', 'bird', 'bird'),
       w(5200, 'Playground', 'bigcan', 'rat', 'rat', 'bird'),
       w(5700, 'Library', 'can', 'can', 'can', 'bird'),
@@ -153,25 +141,25 @@ interface Save {
 // Build Queue 541 (her words: "add an inventory and store. xp earns coins. coins are used to purchase power ups and such to defeat battles").
 type ItemId = PuId | 'w_stick' | 'w_foam' | 'w_noodle';
 const STORE: { id: ItemId; name: string; cost: number }[] = [
-  { id: 'half_heart', name: 'Snack (+1 heart)', cost: 5 }, { id: 'golden_heart', name: 'Golden Heart (all hearts)', cost: 15 }, { id: 'shield_pickup', name: 'Shield (blocks 2 hits)', cost: 15 },
-  { id: 'speed_boots', name: 'Speed Boots', cost: 10 }, { id: 'double_jump_feather', name: 'Feather (double jump)', cost: 10 }, { id: 'magnet', name: 'Treat Magnet', cost: 10 },
-  { id: 'star_power', name: 'Star Power', cost: 25 }, { id: 'bomb_pickup', name: 'Bark Bomb', cost: 20 }, { id: 'invincibility_crystal', name: 'Zoomies Crystal', cost: 15 },
-  { id: 'potion_purple', name: 'Giggle Potion', cost: 20 }, { id: 'potion_lime', name: 'Bouncy Potion', cost: 15 }, { id: 'potion_gold', name: 'Big Dog Potion', cost: 25 }, { id: 'potion_turquoise', name: 'Bubble Potion', cost: 25 },
-  { id: 'heart_container', name: 'Heart Box (+1 heart)', cost: 30 }, { id: 'oneup_sprout', name: 'Extra Life Sprout', cost: 40 },
-  { id: 'w_stick', name: 'Stick Sword', cost: 15 }, { id: 'w_foam', name: 'Foam Sword', cost: 20 }, { id: 'w_noodle', name: 'Pool Noodle', cost: 25 },
+  { id: 'half_heart', name: 'Snack (+1 heart)', cost: 25 }, { id: 'golden_heart', name: 'Golden Heart (all hearts)', cost: 75 }, { id: 'shield_pickup', name: 'Shield (blocks 2 hits)', cost: 75 },
+  { id: 'speed_boots', name: 'Speed Boots', cost: 50 }, { id: 'double_jump_feather', name: 'Feather (double jump)', cost: 50 }, { id: 'magnet', name: 'Treat Magnet', cost: 50 },
+  { id: 'star_power', name: 'Star Power', cost: 125 }, { id: 'bomb_pickup', name: 'Bark Bomb', cost: 100 }, { id: 'invincibility_crystal', name: 'Zoomies Crystal', cost: 75 },
+  { id: 'potion_purple', name: 'Giggle Potion', cost: 100 }, { id: 'potion_lime', name: 'Bouncy Potion', cost: 75 }, { id: 'potion_gold', name: 'Big Dog Potion', cost: 125 }, { id: 'potion_turquoise', name: 'Bubble Potion', cost: 125 },
+  { id: 'heart_container', name: 'Heart Box (+1 heart)', cost: 150 }, { id: 'oneup_sprout', name: 'Extra Life Sprout', cost: 200 },
+  { id: 'w_stick', name: 'Stick Sword', cost: 75 }, { id: 'w_foam', name: 'Foam Sword', cost: 100 }, { id: 'w_noodle', name: 'Pool Noodle', cost: 125 },
 ];
 const itemImg = (id: ItemId) => (id.startsWith('w_') ? '' : `${ART}pu/${id}.png`);
 interface DogStats { monsters: number; cans: number; bosses: number; treats: number; powerups: number; best: number; levels: number }
 const NO_STATS: DogStats = { monsters: 0, cans: 0, bosses: 0, treats: 0, powerups: 0, best: 0, levels: 0 };
-const NEW_SAVE: Save = { points: 20, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, xp: 0, inv: {}, socks: 0, harness: false, collar: false };
+const NEW_SAVE: Save = { points: 50, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, xp: 0, inv: {}, socks: 0, harness: false, collar: false };
 const saveKey = (id: string) => `yoga.save2.${id}`;
 const readSave = (id: string): Save => { try { return { ...NEW_SAVE, ...JSON.parse(localStorage.getItem(saveKey(id)) || '{}') }; } catch { return { ...NEW_SAVE }; } };
 const writeSave = (id: string, s: Save) => { try { localStorage.setItem(saveKey(id), JSON.stringify(s)); } catch { /* private mode */ } };
 const SHOP: { k: keyof Save['up']; name: string; desc: string; cost: number; max: number }[] = [
-  { k: 'heart', name: 'Extra Heart', desc: '+1 heart', cost: 30, max: 3 },
-  { k: 'bite', name: 'Chomp Power', desc: 'Bites hit harder', cost: 40, max: 3 },
-  { k: 'zoom', name: 'Zoomies', desc: 'Run faster', cost: 30, max: 2 },
-  { k: 'bark', name: 'Bark Battery', desc: 'Bark more often', cost: 30, max: 3 },
+  { k: 'heart', name: 'Extra Heart', desc: '+1 heart', cost: 150, max: 3 },
+  { k: 'bite', name: 'Chomp Power', desc: 'Bites hit harder', cost: 200, max: 3 },
+  { k: 'zoom', name: 'Zoomies', desc: 'Run faster', cost: 150, max: 2 },
+  { k: 'bark', name: 'Bark Battery', desc: 'Bark more often', cost: 150, max: 3 },
 ];
 
 // ---------- power ups (Build Queue 535: "lots of power ups were requested") ----------
@@ -241,7 +229,6 @@ export default function YogasRevenge() {
   const [gate, setGate] = useState<Gate>(null);
   const [q, setQ] = useState<MCQuestion | null>(null);
   const [talk, setTalk] = useState<{ who: string; lines: string[]; i: number; portrait?: string; quest?: boolean; then?: () => void } | null>(null);
-  const [voiceOn, setVoiceOn] = useState(true);
   const [offer, setOffer] = useState(false);
   const [cleared, setCleared] = useState<{ lvl: number; dog: DogId; reward: DogId | null; mins: number } | null>(null);
   const [, setHud] = useState(0);
@@ -254,7 +241,7 @@ export default function YogasRevenge() {
   const keys = useRef<Record<string, boolean>>({});
   const stick = useRef({ x: 0, y: 0, on: false, id: -1, ox: 0, oy: 0 });
   const paused = useRef(true);
-  const api = useRef<{ act?: (k: string) => void; dash?: (yes: boolean) => void; use?: (id: ItemId) => void; dog?: () => { x: number; y: number; r: number } | null; pause?: (on: boolean) => void; ready?: () => { bark: boolean; zoom: boolean } }>({});
+  const api = useRef<{ act?: (k: string) => void; dash?: (yes: boolean) => void; use?: (id: ItemId) => void; dog?: () => { x: number; y: number; r: number } | null; pause?: (on: boolean) => void; ready?: () => { bark: boolean; zoom: boolean }; xp?: (n: number) => void }>({});
   // Build Queue 545: drag a power up from the bag onto Yoga, or double tap Yoga for the pie menu.
   const [drag, setDrag] = useState<{ id: ItemId; x: number; y: number; moved: boolean } | null>(null);
   const [pie, setPie] = useState<{ x: number; y: number } | null>(null);
@@ -296,8 +283,6 @@ export default function YogasRevenge() {
     return () => { live = false; };
   }, []);
 
-  const say = useCallback((text: string) => { if (voiceOn) speak(text); }, [voiceOn]);
-  useEffect(() => { if (talk) say(talk.lines[talk.i]); }, [talk, say]);
 
   // ---------- starting a level ----------
   const begin = (lvl: number, d: DogId, fresh: boolean) => {
@@ -317,18 +302,20 @@ export default function YogasRevenge() {
     g.banner = `Level ${lvl + 1}: ${LEVELS[lvl].name}`; g.bannerT = 3;
     if (stage === 0) {
       paused.current = true;
-      const sam = () => setTalk({ who: DOGS[d].name, lines: ['WALK TIME! Woof!', 'First I need my leash, my poop bags and my treats. They are somewhere in the yard!'], i: 0, then: () => { paused.current = false; } });
+      const sam = () => setTalk({ who: DOGS[d].name, lines: ['WALK TIME! Woof!', 'Find my leash, bags and treats!'], i: 0, then: () => { paused.current = false; } });
       const q = LEVELS[lvl].quest;
       setTalk({ who: q.title, lines: q.lines, i: 0, quest: true, then: () => { if (lvl === 0) sam(); else paused.current = false; } });
     }
   };
 
   // ---------- questions or the clicker ----------
+  const playRef = useRef(playMode);
+  playRef.current = playMode;
   const ask = useCallback((why: NonNullable<Gate>['why'], then: () => void) => {
     paused.current = true;
-    if (!playMode) setQ(drawQuestion(questionSets) ?? generateAutoQuestion());
+    if (!playRef.current) setQ(drawQuestion(questionSets) ?? generateAutoQuestion());
     setGate({ why, then });
-  }, [playMode, questionSets]);
+  }, [questionSets]);
   const gateRef = useRef<Gate>(null);
   gateRef.current = gate;
   const passGate = useCallback(() => { const g = gateRef.current; gateRef.current = null; setGate(null); setQ(null); paused.current = false; g?.then(); }, []);
@@ -349,7 +336,8 @@ export default function YogasRevenge() {
     const bigBark = () => saveRef.current.collar || dog === 'luna' || dl() >= 10;
 
     const addFx = (f: Omit<Fx, 't'>) => g.fx.push({ ...f, t: 0 });
-    const gainXp = (n: number) => { const s = saveRef.current, before = s.xp ?? 0, coins = Math.floor((before + n) / 10) - Math.floor(before / 10); patch({ xp: before + n, points: s.points + coins }); if (coins > 0) addFx({ x: g.p.x - 18, y: sy(g.p.d) - 62, ttl: 0.9, kind: 'text', text: `+${coins} coin${coins > 1 ? 's' : ''}`, color: '#ffd23f', vy: -30 }); };
+    const gainXp = (n: number) => { const s = saveRef.current, before = s.xp ?? 0, coins = n; patch({ xp: before + n, points: s.points + coins }); if (coins > 0) addFx({ x: g.p.x - 18, y: sy(g.p.d) - 62, ttl: 0.9, kind: 'text', text: `+${coins}`, color: '#ffd23f', vy: -30 }); setHud((h) => h + 1); };
+    api.current.xp = (n: number) => { gainXp(n); g.banner = `Right answer! +${n} XP`; g.bannerT = 1.8; };
     const bump = (k: keyof DogStats, n = 1, max = false) => { const s = saveRef.current, cur = { ...NO_STATS, ...s.stats?.[dog] }; const v = max ? Math.max(cur[k], n) : cur[k] + n; if (v !== cur[k]) patch({ stats: { ...s.stats, [dog]: { ...cur, [k]: v } } }); };
     const confetti = (n = 24) => { for (let i = 0; i < n; i++) addFx({ x: Math.random() * W, y: 30, ttl: 1.8, kind: 'confetti', screen: true, color: ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][i % 4], vx: (Math.random() - 0.5) * 60, vy: 30 + Math.random() * 60 }); };
     const checkpoint = (why: string) => {
@@ -426,8 +414,8 @@ export default function YogasRevenge() {
         g.foes.push(mkFoe(st.boss, st.x + 150, 0.5)); sfx.horn();
         g.banner = st.boss === 'tires' ? 'BOSS: The Tire Stack!' : 'BOSS: The Sound Monster!'; g.bannerT = 2.5; paused.current = true;
         setTalk(st.boss === 'tires'
-          ? { who: 'Tire Stack', lines: ['We used to roll down this road on a real car!', 'Now we are thrown away and all alone. GRRR! Nobody gets past us!', 'BOSS TIP: bites just bounce off these bouncy tires... watch closely for the moment they are wobbly!'], i: 0, then: () => { paused.current = false; } }
-          : { who: 'Sound Monster', lines: ['BZZZ... WHOOOM... SKREEEE!', 'I am the strange sound! You found me. Now try to quiet me!', 'BOSS TIP: it is too fuzzy to hurt most of the time. When does it go quiet for a second?'], i: 0, then: () => { paused.current = false; } });
+          ? { who: 'Tire Stack', lines: ['We used to roll on a real car!', 'Now we are trash. GRRR!', 'Tip: watch for when they wobble.'], i: 0, then: () => { paused.current = false; } }
+          : { who: 'Sound Monster', lines: ['BZZZ! WHOOOM! SKREEE!', 'You found me! Now quiet me!', 'Tip: when does it go quiet?'], i: 0, then: () => { paused.current = false; } });
       }
     };
     const startMini = (what: 'squirrel' | 'sound') => {
@@ -441,7 +429,7 @@ export default function YogasRevenge() {
         g.sniffs = makeSpots(g.p.x);
         spawn(['bird', 'rat'], g.p.x + 200);
         paused.current = true;
-        setTalk({ who: 'Mini challenge: Track the Sound', portrait: `${ART}timmy.png`, lines: ['Timmy: Listen! BZZZ... the strange sound is hiding in one of these squiggles.', 'Only 3 of the 5 squiggles are the real sound. The others are just squeaky gates, and they wake up critters.', 'Walk into a squiggle to check it. Guess, check, and think! Clue: the real sound wiggles faster when you get close.'], i: 0, then: () => { paused.current = false; } });
+        setTalk({ who: 'Mini challenge: Track the Sound', portrait: `${ART}timmy.png`, lines: ['The sound hides in a squiggle.', 'Only 3 of 5 are real. Fakes wake critters!', 'Clue: real ones wiggle faster up close.'], i: 0, then: () => { paused.current = false; } });
       }
     };
     const endMini = () => {
@@ -502,7 +490,7 @@ export default function YogasRevenge() {
             g.sniffs = makeSpots(p.x);
             spawn(['rat', 'rat', 'bird'], p.x + 220);
             paused.current = true;
-            setTalk({ who: 'Surprise! Lost in the Woods', lines: ['SQUIRREL! Yoga chased it all the way into the woods... and the squirrel got away up a tree.', 'Now where is the trail? There are 5 sets of paw prints here, but only 3 are really the way back. The rest lead to mud puddles and grumpy critters.', 'Step on prints to sniff them. Guess and check! Clue: the real prints point the way you came.'], i: 0, then: () => { paused.current = false; } });
+            setTalk({ who: 'Surprise! Lost in the Woods', lines: ['SQUIRREL! Now Yoga is lost!', 'Only 3 of 5 paw prints lead back.', 'Clue: real prints point the way.'], i: 0, then: () => { paused.current = false; } });
           }
         }
       }
@@ -652,9 +640,9 @@ export default function YogasRevenge() {
         if (bossDone.kind === 'tires') {
           if (!saveRef.current.harness) { patch({ harness: true }); p.max += 1; }
           p.hp = p.max;
-          setTalk({ who: 'Tire Stack', lines: ['Wait... you are not mean at all. You just wanted a walk!', 'We got recycled into a shiny rubber harness. Now we get to go on adventures with you!', 'You got the Rubber Harness: +1 heart!'], i: 0, then: () => { paused.current = false; nextStage(); } });
+          setTalk({ who: 'Tire Stack', lines: ['You just wanted a walk!', 'We became a harness! Let us come too!', 'Rubber Harness: +1 heart!'], i: 0, then: () => { paused.current = false; nextStage(); } });
         } else {
-          setTalk({ who: 'Sound Monster', lines: ['Oh! The strange sound was just me, lonely and loud.', 'Here, take my power: a collar with a SUPER SONIC BARK!', 'You got the Super Sonic Collar! Every bark is huge now.'], i: 0, then: () => { paused.current = false; patch({ collar: true }); nextStage(); } });
+          setTalk({ who: 'Sound Monster', lines: ['The sound was just me. Lonely!', 'Take my Super Sonic Collar!', 'Every bark is huge now!'], i: 0, then: () => { paused.current = false; patch({ collar: true }); nextStage(); } });
         }
         confetti();
       }
@@ -1029,7 +1017,7 @@ export default function YogasRevenge() {
           <div className="yr-mid">
           <div className="yr-top">
             <button type="button" className="yr-pill" onClick={() => { if (gate || talk || offer) return; paused.current = true; setPauseOpen(true); }}>Pause</button>
-            <button type="button" className="yr-pill" aria-pressed={voiceOn} onClick={() => setVoiceOn((v) => !v)} aria-label={voiceOn ? 'Turn read aloud off' : 'Turn read aloud on'}>{voiceOn ? '🔊' : '🔇'}</button>
+
             {playMode && <span className="yr-mode">Play mode</span>}
           </div>
           </div>
@@ -1074,11 +1062,11 @@ export default function YogasRevenge() {
           <div className="yr-run-dog" aria-hidden><span className="yr-dog-face" style={{ background: DOGS.yoga.color }}><i className="yr-blaze" /></span><span className="yr-chase-can" /></div>
           <p className="yr-tag">{allDone ? 'You beat every level so far! Replay any level to grow your dogs to Master.' : `Level ${curLvl + 1}: ${LEVELS[curLvl].name}`}</p>
           <div className="yr-mode-pick" role="radiogroup" aria-label="Mode">
-            <button type="button" role="radio" aria-checked={!playMode} className={!playMode ? 'on' : ''} onClick={() => setPlayMode(false)}>Learn mode<small>A question before each fight</small></button>
-            <button type="button" role="radio" aria-checked={playMode} className={playMode ? 'on' : ''} disabled={!playOpen} onClick={() => setPlayMode(true)}>Play mode<small>{playOpen ? 'Tap tap challenges, no questions' : 'Opens when today\'s streak and assignments are done'}</small></button>
+            <button type="button" role="radio" aria-checked={!playMode} className={!playMode ? 'on' : ''} onClick={() => setPlayMode(false)}>Learn mode<small>Earn XP for answers</small></button>
+            <button type="button" role="radio" aria-checked={playMode} className={playMode ? 'on' : ''} disabled={!playOpen} onClick={() => setPlayMode(true)}>Play mode<small>{playOpen ? 'No questions' : 'Finish today\'s work first'}</small></button>
           </div>
           <div className="yr-menu-btns">
-            {midLevel && <button type="button" className="yr-big" onClick={() => begin(curLvl, save.levelDog!, false)}>Continue with {DOGS[save.levelDog!].name} <small>From your last checkpoint</small></button>}
+            {midLevel && <button type="button" className="yr-big" onClick={() => begin(curLvl, save.levelDog!, false)}>Continue with {DOGS[save.levelDog!].name}</button>}
             {!allDone && <button type="button" className={midLevel ? 'yr-small' : 'yr-big'} onClick={() => openPicker(curLvl)}>{midLevel ? `Restart level ${curLvl + 1}` : `Start level ${curLvl + 1}`}</button>}
             <div className="yr-row">
               <button type="button" className="yr-small" onClick={() => setScreen('levels')}>Levels</button>
@@ -1096,10 +1084,10 @@ export default function YogasRevenge() {
           <div className="yr-dogs">
             {LEVELS.map((l, i) => (
               <button key={l.name} type="button" className="yr-dog" disabled={i > save.cleared} onClick={() => openPicker(i)}>
-                <b>Level {i + 1}: {l.name}</b><small>{i < save.cleared ? 'Beaten. Play again to level up your dogs.' : i === save.cleared ? 'Up next' : 'Locked'}{l.reward ? ` · Earns ${DOGS[l.reward].name}` : ''}</small>
+                <b>Level {i + 1}: {l.name}</b><small>{i < save.cleared ? 'Beaten' : i === save.cleared ? 'Up next' : 'Locked'}</small>
               </button>
             ))}
-            <div className="yr-dog yr-soon"><b>Level {LEVELS.length + 1}</b><small>Coming soon. Tell your teacher your ideas!</small></div>
+            <div className="yr-dog yr-soon"><b>Level {LEVELS.length + 1}</b><small>Coming soon</small></div>
           </div>
           <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back</button>
         </div>
@@ -1108,7 +1096,6 @@ export default function YogasRevenge() {
       {screen === 'pick' && (
         <div className="yr-menu">
           <h2 className="yr-h">Level {pickFor + 1}: pick your dog</h2>
-          <p className="yr-tag">Your dog stays with you for the whole level. Every minute you play makes it stronger.</p>
           <div className="yr-dogs">
             {(Object.keys(DOGS) as DogId[]).map((id) => {
               const on = unlocked(id), secs = save.dogs[id] ?? 0, lv = dogLevel(secs);
@@ -1116,9 +1103,9 @@ export default function YogasRevenge() {
                 <button key={id} type="button" className="yr-dog" disabled={!on} onClick={() => begin(pickFor, id, true)}>
                   <span className="yr-dog-face" style={{ background: DOGS[id].color }}>{id === 'yoga' && <i className="yr-blaze" />}</span>
                   <b>{DOGS[id].name} {on && <em className={lv >= 10 ? 'yr-master' : ''}>{lv >= 10 ? 'MASTER' : `Lv ${lv}`}</em>}</b>
-                  <small>{on ? DOGS[id].blurb : `Beat level ${DOGS[id].from} to unlock`}</small>
+                  {!on && <small>Beat level {DOGS[id].from}</small>}
                   {on && <span className="yr-xp" aria-label={`Dog level ${lv} of 10`}><span style={{ width: `${lv >= 10 ? 100 : ((secs % DOG_LEVEL_SECS) / DOG_LEVEL_SECS) * 100}%` }} /></span>}
-                  {on && <small className="yr-perk">{PERKS.filter((k) => k.at <= lv).map((k) => k.text).join(' · ') || 'Play to earn skills'}</small>}
+                  
                 </button>
               );
             })}
@@ -1160,21 +1147,22 @@ export default function YogasRevenge() {
       {screen === 'shop' && (
         <div className="yr-menu">
           <h2 className="yr-h">Store</h2>
-          <p className="yr-tag">You have <b className="yr-coins">{save.points} coins</b>. XP earns coins: every 10 XP is 1 coin (you have {save.xp ?? 0} XP). Treats and loot give coins too. Power ups go in your inventory bar to use in battles.</p>
-          <h3 className="yr-sub">Power ups and swords</h3>
+          <div className="yr-coinbig" aria-label={`${save.points} coins`}><img src="/games/yoga/loot/coins.png" alt="" />{save.points}</div>
+          <small className="yr-note">1 XP = 1 coin</small>
+          <h3 className="yr-sub">Power ups</h3>
           <div className="yr-store">
             {STORE.map((it) => (
               <button key={it.id} type="button" className="yr-item" disabled={save.points < it.cost} onClick={() => { const s = saveRef.current; if (s.points < it.cost) return; patch({ points: s.points - it.cost, inv: { ...s.inv, [it.id]: (s.inv?.[it.id] ?? 0) + 1 } }); sfx.coin(); }}>
                 <ItemIcon id={it.id} />
-                <b>{it.name}</b><span className="yr-cost">{it.cost} coins</span>{(save.inv?.[it.id] ?? 0) > 0 && <small>You have {save.inv?.[it.id]}</small>}
+                <b>{it.name}</b><span className="yr-cost">{it.cost} coins</span>{(save.inv?.[it.id] ?? 0) > 0 && <small>x{save.inv?.[it.id]}</small>}
               </button>
             ))}
           </div>
-          <h3 className="yr-sub">Upgrades (keep forever)</h3>
+          <h3 className="yr-sub">Upgrades</h3>
           <div className="yr-dogs">
             {SHOP.map((it) => (
               <button key={it.k} type="button" className="yr-dog" disabled={save.points < it.cost || save.up[it.k] >= it.max} onClick={() => buy(it.k)}>
-                <b>{it.name}</b><small>{it.desc}. Level {save.up[it.k]} of {it.max}</small><span className="yr-cost">{save.up[it.k] >= it.max ? 'Maxed' : `${it.cost} coins`}</span>
+                <b>{it.name}</b><small>{save.up[it.k]} / {it.max}</small><span className="yr-cost">{save.up[it.k] >= it.max ? 'Maxed' : `${it.cost} coins`}</span>
               </button>
             ))}
           </div>
@@ -1185,11 +1173,11 @@ export default function YogasRevenge() {
       {screen === 'clear' && cleared && (
         <div className="yr-menu yr-win">
           <h2 className="yr-h">LEVEL {cleared.lvl + 1} COMPLETE!</h2>
-          <p className="yr-tag">{LEVELS[cleared.lvl].name} beaten with {DOGS[cleared.dog].name} in about {cleared.mins} minutes.</p>
-          {cleared.reward && <p className="yr-tag"><b>New dog unlocked: {DOGS[cleared.reward].name}!</b> {DOGS[cleared.reward].blurb}</p>}
+          <p className="yr-tag">{cleared.mins} minutes</p>
+          {cleared.reward && <p className="yr-tag"><b>New dog: {DOGS[cleared.reward].name}!</b></p>}
           {cleared.lvl + 1 < LEVELS.length
             ? <button type="button" className="yr-big" onClick={() => openPicker(cleared.lvl + 1)}>Level {cleared.lvl + 2}: {LEVELS[cleared.lvl + 1].name}</button>
-            : <p className="yr-tag">That is every level for now. More are coming!</p>}
+            : <p className="yr-tag">More levels coming!</p>}
           <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back to the start</button>
         </div>
       )}
@@ -1200,12 +1188,11 @@ export default function YogasRevenge() {
         <div className="yr-overlay">
           <div className="yr-card">
             <h3>Paused</h3>
-            <p>Take a break! Your last checkpoint is saved.</p>
             <div className="yr-row">
               <button type="button" className="yr-big" onClick={() => { setPauseOpen(false); paused.current = false; }}>Keep playing</button>
+              {playMode && <button type="button" className="yr-big yr-learn" onClick={() => { setPlayMode(false); setPauseOpen(false); paused.current = false; }}>Switch to Learn mode<small>+25 XP per right answer</small></button>}
               <button type="button" className="yr-small" onClick={() => { setPauseOpen(false); setScreen('title'); }}>Quit to menu</button>
             </div>
-            <small>Leaving goes back to your last checkpoint.</small>
           </div>
         </div>
       )}
@@ -1213,7 +1200,7 @@ export default function YogasRevenge() {
         <div className="yr-overlay">
           <div className="yr-card">
             <h3>Treat Dash!</h3>
-            <p>Bonus round: grab as many treats as you can in 1 minute. Each one is a coin for the Store.</p>
+            <p>1 minute. Grab treats!</p>
             <div className="yr-row">
               <button type="button" className="yr-big" onClick={() => api.current.dash?.(true)}>Let's go!</button>
               <button type="button" className="yr-small" onClick={() => api.current.dash?.(false)}>Skip it</button>
@@ -1224,7 +1211,7 @@ export default function YogasRevenge() {
 
       {gate && !playMode && q && (
         <QuestionScreen prompt={q.prompt} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt} done={0} total={1}
-          whoLabel={GATE_TITLE[gate.why]} onCorrectAnswer={passGate}
+          whoLabel={GATE_TITLE[gate.why]} onCorrectAnswer={() => { passGate(); api.current.xp?.(25); }}
           onWrongAnswer={() => window.setTimeout(() => setQ(drawQuestion(questionSets, q.id) ?? generateAutoQuestion()), 1500)}
           onExit={() => { setGate(null); setQ(null); setScreen('title'); }} />
       )}
@@ -1250,7 +1237,7 @@ function Clicker({ title, onDone }: { title: string; onDone: () => void }) {
     <div className="yr-overlay">
       <div className={`yr-card yr-clicker${done ? ' done' : ''}`}>
         <h3>{done ? 'WOOF-TASTIC!' : title}</h3>
-        <p>{done ? 'Here we go!' : `Tap the bone ${need} times!`}</p>
+        <p>{done ? 'Go!' : `Tap ${need} times!`}</p>
         <button type="button" className="yr-bone" onPointerDown={tap} aria-label={`Tap the bone. ${n} of ${need}`} style={{ transform: `scale(${1 + (n % 2) * 0.08}) rotate(${(n % 3) - 1}deg)` }}>
           <span className="yr-bone-n">{Math.min(n, need)}</span>
           {pops.map((p) => <i key={p.id} className="yr-pop" style={{ left: p.x, top: p.y }}>+1</i>)}
@@ -1267,20 +1254,29 @@ type TalkState = { who: string; lines: string[]; i: number; portrait?: string; q
 function TalkBox({ talk, onNext }: { talk: TalkState; onNext: () => void }) {
   const line = talk.lines[talk.i];
   const [n, setN] = useState(0);
-  useEffect(() => { setN(0); }, [line]);
+  const [heard, setHeard] = useState(false);
+  // Build Queue 546: every line is read aloud while it types, and the student can only go on once it has been heard.
+  useEffect(() => {
+    setN(0); setHeard(false);
+    const u = speak(line) as { onend?: (() => void) | null } | undefined;
+    if (u) u.onend = () => setHeard(true);
+    const safety = window.setTimeout(() => setHeard(true), 1200 + line.length * 85);
+    return () => window.clearTimeout(safety);
+  }, [line]);
   useEffect(() => {
     if (n >= line.length) return;
-    const t = window.setTimeout(() => { setN((v) => v + 1); if (n % 3 === 0 && line[n] !== ' ') sfx.tick(); }, 26);
+    const t = window.setTimeout(() => { setN((v) => v + 1); if (n % 4 === 0 && line[n] !== ' ') sfx.tick(); }, 62);
     return () => window.clearTimeout(t);
   }, [n, line]);
-  const done = n >= line.length;
+  const done = n >= line.length && heard;
   return (
-    <div className={`yr-talk${talk.quest ? ' yr-quest' : ''}`} onClick={() => (done ? onNext() : setN(line.length))}>
+    <div className={`yr-talk${talk.quest ? ' yr-quest' : ''}`} onClick={() => { if (done) onNext(); }}>
       {talk.portrait && <img src={talk.portrait} alt="" className="yr-portrait" />}
       <div className="yr-talk-box" key={talk.who}>
         <span className="yr-name">{talk.who}</span>
-        <p aria-label={line}>{line.slice(0, n)}<span className="yr-caret" aria-hidden>{done ? '' : '|'}</span></p>
+        <p aria-label={line}>{line.slice(0, n)}<span className="yr-caret" aria-hidden>{n >= line.length ? '' : '|'}</span></p>
         {done && <img src="/games/yoga/ui/waiting.png" alt="Tap to continue" className="yr-wait" />}
+        {!done && <small className="yr-listen" aria-hidden>🔊</small>}
         {talk.quest && <small className="yr-qstep">{talk.i + 1} / {talk.lines.length}</small>}
       </div>
     </div>
