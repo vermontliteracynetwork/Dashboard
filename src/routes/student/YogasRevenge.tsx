@@ -129,8 +129,12 @@ interface Save {
   points: number; up: { heart: number; bite: number; zoom: number; bark: number };
   lvl: number; stage: number; x: number; levelDog: DogId | null; cleared: number;
   dogs: Partial<Record<DogId, number>>; harness: boolean; collar: boolean;
+  stats: Partial<Record<DogId, DogStats>>;
 }
-const NEW_SAVE: Save = { points: 0, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, harness: false, collar: false };
+// Build Queue 537: each dog's own stat page.
+interface DogStats { monsters: number; cans: number; bosses: number; treats: number; powerups: number; best: number; levels: number }
+const NO_STATS: DogStats = { monsters: 0, cans: 0, bosses: 0, treats: 0, powerups: 0, best: 0, levels: 0 };
+const NEW_SAVE: Save = { points: 0, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, harness: false, collar: false };
 const saveKey = (id: string) => `yoga.save2.${id}`;
 const readSave = (id: string): Save => { try { return { ...NEW_SAVE, ...JSON.parse(localStorage.getItem(saveKey(id)) || '{}') }; } catch { return { ...NEW_SAVE }; } };
 const writeSave = (id: string, s: Save) => { try { localStorage.setItem(saveKey(id), JSON.stringify(s)); } catch { /* private mode */ } };
@@ -168,7 +172,7 @@ let NEXT_ID = 1;
 const mkFoe = (kind: FoeKind, x: number, d: number, extra = 0): Foe => ({ id: NEXT_ID++, kind, x, d, z: kind === 'bird' ? 46 : 0, vx: 0, vd: 0, hp: FOE_STATS[kind].hp + extra, max: FOE_STATS[kind].hp + extra, face: -1, atk: 0, cd: 1 + Math.random(), hurt: 0, stun: 0, t: Math.random() * 5, phase: 0 });
 
 type Gate = { why: 'wave' | 'mid' | 'boss' | 'revive'; then: () => void } | null;
-type Screen = 'title' | 'pick' | 'levels' | 'shop' | 'play' | 'clear';
+type Screen = 'title' | 'pick' | 'levels' | 'shop' | 'play' | 'clear' | 'stats';
 const GATE_TITLE: Record<NonNullable<Gate>['why'], string> = { wave: 'Get ready to fight!', mid: 'Big challenge ahead!', boss: 'Power up for the boss!', revive: 'Help your dog get back up!' };
 
 export default function YogasRevenge() {
@@ -197,6 +201,7 @@ export default function YogasRevenge() {
   const [offer, setOffer] = useState(false);
   const [cleared, setCleared] = useState<{ lvl: number; dog: DogId; reward: DogId | null; mins: number } | null>(null);
   const [, setHud] = useState(0);
+  const [statDog, setStatDog] = useState<DogId>('yoga');
 
   const cv = useRef<HTMLCanvasElement | null>(null);
   const art = useRef<Record<string, Sheet>>({});
@@ -292,6 +297,7 @@ export default function YogasRevenge() {
     const bigBark = () => saveRef.current.collar || dog === 'luna' || dl() >= 10;
 
     const addFx = (f: Omit<Fx, 't'>) => g.fx.push({ ...f, t: 0 });
+    const bump = (k: keyof DogStats, n = 1, max = false) => { const s = saveRef.current, cur = { ...NO_STATS, ...s.stats?.[dog] }; const v = max ? Math.max(cur[k], n) : cur[k] + n; if (v !== cur[k]) patch({ stats: { ...s.stats, [dog]: { ...cur, [k]: v } } }); };
     const confetti = (n = 24) => { for (let i = 0; i < n; i++) addFx({ x: Math.random() * W, y: 30, ttl: 1.8, kind: 'confetti', screen: true, color: ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][i % 4], vx: (Math.random() - 0.5) * 60, vy: 30 + Math.random() * 60 }); };
     const checkpoint = (why: string) => {
       patch({ stage: g.stage, x: Math.round(g.p.x), lvl });
@@ -302,13 +308,14 @@ export default function YogasRevenge() {
     const hitFoe = (e: Foe, dmg: number, kb: number, from: number) => {
       if (e.hp <= 0 || e.happy) return;
       e.hp -= dmg; e.hurt = 0.25; e.x += kb * from; e.atk = 0;
-      g.hits = g.hitT > 0 ? g.hits + 1 : 1; g.hitT = 1.6;
+      g.hits = g.hitT > 0 ? g.hits + 1 : 1; g.hitT = 1.6; if (g.hits >= 5 && g.hits % 5 === 0) bump('best', g.hits, true);
       g.p.superM = Math.min(100, g.p.superM + (dl() >= 7 ? 10 : 7));
       addFx({ x: e.x, y: sy(e.d) - 18 - e.z, ttl: 0.25, kind: 'spark' });
       if (Math.random() < 0.45) addFx({ x: e.x, y: sy(e.d) - 44 - e.z, ttl: 0.7, kind: 'text', text: words[Math.floor(Math.random() * words.length)], color: '#ffe14d', vy: -30 });
       g.shake = Math.min(6, g.shake + 2); sfx.bonk();
       if (e.hp <= 0) {
-        if (e.kind === 'tires' || e.kind === 'sound') { e.hp = 0; e.happy = 0.01; sfx.chime(); return; }
+        if (e.kind === 'tires' || e.kind === 'sound') { e.hp = 0; e.happy = 0.01; sfx.chime(); bump('bosses'); return; }
+        bump('monsters'); if (e.kind === 'can' || e.kind === 'bigcan') bump('cans');
         addFx({ x: e.x, y: sy(e.d) - 14 - e.z, ttl: 0.6, kind: 'poof' });
         addFx({ x: e.x, y: sy(e.d) - 34, ttl: 0.9, kind: 'text', text: e.kind === 'rat' ? 'SCAT!' : e.kind === 'bird' ? 'SHOO!' : 'POOF!', color: '#ffffff', vy: -26 });
         sfx.pop();
@@ -381,6 +388,7 @@ export default function YogasRevenge() {
         const done = Math.max(s.cleared, lvl + 1);
         setSave({ ...s, cleared: done, lvl: lvl + 1 < LEVELS.length ? nextLvl : lvl, stage: 0, x: 60, levelDog: null, dogs: { ...s.dogs, [dog]: (s.dogs[dog] ?? 0) + g.xpFlush } });
         g.xpFlush = 0;
+        bump('levels');
         setCleared({ lvl, dog, reward: s.cleared < lvl + 1 ? L.reward : null, mins: Math.round(g.levelT / 60) });
         setScreen('clear'); sfx.chime();
       }
@@ -509,10 +517,11 @@ export default function YogasRevenge() {
         if (Math.abs(k.x - p.x) < 18 && Math.abs(k.d - p.d) < 0.14 && p.z < 16) {
           k.t = -99;
           if (k.kind === 'bone') { p.hp = Math.min(p.max, p.hp + 2); addFx({ x: p.x, y: sy(p.d) - 24, ttl: 0.9, kind: 'heal' }); sfx.chime(); }
-          else if (k.kind === 'treat') { patch({ points: saveRef.current.points + 1 }); if (g.dash) g.dashPts += 1; addFx({ x: p.x, y: sy(p.d) - 44, ttl: 0.7, kind: 'text', text: '+1', color: '#ffd23f', vy: -40 }); sfx.coin(); }
+          else if (k.kind === 'treat') { patch({ points: saveRef.current.points + 1 }); bump('treats'); if (g.dash) g.dashPts += 1; addFx({ x: p.x, y: sy(p.d) - 44, ttl: 0.7, kind: 'text', text: '+1', color: '#ffd23f', vy: -40 }); sfx.coin(); }
           else if (k.kind === 'pu' && k.pu) {
             const id = k.pu, info = PU[id];
             if (info.secs) g.pw[id] = info.secs;
+            bump('powerups');
             if (id === 'half_heart') p.hp = Math.min(p.max, p.hp + 1);
             if (id === 'golden_heart') p.hp = p.max;
             if (id === 'heart_container') { p.max += 1; p.hp = p.max; }
@@ -909,6 +918,7 @@ export default function YogasRevenge() {
             {!allDone && <button type="button" className={midLevel ? 'yr-small' : 'yr-big'} onClick={() => openPicker(curLvl)}>{midLevel ? `Restart level ${curLvl + 1}` : `Start level ${curLvl + 1}`}</button>}
             <div className="yr-row">
               <button type="button" className="yr-small" onClick={() => setScreen('levels')}>Levels</button>
+              <button type="button" className="yr-small" onClick={() => { setStatDog(save.levelDog ?? 'yoga'); setScreen('stats'); }}>My dogs</button>
               <button type="button" className="yr-small" onClick={() => setScreen('shop')}>Treat shop ({save.points} PP)</button>
               <button type="button" className="yr-small" onClick={() => navigate('/student/games')}>Leave</button>
             </div>
@@ -952,6 +962,36 @@ export default function YogasRevenge() {
           <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back</button>
         </div>
       )}
+
+      {screen === 'stats' && (() => {
+        const mine = (Object.keys(DOGS) as DogId[]).filter(unlocked), id = mine.includes(statDog) ? statDog : 'yoga';
+        const st = { ...NO_STATS, ...save.stats?.[id] }, secs = save.dogs[id] ?? 0, lv = dogLevel(secs), mins = Math.round(secs / 60);
+        const nextPerk = PERKS.find((k) => k.at > lv);
+        return (
+          <div className="yr-menu">
+            <h2 className="yr-h">My dogs</h2>
+            <div className="yr-row" role="tablist" aria-label="Your dogs">
+              {mine.map((d) => <button key={d} type="button" role="tab" aria-selected={d === id} className={`yr-tab${d === id ? ' on' : ''}`} onClick={() => setStatDog(d)}><span className="yr-dog-face sm" style={{ background: DOGS[d].color }}>{d === 'yoga' && <i className="yr-blaze" />}</span>{DOGS[d].name}</button>)}
+            </div>
+            <div className="yr-stat-card">
+              <div className="yr-stat-head">
+                <span className="yr-dog-face big" style={{ background: DOGS[id].color }}>{id === 'yoga' && <i className="yr-blaze" />}</span>
+                <div><b>{DOGS[id].name}</b> <em className={lv >= 10 ? 'yr-lvl yr-master' : 'yr-lvl'}>{lv >= 10 ? 'MASTER' : `Dog level ${lv}`}</em><small>{DOGS[id].blurb}</small></div>
+              </div>
+              <span className="yr-xp big" aria-label={`Dog level ${lv} of 10`}><span style={{ width: `${lv >= 10 ? 100 : ((secs % DOG_LEVEL_SECS) / DOG_LEVEL_SECS) * 100}%` }} /></span>
+              <small>{lv >= 10 ? 'Master dog! The top level.' : `${Math.ceil((DOG_LEVEL_SECS - (secs % DOG_LEVEL_SECS)) / 60)} more minutes to level ${lv + 1}${nextPerk ? `: ${nextPerk.text}` : ''}`}</small>
+              <div className="yr-stats">
+                {[['Minutes played', mins], ['Levels beaten', st.levels], ['Monsters beaten', st.monsters], ['Trash cans', st.cans], ['Bosses', st.bosses], ['Treats', st.treats], ['Power ups', st.powerups], ['Best combo', st.best ? `${st.best} hits` : '-']].map(([k, v]) => <div key={k as string}><b>{v}</b><small>{k}</small></div>)}
+              </div>
+              <div className="yr-power">
+                <small>Speed {Math.round(DOGS[id].speed * (1 + lv * 0.02) * 100)}% · Strength {Math.round(DOGS[id].power * (1 + lv * 0.05) * 100)}%</small>
+                <ul>{PERKS.map((k) => <li key={k.at} className={k.at <= lv ? 'on' : ''}>Lv {k.at}: {k.text}</li>)}</ul>
+              </div>
+            </div>
+            <button type="button" className="yr-small" onClick={() => setScreen('title')}>Back</button>
+          </div>
+        );
+      })()}
 
       {screen === 'shop' && (
         <div className="yr-menu">

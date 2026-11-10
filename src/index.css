@@ -11754,3 +11754,14 @@ button.nqs-step-head { cursor: pointer; }
 .yr-logo { font-size: clamp(56px, 12vw, 104px); }
 .yr-h { font-size: 44px; }
 .yr-card h3 { font-size: 38px; }
+/* Build Queue 537: each dog's stat page. */
+.yr-tab { display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 4px 12px 4px 6px; border-radius: 12px; border: 3px solid #4a3a80; background: #2d2350; color: #fff; font: 800 15px ui-monospace, monospace; }
+.yr-tab.on { border-color: #ffd23f; background: #4a3a80; }
+.yr-dog-face.sm { width: 32px; height: 32px; border-width: 2px; } .yr-dog-face.big { width: 72px; height: 72px; flex: none; }
+.yr-stat-card { width: 100%; background: #2d2350; border: 3px solid #ffd23f; border-radius: 18px; padding: 16px; display: grid; gap: 10px; text-align: left; }
+.yr-stat-head { display: flex; gap: 14px; align-items: center; } .yr-stat-head b { font-size: 26px; } .yr-stat-head small { display: block; opacity: 0.85; margin-top: 4px; }
+.yr-lvl { font-style: normal; font-size: 14px; background: #5b8cff; border-radius: 8px; padding: 2px 8px; vertical-align: middle; } .yr-lvl.yr-master { background: #ffd23f; color: #1b1430; }
+.yr-xp.big { height: 14px; border: 2px solid #1b1430; }
+.yr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.yr-stats div { background: #1b1430; border-radius: 12px; padding: 10px; display: grid; } .yr-stats b { font-size: 26px; color: #ffd23f; } .yr-stats small { opacity: 0.85; }
+.yr-power ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; } .yr-power li { opacity: 0.45; } .yr-power li.on { opacity: 1; color: #9cf6ff; } .yr-power li.on::before { content: '✓ '; }
