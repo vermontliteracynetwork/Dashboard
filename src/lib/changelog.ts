@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-island-drive",
+    date: "2026-11-10",
+    icon: "🚗",
+    title: "Drive on Creative Island",
+    body: "In View mode on your Creative Island, tap any car, truck, bus or boat to drive it. Press Get out to park it. Your island is cleared when you leave, so you start fresh each visit.",
+  },
+  {
     id: "2026-11-10-hint-card",
     date: "2026-11-10",
     icon: "💡",

@@ -189,6 +189,10 @@ function transportSubcategory(label: string): string | null {
   return null;
 }
 const TRANSPORT_SUBCATEGORIES = ['Cars', 'Boats', 'Trains'];
+// Build Queue 518 (her words: "Auto assign all vehicles as car role so that students can drive on creative island"):
+// every vehicle on the island drives like a car.
+const isIslandVehicle = (o: { modelPath: string; label: string }) => /\/vehicles\//i.test(o.modelPath) || transportSubcategory(o.label) !== null;
+const ISLAND_DRIVE_SPEED = 11;
 function mainCategoryFor(a: { category: string; label: string }): { main: string; sub: string | null } {
   const transportSub = transportSubcategory(a.label);
   if (transportSub) return { main: 'Transportation', sub: transportSub };
@@ -428,14 +432,23 @@ function blockIslandObstacles(curX: number, curZ: number, targetX: number, targe
   if (!inside(sx, targetZ)) return [sx, targetZ];
   return [sx, sz];
 }
-function IslandPlayer({ walkTarget, obstacles, sensitivity }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: IslandObstacle[]; sensitivity: number }) {
+function IslandPlayer({ walkTarget, obstacles, sensitivity, car, where }: { walkTarget: React.RefObject<{ x: number; z: number } | null>; obstacles: IslandObstacle[]; sensitivity: number; car?: WorldObject | null; where?: React.RefObject<{ x: number; z: number; facing: number }> }) {
   const groupRef = useRef<THREE.Group>(null);
   const { camera } = useThree();
   const keys = useIslandKeys();
   const pos = useRef(new THREE.Vector3(0, 0, ISLAND_RADIUS * 0.5));
   const facing = useRef(0);
   const isMoving = useRef(false);
-  const moveSpeed = ISLAND_MOVE_SPEED * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
+  const moveSpeed = (car ? ISLAND_DRIVE_SPEED : ISLAND_MOVE_SPEED) * THREE.MathUtils.clamp(sensitivity, 0.5, 2);
+  // Getting into a vehicle puts the student where it is parked, facing its way.
+  const carId = car?.id;
+  useEffect(() => {
+    if (!car) return;
+    pos.current.set(car.position[0], 0, car.position[2]);
+    facing.current = car.rotationY;
+    walkTarget.current = null;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [carId]);
   useFrame((_, dt) => {
     if (!groupRef.current) return;
     const k = keys.current;
@@ -471,6 +484,7 @@ function IslandPlayer({ walkTarget, obstacles, sensitivity }: { walkTarget: Reac
       }
     }
     isMoving.current = moved;
+    if (where?.current) { where.current.x = pos.current.x; where.current.z = pos.current.z; where.current.facing = facing.current; }
     groupRef.current.position.set(pos.current.x, 0, pos.current.z);
     groupRef.current.rotation.y = facing.current;
     const camAngle = facing.current;
@@ -482,7 +496,7 @@ function IslandPlayer({ walkTarget, obstacles, sensitivity }: { walkTarget: Reac
   return (
     <group ref={groupRef}>
       <Suspense fallback={null}>
-        <IslandPlayerModel isMoving={isMoving} />
+        {car ? <WorldObjectRenderer obj={{ ...car, position: [0, 0, 0], rotationY: 0 }} /> : <IslandPlayerModel isMoving={isMoving} />}
       </Suspense>
     </group>
   );
@@ -503,15 +517,28 @@ export default function IslandBuild() {
   const addWorldObject = useStore((s) => s.addWorldObject);
   const updateWorldObject = useStore((s) => s.updateWorldObject);
   const deleteWorldObject = useStore((s) => s.deleteWorldObject);
+  const [drivingId, setDrivingId] = useState<string | null>(null);
+  const drivePos = useRef({ x: 0, z: 0, facing: 0 });
   const islandObjects = useMemo(
     () => (student ? allWorldObjects.filter((o) => o.studentId === student.id && o.roomId === 'island') : []),
     [allWorldObjects, student]
   );
+  // Build Queue 519 (her words: "every time a student leaves creative island, everything deletes. they should see a
+  // confirmation so that they are reminded that everything deletes and when they return it will be blank again"):
+  // anything from an earlier visit is cleared on arrival, and everything is cleared on the way out.
+  const visitStart = useRef(new Date().toISOString());
+  const latestIsland = useRef<string[]>([]);
+  latestIsland.current = islandObjects.map((o) => o.id);
+  useEffect(() => {
+    islandObjects.filter((o) => (o.createdAt || '') < visitStart.current).forEach((o) => deleteWorldObject(o.id));
+  }, [islandObjects, deleteWorldObject]);
+  useEffect(() => () => { latestIsland.current.forEach((id) => deleteWorldObject(id)); }, [deleteWorldObject]);
+  const [confirmLeave, setConfirmLeave] = useState(false);
   // Direct teacher correction (same fix as Town Square): every placed
   // object blocks movement now, not just ones with `collides` set.
   const islandObstacles = useMemo(
-    () => islandObjects.map((o) => ({ x: o.position[0], z: o.position[2], radius: ISLAND_OBJECT_COLLISION_RADIUS(o.scale) })),
-    [islandObjects]
+    () => islandObjects.filter((o) => o.id !== drivingId).map((o) => ({ x: o.position[0], z: o.position[2], radius: ISLAND_OBJECT_COLLISION_RADIUS(o.scale) })),
+    [islandObjects, drivingId]
   );
 
   const [manifestAll, setManifest] = useState<AssetManifestEntry[]>([]);
@@ -684,7 +711,7 @@ export default function IslandBuild() {
       )}
 
       <div style={{ position: 'fixed', top: 16, left: 16, zIndex: 60, display: 'flex', gap: 10, alignItems: 'center' }}>
-        <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} onClick={() => navigate('/world/town')}>
+        <button className="btn btn-sm" style={{ minHeight: 44, background: '#fff', fontWeight: 800 }} onClick={() => setConfirmLeave(true)}>
           ← Town
         </button>
         <span style={{ background: 'rgba(255,255,255,0.92)', padding: '8px 16px', borderRadius: 10, fontFamily: 'system-ui, sans-serif', fontWeight: 800, color: '#1f4238', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
@@ -699,7 +726,7 @@ export default function IslandBuild() {
         <button
           className="btn btn-sm"
           style={{ minHeight: 44, background: mode === 'view' ? '#3e7c6b' : '#fff', color: mode === 'view' ? '#fff' : undefined, fontWeight: 800 }}
-          onClick={() => { setMode((m) => (m === 'build' ? 'view' : 'build')); setArmedAsset(null); setSelectedId(null); setViewSelectedRoleId(null); }}
+          onClick={() => { if (drivingId) { updateWorldObject(drivingId, { position: [drivePos.current.x, 0, drivePos.current.z], rotationY: drivePos.current.facing }); setDrivingId(null); } setMode((m) => (m === 'build' ? 'view' : 'build')); setArmedAsset(null); setSelectedId(null); setViewSelectedRoleId(null); }}
         >
           {mode === 'build' ? 'Walk My Island' : 'Back to Build'}
         </button>
@@ -924,12 +951,13 @@ export default function IslandBuild() {
           />
         )}
 
-        {islandObjects.map((obj) => (
+        {islandObjects.filter((o) => o.id !== drivingId).map((obj) => (
           <group key={obj.id}>
             <WorldObjectRenderer
               obj={obj}
               onClick={() => {
                 if (mode === 'build') { if (!armedAsset) setSelectedId(obj.id); return; }
+                if (!drivingId && isIslandVehicle(obj) && (!obj.role || obj.role === 'closed')) { setDrivingId(obj.id); return; }
                 if (obj.role === 'closed') { setClosedBuildingName(obj.customName || obj.label); return; }
                 if (obj.role) setViewSelectedRoleId(obj.id);
               }}
@@ -940,7 +968,7 @@ export default function IslandBuild() {
 
         {mode === 'view' && (
           <Suspense fallback={null}>
-            <IslandPlayer walkTarget={walkTarget} obstacles={islandObstacles} sensitivity={student.worldMoveSensitivity} />
+            <IslandPlayer walkTarget={walkTarget} obstacles={islandObstacles} sensitivity={student.worldMoveSensitivity} car={islandObjects.find((o) => o.id === drivingId) ?? null} where={drivePos} />
           </Suspense>
         )}
       </Canvas>
@@ -951,7 +979,8 @@ export default function IslandBuild() {
         return (
           <div style={{ position: 'fixed', inset: 0, zIndex: 65, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)' }} onClick={() => setViewSelectedRoleId(null)}>
             <div style={{ background: '#fff', borderRadius: 14, padding: '14px 20px', boxShadow: '0 4px 14px rgba(0,0,0,0.3)', textAlign: 'center', minWidth: 200, fontFamily: 'system-ui, sans-serif' }} onClick={(e) => e.stopPropagation()}>
-              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 10, color: '#1f4238' }}>Open {obj.customName || obj.label}?</div>
+              <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4, color: '#1f4238' }}>Open {obj.customName || obj.label}?</div>
+              {obj.role !== 'custom' && <div style={{ fontSize: 13, marginBottom: 10, color: '#7a2e12' }}>Leaving the island clears everything you built.</div>}
               <div className="row-wrap" style={{ justifyContent: 'center', gap: 6 }}>
                 <button
                   onClick={() => {
@@ -980,6 +1009,26 @@ export default function IslandBuild() {
         );
       })()}
 
+      {mode === 'view' && drivingId && (
+        <button type="button" className="btn btn-primary" style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 66, minHeight: 56, padding: '0 28px', fontSize: 18, fontWeight: 800 }}
+          onClick={() => { updateWorldObject(drivingId, { position: [drivePos.current.x, 0, drivePos.current.z], rotationY: drivePos.current.facing }); setDrivingId(null); }}>
+          Get out and park here
+        </button>
+      )}
+      {confirmLeave && (
+        <div className="overlay-backdrop" style={{ zIndex: 420 }} onClick={() => setConfirmLeave(false)}>
+          <div className="overlay-panel chrome-frame" role="dialog" aria-label="Leave Creative Island?" style={{ padding: 22, maxWidth: 420, textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+            <div className="content-well stack" style={{ alignItems: 'center' }}>
+              <h2 style={{ margin: 0 }}>Leave Creative Island?</h2>
+              <p style={{ margin: 0, fontSize: 18 }}>Everything you built here will be cleared. When you come back, your island will be blank again.</p>
+              <div className="row-wrap" style={{ justifyContent: 'center', gap: 10 }}>
+                <button className="btn btn-lg" style={{ minHeight: 52 }} onClick={() => setConfirmLeave(false)}>Stay and keep building</button>
+                <button className="btn btn-primary btn-lg" style={{ minHeight: 52 }} onClick={() => { latestIsland.current.forEach((id) => deleteWorldObject(id)); navigate('/world/town'); }}>Leave and clear it</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {customRoleLink && (
         <InternalBrowser url={customRoleLink.url} title={customRoleLink.title} onClose={() => setCustomRoleLink(null)} />
       )}
