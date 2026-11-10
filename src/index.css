@@ -11843,3 +11843,28 @@ button.nqs-step-head { cursor: pointer; }
 .yr-slot .yr-icon { width: 78%; height: 78%; object-fit: contain; image-rendering: pixelated; }
 .yr-item .yr-icon { width: 40px; height: 40px; image-rendering: pixelated; object-fit: contain; animation: yrBob2 1.4s ease-in-out infinite; }
 .yr-menu > .yr-small:last-child { position: sticky; bottom: 10px; box-shadow: 0 4px 0 #1b1430; }
+/* Build Queue 545: arrow pad bottom left, action buttons bottom right, the bag (inventory) bottom middle, drag and drop
+   onto Yoga, and the double tap pie menu. */
+.yr-deck .yr-dpad { grid-area: stick; align-self: center; display: grid; grid-template-columns: 62px 62px 62px; grid-template-rows: 62px 62px 62px; grid-template-areas: '. up .' 'left . right' '. down .'; }
+.yr-arrow { border: 3px solid #0b0716; border-radius: 14px; background: linear-gradient(#4a3f72, #2d2350); color: #fff; font-size: 22px; box-shadow: 0 4px 0 #0b0716, inset 0 2px 0 #ffffff22; touch-action: none; }
+.yr-arrow:active { transform: translateY(3px); box-shadow: 0 1px 0 #0b0716; background: #5b4d8c; }
+.yr-up { grid-area: up; } .yr-left { grid-area: left; } .yr-right { grid-area: right; } .yr-down { grid-area: down; }
+.yr-deck { grid-template-rows: auto auto 1fr; }
+@media (orientation: portrait) { .yr-deck .yr-dpad { justify-self: center; grid-template-columns: 76px 76px 76px; grid-template-rows: 76px 76px 76px; } }
+@media (orientation: landscape) and (max-height: 700px) { .yr-deck .yr-dpad { grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px 50px; } .yr-deck .yr-btns { grid-template-columns: 64px 64px; grid-template-rows: 64px 64px; } }
+.yr-btn { background-image: linear-gradient(#ffffff33, transparent 55%); }
+.yr-ghost { position: fixed; z-index: 40; width: 56px; height: 56px; margin: -28px 0 0 -28px; display: grid; place-items: center; background: #ffffffcc; border: 3px solid #ffd23f; border-radius: 50%; pointer-events: none; box-shadow: 0 6px 16px #0008; }
+.yr-ghost img, .yr-ghost .yr-potion { width: 40px; height: 40px; object-fit: contain; image-rendering: pixelated; }
+.yr-tip { position: fixed; left: 50%; top: 16px; transform: translateX(-50%); z-index: 40; background: #120c24ee; color: #fff; border: 2px solid #ffd23f; border-radius: 12px; padding: 10px 16px; font: 700 16px ui-monospace, monospace; max-width: 90vw; text-align: center; animation: yrIn 0.2s ease-out; }
+.yr-pie-back { position: fixed; inset: 0; z-index: 35; background: rgba(12, 8, 30, 0.45); }
+.yr-pie { position: fixed; width: 0; height: 0; }
+.yr-pie-hub { position: absolute; left: -46px; top: -46px; width: 92px; height: 92px; border: 0; border-radius: 50%; background: url('/games/yoga/ui/ring.png') center / 100% 100% no-repeat; image-rendering: pixelated; color: #0e5a3f; font: 900 13px ui-monospace, monospace; padding: 12px; animation: yrPop2 0.25s ease-out; }
+.yr-pie-opt { position: absolute; left: -34px; top: -34px; width: 68px; height: 68px; border-radius: 50%; border: 3px solid #0b0716; background: radial-gradient(circle at 35% 30%, #fff8e8, #e8d9b8); display: grid; place-items: center; padding: 6px; box-shadow: 0 4px 0 #0b0716; animation: yrPieIn 0.28s cubic-bezier(.2,1.4,.4,1) both; }
+.yr-pie-opt img, .yr-pie-opt .yr-potion { width: 30px; height: 30px; object-fit: contain; image-rendering: pixelated; }
+.yr-pie-opt .yr-wpn { height: 30px; }
+.yr-pie-opt small { position: absolute; top: 100%; margin-top: 4px; white-space: nowrap; font: 800 12px ui-monospace, monospace; color: #fff; text-shadow: 0 1px 2px #000, 0 0 3px #000; }
+.yr-pie-opt em { position: absolute; right: -4px; top: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: #ff4d6d; color: #fff; font: 800 12px/20px ui-monospace, monospace; font-style: normal; }
+.yr-pie-word { font: 900 12px ui-monospace, monospace; color: #e8873a; }
+@keyframes yrPieIn { from { opacity: 0; transform: translate(0, 0) scale(0.3); } }
+@keyframes yrPop2 { from { transform: scale(0.4); } }
+@media (orientation: landscape) { .yr-deck .yr-dpad { grid-template-columns: 48px 48px 48px; grid-template-rows: 48px 48px 48px; } .yr-arrow { font-size: 18px; border-radius: 12px; } .yr-deck .yr-btns { grid-template-columns: 66px 66px; grid-template-rows: 66px 66px; gap: 8px; } }
