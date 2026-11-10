@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-yoga-platforms",
+    date: "2026-11-10",
+    icon: "🧗",
+    title: "Yoga's Revenge: jump up on things",
+    body: "Before every battle there is a jumping course. Hop over rocks, jump up on crate ledges and climb hay to tall crates. Coins wait on top! Tap a talking bubble to see all the words, then tap again to go on.",
+  },
+  {
     id: "2026-11-10-weekend-streak",
     date: "2026-11-10",
     icon: "🔥",

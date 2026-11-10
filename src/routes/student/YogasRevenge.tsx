@@ -135,12 +135,13 @@ const LEVELS: Level[] = [
 ];
 
 // ---------- obstacles (Build Queue 549: platformer bits to jump over; her Kenney farm tiles) ----------
-type ObsKind = 'pumpkin' | 'hay' | 'bed' | 'crates' | 'rock';
+type ObsKind = 'pumpkin' | 'hay' | 'bed' | 'crates' | 'rock' | 'ledge';
 interface Obs { x: number; kind: ObsKind; w: number; h: number; tile: string; treat: boolean }
 const OBS: Record<ObsKind, { w: number; h: number; tile: string }> = {
   pumpkin: { w: 26, h: 16, tile: 'farm/tile_0004' }, hay: { w: 30, h: 18, tile: 'farm/tile_0009' },
   bed: { w: 30, h: 16, tile: 'farm/tile_0038' }, crates: { w: 30, h: 34, tile: 'farm/tile_0006' },
-  rock: { w: 28, h: 16, tile: 'rocks' }, // Build Queue 554: her rocks pack, in every level
+  rock: { w: 28, h: 16, tile: 'rocks' },
+  ledge: { w: 104, h: 26, tile: 'farm/tile_0006' }, // Build Queue 572: a wide crate ledge to jump up on and walk across // Build Queue 554: her rocks pack, in every level
 };
 // Hurdles across the whole road between the fights: low ones need a jump, crate stacks need a high jump (double tap).
 function makeObstacles(lv: Level): Obs[] {
@@ -151,7 +152,17 @@ function makeObstacles(lv: Level): Obs[] {
     if (busy.some((b) => Math.abs(b - x) < 300)) continue;
     const kind = kinds[n++ % kinds.length]; out.push({ x, kind, ...OBS[kind], treat: n % 2 === 0 });
   }
-  return out;
+  // Build Queue 572 (her words: "add more platformer (jump up on to things, jump over rocks) elements for the dog to engage
+  // in before the actual battles"): a little course right before every battle: hop a rock, jump up on a ledge (coins on top),
+  // then a hay step up to a tall crate stack. Kept clear of the fight areas.
+  const fights = lv.stages.filter((st) => st.kind === 'wave' || st.kind === 'mid' || st.kind === 'boss');
+  fights.forEach((st, i) => {
+    const prev = i > 0 ? fights[i - 1].x + 260 : 760, start = st.x - 560;
+    const course: [number, ObsKind, boolean][] = [[0, 'rock', false], [80, 'ledge', true], [240, 'hay', false], [272, 'crates', true]];
+    course.forEach(([dx, kind, treat]) => { const x = start + dx; if (x > prev) out.push({ x, kind, ...OBS[kind], treat }); });
+  });
+  out.sort((a, b) => a.x - b.x);
+  return out.filter((o, k) => k === 0 || o.x >= out[k - 1].x + out[k - 1].w + 8 || (out[k - 1].kind === 'hay' && o.kind === 'crates'));
 }
 
 // ---------- save ----------
@@ -286,7 +297,7 @@ export default function YogasRevenge() {
     cam: 0, lock: null as null | { l: number; r: number }, stage: 0, active: false, sub: 0,
     hits: 0, hitT: 0, shake: 0, bag: [] as string[], dash: 0, dashPts: 0, time: 0, banner: '', bannerT: 0,
     lost: 0, mini: '' as '' | 'squirrel' | 'sound', squirrel: null as null | { x: number; d: number; t: number },
-    cpT: 0, levelT: 0, runXp: 0, xpFlush: 0, fade: 0, obs: [] as Obs[], autoT: 0, lastJump: 0,
+    cpT: 0, levelT: 0, runXp: 0, ground: 0, xpFlush: 0, fade: 0, obs: [] as Obs[], autoT: 0, lastJump: 0,
     pw: {} as Partial<Record<PuId, number>>, shield: 0, lives: 0, jumps: 0, weapon: null as null | { id: WeaponId; uses: number }, swing: 0,
   });
 
@@ -528,7 +539,7 @@ export default function YogasRevenge() {
             g.sniffs = makeSpots(p.x);
             spawn(['rat', 'rat', 'bird'], p.x + 220);
             paused.current = true;
-            setTalk({ who: 'Mini battle 1: Lost in the Woods', lines: ['SQUIRREL! Now Yoga is lost!', 'Only 3 of 5 paw prints lead back.', 'Clue: real prints point the way.'], i: 0, then: () => { paused.current = false; } });
+            setTalk({ who: 'Mini battle 1: Lost in the Woods', lines: ['SQUIRREL! Now Yoga is lost!', 'Only 3 of 5 scent trails lead back.', 'Clue: real ones wiggle faster up close.'], i: 0, then: () => { paused.current = false; } });
           }
         }
       }
@@ -562,19 +573,22 @@ export default function YogasRevenge() {
       g.swing = Math.max(0, g.swing - dt);
       // obstacles: blocked unless high enough; landing on top lets you walk over; treats float above some
       for (const o of g.obs) {
-        if (p.x + 16 > o.x && p.x - 16 < o.x + o.w && p.z < o.h - 2) { p.x = p.x < o.x + o.w / 2 ? o.x - 16 : o.x + o.w + 16; if (Math.abs(mx) > 0.2 && Math.random() < 0.05) { addFx({ x: p.x, y: sy(p.d) - 70, ttl: 0.8, kind: 'text', text: o.h > 24 ? 'Too tall! High jump!' : 'Jump!', color: '#ffe14d', vy: -18 }); } }
+        if (p.x + 16 > o.x && p.x - 16 < o.x + o.w && p.z < o.h - 2) { p.x = p.x < o.x + o.w / 2 ? o.x - 16 : o.x + o.w + 16; if (Math.abs(mx) > 0.2 && Math.random() < 0.05) { addFx({ x: p.x, y: sy(p.d) - 70, ttl: 0.8, kind: 'text', text: o.h > 30 ? 'Too tall! High jump!' : 'Jump!', color: '#ffe14d', vy: -18 }); } }
       }
-      if (p.z > 0 || p.vz > 0) {
-        p.vz -= GRAV * dt; p.z = Math.max(0, p.z + p.vz * dt);
+      // Build Queue 572: the dog can stand on ledges, crates and hay; walking off the edge drops it back down.
+      const ground = g.obs.reduce((m, o) => (p.x + 12 > o.x && p.x - 12 < o.x + o.w && p.z >= o.h - 6 ? Math.max(m, o.h) : m), 0);
+      g.ground = ground;
+      if (p.z > ground || p.vz > 0) {
+        p.vz -= GRAV * dt; p.z = Math.max(ground, p.z + p.vz * dt);
         // Build Queue 565: the whole dog stays in view, even on a double jump (its top never goes past the top of the picture).
         { const top = sy(p.d) - 50 * PS - 6; if (p.z > top) { p.z = top; p.vz = Math.min(p.vz, 0); } }
-        if (p.z === 0) { const fall = p.vz; p.vz = 0; if (g.pw.potion_lime && fall < -150) { g.shake = 7; addFx({ x: p.x, y: sy(p.d) - 6, ttl: 0.5, kind: 'poof' }); addFx({ x: p.x, y: sy(p.d) - 40, ttl: 0.6, kind: 'text', text: 'BOING!', color: '#b6ff5c', vy: -20 }); sfx.boing(); g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && Math.abs(e.x - p.x) < 60 && Math.abs(e.d - p.d) < 0.3) hitFoe(e, 2 * power(), 26, e.x > p.x ? 1 : -1); }); } }
+        if (p.z === ground) { const fall = p.vz; p.vz = 0; if (g.pw.potion_lime && fall < -150) { g.shake = 7; addFx({ x: p.x, y: sy(p.d) - 6, ttl: 0.5, kind: 'poof' }); addFx({ x: p.x, y: sy(p.d) - 40, ttl: 0.6, kind: 'text', text: 'BOING!', color: '#b6ff5c', vy: -20 }); sfx.boing(); g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && Math.abs(e.x - p.x) < 60 && Math.abs(e.d - p.d) < 0.3) hitFoe(e, 2 * power(), 26, e.x > p.x ? 1 : -1); }); } }
       }
       p.inv = Math.max(0, p.inv - dt); p.hurt = Math.max(0, p.hurt - dt); p.barkCd = Math.max(0, p.barkCd - dt);
       if (p.atk > 0) {
         const before = p.atk; p.atk -= dt;
         if (before > 0.16 && p.atk <= 0.16) {
-          const air = p.z > 6;
+          const air = p.z - g.ground > 6;
           g.foes.forEach((e) => {
             const big = isBoss(e.kind), dx = (e.x - p.x) * p.face;
             const wp = g.weapon ? WEAPONS[g.weapon.id] : null, grow = g.pw.potion_gold ? 1.5 : 1;
@@ -920,9 +934,8 @@ export default function YogasRevenge() {
       g.sniffs.forEach((k) => {
         if (k.found) return; const x = k.x - g.cam, y = sy(k.d);
         const near = Math.abs(k.x - g.p.x) < 90;
-        if (g.lost && k.real) { R(x - 14, y - 2, 4, 2, '#3a2a1a'); R(x - 16, y - 1, 2, 2, '#3a2a1a'); }
-        if (g.lost) { ctx.globalAlpha = 0.6 + Math.sin(g.time * 5) * 0.3; for (let i = 0; i < 3; i++) { R(x - 8 + i * 6, y - 4 - (i % 2) * 4, 4, 3, '#3a2a1a'); R(x - 9 + i * 6, y - 7 - (i % 2) * 4, 2, 2, '#3a2a1a'); R(x - 6 + i * 6, y - 7 - (i % 2) * 4, 2, 2, '#3a2a1a'); } R(x - 1, y - 22, 2, 2, '#fff8a8'); ctx.globalAlpha = 1; }
-        else { ctx.globalAlpha = 0.45 + g.sniffs.filter((s) => s.found).length * 0.18; squiggle(x, y - 22, k.real && near ? 9 : 4, k.real && near ? 9 : 6, '#c86bff'); ctx.globalAlpha = 1; }
+        // Build Queue 571 (her words: "remove paw prints from pathway"): no paw prints; scent squiggles only.
+        { ctx.globalAlpha = 0.45 + g.sniffs.filter((s) => s.found).length * 0.18; squiggle(x, y - 22, k.real && near ? 9 : 4, k.real && near ? 9 : 6, '#c86bff'); ctx.globalAlpha = 1; }
       });
       if (g.squirrel) { const x = g.squirrel.x - g.cam, y = sy(g.squirrel.d), hop = Math.abs(Math.sin(g.squirrel.t * 12)) * 6; R(x - 6, y - 10 - hop, 10, 7, '#b5651d'); R(x + 2, y - 14 - hop, 6, 6, '#b5651d'); R(x + 6, y - 12 - hop, 1, 1, '#111'); R(x - 12, y - 20 - hop, 7, 12, '#d9822b'); R(x - 14, y - 22 - hop, 5, 5, '#d9822b'); }
       type D = { y: number; f: () => void };
@@ -958,7 +971,7 @@ export default function YogasRevenge() {
         else if (s.kind === 'tire') { R(x - 8, y - 16, 16, 16, '#2a2a2e'); R(x - 4, y - 12, 8, 8, '#555'); }
         else { ctx.save(); ctx.strokeStyle = '#c86bff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, sy(s.d), s.r ?? 0, (s.r ?? 0) * 0.25, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       } }));
-      g.obs.forEach((o) => { const ox = o.x - g.cam; if (ox < -60 || ox > W + 60) return; const im = bg.current[o.tile]; list.push({ y: sy(0.3) - 1, f: () => { for (let dd = 0.3; dd <= 1.001; dd += 0.14) { const yy = sy(dd), sc = (o.w / 18) * (0.8 + dd * 0.35); if (im?.width && o.kind === 'rock') { const RK = [[0, 0], [40, 0], [0, 80], [80, 80], [0, 120], [40, 120]], k = RK[(Math.round(dd * 7) + Math.floor(o.x / 97)) % RK.length], sz = 30 * (0.8 + dd * 0.35); ctx.globalAlpha = 0.25; R(ox, yy - 2, sz, 4, '#000'); ctx.globalAlpha = 1; ctx.drawImage(im, k[0], k[1], 40, 40, Math.round(ox - 2), Math.round(yy - sz * 0.92), Math.round(sz), Math.round(sz)); } else if (im?.width) { const hh = 18 * sc * (o.kind === 'crates' ? 2 : 1); ctx.globalAlpha = 0.25; R(ox, yy - 2, o.w * (0.8 + dd * 0.35), 4, '#000'); ctx.globalAlpha = 1; if (o.kind === 'crates') { ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); ctx.drawImage(im, Math.round(ox), Math.round(yy - hh / 2), Math.round(18 * sc), Math.round(18 * sc)); } else ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); } } } }); });
+      g.obs.forEach((o) => { const ox = o.x - g.cam; if (ox < -60 || ox > W + 60) return; const im = bg.current[o.tile]; list.push({ y: sy(0.3) - 1, f: () => { for (let dd = 0.3; dd <= 1.001; dd += 0.14) { const yy = sy(dd), sc = (o.w / 18) * (0.8 + dd * 0.35); if (im?.width && o.kind === 'rock') { const RK = [[0, 0], [40, 0], [0, 80], [80, 80], [0, 120], [40, 120]], k = RK[(Math.round(dd * 7) + Math.floor(o.x / 97)) % RK.length], sz = 30 * (0.8 + dd * 0.35); ctx.globalAlpha = 0.25; R(ox, yy - 2, sz, 4, '#000'); ctx.globalAlpha = 1; ctx.drawImage(im, k[0], k[1], 40, 40, Math.round(ox - 2), Math.round(yy - sz * 0.92), Math.round(sz), Math.round(sz)); } else if (im?.width && o.kind === 'ledge') { const t = 26 * (0.8 + dd * 0.35), cnt = 4; ctx.globalAlpha = 0.25; R(ox, yy - 2, t * cnt, 4, '#000'); ctx.globalAlpha = 1; for (let c = 0; c < cnt; c++) ctx.drawImage(im, Math.round(ox + c * t), Math.round(yy - t), Math.round(t) + 1, Math.round(t)); } else if (im?.width) { const hh = 18 * sc * (o.kind === 'crates' ? 2 : 1); ctx.globalAlpha = 0.25; R(ox, yy - 2, o.w * (0.8 + dd * 0.35), 4, '#000'); ctx.globalAlpha = 1; if (o.kind === 'crates') { ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); ctx.drawImage(im, Math.round(ox), Math.round(yy - hh / 2), Math.round(18 * sc), Math.round(18 * sc)); } else ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); } } } }); });
       list.push({ y: sy(g.p.d) + 0.5, f: drawPlayer });
       list.sort((a, b) => a.y - b.y).forEach((d) => d.f());
       g.fx.forEach((f) => {
@@ -1009,8 +1022,8 @@ export default function YogasRevenge() {
     api.current.act = (k: string) => {
       const p = g.p; if (paused.current || p.ko || p.chase > 0) return;
       if (k === 'bite') { if (p.atk > 0.08) return; p.combo = g.time - p.lastAtk < 0.55 ? (p.combo % 3) + 1 : 1; p.lastAtk = g.time; p.atk = 0.32; play('swish', 0.45); if (g.weapon) { g.swing = 0.3; play('swish', 0.75); g.weapon.uses -= 1; if (g.weapon.uses <= 0) { addFx({ x: p.x, y: sy(p.d) - 50, ttl: 1, kind: 'text', text: `${WEAPONS[g.weapon.id].name} broke! Boing!`, color: '#ffffff', vy: -16 }); addFx({ x: p.x + p.face * 20, y: sy(p.d) - 24, ttl: 0.5, kind: 'poof' }); g.weapon = null; } } }
-      else if (k === 'high') { if (p.z > 40) return; p.vz = (dog === 'spot' ? 340 : 310) * (g.pw.potion_lime ? 1.2 : 1); g.jumps = 2; play('swish', 0.6); addFx({ x: p.x, y: sy(p.d) - 6, ttl: 0.4, kind: 'poof' }); }
-      else if (k === 'jump') { if (p.z > 0 && !(g.pw.double_jump_feather && g.jumps < 2)) return; g.jumps = p.z > 0 ? g.jumps + 1 : 1; p.vz = (dog === 'spot' ? 270 : 230) * (g.pw.double_jump_feather ? 1.15 : 1) * (g.pw.potion_lime ? 1.35 : 1); sfx.boing(); }
+      else if (k === 'high') { if (p.z - g.ground > 40) return; p.vz = (dog === 'spot' ? 340 : 310) * (g.pw.potion_lime ? 1.2 : 1); g.jumps = 2; play('swish', 0.6); addFx({ x: p.x, y: sy(p.d) - 6, ttl: 0.4, kind: 'poof' }); }
+      else if (k === 'jump') { const up = p.z - g.ground > 1; if (up && !(g.pw.double_jump_feather && g.jumps < 2)) return; g.jumps = up ? g.jumps + 1 : 1; p.vz = (dog === 'spot' ? 270 : 230) * (g.pw.double_jump_feather ? 1.15 : 1) * (g.pw.potion_lime ? 1.35 : 1); sfx.boing(); }
       else if (k === 'bark') { if (p.barkCd > 0) return; p.barkCd = barkCdMax(); const big = bigBark(); g.shots.push({ x: p.x + p.face * 18, d: p.d, z: 0, vx: p.face * 230, ttl: big ? 1.4 : 0.9, kind: 'bark', big }); play('bark', 0.85); addFx({ x: p.x + p.face * 22, y: sy(p.d) - 44, ttl: 0.6, kind: 'text', text: big ? 'AROOO!' : 'WOOF!', color: '#ffffff', vy: -20 }); }
       else if (k === 'super') {
         // Zoomies (Build Queue 549): earned by beating fights and challenges, or from a Zoomies Potion. Super fast running that bowls monsters over.
