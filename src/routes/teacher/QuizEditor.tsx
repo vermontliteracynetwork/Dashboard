@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { SetHintField } from './SetHintField';
+import { hintOf, withHint } from '../../lib/hints';
 import { makeId } from '../../lib/id';
 import SetLibraryControls from './SetLibraryControls';
 import ImageUploadField from '../../components/ImageUploadField';
@@ -214,6 +216,10 @@ function QuestionRow({
           placeholder="Type the question here"
         />
       </div>
+      <div>
+        <label title="Shown to the student in a hint card they can move, fold or close. Leave empty to use the set hint.">Hint for this question (optional)</label>
+        <input value={hintOf(q)} onChange={(e) => onUpdate(withHint(q, e.target.value))} style={{ width: '100%' }} placeholder="For example: Area is length times width" />
+      </div>
       <ImageUploadField
         label="Image (optional)"
         value={q.imageUrl}
@@ -378,6 +384,7 @@ export default function QuizEditor({ subject, questions, onChange, simplified }:
 
   return (
     <div className="stack">
+      <SetHintField questions={questions} onChange={onChange} />
       <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...questions, ...items])} onPictures={(byN) => onChange(questions.map((q, i) => (byN[i + 1] && 'imageUrl' in q ? { ...q, imageUrl: byN[i + 1] } : byN[i + 1] && q.kind === 'mc' ? { ...q, imageUrl: byN[i + 1] } : q)))} minimal={simplified} />
       {questions.map((q, i) => (
         <QuestionRow key={q.id} index={i} q={q} issue={getQuestionIssue(q) ?? undefined} onUpdate={(nq) => update(q.id, nq)} onDelete={() => remove(q.id)}

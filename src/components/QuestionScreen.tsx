@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { playAnswer } from '../lib/miniSfx';
+import { useStore } from '../store/store';
+import { findHint } from '../lib/hints';
+import HintCard from './HintCard';
 import { recordStreakCorrect } from '../lib/streak';
 import type { MadLibQuestion, SymbolQuestion, TTSSettings } from '../types';
 import SymbolSentenceAnswer from './SymbolSentenceAnswer';
@@ -165,6 +168,9 @@ export default function QuestionScreen({
   // Build Queue 291: the speaker reads the symbol sentence too, as the student has it so far.
   const sentenceRef = useRef('');
   const qKey = typed ? typed.id : prompt;
+  // Build Queue 524: the teacher's hint for this question (its own, or its set's).
+  const sets = useStore((st) => st.questionSets);
+  const hint = useMemo(() => findHint(sets, prompt, typed?.id), [sets, prompt, typed?.id]);
   // One try per question, everywhere (Build Queue 209, her words 2026-10-15: "if a student answers a question
   // incorrectly ... they should NOT be allowed to select the correct answer from the options ... all answers should
   // lock if they got it wrong or right ... no money earned and no points collect"). Every pick locks every answer.
@@ -729,6 +735,7 @@ export default function QuestionScreen({
           </div>
         </div>
       )}
+      {hint && <HintCard text={hint} qKey={qKey} />}
     </div>
   );
 }

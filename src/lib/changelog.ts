@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-hint-card",
+    date: "2026-11-10",
+    icon: "💡",
+    title: "Hint cards",
+    body: "Some questions now have a hint from your teacher at the bottom of the screen. Drag it anywhere, fold it down, close it, or tap the speaker to hear it.",
+  },
+  {
     id: "2026-11-05-home-design",
     date: "2026-11-05",
     icon: "🖌️",

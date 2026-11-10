@@ -3,6 +3,7 @@ import ImageUploadField from '../../components/ImageUploadField';
 import SetLibraryControls from './SetLibraryControls';
 import { makeId } from '../../lib/id';
 import { blankMC, getQuestionIssue } from './QuizEditor';
+import { SetHintField } from './SetHintField';
 
 // Multiple choice as a compact table (Build Queue 253, her words: "making things smaller, making it more of a
 // table view"). One row per question: the question, four answers, a circle to mark the right one, a picture.
@@ -13,9 +14,10 @@ export default function McTableEditor({ subject, questions, onChange }: { subjec
   return (
     <div className="stack" style={{ gap: 8 }}>
       <SetLibraryControls kind="quiz" subject={subject} current={questions} onInsert={(items) => onChange([...mcs, ...items.filter((q): q is MCQuestion => q.kind === 'mc')])} onPictures={(byN) => onChange(mcs.map((q, i) => (byN[i + 1] ? { ...q, imageUrl: byN[i + 1] } : q)))} />
+      <SetHintField questions={mcs} onChange={onChange} />
       <div className="mct-wrap">
         <table className="mct">
-          <thead><tr><th>#</th><th>Question</th>{L.map((l) => <th key={l}>Answer {l}</th>)}<th>Picture</th><th /></tr></thead>
+          <thead><tr><th>#</th><th>Question</th>{L.map((l) => <th key={l}>Answer {l}</th>)}<th title="Optional. A hint just for this question; it replaces the set hint.">Hint</th><th>Picture</th><th /></tr></thead>
           <tbody>
             {mcs.map((q, i) => {
               const issue = getQuestionIssue(q);
@@ -33,6 +35,7 @@ export default function McTableEditor({ subject, questions, onChange }: { subjec
                       </div>
                     </td>
                   ))}
+                  <td className="mct-hint"><input value={q.hint ?? ''} placeholder="Optional" aria-label={`Question ${i + 1} hint`} title="A hint just for this question. Leave empty to use the set hint." onChange={(e) => upd(q.id, { hint: e.target.value || undefined })} /></td>
                   <td className="mct-pic">
                     <details>
                       <summary>{q.imageUrl ? <img src={q.imageUrl} alt="" /> : '＋'}</summary>

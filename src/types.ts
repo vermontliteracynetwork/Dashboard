@@ -320,6 +320,8 @@ export interface MCQuestion {
   id: string;
   kind: 'mc';
   prompt: string;
+  hint?: string; // Build Queue 524: a hint just for this question (shown in the student's hint card)
+  setHint?: string; // Build Queue 524: the whole set's hint, kept on each question so it saves with the set
   imageUrl?: string;
   // Set only when imageUrl carries real question content (e.g. "which
   // picture matches the word?") rather than decoration — Claudia's
