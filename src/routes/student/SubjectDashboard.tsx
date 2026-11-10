@@ -190,7 +190,7 @@ export default function SubjectDashboard() {
               subtitle={`Answer ${need} question${need === 1 ? '' : 's'} right in ${only.length === 1 ? only[0].title : 'any game you pick'} to finish.`}
               games={only}
               onClose={() => setSelectedTaskId(null)}
-              onPick={(g) => navigate(g.route, { state: { from: 'home' } })}
+              onPick={(g) => navigate(g.route, { state: { from: 'home', assignment: true } })}
             />
           );
         }

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-assignment-alert",
+    date: "2026-11-10",
+    icon: "📣",
+    title: "Assignments pop up",
+    body: "When your teacher gives you work, a card pops up right away, even in a game. Tap Start now to do it first. After that you can get back to playing.",
+  },
+  {
     id: "2026-11-10-big-pictures",
     date: "2026-11-10",
     icon: "🖼️",
