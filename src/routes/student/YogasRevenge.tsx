@@ -545,7 +545,7 @@ export default function YogasRevenge() {
       // --- player ---
       // Auto bite (Build Queue 549: the buttons are just a knob and Jump; actions come from power ups): Yoga bites whatever is right in front.
       g.autoT = Math.max(0, g.autoT - dt);
-      if (!p.ko && p.atk <= 0 && g.autoT <= 0 && !paused.current && g.foes.some((e) => e.hp > 0 && !e.happy && !e.spin && Math.abs(e.d - p.d) < 0.16 && Math.abs(e.x - p.x) < 62 && Math.sign(e.x - p.x) === p.face)) { api.current.act?.('bite'); g.autoT = 0.42; }
+      // Build Queue 567 (her words: "dont auto attatck"): no automatic bites; students press BITE.
       let mx = (keys.current.arrowright || keys.current.d ? 1 : 0) - (keys.current.arrowleft || keys.current.a ? 1 : 0);
       let md = (keys.current.arrowdown || keys.current.s ? 1 : 0) - (keys.current.arrowup || keys.current.w ? 1 : 0);
       if (stick.current.on) { mx = stick.current.x; md = stick.current.y; }
@@ -617,9 +617,11 @@ export default function YogasRevenge() {
         e.d += Math.sign(dd) * Math.min(Math.abs(dd), (sp / 170) * dt);
         if (e.kind === 'bird') e.z = 30 + Math.sin(e.t * 4) * 8 + (Math.abs(dx) < 40 ? -22 : 0);
       });
+      // Build Queue 567: everything is reachable: monsters walk on the dog's one path (the separation below only nudges them along it).
+      g.foes.forEach((e) => { e.d = p.d; });
       for (let i = 0; i < g.foes.length; i++) for (let j = i + 1; j < g.foes.length; j++) {
         const a = g.foes[i], b = g.foes[j]; if (a.hp <= 0 || b.hp <= 0) continue;
-        if (Math.abs(a.x - b.x) < 26 && Math.abs(a.d - b.d) < 0.08) { a.d = Math.max(0, a.d - 0.004); b.d = Math.min(1, b.d + 0.004); }
+        if (Math.abs(a.x - b.x) < 22) { const push = (22 - Math.abs(a.x - b.x)) / 2 * (a.x < b.x ? 1 : -1); a.x -= push; b.x += push; }
       }
       // --- shots ---
       g.shots.forEach((s) => {
@@ -1096,7 +1098,8 @@ export default function YogasRevenge() {
           </div>
           {/* Build Queue 564 (her words: "change the jump button back to be multiple buttons, no more pie menu") */}
           <div className="yr-actions">
-            <button type="button" className="yr-jumpbtn" aria-label="Jump" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('jump'); }}><span>JUMP</span></button>
+            <button type="button" className="yr-jumpbtn yr-bitebtn" aria-label="Bite" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('bite'); }}><span>BITE</span></button>
+            <button type="button" className="yr-act yr-act-jump" aria-label="Jump" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('jump'); }}><span>JUMP</span></button>
             <button type="button" className="yr-act yr-act-high" aria-label="High jump" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('high'); }}><span>HIGH</span><span>JUMP</span></button>
             <button type="button" className="yr-act yr-act-bark" aria-label="Bark" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('bark'); setHud((n) => n + 1); }}><span>BARK</span></button>
             <button type="button" className={`yr-act yr-act-zoom${api.current.ready?.().zoom ? ' ready' : ''}`} aria-label="Zoomies" onPointerDown={(e) => { e.preventDefault(); api.current.act?.('super'); setHud((n) => n + 1); }}><span>ZOOM</span></button>
@@ -1359,7 +1362,7 @@ function ItemIcon({ id }: { id: ItemId }) {
 const HELP_PAGES: { title: string; img: string; text: (dog: string) => string }[] = [
   { title: 'Walk', img: '/games/yoga/ui/ring.png', text: (d) => `Drag the knob left or right to walk. Push it far to run. ${d} only goes left and right.` },
   { title: 'Jump', img: '/games/yoga/pu/double_jump_feather.png', text: () => 'Tap JUMP to hop over hay and rocks. Tap HIGH JUMP to get over tall crates.' },
-  { title: 'Bite', img: '/games/yoga/vfx-dizzy.png', text: (d) => `Walk up to a monster. ${d} bites all by itself!` },
+  { title: 'Bite', img: '/games/yoga/vfx-dizzy.png', text: () => 'Walk up to a monster and tap BITE. Tap fast for a combo!' },
   { title: 'Bark and Zoomies', img: '/games/yoga/pu/potion_orange.png', text: () => 'Tap BARK to push monsters back. Win battles to fill the Zoomies bar, then tap ZOOM to run super fast!' },
   { title: 'Your bag', img: '/games/yoga/loot/bag.png', text: () => 'Tap a power up in your bag to use it. Drag the Giggle Potion onto monsters to make them laugh and freeze!' },
   { title: 'Hearts', img: '/games/yoga/pu/heart_container.png', text: () => 'Your hearts are in the top corner. A hit takes one heart. Snacks and hearts fill them back up.' },

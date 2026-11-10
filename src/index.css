@@ -12002,3 +12002,10 @@ button.nqs-step-head { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) { .yr-act-zoom.ready { animation: none; } }
 @media (max-width: 900px) and (orientation: landscape) { .yr-actions { transform: scale(0.85); transform-origin: bottom right; } }
 @media (orientation: portrait) { .yr-play .yr-hotbar { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 236px); width: min(520px, calc(100vw - 32px)); } }
+/* Build Queue 567: BITE is the big button; Jump, High jump, Bark and Zoom sit around it. */
+.yr-actions { width: 250px; height: 236px; }
+.yr-bitebtn { background: radial-gradient(circle at 35% 30%, #ffb3a8, #ff6b5b) !important; }
+.yr-act-jump { right: 130px; bottom: 0; background: radial-gradient(circle at 35% 30%, #c6f5ff, #6fc3e8); }
+.yr-act-high { right: 160px; bottom: 90px; font-size: 14px; }
+.yr-act-bark { right: 84px; bottom: 140px; }
+.yr-act-zoom { right: 0; bottom: 134px; }
