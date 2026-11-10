@@ -9,6 +9,7 @@ import type { SelZone } from '../types';
 import SelSupportMenu from './SelSupportMenu';
 import FeelingsWheel from './FeelingsWheel';
 import { speak } from './ReadAloud';
+import { saveStreakFromFeelings } from '../lib/streak';
 
 // The mandatory Zones of Regulation login check-in. Since Build Queue 234 the feeling comes from the
 // spinning Feelings Wheel (every word carries its zone), then the student picks their energy level
@@ -44,6 +45,7 @@ export default function SelZoneCheckIn({ studentId, studentName, onDone, onClose
     const zone = feeling.zone, emotion = feeling.w;
     window.setTimeout(() => {
       const checkInId = recordSelCheckIn(studentId, zone, emotion, e);
+      saveStreakFromFeelings(studentId); // Build Queue 569: on Saturdays and Sundays the feelings wheel saves the streak
       if (zone === 'green') {
         markSelLoginCheckInDone(studentId);
         onDone();

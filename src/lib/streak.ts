@@ -125,18 +125,25 @@ export function recordStreakCorrect(studentIdArg?: string) {
   const r = reconcileStreak(studentId);
   const correct = (r.today?.day === today ? r.today.correct : 0) + 1;
   const patch: Partial<StreakRow> = { today: { day: today, correct } };
-  if (correct >= streakGoal() && r.lastSavedDay !== today) {
-    const count = (r.count ?? 0) + 1;
-    patch.count = count;
-    patch.best = Math.max(r.best ?? 0, count);
-    patch.lastSavedDay = today;
-    patch.savedDays = [...(r.savedDays ?? []).filter((d) => d !== today), today].slice(-30);
-    patch.lost = undefined;
-    patch.chestsPending = { day: count, amounts: chestAmounts(count), opened: 0 };
-  }
+  if (correct >= streakGoal() && r.lastSavedDay !== today) Object.assign(patch, savePatch(r, today));
   save(studentId, patch);
 }
 
+// Build Queue 569 (her words: "on saturdays and sundays, lets set so if they do the feelings wheel, their streak saves
+// without having to ask questions"): a feelings wheel check-in on a Saturday or Sunday saves the day's streak.
+export const isWeekend = (iso = todayISO()) => { const d = new Date(`${iso}T12:00:00`).getDay(); return d === 0 || d === 6; };
+export function saveStreakFromFeelings(studentId: string) {
+  const st = useStore.getState();
+  if (st.role !== 'student' || !isWeekend()) return;
+  const today = todayISO();
+  const r = reconcileStreak(studentId);
+  if (r.lastSavedDay === today) return;
+  save(studentId, { today: { day: today, correct: Math.max(streakGoal(), r.today?.day === today ? r.today.correct : 0) }, ...savePatch(r, today) });
+}
+function savePatch(r: StreakRow, today: string): Partial<StreakRow> {
+  const count = (r.count ?? 0) + 1;
+  return { count, best: Math.max(r.best ?? 0, count), lastSavedDay: today, savedDays: [...(r.savedDays ?? []).filter((d) => d !== today), today].slice(-30), lost: undefined, chestsPending: { day: count, amounts: chestAmounts(count), opened: 0 } };
+}
 // Opens the next chest: pays it into the bank and moves the counter on.
 export function openNextChest(studentId: string): number | null {
   const r = readStreak(studentId);

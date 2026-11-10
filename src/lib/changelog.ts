@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-weekend-streak",
+    date: "2026-11-10",
+    icon: "🔥",
+    title: "Weekend streaks are easy",
+    body: "On Saturday and Sunday, do the feelings wheel check-in and your streak is saved for the day. No questions needed!",
+  },
+  {
+    id: "2026-11-10-yoga-buttons",
+    date: "2026-11-10",
+    icon: "🍄",
+    title: "Yoga's Revenge: new buttons and a giant boss",
+    body: "Tap BITE to attack, with JUMP, HIGH JUMP, BARK and ZOOM next to it. Everything you need is right on your path. The forest has a Giant Mushroom boss waiting!",
+  },
+  {
     id: "2026-11-10-yoga-records",
     date: "2026-11-10",
     icon: "🏆",
