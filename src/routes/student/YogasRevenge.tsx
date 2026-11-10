@@ -1316,33 +1316,32 @@ type TalkState = { who: string; lines: string[]; i: number; portrait?: string; q
 function TalkBox({ talk, onNext }: { talk: TalkState; onNext: () => void }) {
   const line = talk.lines[talk.i];
   const [n, setN] = useState(0);
-  const [heard, setHeard] = useState(false);
-  // Build Queue 546: every line is read aloud while it types, and the student can only go on once it has been heard.
+  const keys = useRef<HTMLAudioElement | null>(null);
+  // Build Queue 546: every line is read aloud while it types. Build Queue 570 (her words: "for dialogue bubble, on click have
+  // full text appear and allow to click to next dialogue frame"): a tap shows the whole line at once; the next tap goes on.
   useEffect(() => {
-    setN(0); setHeard(false);
-    const u = speak(line) as { onend?: (() => void) | null } | undefined;
-    if (u) u.onend = () => setHeard(true);
-    const safety = window.setTimeout(() => setHeard(true), 1200 + line.length * 85);
+    setN(0);
+    speak(line);
     // Her old keyboard typing sound plays while the words type.
     let keysA: HTMLAudioElement | null = null;
     if (sfxOn()) { keysA = new Audio('/sounds/yoga/typing.mp3'); keysA.loop = true; keysA.volume = 0.35; void keysA.play().catch(() => {}); }
+    keys.current = keysA;
     const stopKeys = window.setTimeout(() => keysA?.pause(), line.length * 62 + 60);
-    return () => { window.clearTimeout(safety); window.clearTimeout(stopKeys); keysA?.pause(); };
+    return () => { window.clearTimeout(stopKeys); keysA?.pause(); };
   }, [line]);
   useEffect(() => {
     if (n >= line.length) return;
     const t = window.setTimeout(() => setN((v) => v + 1), 62);
     return () => window.clearTimeout(t);
   }, [n, line]);
-  const done = n >= line.length && heard;
+  const done = n >= line.length;
   return (
-    <div className={`yr-talk${talk.quest ? ' yr-quest' : ''}`} onClick={() => { if (done) onNext(); }}>
+    <div className={`yr-talk${talk.quest ? ' yr-quest' : ''}`} onClick={() => { if (done) { window.speechSynthesis?.cancel(); onNext(); } else { setN(line.length); keys.current?.pause(); } }}>
       {talk.portrait && <img src={talk.portrait} alt="" className="yr-portrait" />}
       <div className="yr-talk-box" key={talk.who}>
         <span className="yr-name">{talk.who}</span>
         <p aria-label={line}>{line.slice(0, n)}<span className="yr-caret" aria-hidden>{n >= line.length ? '' : '|'}</span></p>
         {done && <img src="/games/yoga/ui/waiting.png" alt="Tap to continue" className="yr-wait" />}
-        {!done && <small className="yr-listen" aria-hidden>🔊</small>}
         {talk.quest && <small className="yr-qstep">{talk.i + 1} / {talk.lines.length}</small>}
       </div>
     </div>
