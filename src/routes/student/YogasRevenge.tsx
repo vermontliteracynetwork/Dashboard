@@ -161,7 +161,7 @@ const STORE: { id: ItemId; name: string; cost: number }[] = [
 const itemImg = (id: ItemId) => (id.startsWith('w_') ? '' : `${ART}pu/${id}.png`);
 interface DogStats { monsters: number; cans: number; bosses: number; treats: number; powerups: number; best: number; levels: number }
 const NO_STATS: DogStats = { monsters: 0, cans: 0, bosses: 0, treats: 0, powerups: 0, best: 0, levels: 0 };
-const NEW_SAVE: Save = { points: 0, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, xp: 0, inv: {}, socks: 0, harness: false, collar: false };
+const NEW_SAVE: Save = { points: 20, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, xp: 0, inv: {}, socks: 0, harness: false, collar: false };
 const saveKey = (id: string) => `yoga.save2.${id}`;
 const readSave = (id: string): Save => { try { return { ...NEW_SAVE, ...JSON.parse(localStorage.getItem(saveKey(id)) || '{}') }; } catch { return { ...NEW_SAVE }; } };
 const writeSave = (id: string, s: Save) => { try { localStorage.setItem(saveKey(id), JSON.stringify(s)); } catch { /* private mode */ } };
@@ -244,6 +244,7 @@ export default function YogasRevenge() {
   const [cleared, setCleared] = useState<{ lvl: number; dog: DogId; reward: DogId | null; mins: number } | null>(null);
   const [, setHud] = useState(0);
   const [statDog, setStatDog] = useState<DogId>('yoga');
+  const [pauseOpen, setPauseOpen] = useState(false);
 
   const cv = useRef<HTMLCanvasElement | null>(null);
   const art = useRef<Record<string, Sheet>>({});
@@ -792,9 +793,9 @@ export default function YogasRevenge() {
       R(x - 9, y - 40, 6, 6, '#fff'); R(x + 3, y - 40, 6, 6, '#fff'); R(x - 7, y - 38, 3, 3, '#222'); R(x + 5, y - 38, 3, 3, '#222');
       R(x - 6, y - 28, 12, happy ? 3 : 6, happy ? '#ffd23f' : '#3a0b52');
     };
-    const drawPick = (k: Pick) => {
-      const x = k.x - g.cam, y = sy(k.d) - 6 - Math.abs(Math.sin(k.t * 4)) * 4;
-      R(x - 6, sy(k.d) - 1, 12, 2, '#00000033');
+    const drawPick = (k: Pick, fixedY?: number) => {
+      const x = k.x - g.cam, y = fixedY ?? sy(k.d) - 6 - Math.abs(Math.sin(k.t * 4)) * 4;
+      if (fixedY === undefined) R(x - 6, sy(k.d) - 1, 12, 2, '#00000033');
       if (k.kind === 'bone') { R(x - 6, y - 2, 12, 4, '#fff8e8'); R(x - 8, y - 4, 4, 4, '#fff8e8'); R(x - 8, y + 1, 4, 4, '#fff8e8'); R(x + 4, y - 4, 4, 4, '#fff8e8'); R(x + 4, y + 1, 4, 4, '#fff8e8'); }
       else if (k.kind === 'treat') { R(x - 4, y - 4, 8, 8, '#c8813a'); R(x - 2, y - 2, 2, 2, '#8a5222'); R(x + 1, y + 1, 2, 2, '#8a5222'); }
       else if (k.kind === 'pu' && k.pu?.startsWith('potion')) { const im = bg.current[`pu/${k.pu}`]; ctx.globalAlpha = 0.35 + Math.sin(k.t * 6) * 0.2; R(x - 11, y - 22, 22, 26, '#fff6a8'); ctx.globalAlpha = 1; if (im?.width) ctx.drawImage(im, (Math.floor(k.t * 10) % 8) * 22, 0, 22, 37, Math.round(x - 8), Math.round(y - 23), 16, 27); }
@@ -804,12 +805,12 @@ export default function YogasRevenge() {
       else if (k.kind === 'leash') { R(x - 7, y - 6, 14, 3, '#d63b3b'); R(x + 5, y - 6, 3, 12, '#d63b3b'); R(x - 9, y - 8, 5, 7, '#aaa'); }
       else if (k.kind === 'bags') { R(x - 5, y - 7, 10, 12, '#3bb273'); R(x - 2, y - 9, 4, 3, '#2a8a57'); }
       else { R(x - 6, y - 8, 12, 14, '#ffcf5a'); R(x - 6, y - 8, 12, 3, '#e8a43a'); R(x - 2, y - 3, 4, 4, '#c8813a'); }
-      if (k.kind === 'leash' || k.kind === 'bags' || k.kind === 'treats') { ctx.globalAlpha = 0.5 + Math.sin(k.t * 6) * 0.3; R(x - 1, y - 18, 2, 6, '#fff'); R(x - 3, y - 16, 6, 2, '#fff'); ctx.globalAlpha = 1; }
+      if (fixedY === undefined && (k.kind === 'leash' || k.kind === 'bags' || k.kind === 'treats')) { ctx.globalAlpha = 0.5 + Math.sin(k.t * 6) * 0.3; R(x - 1, y - 18, 2, 6, '#fff'); R(x - 3, y - 16, 6, 2, '#fff'); ctx.globalAlpha = 1; }
     };
     const drawPlayer = () => {
       const p = g.p, x = p.x - g.cam, y = sy(p.d);
       ctx.globalAlpha = 0.35; R(x - 14, y - 2, 28, 4, '#000'); ctx.globalAlpha = 1;
-      if (p.inv > 0 && Math.floor(p.inv * 12) % 2 === 0 && !p.ko) return;
+      if (!paused.current && p.inv > 0 && Math.floor(p.inv * 12) % 2 === 0 && !p.ko) return;
       const a = art.current, flip = p.face < 0;
       ctx.save(); if (g.pw.potion_gold) { ctx.translate(x, y); ctx.scale(1.5, 1.5); ctx.translate(-x, -y); }
       if (g.pw.star_power) { ctx.globalAlpha = 0.5; R(x - 20, y - 44 - p.z, 40, 40, ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][Math.floor(g.time * 12) % 4]); ctx.globalAlpha = 1; }
@@ -835,7 +836,7 @@ export default function YogasRevenge() {
       ctx.restore();
       if (p.ko) { ctx.fillStyle = '#fff'; ctx.font = 'bold 10px monospace'; ctx.fillText('z z z', x - 10, y - 52); }
     };
-    const outline = (t: string, x: number, y: number, size: number, col: string, align: CanvasTextAlign = 'left') => { ctx.save(); ctx.font = size >= 14 ? `${Math.round(size * 1.15)}px m5x7, monospace` : `bold ${size}px monospace`; ctx.textAlign = align; ctx.lineWidth = Math.max(3, size / 4); ctx.strokeStyle = '#1b1430'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); ctx.restore(); };
+    const outline = (t: string, x: number, y: number, size: number, col: string, align: CanvasTextAlign = 'left') => { ctx.save(); ctx.font = size >= 11 ? `${Math.round(size * 1.1)}px m5x7, monospace` : `bold ${size}px monospace`; ctx.textAlign = align; ctx.lineWidth = Math.max(3, size / 4); ctx.strokeStyle = '#1b1430'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); ctx.restore(); };
     const draw = () => {
       ctx.save();
       if (g.shake > 0) ctx.translate((Math.random() - 0.5) * g.shake, (Math.random() - 0.5) * g.shake);
@@ -899,24 +900,25 @@ export default function YogasRevenge() {
       // HUD: portrait card, hearts, zoomies meter, dog level bar, points, combo
       const p = g.p, s = saveRef.current, secs = (s.dogs[dog] ?? 0) + g.xpFlush, lv = dogLevel(secs);
       R(6, 6, 170, 44, '#1b1430'); R(7, 7, 168, 42, '#2d2350');
-      R(10, 10, 28, 28, stats.color); R(14, 17, 5, 5, '#fff'); R(27, 17, 5, 5, '#fff'); R(16, 19, 2, 2, '#111'); R(29, 19, 2, 2, '#111'); R(19, 28, 8, 3, '#111'); if (dog === 'yoga') R(20, 33, 6, 5, '#fff');
-      outline(stats.name.toUpperCase(), 42, 18, 10, '#ffe14d'); outline(lv >= 10 ? 'MASTER' : `LV ${lv}`, 128, 18, 9, lv >= 10 ? '#ffd23f' : '#9cf6ff');
+      R(10, 10, 28, 28, '#8fd3e8'); R(10, 30, 28, 8, '#7a9a3a');
+      { ctx.save(); ctx.beginPath(); ctx.rect(10, 10, 28, 28); ctx.clip(); const a = art.current, sh = dog === 'yoga' ? a['dog1-Idle'] : dog === 'mochi' ? a['dog2-Idle'] : a.dogs; if (sh) { if (dog === 'yoga' || dog === 'mochi') ctx.drawImage(sh.img, 0, 0, 48, 48, 2, 2, 48, 48); else ctx.drawImage(sh.img, 0, (dog === 'spot' ? 0 : dog === 'luna' ? 2 : 3) * 64, 64, 64, -6, -8, 64, 64); } ctx.restore(); }
+      outline(stats.name.toUpperCase(), 42, 19, 11, '#ffe14d'); outline(lv >= 10 ? 'MASTER' : `LV ${lv}`, 128, 19, 11, lv >= 10 ? '#ffd23f' : '#9cf6ff');
       for (let i = 0; i < p.max; i++) { const hx = 42 + i * 11, on = i < p.hp ? '#ff4d6d' : '#55476b'; R(hx, 23, 9, 7, on); R(hx + 1, 21, 3, 2, on); R(hx + 5, 21, 3, 2, on); R(hx + 2, 30, 5, 2, on); }
       R(42, 35, 128, 4, '#000'); R(42, 35, 128 * (p.superM / 100), 4, p.superM >= 100 ? (Math.floor(g.time * 8) % 2 ? '#7fd7ff' : '#ffffff') : '#5b8cff');
       R(42, 42, 128, 3, '#000'); R(42, 42, 128 * (lv >= 10 ? 1 : (secs % DOG_LEVEL_SECS) / DOG_LEVEL_SECS), 3, '#ffd23f');
-      outline(`${s.points} coins`, 182, 18, 11, '#ffd23f');
+      outline(`${s.points} coins`, 182, 20, 12, '#ffd23f');
       let hx2 = 236;
       const badge = (id: PuId, label: string) => { const im = bg.current[`pu/${id}`]; R(hx2, 6, 22, 22, '#1b1430'); if (im?.width) ctx.drawImage(im, hx2 + 1, 7, 20, 20); outline(label, hx2 + 11, 36, 9, '#ffffff', 'center'); hx2 += 26; };
       (Object.keys(g.pw) as PuId[]).forEach((id) => badge(id, `${Math.ceil(g.pw[id] ?? 0)}`));
       if (g.shield > 0) badge('shield_pickup', `x${g.shield}`);
       if (g.lives > 0) badge('oneup_sprout', `x${g.lives}`);
       if (g.weapon) { const wp = WEAPONS[g.weapon.id]; R(hx2, 6, 22, 22, '#1b1430'); ctx.save(); ctx.translate(hx2 + 11, 17); ctx.rotate(-0.7); R(-2, -9, 4, 18, wp.color); ctx.restore(); outline(`${g.weapon.uses}`, hx2 + 11, 36, 9, '#ffffff', 'center'); hx2 += 26; }
-      if (g.hitT > 0 && g.hits > 1) outline(`${g.hits} HITS`, 182, 40, 18, '#7dff6a');
-      if (g.dash > 0) outline(`TREAT DASH ${Math.ceil(g.dash)}s   ${g.dashPts} treats`, W / 2, 70, 15, '#ffffff', 'center');
+      if (g.hitT > 0 && g.hits > 1) outline(`${g.hits} HITS`, 182, 42, 14, '#7dff6a');
+      if (g.dash > 0) outline(`TREAT DASH ${Math.ceil(g.dash)}s   ${g.dashPts} treats`, W / 2, 70, 12, '#ffffff', 'center');
       const st2 = L.stages[g.stage];
       if (!g.active && st2 && st2.kind !== 'home' && !g.lock && Math.floor(g.time * 2) % 2 === 0 && g.p.x < st2.x - 80) outline('GO >', W - 70, 112, 18, '#ffe14d');
-      if (g.bannerT > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, g.bannerT * 2); const pop = 1 + Math.max(0, g.bannerT - (g.bannerT > 1.8 ? 1.8 : 99)) * 1.5; ctx.translate(W / 2, 94 + Math.sin(g.time * 6) * 2); ctx.scale(pop, pop); ctx.translate(-W / 2, -94); outline(g.banner, W / 2, 94, 15, '#ffffff', 'center'); ctx.restore(); }
-      if (lvl === 0 && g.stage === 0) ['leash', 'bags', 'treats'].forEach((it, i) => { R(W - 92 + i * 28, 8, 24, 24, '#1b1430'); R(W - 91 + i * 28, 9, 22, 22, g.bag.includes(it) ? '#3b8f5a' : '#2d2350'); ctx.fillStyle = '#fff'; ctx.font = '8px monospace'; ctx.fillText(it === 'bags' ? 'bags' : it.slice(0, 5), W - 90 + i * 28, 24); });
+      if (g.bannerT > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, g.bannerT * 2); const pop = 1 + Math.max(0, g.bannerT - (g.bannerT > 1.8 ? 1.8 : 99)) * 1.5; ctx.translate(W / 2, 94 + Math.sin(g.time * 6) * 2); ctx.scale(pop, pop); ctx.translate(-W / 2, -94); outline(g.banner, W / 2, 94, 12, '#ffffff', 'center'); ctx.restore(); }
+      if (lvl === 0 && g.stage === 0) { outline('WALK ITEMS', W - 50, 44, 11, '#ffe14d', 'center'); ['leash', 'bags', 'treats'].forEach((it, i) => { const bx = W - 88 + i * 26, got = g.bag.includes(it); R(bx, 8, 24, 24, '#1b1430'); R(bx + 1, 9, 22, 22, got ? '#3b8f5a' : '#2d2350'); ctx.globalAlpha = got ? 1 : 0.45; drawPick({ x: bx + 12 + g.cam, d: 0, kind: it as Pick['kind'], t: 0 }, 26); ctx.globalAlpha = 1; if (got) R(bx + 17, 10, 5, 5, '#7dff6a'); }); }
       // level progress along the road
       const prog = Math.min(1, g.p.x / L.end); R(W / 2 - 60, H - 8, 120, 3, '#00000066'); R(W / 2 - 60, H - 8, 120 * prog, 3, '#ffe14d'); R(W / 2 - 61 + 120 * prog, H - 11, 3, 9, '#ffffff');
     };
@@ -995,12 +997,15 @@ export default function YogasRevenge() {
   return (
     <div className="yr-root" onPointerDownCapture={(e) => { const b = (e.target as HTMLElement).closest('button'); if (b && !b.classList.contains('yr-btn') && !b.classList.contains('yr-bone') && !b.disabled) sfx.click(); }}>
       {screen === 'play' && (
-        <>
+        <div className="yr-play">
           <canvas ref={cv} width={W} height={H} className="yr-canvas" aria-label="Yoga's Revenge game" />
+          <div className="yr-deck">
+          <div className="yr-mid">
           <div className="yr-top">
-            <button type="button" className="yr-pill" onClick={() => { paused.current = true; setScreen('title'); }}>Pause</button>
+            <button type="button" className="yr-pill" onClick={() => { if (gate || talk || offer) return; paused.current = true; setPauseOpen(true); }}>Pause</button>
             <button type="button" className="yr-pill" aria-pressed={voiceOn} onClick={() => setVoiceOn((v) => !v)} aria-label={voiceOn ? 'Turn read aloud off' : 'Turn read aloud on'}>{voiceOn ? '🔊' : '🔇'}</button>
             {playMode && <span className="yr-mode">Play mode</span>}
+          </div>
           </div>
           <div className="yr-stick" onPointerDown={stickDown} onPointerMove={stickMove} onPointerUp={stickUp} onPointerCancel={stickUp} aria-label="Move">
             <div className="yr-knob" style={{ transform: `translate(${stick.current.x * 34}px, ${stick.current.y * 34}px)` }} />
@@ -1011,19 +1016,20 @@ export default function YogasRevenge() {
             <button type="button" className={`yr-btn yr-bark${p.barkCd > 0 ? ' cool' : ''}`} onPointerDown={(e) => { e.preventDefault(); api.current.act?.('bark'); }}>Bark</button>
             <button type="button" className={`yr-btn yr-super${p.superM >= 100 ? ' ready' : ''}`} onPointerDown={(e) => { e.preventDefault(); api.current.act?.('super'); }}>Zoomies</button>
           </div>
-          <div className="yr-hotbar" aria-label="Inventory">
+          <div className="yr-hotbar" aria-label="Inventory" style={{ gridArea: 'bar' }}>
             {Array.from({ length: 9 }, (_, i) => {
               const owned = STORE.filter((it) => (save.inv?.[it.id] ?? 0) > 0), it = owned[i];
               return (
                 <button key={i} type="button" className="yr-slot" disabled={!it} aria-label={it ? `Use ${it.name}, ${save.inv?.[it.id]} left` : 'Empty slot'} onPointerDown={(e) => { e.preventDefault(); if (it) { api.current.use?.(it.id); setSaveState(readSave(studentId)); } }}>
-                  {it && (it.id.startsWith('w_') ? <i className={`yr-wpn ${it.id}`} /> : <img src={itemImg(it.id)} alt="" className={it.id.startsWith('potion') ? 'yr-potion-icon' : ''} />)}
+                  {it && <ItemIcon id={it.id} />}
                   {it && <b>{save.inv?.[it.id]}</b>}
                 </button>
               );
             })}
           </div>
           <p className="yr-keys">Keys: arrows move, Z bite, X jump, C bark, V zoomies</p>
-        </>
+          </div>
+        </div>
       )}
 
       {screen === 'title' && (
@@ -1123,7 +1129,7 @@ export default function YogasRevenge() {
           <div className="yr-store">
             {STORE.map((it) => (
               <button key={it.id} type="button" className="yr-item" disabled={save.points < it.cost} onClick={() => { const s = saveRef.current; if (s.points < it.cost) return; patch({ points: s.points - it.cost, inv: { ...s.inv, [it.id]: (s.inv?.[it.id] ?? 0) + 1 } }); sfx.coin(); }}>
-                {it.id.startsWith('w_') ? <i className={`yr-wpn ${it.id}`} /> : <img src={itemImg(it.id)} alt="" className={it.id.startsWith('potion') ? 'yr-potion-icon' : ''} />}
+                <ItemIcon id={it.id} />
                 <b>{it.name}</b><span className="yr-cost">{it.cost} coins</span>{(save.inv?.[it.id] ?? 0) > 0 && <small>You have {save.inv?.[it.id]}</small>}
               </button>
             ))}
@@ -1154,6 +1160,19 @@ export default function YogasRevenge() {
 
       {talk && <TalkBox talk={talk} onNext={() => { if (talk.i < talk.lines.length - 1) setTalk({ ...talk, i: talk.i + 1 }); else { const t = talk; setTalk(null); t.then?.(); } }} />}
 
+      {pauseOpen && (
+        <div className="yr-overlay">
+          <div className="yr-card">
+            <h3>Paused</h3>
+            <p>Take a break! Your last checkpoint is saved.</p>
+            <div className="yr-row">
+              <button type="button" className="yr-big" onClick={() => { setPauseOpen(false); paused.current = false; }}>Keep playing</button>
+              <button type="button" className="yr-small" onClick={() => { setPauseOpen(false); setScreen('title'); }}>Quit to menu</button>
+            </div>
+            <small>Leaving goes back to your last checkpoint.</small>
+          </div>
+        </div>
+      )}
       {offer && (
         <div className="yr-overlay">
           <div className="yr-card">
@@ -1230,4 +1249,12 @@ function TalkBox({ talk, onNext }: { talk: TalkState; onNext: () => void }) {
       </div>
     </div>
   );
+}
+
+// One look for an item everywhere (inventory bar and Store): swords drawn in CSS, potions as the first frame of their
+// animated sheet, everything else its own icon.
+function ItemIcon({ id }: { id: ItemId }) {
+  if (id.startsWith('w_')) return <i className={`yr-wpn ${id}`} aria-hidden />;
+  if (id.startsWith('potion')) return <span className="yr-potion" aria-hidden style={{ backgroundImage: `url(${itemImg(id)})` }} />;
+  return <img src={itemImg(id)} alt="" className="yr-icon" />;
 }

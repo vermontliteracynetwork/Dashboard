@@ -11816,3 +11816,30 @@ button.nqs-step-head { cursor: pointer; }
 .yr-item:disabled { opacity: 0.45; }
 @keyframes yrBob2 { 50% { transform: translateY(-4px); } }
 @media (prefers-reduced-motion: reduce) { .yr-letter, .yr-run-dog *, .yr-menu > *, .yr-caret, .yr-wait, .yr-talk-box, .yr-item img { animation: none !important; } }
+/* Build Queue 544: iPad layout. The game picture sits at the top at its 16:9 shape and the controls get their own deck
+   underneath, so thumbs never cover the road (landscape iPads have a band below the picture; portrait has lots). */
+.yr-play { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; background: #1b1430; }
+.yr-play .yr-canvas { width: min(100vw, calc((100dvh - 150px) * 16 / 9)); flex: none; }
+.yr-deck { flex: 1; width: 100%; min-height: 150px; display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: 'stick mid btns' 'stick bar btns' 'stick keys btns'; grid-template-rows: auto auto 1fr; align-items: center; column-gap: 12px; padding: 8px max(14px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); }
+.yr-deck .yr-stick, .yr-deck .yr-btns, .yr-deck .yr-top, .yr-deck .yr-hotbar, .yr-deck .yr-keys { position: static; transform: none; inset: auto; }
+.yr-deck .yr-stick { grid-area: stick; align-self: center; }
+.yr-deck .yr-btns { grid-area: btns; align-self: center; }
+.yr-mid { grid-area: mid; display: flex; justify-content: center; }
+.yr-deck .yr-top { display: flex; gap: 8px; justify-content: center; }
+.yr-deck .yr-hotbar { justify-self: center; width: min(100%, 440px); min-width: 0; margin-top: 6px; }
+.yr-deck .yr-keys { grid-area: keys; text-align: center; align-self: start; margin-top: 4px; }
+@media (orientation: portrait) {
+  .yr-deck { grid-template-columns: 1fr 1fr; grid-template-areas: 'mid mid' 'bar bar' 'stick btns'; grid-template-rows: auto auto 1fr; row-gap: 14px; padding-top: 14px; }
+  .yr-deck .yr-stick { justify-self: center; width: 170px; height: 170px; } .yr-deck .yr-knob { left: 50px; top: 50px; width: 64px; height: 64px; }
+  .yr-deck .yr-btns { justify-self: center; grid-template-columns: 96px 96px; grid-template-rows: 96px 96px; gap: 14px; }
+  .yr-deck .yr-btn { font-size: 17px; }
+  .yr-deck .yr-hotbar { width: min(94%, 560px); }
+  .yr-talk { bottom: auto; top: calc(100vw * 9 / 16 - 60px); }
+}
+.yr-quest .yr-talk-box { padding-bottom: 26px; }
+.yr-deck .yr-stick { position: relative; }
+.yr-potion { display: block; height: 76%; aspect-ratio: 22 / 37; background-size: 800% 100%; background-position: 0 0; background-repeat: no-repeat; image-rendering: pixelated; }
+.yr-item .yr-potion { height: 44px; animation: yrBob2 1.4s ease-in-out infinite; }
+.yr-slot .yr-icon { width: 78%; height: 78%; object-fit: contain; image-rendering: pixelated; }
+.yr-item .yr-icon { width: 40px; height: 40px; image-rendering: pixelated; object-fit: contain; animation: yrBob2 1.4s ease-in-out infinite; }
+.yr-menu > .yr-small:last-child { position: sticky; bottom: 10px; box-shadow: 0 4px 0 #1b1430; }
