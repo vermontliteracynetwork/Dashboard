@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
+import QuestionSetDetail from './QuestionSetDetail';
 import { useStore } from '../../store/store';
 import TeacherNav from '../../components/TeacherNav';
 import { blankMC, sanitizeQuizQuestions, validateQuizQuestions } from './QuizEditor';
@@ -15,18 +16,40 @@ import type { QuizQuestion, Subject, SymbolQuestion, SymbolSettings } from '../.
 // you open an exsisiting set)"). Same layout as an opened set (QuestionSetDetail): subject, name,
 // description and focus, tags, then the question cards. Nothing is saved until Create, so an unfinished
 // set never shows up in games; after Create it opens as a normal set.
-export default function NewQuestionSet() {
+// Build Queue 528 (her words: "the view in the image for the last chat should be the main question set creation view.
+// REMOVE the image 1-2 view entirely"): this page is now also how a saved set is opened and edited. Only sets this page
+// cannot show (flash card sets, Mad Lib, matching or speaking questions) still open in the older editor.
+const editable = (qs: QuizQuestion[]) => qs.length > 0 && (qs.every((q) => q.kind === 'mc') || qs.every((q) => q.kind === 'symbol'));
+export default function QuestionSetPage() {
+  const { setId } = useParams<{ setId: string }>();
+  const set = useStore((s) => (setId ? s.questionSets.find((x) => x.id === setId) : undefined));
+  if (setId && !set) return <div className="app-shell"><TeacherNav /><div className="container"><p>Loading the set...</p><Link to="/teacher/assignments">Back to Academics</Link></div></div>;
+  if (set && (set.kind !== 'quiz' || !editable(set.questions))) return <QuestionSetDetail />;
+  return <NewQuestionSet key={setId ?? 'new'} />;
+}
+
+function NewQuestionSet() {
   const navigate = useNavigate();
+  const { setId } = useParams<{ setId: string }>();
+  const existing = useStore((s) => (setId ? s.questionSets.find((x) => x.id === setId) : undefined));
+  const updateQuestionSet = useStore((s) => s.updateQuestionSet);
+  const duplicateQuestionSet = useStore((s) => s.duplicateQuestionSet);
+  const deleteQuestionSet = useStore((s) => s.deleteQuestionSet);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const addQuestionSet = useStore((s) => s.addQuestionSet);
-  const [subject, setSubject] = useState<Subject>('math');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [isFocus, setIsFocus] = useState(false);
-  const [tags, setTags] = useState<string[]>([]);
+  const [subject, setSubject] = useState<Subject>(existing?.subject ?? 'math');
+  const [name, setName] = useState(existing?.name ?? '');
+  const [description, setDescription] = useState(existing?.description ?? '');
+  const [isFocus, setIsFocus] = useState(!!existing?.isFocus);
+  const [tags, setTags] = useState<string[]>(existing?.tags ?? []);
   const [tagInput, setTagInput] = useState('');
   // Build Queue 253: pick the kind of set first, then only that kind's fields show.
-  const [setType, setSetType] = useState<'mc' | 'text' | null>(null);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [setType, setSetType] = useState<'mc' | 'text' | null>(existing ? (existing.questions[0]?.kind === 'symbol' ? 'text' : 'mc') : null);
+  const [questions, setQuestions] = useState<QuizQuestion[]>(existing?.questions ?? []);
+  // What was last saved, to tell the teacher whether there are unsaved changes.
+  const [savedSnap, setSavedSnap] = useState(() => (existing ? JSON.stringify([existing.name, existing.subject, existing.description ?? '', !!existing.isFocus, existing.tags ?? [], existing.questions]) : ''));
+  const snap = JSON.stringify([name.trim(), setType === 'text' ? 'literacy' : subject, description.trim(), isFocus, tags, questions]);
+  const dirty = existing ? snap !== savedSnap : false;
   const chooseType = (t: 'mc' | 'text') => {
     if (t === setType) return;
     const hasWork = questions.some((q) => (q.kind === 'mc' ? q.prompt.trim() : q.kind === 'symbol' ? q.slots.length : true));
@@ -46,7 +69,7 @@ export default function NewQuestionSet() {
 
   const issues = validateQuizQuestions(questions);
   const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(setType ? [] : ['Pick Multiple choice or Symbolic Grammar.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
-  const started = !!name.trim() || questions.some((q) => q.kind === 'mc' ? q.prompt.trim() || q.choices.some((c) => c.trim()) : true);
+  const started = existing ? dirty : !!name.trim() || questions.some((q) => q.kind === 'mc' ? q.prompt.trim() || q.choices.some((c) => c.trim()) : true);
   useEffect(() => {
     if (!started) return;
     const warn = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; };
@@ -58,6 +81,17 @@ export default function NewQuestionSet() {
   const create = () => {
     setTried(true);
     if (problems.length) return;
+    if (existing) {
+      const qs = sanitizeQuizQuestions(questions);
+      updateQuestionSet(existing.id, {
+        name: name.trim(), subject: setType === 'text' ? 'literacy' : subject, questions: qs, tags, description: description.trim() || undefined,
+        isFocus: isFocus || undefined, focusedAt: isFocus ? (existing.isFocus ? existing.focusedAt : new Date().toISOString()) : undefined,
+      });
+      setQuestions(qs);
+      setSavedSnap(JSON.stringify([name.trim(), setType === 'text' ? 'literacy' : subject, description.trim(), isFocus, tags, qs]));
+      setTried(false);
+      return;
+    }
     const id = addQuestionSet({
       name: name.trim(), subject: setType === 'text' ? 'literacy' : subject, kind: 'quiz', questions: sanitizeQuizQuestions(questions), cards: [], tags,
       description: description.trim() || undefined, isFocus: isFocus || undefined, focusedAt: isFocus ? new Date().toISOString() : undefined,
@@ -75,15 +109,18 @@ export default function NewQuestionSet() {
             actions top right; a side step menu that shows what is done; quiet cards with one clear heading each. */}
         <header className="nqs-top">
           <div className="nqs-top-l">
-            <nav className="nqs-crumb" aria-label="Breadcrumb"><Link to="/teacher/assignments">Academics</Link><span aria-hidden>/</span><span>New question set</span></nav>
-            <h1>{name.trim() || 'New question set'}</h1>
+            <nav className="nqs-crumb" aria-label="Breadcrumb"><Link to="/teacher/assignments">Academics</Link><span aria-hidden>/</span><span>{existing ? 'Edit question set' : 'New question set'}</span></nav>
+            <h1>{name.trim() || (existing ? 'Question set' : 'New question set')}</h1>
           </div>
           <div className="nqs-top-r">
             <span className={`nqs-status${tried && problems.length ? ' warn' : ''}`} role="status">
-              {tried && problems.length ? `To finish: ${problems[0]}${problems.length > 1 ? ` (${problems.length - 1} more)` : ''}` : `${questions.length} ${questions.length === 1 ? 'question' : 'questions'} · not saved yet`}
+              {tried && problems.length ? `To finish: ${problems[0]}${problems.length > 1 ? ` (${problems.length - 1} more)` : ''}` : `${questions.length} ${questions.length === 1 ? 'question' : 'questions'} · ${existing ? (dirty ? 'unsaved changes' : 'all changes saved') : 'not saved yet'}`}
             </span>
-            <button type="button" className="btn nqs-cancel" onClick={() => { if (!started || window.confirm('Leave without saving this new set?')) navigate('/teacher/assignments'); }}>Cancel</button>
-            <button type="button" className="btn btn-primary nqs-create" onClick={create}>Create set</button>
+            {existing && (confirmDelete
+              ? <><button type="button" className="btn btn-danger" onClick={() => { deleteQuestionSet(existing.id); navigate('/teacher/assignments'); }}>Delete for good</button><button type="button" className="btn" onClick={() => setConfirmDelete(false)}>Keep it</button></>
+              : <><button type="button" className="btn" title="Make a copy of this set" onClick={() => { const id = duplicateQuestionSet(existing.id); if (id) navigate(`/teacher/question-sets/${id}`); }}>Duplicate</button><button type="button" className="btn" onClick={() => setConfirmDelete(true)}>Delete</button></>)}
+            <button type="button" className="btn nqs-cancel" onClick={() => { if (!started || window.confirm(existing ? 'Leave without saving your changes?' : 'Leave without saving this new set?')) navigate('/teacher/assignments'); }}>{existing && !dirty ? 'Back' : 'Cancel'}</button>
+            <button type="button" className="btn btn-primary nqs-create" disabled={!!existing && !dirty} onClick={create}>{existing ? (dirty ? 'Save changes' : 'Saved') : 'Create set'}</button>
           </div>
         </header>
         <div className="nqs-layout nqs-full">
@@ -110,7 +147,7 @@ export default function NewQuestionSet() {
                     </button>
                   ))}
                 </div>
-                <input id="nqs-name" className="input nqs-name" aria-label="Set name" value={name} placeholder="Set name" onChange={(e) => setName(e.target.value)} autoFocus />
+                <input id="nqs-name" className="input nqs-name" aria-label="Set name" value={name} placeholder="Set name" onChange={(e) => setName(e.target.value)} autoFocus={!existing} />
               </div>
               <input id="nqs-description" className="input nqs-desc" aria-label="Description" placeholder="Short description (optional, shown under the name)" value={description} onChange={(e) => setDescription(e.target.value)} />
               <div className="nqs-tags">
@@ -142,7 +179,7 @@ export default function NewQuestionSet() {
 
         <section id="nqs-s3" className="nqs-step nqs-settings">
           <SettingsList lead={<span className="nqs-num">3</span>} title="Settings" items={settingItems}
-            note={setType === 'text' ? 'Student settings are for the whole set. To change them for one student, open the set after you create it.' : setType === 'mc' ? undefined : 'Pick Symbolic Grammar to see the student settings for its questions.'} />
+            note={setType === 'text' ? 'Student settings are for the whole set.' : setType === 'mc' ? undefined : 'Pick Symbolic Grammar to see the student settings for its questions.'} />
         </section>
 
         {setType && (

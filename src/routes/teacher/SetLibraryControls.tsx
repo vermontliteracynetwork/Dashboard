@@ -62,25 +62,24 @@ export default function SetLibraryControls(props: QuizProps | DrillProps) {
   const matching = questionSets.filter((s) => s.kind === props.kind && s.subject === props.subject);
 
   // Upload a CSV straight into this activity — same file format as the
-  // Content Sets importer, but it both inserts here immediately AND saves
-  // as a named set, so it shows up in Content Sets too without a second trip.
+  // Content Sets importer. It only inserts here (Build Queue 528: it used to also save a copy as its own set, which
+  // doubled her sets); the teacher saves explicitly.
   const handleUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       const rows = parseCSV(String(reader.result ?? ''));
-      const baseName = file.name.replace(/\.csv$/i, '');
       if (props.kind === 'quiz') {
         const forInsert = rowsToQuizQuestions(rows);
         if (forInsert.length === 0) return;
         props.onInsert(forInsert);
-        addQuestionSet({ name: baseName, subject: props.subject, kind: 'quiz', questions: rowsToQuizQuestions(rows), cards: [] });
-        setUploadNotice(`Added ${forInsert.length} question(s) and saved as "${baseName}".`);
+        // Build Queue 528 (her words: "make sure question sets never double when i upload the csv. i need to explicitly
+        // save"): the CSV only fills the questions here; nothing is saved until Create set or Save changes.
+        setUploadNotice(`Added ${forInsert.length} question(s) from ${file.name}. Not saved yet: click Create set or Save changes.`);
       } else {
         const forInsert = rowsToDrillCards(rows);
         if (forInsert.length === 0) return;
         props.onInsert(forInsert);
-        addQuestionSet({ name: baseName, subject: props.subject, kind: 'drill', questions: [], cards: rowsToDrillCards(rows) });
-        setUploadNotice(`Added ${forInsert.length} card(s) and saved as "${baseName}".`);
+        setUploadNotice(`Added ${forInsert.length} card(s) from ${file.name}. Not saved yet: remember to save.`);
       }
       if (fileRef.current) fileRef.current.value = '';
     };
