@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-diary-scrapbook",
+    date: "2026-11-10",
+    icon: "📒",
+    title: "Your Diary is a scrapbook now",
+    body: "Make a page about your day! Drag on feeling pictures, stickers, memes, photos, drawings, sticky notes and even your own voice. Look back at your old pages, play with charts of your feelings, and your pet will thank you for sharing.",
+  },
+  {
     id: "2026-11-10-yoga-trash-final",
     date: "2026-11-10",
     icon: "🗑️",

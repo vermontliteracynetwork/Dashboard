@@ -6,6 +6,8 @@ import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import type { SelCheckIn, SelZone } from '../../types';
 import SelTeamReport from './SelTeamReport';
+import DiaryLibraryManager from '../../components/DiaryLibraryManager';
+import type { DiaryPageData } from '../../lib/diaryBook';
 import { SEL_ZONES } from '../../lib/selZones';
 
 // Clinical-grade log of every Zones of Regulation check-in
@@ -59,7 +61,7 @@ export default function SelCheckInLog() {
   if (report && repStudent) {
     const memories = (styleLooks.find((r) => r.ownerId === `selmem:${repStudent}`)?.look ?? {}) as Record<string, { caption?: string; photo?: string }>;
     // Build Queue 290: diary pages (the memory of the day moved to the Diary app) in the report's dates.
-    const diary = Object.values((styleLooks.find((r) => r.ownerId === `diary:${repStudent}`)?.look ?? {}) as Record<string, { caption?: string; photo?: string; at?: string }>)
+    const diary = Object.values((styleLooks.find((r) => r.ownerId === `diary:${repStudent}`)?.look ?? {}) as Record<string, { caption?: string; photo?: string; at?: string; page?: DiaryPageData } | null>)
       .filter((d): d is { caption?: string; photo?: string; at: string } => !!d?.at && (!from || d.at >= `${from}T00:00`) && (!to || new Date(d.at) <= new Date(`${to}T23:59:59.999`)))
       .sort((x, y) => (x.at < y.at ? -1 : 1));
     return <SelTeamReport studentName={nameFor(repStudent)} rows={reportRows} from={from} to={to} zones={zones} memories={memories} diary={diary} onClose={() => setReport(false)} />;
@@ -105,7 +107,7 @@ export default function SelCheckInLog() {
     <div className="app-shell">
       <TeacherNav />
       <div className="container stack">
-        <h1>🌈 Zones of Regulation Check-Ins</h1>
+        <h1>Zones of Regulation Check-Ins</h1>
         <p style={{ opacity: 0.75, marginTop: -8 }}>
           Every zone/emotion check-in, including any automatic Neighbor re-check that followed it. Select records below to print or export as PDF.
         </p>
@@ -178,6 +180,7 @@ export default function SelCheckInLog() {
             ))}
           </div>
         )}
+        <DiaryLibraryManager />
       </div>
     </div>
   );

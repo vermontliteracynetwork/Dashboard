@@ -4,6 +4,8 @@ import { SEL_ZONES, SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones'
 import { FEELING_ROOTS, type FeelingNode } from '../../lib/feelingsWheel';
 import { ENERGY_STEPS } from '../../lib/supernature';
 import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
+import DiaryPage from '../../components/DiaryPage';
+import type { DiaryPageData } from '../../lib/diaryBook';
 
 // The SEL check-in report for her student's support team (Build Queue 268, her words: "a comprehensive, PDF
 // downloadable, table format and line graph report to share with my students other support staff (therapists,
@@ -136,7 +138,7 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, memo
   // Build Queue 269: the memory of the day saved before each check-in, by check-in id.
   memories?: Record<string, { caption?: string; photo?: string }>;
   // Build Queue 290: pages from the student's Diary app in these dates.
-  diary?: { caption?: string; photo?: string; at: string }[];
+  diary?: { caption?: string; photo?: string; at: string; page?: DiaryPageData }[];
   onClose: () => void;
 }) {
   const sorted = useMemo(() => rows.slice().sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1)), [rows]);
@@ -258,10 +260,10 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, memo
           {diary.length > 0 && (
             <section className="selr-block">
               <h2>Diary pages ({diary.length})</h2>
-              <p className="selr-small">Pictures and captions the student added to the Diary app on the computer (memory recall of daily events).</p>
+              <p className="selr-small">Scrapbook pages the student made in the Diary app (photos, drawings, feeling pictures, stickers, notes and voice clips), with the note text below.</p>
               <div className="selr-mems">{diary.map((d, i) => (
                 <figure key={i}>
-                  {d.photo ? <img src={d.photo} alt="" /> : <span className="selr-nopic">No picture</span>}
+                  {d.page ? <DiaryPage page={d.page} className="dp-report" /> : d.photo ? <img src={d.photo} alt="" /> : <span className="selr-nopic">No picture</span>}
                   <figcaption><b>{fmtDate(new Date(d.at))} {fmtTime(new Date(d.at))}</b><br />"{d.caption || 'No caption'}"</figcaption>
                 </figure>
               ))}</div>

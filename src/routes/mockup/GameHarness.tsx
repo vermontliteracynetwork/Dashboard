@@ -29,6 +29,7 @@ const GAMES: Record<string, LazyExoticComponent<ComponentType>> = {
   'farmers-market': lazy(() => import('../student/FarmersMarket')),
   supernature: lazy(() => import('../student/Supernature')),
   'grammar-gus': lazy(() => import('../../games/grammarGus/ui/GusWorkboard')),
+  diary: lazy(() => import('../student/Diary')),
 };
 
 export default function GameHarness() {
