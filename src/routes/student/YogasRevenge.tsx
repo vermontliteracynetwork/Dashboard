@@ -178,7 +178,10 @@ const itemImg = (id: ItemId) => (id.startsWith('w_') ? '' : `${ART}pu/${id}.png`
 interface DogStats { monsters: number; cans: number; bosses: number; treats: number; powerups: number; best: number; levels: number }
 const NO_STATS: DogStats = { monsters: 0, cans: 0, bosses: 0, treats: 0, powerups: 0, best: 0, levels: 0 };
 const NEW_SAVE: Save = { points: 50, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, xp: 0, inv: {}, socks: 0, harness: false, collar: false };
-const saveKey = (id: string) => `yoga.save2.${id}`;
+// Build Queue 562 (her words: "when students log on, push that their progress should start from 0 fro this game. erase all
+// progress"): a new save key starts everyone at zero, and the old saves are wiped from the device the first time the game loads.
+const saveKey = (id: string) => `yoga.save3.${id}`;
+try { Object.keys(localStorage).filter((k) => /^yoga\.save\d?\./.test(k) && !k.startsWith('yoga.save3.')).forEach((k) => localStorage.removeItem(k)); } catch { /* storage blocked */ }
 const readSave = (id: string): Save => { try { return { ...NEW_SAVE, ...JSON.parse(localStorage.getItem(saveKey(id)) || '{}') }; } catch { return { ...NEW_SAVE }; } };
 const writeSave = (id: string, s: Save) => { try { localStorage.setItem(saveKey(id), JSON.stringify(s)); } catch { /* private mode */ } };
 const SHOP: { k: keyof Save['up']; name: string; desc: string; cost: number; max: number }[] = [
