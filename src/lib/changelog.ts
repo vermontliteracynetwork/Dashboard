@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-yoga-store",
+    date: "2026-11-10",
+    icon: "🎒",
+    title: "Yoga's Revenge: store, swords and quests",
+    body: "Earn XP to get coins, then buy power ups, potions and silly swords in the Store. Tap your inventory bar to use them in battle. Every level now starts like a quest, and some battles have a secret weak spot you have to figure out.",
+  },
+  {
     id: "2026-11-10-yogas-revenge",
     date: "2026-11-10",
     icon: "🐕",

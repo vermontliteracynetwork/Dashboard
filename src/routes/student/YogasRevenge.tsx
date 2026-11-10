@@ -73,14 +73,22 @@ type Stage =
   | { kind: 'talk'; x: number; who: string; portrait?: string; lines: string[] }
   | { kind: 'wave'; x: number; foes: FoeKind[]; label: string }
   | { kind: 'mini'; x: number; what: 'squirrel' | 'sound' }
-  | { kind: 'mid'; x: number; label: string; waves: FoeKind[][] }
+  | { kind: 'mid'; x: number; label: string; waves: FoeKind[][]; intro: string[] }
   | { kind: 'boss'; x: number; boss: 'tires' | 'sound' }
   | { kind: 'dash'; x: number }
   | { kind: 'clear'; x: number };
-interface Level { name: string; theme: 'vermont' | 'town'; end: number; reward: DogId | null; stages: Stage[] }
+// Build Queue 542 (her words: "each level should be like a quest. they should start the level with a short narrative, not revealing the mini battles or supprises, but the mid battle and ending").
+interface Level { quest: { title: string; lines: string[] }; name: string; theme: 'vermont' | 'town'; end: number; reward: DogId | null; stages: Stage[] }
 const w = (x: number, label: string, ...foes: FoeKind[]): Stage => ({ kind: 'wave', x, foes, label });
 const LEVELS: Level[] = [
   {
+    quest: { title: 'Quest 1: The Trash Day Trail', lines: [
+      'Far out in the Vermont countryside, where the maple trees turn red and gold, Sam is ready to take Yoga on a long walk down the old country road.',
+      'But today is trash day. To a dog, every trash can on that road is a grumbling, lid-flapping monster.',
+      'Halfway down the road, the Garbage Gang is waiting to block the way. They will not let anyone pass.',
+      'And at the very end of the road, something big, round and very grumpy has been left behind... and it does NOT want visitors.',
+      'Your quest: get Yoga all the way to the end of the trail!',
+    ] },
     name: 'Vermont Countryside', theme: 'vermont', end: 7900, reward: 'mochi',
     stages: [
       { kind: 'home', x: 680 },
@@ -90,7 +98,7 @@ const LEVELS: Level[] = [
       w(2550, 'Maple trees', 'can', 'can', 'rat'),
       w(3050, 'Hay bales', 'can', 'can', 'can'),
       w(3550, 'Covered bridge', 'bigcan', 'rat', 'rat'),
-      { kind: 'mid', x: 4150, label: 'Garbage Gang!', waves: [['bigcan', 'can', 'can', 'rat'], ['bigcan', 'bigcan', 'can', 'rat', 'rat']] },
+      { kind: 'mid', x: 4150, label: 'Garbage Gang!', intro: ['MID BATTLE: The Garbage Gang blocks the whole road!', 'These bins slam their lids shut and lock them. A bite just goes CLANK and bounces off.', 'Two waves are coming. Try different moves to find their weak spot. Guess and check!'], waves: [['bigcan', 'can', 'can', 'rat'], ['bigcan', 'bigcan', 'can', 'rat', 'rat']] },
       w(4850, 'Pumpkin patch', 'can', 'can', 'rat', 'rat'),
       w(5350, 'Apple orchard', 'bigcan', 'can', 'can'),
       w(5850, 'Sugar shack', 'can', 'can', 'can', 'rat', 'rat'),
@@ -102,6 +110,13 @@ const LEVELS: Level[] = [
     ],
   },
   {
+    quest: { title: 'Quest 2: The Strange Sound', lines: [
+      'The walk led into town. On Maple Street, something is wrong: a strange sound is buzzing and whooming between the houses.',
+      'Nobody knows where it is coming from, and the neighbors are getting nervous.',
+      'In the middle of the street, a swarm of birds guards the way and will try to scare Yoga off.',
+      'At the loud corner at the end of the street, whatever is making that noise is waiting.',
+      'Your quest: follow the sound, find it, and quiet it!',
+    ] },
     name: 'Maple Street', theme: 'town', end: 7900, reward: 'spot',
     stages: [
       { kind: 'talk', x: 300, who: 'Timmy', portrait: `${ART}timmy.png`, lines: ['Hey! You are the dog who beat the Tire Stack!', 'I keep hearing a strange sound on Maple Street. BZZZ... WHOOM...', 'Can you follow it? Look for fuzzy squiggles. Each one makes it clearer!'] },
@@ -111,7 +126,7 @@ const LEVELS: Level[] = [
       w(2400, 'Mailboxes', 'can', 'can', 'bird'),
       w(2900, 'Fire hydrant', 'bigcan', 'rat', 'bird'),
       w(3400, 'Parking lot', 'can', 'can', 'rat', 'rat'),
-      { kind: 'mid', x: 4000, label: 'Bird Swarm!', waves: [['bird', 'bird', 'bird', 'rat'], ['bird', 'bird', 'bigcan', 'bird', 'rat']] },
+      { kind: 'mid', x: 4000, label: 'Bird Swarm!', intro: ['MID BATTLE: A Bird Swarm guards the middle of Maple Street!', 'Birds fly too high for most bites, and a locked dumpster rolls in with them.', 'Two waves. Figure out which moves reach the sky and which open a locked lid!'], waves: [['bird', 'bird', 'bird', 'rat'], ['bird', 'bird', 'bigcan', 'bird', 'rat']] },
       w(4700, 'Corner store', 'can', 'can', 'bird', 'bird'),
       w(5200, 'Playground', 'bigcan', 'rat', 'rat', 'bird'),
       w(5700, 'Library', 'can', 'can', 'can', 'bird'),
@@ -130,11 +145,23 @@ interface Save {
   lvl: number; stage: number; x: number; levelDog: DogId | null; cleared: number;
   dogs: Partial<Record<DogId, number>>; harness: boolean; collar: boolean;
   stats: Partial<Record<DogId, DogStats>>;
+  xp: number; inv: Partial<Record<ItemId, number>>; socks: number;
 }
 // Build Queue 537: each dog's own stat page.
+// Build Queue 541 (her words: "add an inventory and store. xp earns coins. coins are used to purchase power ups and such to defeat battles").
+type ItemId = PuId | 'w_stick' | 'w_foam' | 'w_noodle';
+const STORE: { id: ItemId; name: string; cost: number }[] = [
+  { id: 'half_heart', name: 'Snack (+1 heart)', cost: 5 }, { id: 'golden_heart', name: 'Golden Heart (all hearts)', cost: 15 }, { id: 'shield_pickup', name: 'Shield (blocks 2 hits)', cost: 15 },
+  { id: 'speed_boots', name: 'Speed Boots', cost: 10 }, { id: 'double_jump_feather', name: 'Feather (double jump)', cost: 10 }, { id: 'magnet', name: 'Treat Magnet', cost: 10 },
+  { id: 'star_power', name: 'Star Power', cost: 25 }, { id: 'bomb_pickup', name: 'Bark Bomb', cost: 20 }, { id: 'invincibility_crystal', name: 'Zoomies Crystal', cost: 15 },
+  { id: 'potion_purple', name: 'Giggle Potion', cost: 20 }, { id: 'potion_lime', name: 'Bouncy Potion', cost: 15 }, { id: 'potion_gold', name: 'Big Dog Potion', cost: 25 }, { id: 'potion_turquoise', name: 'Bubble Potion', cost: 25 },
+  { id: 'heart_container', name: 'Heart Box (+1 heart)', cost: 30 }, { id: 'oneup_sprout', name: 'Extra Life Sprout', cost: 40 },
+  { id: 'w_stick', name: 'Stick Sword', cost: 15 }, { id: 'w_foam', name: 'Foam Sword', cost: 20 }, { id: 'w_noodle', name: 'Pool Noodle', cost: 25 },
+];
+const itemImg = (id: ItemId) => (id.startsWith('w_') ? '' : `${ART}pu/${id}.png`);
 interface DogStats { monsters: number; cans: number; bosses: number; treats: number; powerups: number; best: number; levels: number }
 const NO_STATS: DogStats = { monsters: 0, cans: 0, bosses: 0, treats: 0, powerups: 0, best: 0, levels: 0 };
-const NEW_SAVE: Save = { points: 0, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, harness: false, collar: false };
+const NEW_SAVE: Save = { points: 0, up: { heart: 0, bite: 0, zoom: 0, bark: 0 }, lvl: 0, stage: 0, x: 60, levelDog: null, cleared: 0, dogs: {}, stats: {}, xp: 0, inv: {}, socks: 0, harness: false, collar: false };
 const saveKey = (id: string) => `yoga.save2.${id}`;
 const readSave = (id: string): Save => { try { return { ...NEW_SAVE, ...JSON.parse(localStorage.getItem(saveKey(id)) || '{}') }; } catch { return { ...NEW_SAVE }; } };
 const writeSave = (id: string, s: Save) => { try { localStorage.setItem(saveKey(id), JSON.stringify(s)); } catch { /* private mode */ } };
@@ -146,23 +173,38 @@ const SHOP: { k: keyof Save['up']; name: string; desc: string; cost: number; max
 ];
 
 // ---------- power ups (Build Queue 535: "lots of power ups were requested") ----------
-type PuId = 'heart_container' | 'half_heart' | 'golden_heart' | 'star_power' | 'shield_pickup' | 'speed_boots' | 'magnet' | 'double_jump_feather' | 'bomb_pickup' | 'invincibility_crystal' | 'oneup_sprout' | 'key';
+type PuId = 'potion_purple' | 'potion_lime' | 'potion_gold' | 'potion_turquoise' | 'heart_container' | 'half_heart' | 'golden_heart' | 'star_power' | 'shield_pickup' | 'speed_boots' | 'magnet' | 'double_jump_feather' | 'bomb_pickup' | 'invincibility_crystal' | 'oneup_sprout' | 'key';
 const PU: Record<PuId, { name: string; secs: number; weight: number }> = {
   half_heart: { name: 'Snack: +1 heart', secs: 0, weight: 16 }, golden_heart: { name: 'Golden Heart: all hearts back!', secs: 0, weight: 5 },
   heart_container: { name: 'Heart Box: +1 heart this level!', secs: 0, weight: 3 }, star_power: { name: 'Star Power! Nothing can hurt you!', secs: 8, weight: 6 },
   shield_pickup: { name: 'Shield: blocks 2 hits', secs: 0, weight: 8 }, speed_boots: { name: 'Speed Boots! Super fast paws!', secs: 12, weight: 9 },
   magnet: { name: 'Treat Magnet!', secs: 15, weight: 9 }, double_jump_feather: { name: 'Feather: double jump!', secs: 20, weight: 8 },
   bomb_pickup: { name: 'Bark Bomb! KABOOM!', secs: 0, weight: 7 }, invincibility_crystal: { name: 'Zoomies Crystal: Zoomies ready!', secs: 0, weight: 7 },
+  potion_purple: { name: 'Giggle Potion! Everyone falls over laughing!', secs: 0, weight: 6 }, potion_lime: { name: 'Bouncy Potion! Boing boing stomps!', secs: 12, weight: 6 },
+  potion_gold: { name: 'Big Dog Potion! HUGE paws!', secs: 10, weight: 5 }, potion_turquoise: { name: 'Bubble Potion! Monsters float away!', secs: 0, weight: 5 },
   oneup_sprout: { name: 'Extra Life Sprout!', secs: 0, weight: 3 }, key: { name: 'Key: a treat chest opens!', secs: 0, weight: 6 },
 };
 const randPu = (): PuId => { const ids = Object.keys(PU) as PuId[], total = ids.reduce((n, k) => n + PU[k].weight, 0); let r = Math.random() * total; for (const k of ids) { r -= PU[k].weight; if (r <= 0) return k; } return 'half_heart'; };
 
+// Build Queue 539 (her rule): only simple, silly weapons like swords. Yoga carries them in the mouth.
+type WeaponId = 'stick' | 'foam' | 'noodle';
+const WEAPONS: Record<WeaponId, { name: string; color: string; len: number; dmg: number; uses: number; say: string[] }> = {
+  stick: { name: 'Stick Sword', color: '#8a5a2b', len: 22, dmg: 1, uses: 24, say: ['THWACK!', 'BONK!', 'TONK!'] },
+  foam: { name: 'Foam Sword', color: '#ff6fb5', len: 26, dmg: 1.5, uses: 30, say: ['FWUMP!', 'BOOF!', 'SQUISH!'] },
+  noodle: { name: 'Pool Noodle', color: '#3bceac', len: 32, dmg: 1.2, uses: 36, say: ['BOING!', 'WHAP!', 'FLOOP!'] },
+};
+type LootId = 'sock1' | 'sock5' | 'sock12' | 'sock20' | 'sock28' | 'coins' | 'goblet' | 'treasuresack' | 'crystal' | 'chest' | 'bag';
+const LOOT: Record<LootId, { name: string; pts: number }> = { sock1: { name: 'A stolen sock! +2', pts: 2 }, sock5: { name: 'Stripy sock! +2', pts: 2 }, sock12: { name: 'Stinky sock! +2', pts: 2 }, sock20: { name: 'Fancy sock! +3', pts: 3 }, sock28: { name: 'Lucky sock! +3', pts: 3 }, coins: { name: 'Coins! +3', pts: 3 }, bag: { name: 'Treat bag! +4', pts: 4 }, goblet: { name: 'Golden bowl! +5', pts: 5 }, treasuresack: { name: 'Treasure sack! +10', pts: 10 }, crystal: { name: 'Zoomies crystal!', pts: 0 }, chest: { name: 'Treat chest!', pts: 0 } };
+const SILLY_BYE = ['BYE BYE!', 'I\'M RECYCLABLE!', 'TO THE DUMP!', 'NOT MY LID!', 'OOF!', 'I GIVE UP!', 'SEE YA!'];
+
 // ---------- entities ----------
-interface Foe { id: number; kind: FoeKind; x: number; d: number; z: number; vx: number; vd: number; hp: number; max: number; face: 1 | -1; atk: number; cd: number; hurt: number; stun: number; t: number; happy?: number; phase?: number }
+interface Foe { armor?: boolean; weak?: number; squash?: number; flee?: number; giggle?: number; bubble?: number; spin?: number; id: number; kind: FoeKind; x: number; d: number; z: number; vx: number; vd: number; hp: number; max: number; face: 1 | -1; atk: number; cd: number; hurt: number; stun: number; t: number; happy?: number; phase?: number }
 interface Shot { x: number; d: number; z: number; vx: number; ttl: number; kind: 'bark' | 'soda' | 'tire' | 'ring'; big?: boolean; r?: number; hit?: Set<number> }
 interface Fx { x: number; y: number; t: number; ttl: number; kind: 'spark' | 'poof' | 'text' | 'heal' | 'bolt' | 'dizzy' | 'confetti' | 'flag'; text?: string; color?: string; vx?: number; vy?: number; screen?: boolean }
-interface Pick { x: number; d: number; kind: 'leash' | 'bags' | 'treats' | 'bone' | 'treat' | 'pu'; t: number; pu?: PuId }
-interface Sniff { x: number; d: number; found: boolean }
+interface Pick { x: number; d: number; kind: 'leash' | 'bags' | 'treats' | 'bone' | 'treat' | 'pu' | 'weapon' | 'loot'; t: number; pu?: PuId; wpn?: WeaponId; loot?: LootId }
+interface Sniff { x: number; d: number; found: boolean; real: boolean }
+// Build Queue 543: 5 spots, only 3 are real. Students guess and check; the clue is in how each spot moves.
+const makeSpots = (x0: number): Sniff[] => { const real = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, 3); return [0, 1, 2, 3, 4].map((i) => ({ x: x0 + 70 + i * 78 + Math.random() * 20, d: [0.15, 0.8, 0.45, 0.25, 0.7][i], found: false, real: real.includes(i) })); };
 const FOE_STATS: Record<FoeKind, { hp: number; speed: number; reach: number; dmg: number }> = {
   can: { hp: 5, speed: 34, reach: 26, dmg: 1 }, bigcan: { hp: 10, speed: 26, reach: 32, dmg: 1 },
   rat: { hp: 2, speed: 70, reach: 20, dmg: 1 }, bird: { hp: 2, speed: 60, reach: 22, dmg: 1 },
@@ -196,7 +238,7 @@ export default function YogasRevenge() {
   const [playMode, setPlayMode] = useState(false);
   const [gate, setGate] = useState<Gate>(null);
   const [q, setQ] = useState<MCQuestion | null>(null);
-  const [talk, setTalk] = useState<{ who: string; lines: string[]; i: number; portrait?: string; then?: () => void } | null>(null);
+  const [talk, setTalk] = useState<{ who: string; lines: string[]; i: number; portrait?: string; quest?: boolean; then?: () => void } | null>(null);
   const [voiceOn, setVoiceOn] = useState(true);
   const [offer, setOffer] = useState(false);
   const [cleared, setCleared] = useState<{ lvl: number; dog: DogId; reward: DogId | null; mins: number } | null>(null);
@@ -209,7 +251,7 @@ export default function YogasRevenge() {
   const keys = useRef<Record<string, boolean>>({});
   const stick = useRef({ x: 0, y: 0, on: false, id: -1, ox: 0, oy: 0 });
   const paused = useRef(true);
-  const api = useRef<{ act?: (k: string) => void; dash?: (yes: boolean) => void }>({});
+  const api = useRef<{ act?: (k: string) => void; dash?: (yes: boolean) => void; use?: (id: ItemId) => void }>({});
   const G = useRef({
     p: { x: 60, d: 0.5, z: 0, vz: 0, face: 1 as 1 | -1, hp: 5, max: 5, inv: 0, atk: 0, combo: 0, lastAtk: 0, barkCd: 0, superM: 0, hurt: 0, walk: 0, ko: false, chase: 0 },
     foes: [] as Foe[], shots: [] as Shot[], fx: [] as Fx[], picks: [] as Pick[], sniffs: [] as Sniff[],
@@ -217,7 +259,7 @@ export default function YogasRevenge() {
     hits: 0, hitT: 0, shake: 0, bag: [] as string[], dash: 0, dashPts: 0, time: 0, banner: '', bannerT: 0,
     lost: 0, mini: '' as '' | 'squirrel' | 'sound', squirrel: null as null | { x: number; d: number; t: number },
     cpT: 0, levelT: 0, xpFlush: 0, fade: 0,
-    pw: {} as Partial<Record<PuId, number>>, shield: 0, lives: 0, jumps: 0,
+    pw: {} as Partial<Record<PuId, number>>, shield: 0, lives: 0, jumps: 0, weapon: null as null | { id: WeaponId; uses: number }, swing: 0,
   });
 
   // ---------- assets ----------
@@ -226,7 +268,7 @@ export default function YogasRevenge() {
     (async () => {
       const names = ['dog1-Idle', 'dog1-Walk', 'dog1-Attack', 'dog1-Hurt', 'dog2-Idle', 'dog2-Walk', 'dog2-Attack', 'dog2-Hurt', 'rat-walk', 'rat-hurt', 'bird-walk', 'dogs', 'vfx-lightning', 'vfx-heal', 'vfx-dizzy'];
       const bgs = ['autumn-1_sky', 'autumn-2_mountains', 'autumn-3_hills', 'autumn-4_forest', 'autumn-5_foreground', 'harvest-1_sky', 'harvest-2_mountains', 'harvest-3_hills', 'harvest-4_forest', 'harvest-5_foreground', 'st-fire_hydrant', 'st-mailbox', 'st-hotdog_cart', 'st-vending_machine', 'st-bollard', 'st-info_bus', 'st-parking', 'st-caution_sign'];
-      const pus = (Object.keys(PU) as PuId[]).map((k) => `pu/${k}`);
+      const pus = [...(Object.keys(PU) as PuId[]).map((k) => `pu/${k}`), ...(Object.keys(LOOT) as LootId[]).map((k) => `loot/${k}`)];
       const imgs = await Promise.all([...names, ...bgs, ...pus].map((n) => load(`${ART}${n}.png`)));
       try { await document.fonts.load('16px m5x7'); } catch { /* falls back to monospace */ }
       if (!live) return;
@@ -259,15 +301,17 @@ export default function YogasRevenge() {
     const maxHp = 5 + s.up.heart + (s.harness ? 1 : 0) + (dl >= 3 ? 1 : 0) + (dl >= 8 ? 1 : 0);
     g.p = { ...g.p, x, d: 0.5, z: 0, vz: 0, hp: maxHp, max: maxHp, inv: 1, ko: false, superM: 0, atk: 0, combo: 0, chase: 0 };
     g.foes = []; g.shots = []; g.fx = []; g.picks = []; g.sniffs = []; g.stage = stage; g.active = false; g.lock = null; g.hits = 0; g.sub = 0;
-    g.lost = 0; g.mini = ''; g.squirrel = null; g.dash = 0; g.cpT = 0; g.levelT = 0; g.fade = 0; g.pw = {}; g.shield = 0; g.lives = 0; g.jumps = 0;
+    g.lost = 0; g.mini = ''; g.squirrel = null; g.dash = 0; g.cpT = 0; g.levelT = 0; g.fade = 0; g.pw = {}; g.shield = 0; g.lives = 0; g.jumps = 0; g.weapon = null; g.swing = 0;
     g.cam = Math.max(0, x - 140);
     g.bag = LEVELS[lvl].stages[0].kind === 'home' && stage === 0 ? [] : ['leash', 'bags', 'treats'];
     if (LEVELS[lvl].stages[0].kind === 'home' && stage === 0) g.picks.push({ x: 220, d: 0.25, kind: 'leash', t: 0 }, { x: 390, d: 0.75, kind: 'bags', t: 0 }, { x: 560, d: 0.4, kind: 'treats', t: 0 });
     setScreen('play'); paused.current = false;
     g.banner = `Level ${lvl + 1}: ${LEVELS[lvl].name}`; g.bannerT = 3;
-    if (lvl === 0 && stage === 0) {
+    if (stage === 0) {
       paused.current = true;
-      setTalk({ who: 'Sam', lines: [`${DOGS[d].name}! Want to go for a walk on the country road?`, 'Help me find the leash, the poop bags and the treats. Then we can go!', 'Oh no... it is trash day. To a dog, every trash can is a monster!'], i: 0, then: () => { paused.current = false; } });
+      const sam = () => setTalk({ who: 'Sam', lines: [`${DOGS[d].name}! Want to go for a walk on the country road?`, 'Help me find the leash, the poop bags and the treats. Then we can go!'], i: 0, then: () => { paused.current = false; } });
+      const q = LEVELS[lvl].quest;
+      setTalk({ who: q.title, lines: q.lines, i: 0, quest: true, then: () => { if (lvl === 0) sam(); else paused.current = false; } });
     }
   };
 
@@ -297,6 +341,7 @@ export default function YogasRevenge() {
     const bigBark = () => saveRef.current.collar || dog === 'luna' || dl() >= 10;
 
     const addFx = (f: Omit<Fx, 't'>) => g.fx.push({ ...f, t: 0 });
+    const gainXp = (n: number) => { const s = saveRef.current, before = s.xp ?? 0, coins = Math.floor((before + n) / 10) - Math.floor(before / 10); patch({ xp: before + n, points: s.points + coins }); if (coins > 0) addFx({ x: g.p.x - 18, y: sy(g.p.d) - 62, ttl: 0.9, kind: 'text', text: `+${coins} coin${coins > 1 ? 's' : ''}`, color: '#ffd23f', vy: -30 }); };
     const bump = (k: keyof DogStats, n = 1, max = false) => { const s = saveRef.current, cur = { ...NO_STATS, ...s.stats?.[dog] }; const v = max ? Math.max(cur[k], n) : cur[k] + n; if (v !== cur[k]) patch({ stats: { ...s.stats, [dog]: { ...cur, [k]: v } } }); };
     const confetti = (n = 24) => { for (let i = 0; i < n; i++) addFx({ x: Math.random() * W, y: 30, ttl: 1.8, kind: 'confetti', screen: true, color: ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][i % 4], vx: (Math.random() - 0.5) * 60, vy: 30 + Math.random() * 60 }); };
     const checkpoint = (why: string) => {
@@ -304,23 +349,47 @@ export default function YogasRevenge() {
       g.cpT = 0; addFx({ x: g.p.x, y: sy(g.p.d) - 50, ttl: 2, kind: 'flag' });
       g.banner = `Checkpoint saved! ${why}`; g.bannerT = 2.2; sfx.chime();
     };
-    const words = ['POW!', 'BONK!', 'CHOMP!', 'WHAM!', 'BOOF!'];
+    // Using a power up: picked up on the road, or tapped from the inventory bar.
+    const usePu = (id: PuId) => {
+      const p = g.p, info = PU[id];
+      if (info.secs) g.pw[id] = info.secs;
+      bump('powerups');
+      if (id === 'half_heart') p.hp = Math.min(p.max, p.hp + 1);
+      if (id === 'golden_heart') p.hp = p.max;
+      if (id === 'heart_container') { p.max += 1; p.hp = p.max; }
+      if (id === 'shield_pickup') g.shield = 2;
+      if (id === 'oneup_sprout') g.lives += 1;
+      if (id === 'invincibility_crystal') p.superM = 100;
+      if (id === 'key') for (let i = 0; i < 10; i++) g.picks.push({ x: p.x + (Math.random() - 0.5) * 160, d: Math.random(), kind: 'treat', t: 0 });
+      if (id === 'potion_purple') g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && e.x > g.cam - 20 && e.x < g.cam + W + 20 && e.kind !== 'tires' && e.kind !== 'sound') { e.giggle = 5; e.stun = 5; } });
+      if (id === 'potion_turquoise') g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && e.x > g.cam - 20 && e.x < g.cam + W + 20) e.bubble = e.kind === 'tires' || e.kind === 'sound' ? 1.2 : 2; });
+      if (id === 'bomb_pickup') { g.shake = 12; g.foes.forEach((e) => { if (e.hp > 0 && e.x > g.cam - 20 && e.x < g.cam + W + 20) { addFx({ x: e.x, y: sy(e.d) - 10, ttl: 0.6, kind: 'poof' }); hitFoe(e, e.kind === 'tires' || e.kind === 'sound' ? 5 : 99, 20, e.x > p.x ? 1 : -1); } }); sfx.thud(); }
+      addFx({ x: p.x, y: sy(p.d) - 56, ttl: 1.6, kind: 'text', text: info.name, color: '#ffe14d', vy: -14 }); addFx({ x: p.x, y: sy(p.d) - 20, ttl: 0.9, kind: 'heal' }); sfx.chime();
+      g.banner = info.name; g.bannerT = 1.6;
+    };
+    const equip = (id: WeaponId) => { const wp = WEAPONS[id]; g.weapon = { id, uses: wp.uses }; g.banner = `${wp.name}! Bite to swing it!`; g.bannerT = 2; addFx({ x: g.p.x, y: sy(g.p.d) - 56, ttl: 1.4, kind: 'text', text: wp.name, color: wp.color, vy: -16 }); sfx.chime(); };
+    const words = ['POW!', 'BONK!', 'CHOMP!', 'WHAM!', 'BOOF!', 'BOINK!', 'ZONK!', 'BOOP!'];
     const hitFoe = (e: Foe, dmg: number, kb: number, from: number) => {
-      if (e.hp <= 0 || e.happy) return;
-      e.hp -= dmg; e.hurt = 0.25; e.x += kb * from; e.atk = 0;
+      if (e.hp <= 0 || e.happy || e.spin) return;
+      if (e.armor && e.stun <= 0) { e.squash = 0.12; addFx({ x: e.x, y: sy(e.d) - 40 - e.z, ttl: 0.6, kind: 'text', text: 'CLANK!', color: '#c0c6cc', vy: -20 }); sfx.bonk(); return; }
+      if ((e.kind === 'tires' || e.kind === 'sound') && !(e.weak && e.weak > 0)) { dmg *= 0.2; if (Math.random() < 0.4) addFx({ x: e.x, y: sy(e.d) - 70, ttl: 0.7, kind: 'text', text: e.kind === 'tires' ? 'BOING! Too bouncy!' : 'Too fuzzy!', color: '#ffb3b3', vy: -20 }); }
+      e.hp -= dmg; e.hurt = 0.25; e.squash = 0.22; e.x += kb * from; e.atk = 0;
       g.hits = g.hitT > 0 ? g.hits + 1 : 1; g.hitT = 1.6; if (g.hits >= 5 && g.hits % 5 === 0) bump('best', g.hits, true);
       g.p.superM = Math.min(100, g.p.superM + (dl() >= 7 ? 10 : 7));
       addFx({ x: e.x, y: sy(e.d) - 18 - e.z, ttl: 0.25, kind: 'spark' });
       if (Math.random() < 0.45) addFx({ x: e.x, y: sy(e.d) - 44 - e.z, ttl: 0.7, kind: 'text', text: words[Math.floor(Math.random() * words.length)], color: '#ffe14d', vy: -30 });
       g.shake = Math.min(6, g.shake + 2); sfx.bonk();
       if (e.hp <= 0) {
-        if (e.kind === 'tires' || e.kind === 'sound') { e.hp = 0; e.happy = 0.01; sfx.chime(); bump('bosses'); return; }
+        if (e.kind === 'tires' || e.kind === 'sound') { e.hp = 0; e.happy = 0.01; sfx.chime(); bump('bosses'); gainXp(150); return; }
         bump('monsters'); if (e.kind === 'can' || e.kind === 'bigcan') bump('cans');
-        addFx({ x: e.x, y: sy(e.d) - 14 - e.z, ttl: 0.6, kind: 'poof' });
-        addFx({ x: e.x, y: sy(e.d) - 34, ttl: 0.9, kind: 'text', text: e.kind === 'rat' ? 'SCAT!' : e.kind === 'bird' ? 'SHOO!' : 'POOF!', color: '#ffffff', vy: -26 });
+        // Silly exits (her rule: only silly, funny, animated reactions): rats and birds run off, bins spin and poof.
+        if (e.kind === 'rat' || e.kind === 'bird') { e.flee = from || 1; e.hp = 0; addFx({ x: e.x, y: sy(e.d) - 30 - e.z, ttl: 0.9, kind: 'text', text: e.kind === 'rat' ? 'EEP EEP!' : 'SQUAWK!', color: '#ffffff', vy: -26 }); sfx.boing(); bump('monsters'); gainXp(5); if (Math.random() < 0.5) g.picks.push({ x: e.x, d: e.d, kind: 'treat', t: 0 }); return; }
+        e.spin = 0.6; e.hp = 0.0001; e.flee = 0; gainXp(e.kind === 'bigcan' ? 20 : 10);
+        addFx({ x: e.x, y: sy(e.d) - 50, ttl: 1.1, kind: 'text', text: SILLY_BYE[Math.floor(Math.random() * SILLY_BYE.length)], color: '#ffffff', vy: -22 });
+        for (let i = 0; i < 6; i++) addFx({ x: e.x, y: sy(e.d) - 20, ttl: 1, kind: 'confetti', color: ['#f2b33d', '#8fd3e8', '#e8873a', '#7cc04a'][i % 4], vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 60 });
         sfx.pop();
         const r = Math.random();
-        if (r < 0.14) g.picks.push({ x: e.x, d: e.d, kind: 'pu', pu: randPu(), t: 0 }); else if (r < 0.3) g.picks.push({ x: e.x, d: e.d, kind: 'bone', t: 0 }); else if (r < 0.8) g.picks.push({ x: e.x, d: e.d, kind: 'treat', t: 0 });
+        if (r < 0.06) g.picks.push({ x: e.x, d: e.d, kind: 'weapon', wpn: (['stick', 'foam', 'noodle'] as WeaponId[])[Math.floor(Math.random() * 3)], t: 0 }); else if (r < 0.1) g.picks.push({ x: e.x, d: e.d, kind: 'loot', loot: (['coins', 'coins', 'bag', 'goblet', 'treasuresack', 'crystal', 'chest', 'sock1', 'sock5', 'sock12', 'sock20', 'sock28'] as LootId[])[Math.floor(Math.random() * 12)], t: 0 }); else if (r < 0.2) g.picks.push({ x: e.x, d: e.d, kind: 'pu', pu: randPu(), t: 0 }); else if (r < 0.3) g.picks.push({ x: e.x, d: e.d, kind: 'bone', t: 0 }); else if (r < 0.8) g.picks.push({ x: e.x, d: e.d, kind: 'treat', t: 0 });
       }
     };
     const hurtPlayer = (dmg: number, from: number) => {
@@ -339,14 +408,14 @@ export default function YogasRevenge() {
     const startFight = () => {
       const st = L.stages[g.stage]; if (!st) return;
       if (st.kind === 'wave') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label}: trash monsters!`; g.bannerT = 2; spawn(st.foes, st.x); }
-      else if (st.kind === 'mid') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label} Wave 1 of ${st.waves.length}`; g.bannerT = 2.4; sfx.horn(); spawn(st.waves[0], st.x); }
+      else if (st.kind === 'mid') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label} Wave 1 of ${st.waves.length}`; g.bannerT = 2.4; sfx.horn(); spawn(st.waves[0], st.x); g.foes.forEach((e) => { if (e.kind === 'bigcan' || (e.kind === 'can' && Math.random() < 0.5)) e.armor = true; }); }
       else if (st.kind === 'boss') {
         g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 };
         g.foes.push(mkFoe(st.boss, st.x + 150, 0.5)); sfx.horn();
         g.banner = st.boss === 'tires' ? 'BOSS: The Tire Stack!' : 'BOSS: The Sound Monster!'; g.bannerT = 2.5; paused.current = true;
         setTalk(st.boss === 'tires'
-          ? { who: 'Tire Stack', lines: ['We used to roll down this road on a real car!', 'Now we are thrown away and all alone. GRRR! Nobody gets past us!'], i: 0, then: () => { paused.current = false; } }
-          : { who: 'Sound Monster', lines: ['BZZZ... WHOOOM... SKREEEE!', 'I am the strange sound! You found me. Now try to quiet me!'], i: 0, then: () => { paused.current = false; } });
+          ? { who: 'Tire Stack', lines: ['We used to roll down this road on a real car!', 'Now we are thrown away and all alone. GRRR! Nobody gets past us!', 'BOSS TIP: bites just bounce off these bouncy tires... watch closely for the moment they are wobbly!'], i: 0, then: () => { paused.current = false; } }
+          : { who: 'Sound Monster', lines: ['BZZZ... WHOOOM... SKREEEE!', 'I am the strange sound! You found me. Now try to quiet me!', 'BOSS TIP: it is too fuzzy to hurt most of the time. When does it go quiet for a second?'], i: 0, then: () => { paused.current = false; } });
       }
     };
     const startMini = (what: 'squirrel' | 'sound') => {
@@ -357,15 +426,16 @@ export default function YogasRevenge() {
         addFx({ x: g.p.x, y: sy(g.p.d) - 52, ttl: 1.2, kind: 'text', text: '!!!', color: '#ffe14d', vy: -10 });
       } else {
         g.lock = { l: g.p.x - 60, r: g.p.x + 420 };
-        g.sniffs = [0, 1, 2].map((i) => ({ x: g.p.x + 90 + i * 110 + Math.random() * 30, d: [0.15, 0.8, 0.45][i], found: false }));
+        g.sniffs = makeSpots(g.p.x);
         spawn(['bird', 'rat'], g.p.x + 200);
-        g.banner = 'Track the strange sound: find 3 squiggles!'; g.bannerT = 2.6; sfx.whoosh();
+        paused.current = true;
+        setTalk({ who: 'Mini challenge: Track the Sound', portrait: `${ART}timmy.png`, lines: ['Timmy: Listen! BZZZ... the strange sound is hiding in one of these squiggles.', 'Only 3 of the 5 squiggles are the real sound. The others are just squeaky gates, and they wake up critters.', 'Walk into a squiggle to check it. Guess, check, and think! Clue: the real sound wiggles faster when you get close.'], i: 0, then: () => { paused.current = false; } });
       }
     };
     const endMini = () => {
       g.sniffs = []; g.foes = []; g.mini = ''; g.lost = 0; g.fade = 0.8;
       g.banner = 'Back on the trail!'; g.bannerT = 2;
-      g.picks.push({ x: g.p.x + 50, d: g.p.d, kind: 'pu', pu: randPu(), t: 0 });
+      g.picks.push({ x: g.p.x + 50, d: g.p.d, kind: 'pu', pu: randPu(), t: 0 }); gainXp(50);
       nextStage(); checkpoint('Mini challenge done.');
     };
     const reachStage = () => {
@@ -378,7 +448,7 @@ export default function YogasRevenge() {
       if (g.p.x < st.x - 60) return;
       if (st.kind === 'talk') { g.active = true; paused.current = true; setTalk({ who: st.who, portrait: st.portrait, lines: st.lines, i: 0, then: () => { paused.current = false; nextStage(); } }); }
       else if (st.kind === 'wave') ask('wave', startFight);
-      else if (st.kind === 'mid') ask('mid', startFight);
+      else if (st.kind === 'mid') { g.active = true; paused.current = true; setTalk({ who: st.label, lines: st.intro, i: 0, then: () => ask('mid', startFight) }); }
       else if (st.kind === 'boss') { checkpoint('Boss ahead!'); ask('boss', startFight); }
       else if (st.kind === 'mini') startMini(st.what);
       else if (st.kind === 'dash') { g.active = true; paused.current = true; setOffer(true); }
@@ -388,7 +458,7 @@ export default function YogasRevenge() {
         const done = Math.max(s.cleared, lvl + 1);
         setSave({ ...s, cleared: done, lvl: lvl + 1 < LEVELS.length ? nextLvl : lvl, stage: 0, x: 60, levelDog: null, dogs: { ...s.dogs, [dog]: (s.dogs[dog] ?? 0) + g.xpFlush } });
         g.xpFlush = 0;
-        bump('levels');
+        bump('levels'); gainXp(300);
         setCleared({ lvl, dog, reward: s.cleared < lvl + 1 ? L.reward : null, mins: Math.round(g.levelT / 60) });
         setScreen('clear'); sfx.chime();
       }
@@ -399,7 +469,7 @@ export default function YogasRevenge() {
       // the dog grows from play time (one bar); saved every 10 seconds
       if (g.xpFlush >= 10) {
         const s = saveRef.current, before = dogLevel(s.dogs[dog] ?? 0), secs = (s.dogs[dog] ?? 0) + g.xpFlush; g.xpFlush = 0;
-        patch({ dogs: { ...s.dogs, [dog]: secs } });
+        patch({ dogs: { ...s.dogs, [dog]: secs } }); gainXp(5);
         const after = dogLevel(secs);
         if (after > before) { g.banner = after === 10 ? `${stats.name} is a MASTER dog!` : `${stats.name} reached dog level ${after}!`; g.bannerT = 3; confetti(); sfx.chime(); const perk = PERKS.find((k) => k.at === after); if (perk) addFx({ x: p.x, y: sy(p.d) - 60, ttl: 2.4, kind: 'text', text: perk.text, color: '#9cf6ff', vy: -8 }); }
       }
@@ -417,10 +487,10 @@ export default function YogasRevenge() {
           if (p.chase <= 0) {
             g.squirrel = null; g.lost = 1; g.fade = 0.8;
             g.lock = { l: p.x - 60, r: p.x + 420 };
-            g.sniffs = [0, 1, 2].map((i) => ({ x: p.x + 90 + i * 110 + Math.random() * 30, d: [0.2, 0.85, 0.45][i], found: false }));
+            g.sniffs = makeSpots(p.x);
             spawn(['rat', 'rat', 'bird'], p.x + 220);
             paused.current = true;
-            setTalk({ who: 'Uh oh...', lines: ['The squirrel got away up a tree. Now where is the trail?', 'Sniff out the 3 paw print spots to find the way back. Watch out for critters!'], i: 0, then: () => { paused.current = false; } });
+            setTalk({ who: 'Surprise! Lost in the Woods', lines: ['SQUIRREL! Yoga chased it all the way into the woods... and the squirrel got away up a tree.', 'Now where is the trail? There are 5 sets of paw prints here, but only 3 are really the way back. The rest lead to mud puddles and grumpy critters.', 'Step on prints to sniff them. Guess and check! Clue: the real prints point the way you came.'], i: 0, then: () => { paused.current = false; } });
           }
         }
       }
@@ -440,7 +510,11 @@ export default function YogasRevenge() {
       if (p.chase <= 0) p.walk = Math.abs(mx) + Math.abs(md) > 0.15 ? p.walk + dt : 0;
       const lo = g.lock ? g.lock.l + 12 : g.cam + 10, hi = g.lock ? g.lock.r - 12 : Math.min(L.end, g.cam + W + 400);
       if (p.chase <= 0) p.x = Math.max(Math.max(12, lo), Math.min(hi, p.x));
-      if (p.z > 0 || p.vz > 0) { p.vz -= GRAV * dt; p.z = Math.max(0, p.z + p.vz * dt); if (p.z === 0) p.vz = 0; }
+      g.swing = Math.max(0, g.swing - dt);
+      if (p.z > 0 || p.vz > 0) {
+        p.vz -= GRAV * dt; p.z = Math.max(0, p.z + p.vz * dt);
+        if (p.z === 0) { const fall = p.vz; p.vz = 0; if (g.pw.potion_lime && fall < -150) { g.shake = 7; addFx({ x: p.x, y: sy(p.d) - 6, ttl: 0.5, kind: 'poof' }); addFx({ x: p.x, y: sy(p.d) - 40, ttl: 0.6, kind: 'text', text: 'BOING!', color: '#b6ff5c', vy: -20 }); sfx.boing(); g.foes.forEach((e) => { if (e.hp > 0 && !e.happy && Math.abs(e.x - p.x) < 60 && Math.abs(e.d - p.d) < 0.3) hitFoe(e, 2 * power(), 26, e.x > p.x ? 1 : -1); }); } }
+      }
       p.inv = Math.max(0, p.inv - dt); p.hurt = Math.max(0, p.hurt - dt); p.barkCd = Math.max(0, p.barkCd - dt);
       if (p.atk > 0) {
         const before = p.atk; p.atk -= dt;
@@ -448,7 +522,12 @@ export default function YogasRevenge() {
           const air = p.z > 6;
           g.foes.forEach((e) => {
             const big = e.kind === 'tires' || e.kind === 'sound', dx = (e.x - p.x) * p.face;
-            if (dx > -6 && dx < (big ? 52 : 36) && Math.abs(e.d - p.d) < (big ? 0.3 : 0.16) && Math.abs(e.z - p.z) < 40) hitFoe(e, (air || p.combo === 3 ? 2 : 1) * power(), p.combo === 3 || air ? 22 : 6, p.face);
+            const wp = g.weapon ? WEAPONS[g.weapon.id] : null, grow = g.pw.potion_gold ? 1.5 : 1;
+            const reach = ((big ? 52 : 36) + (wp ? wp.len : 0)) * grow, spinAll = !!wp && p.combo === 3;
+            if ((spinAll ? Math.abs(dx) < reach : dx > -6 && dx < reach) && Math.abs(e.d - p.d) < (big ? 0.3 : 0.16) * grow && Math.abs(e.z - p.z) < 40) {
+              hitFoe(e, (air || p.combo === 3 ? 2 : 1) * power() * (wp ? wp.dmg + 0.5 : 1) * (g.pw.potion_gold ? 2 : 1), (p.combo === 3 || air ? 22 : 6) * grow, e.x > p.x ? 1 : -1);
+              if (wp && Math.random() < 0.6) addFx({ x: e.x, y: sy(e.d) - 52, ttl: 0.6, kind: 'text', text: wp.say[Math.floor(Math.random() * wp.say.length)], color: wp.color, vy: -30 });
+            }
           });
         }
       }
@@ -461,6 +540,11 @@ export default function YogasRevenge() {
       g.foes.forEach((e) => {
         e.t += dt; e.hurt = Math.max(0, e.hurt - dt); e.stun = Math.max(0, e.stun - dt);
         if (e.happy) { e.happy += dt; return; }
+        e.squash = Math.max(0, (e.squash ?? 0) - dt);
+        if (e.spin) { e.spin -= dt; e.z = Math.sin((0.6 - e.spin) / 0.6 * Math.PI) * 26; if (e.spin <= 0) { e.spin = 0; e.hp = 0; e.z = 0; addFx({ x: e.x, y: sy(e.d) - 14, ttl: 0.6, kind: 'poof' }); sfx.pop(); } return; }
+        if (e.flee) { e.x += e.flee * 220 * dt; if (e.kind === 'bird') e.z += 70 * dt; if (Math.abs(e.x - g.cam - W / 2) > W) e.flee = 0; return; }
+        if (e.bubble) { e.bubble -= dt; e.z += 30 * dt; if (e.bubble <= 0) { e.bubble = 0; if (e.kind !== 'tires' && e.kind !== 'sound') { e.hp = 0; e.z = 0; addFx({ x: e.x, y: sy(e.d) - 40, ttl: 0.6, kind: 'poof' }); addFx({ x: e.x, y: sy(e.d) - 50, ttl: 0.8, kind: 'text', text: 'POP!', color: '#7fd7ff', vy: -20 }); sfx.pop(); bump('monsters'); } else e.z = 0; } return; }
+        if (e.giggle) { e.giggle -= dt; e.stun = Math.max(e.stun, 0.1); if (Math.random() < dt * 2) addFx({ x: e.x, y: sy(e.d) - 40 - e.z, ttl: 0.7, kind: 'text', text: ['HA HA!', 'HEE HEE!', 'TEE HEE!'][Math.floor(Math.random() * 3)], color: '#d9a7ff', vy: -20 }); if (e.giggle <= 0) e.giggle = 0; }
         if (e.hp <= 0) return;
         if (e.kind === 'tires' || e.kind === 'sound') { boss(e, dt); return; }
         const S = FOE_STATS[e.kind];
@@ -504,13 +588,14 @@ export default function YogasRevenge() {
       // --- sniff spots (the mini challenges) ---
       g.sniffs.forEach((k) => {
         if (k.found || Math.abs(k.x - p.x) > 18 || Math.abs(k.d - p.d) > 0.14) return;
-        k.found = true; sfx.chime();
-        const n = g.sniffs.filter((x) => x.found).length;
-        addFx({ x: k.x, y: sy(k.d) - 30, ttl: 1.2, kind: 'text', text: g.lost ? 'SNIFF SNIFF!' : 'BZZT! Clearer!', color: '#9cf6ff', vy: -20 });
-        g.banner = `${n} of 3 found`; g.bannerT = 1.6;
-        if (n < 3) spawn(g.lost ? ['rat'] : ['bird'], k.x + 120);
+        k.found = true;
+        if (!k.real) { sfx.boing(); addFx({ x: k.x, y: sy(k.d) - 30, ttl: 1.4, kind: 'text', text: g.lost ? 'Just a mud puddle! SPLOOSH' : 'Just a squeaky gate! EEEK', color: '#ffb3b3', vy: -20 }); spawn(g.lost ? ['rat'] : ['bird'], k.x + 100); return; }
+        sfx.chime();
+        const n = g.sniffs.filter((x) => x.found && x.real).length;
+        addFx({ x: k.x, y: sy(k.d) - 30, ttl: 1.2, kind: 'text', text: g.lost ? 'SNIFF SNIFF! This way!' : 'BZZT! Clearer!', color: '#9cf6ff', vy: -20 });
+        g.banner = `${n} of 3 real ones found`; g.bannerT = 1.6;
       });
-      if (g.sniffs.length && g.sniffs.every((k) => k.found) && g.foes.every((e) => e.hp <= 0)) endMini();
+      if (g.sniffs.length && g.sniffs.filter((k) => k.real).every((k) => k.found) && g.foes.every((e) => e.hp <= 0)) endMini();
       // --- pick ups ---
       g.picks.forEach((k) => {
         k.t += dt;
@@ -518,21 +603,16 @@ export default function YogasRevenge() {
           k.t = -99;
           if (k.kind === 'bone') { p.hp = Math.min(p.max, p.hp + 2); addFx({ x: p.x, y: sy(p.d) - 24, ttl: 0.9, kind: 'heal' }); sfx.chime(); }
           else if (k.kind === 'treat') { patch({ points: saveRef.current.points + 1 }); bump('treats'); if (g.dash) g.dashPts += 1; addFx({ x: p.x, y: sy(p.d) - 44, ttl: 0.7, kind: 'text', text: '+1', color: '#ffd23f', vy: -40 }); sfx.coin(); }
-          else if (k.kind === 'pu' && k.pu) {
-            const id = k.pu, info = PU[id];
-            if (info.secs) g.pw[id] = info.secs;
-            bump('powerups');
-            if (id === 'half_heart') p.hp = Math.min(p.max, p.hp + 1);
-            if (id === 'golden_heart') p.hp = p.max;
-            if (id === 'heart_container') { p.max += 1; p.hp = p.max; }
-            if (id === 'shield_pickup') g.shield = 2;
-            if (id === 'oneup_sprout') g.lives += 1;
-            if (id === 'invincibility_crystal') p.superM = 100;
-            if (id === 'key') for (let i = 0; i < 10; i++) g.picks.push({ x: p.x + (Math.random() - 0.5) * 160, d: Math.random(), kind: 'treat', t: 0 });
-            if (id === 'bomb_pickup') { g.shake = 12; g.foes.forEach((e) => { if (e.hp > 0 && e.x > g.cam - 20 && e.x < g.cam + W + 20) { addFx({ x: e.x, y: sy(e.d) - 10, ttl: 0.6, kind: 'poof' }); hitFoe(e, e.kind === 'tires' || e.kind === 'sound' ? 5 : 99, 20, e.x > p.x ? 1 : -1); } }); sfx.thud(); }
-            addFx({ x: p.x, y: sy(p.d) - 56, ttl: 1.6, kind: 'text', text: info.name, color: '#ffe14d', vy: -14 }); addFx({ x: p.x, y: sy(p.d) - 20, ttl: 0.9, kind: 'heal' }); sfx.chime();
-            g.banner = info.name; g.bannerT = 1.6;
+          else if (k.kind === 'weapon' && k.wpn) equip(k.wpn);
+          else if (k.kind === 'loot' && k.loot) {
+            const lt = LOOT[k.loot];
+            if (lt.pts) { patch({ points: saveRef.current.points + lt.pts }); bump('treats', lt.pts); }
+            if (k.loot === 'crystal') p.superM = 100;
+            if (k.loot.startsWith('sock')) patch({ socks: (saveRef.current.socks ?? 0) + 1 });
+            if (k.loot === 'chest') for (let i = 0; i < 12; i++) g.picks.push({ x: p.x + (Math.random() - 0.5) * 180, d: Math.random(), kind: 'treat', t: 0 });
+            addFx({ x: p.x, y: sy(p.d) - 56, ttl: 1.3, kind: 'text', text: lt.name, color: '#ffd23f', vy: -16 }); sfx.coin(); sfx.chime();
           }
+          else if (k.kind === 'pu' && k.pu) usePu(k.pu);
           else { g.bag.push(k.kind); addFx({ x: p.x, y: sy(p.d) - 48, ttl: 1.2, kind: 'text', text: `Got the ${k.kind === 'bags' ? 'poop bags' : k.kind}!`, color: '#9cf6ff', vy: -20 }); sfx.chime(); if (g.bag.length >= 3) { g.banner = 'Ready for the walk! Go right!'; g.bannerT = 2; } }
         }
       });
@@ -545,13 +625,13 @@ export default function YogasRevenge() {
       if (g.active && !g.mini && (st?.kind === 'wave' || st?.kind === 'mid') && g.foes.every((e) => e.hp <= 0)) {
         g.foes = [];
         if (st.kind === 'mid' && g.sub + 1 < st.waves.length) {
-          g.sub += 1; g.banner = `${st.label} Wave ${g.sub + 1} of ${st.waves.length}`; g.bannerT = 2.2; sfx.horn(); spawn(st.waves[g.sub], st.x);
+          g.sub += 1; g.banner = `${st.label} Wave ${g.sub + 1} of ${st.waves.length}`; g.bannerT = 2.2; sfx.horn(); spawn(st.waves[g.sub], st.x); g.foes.forEach((e) => { if (e.kind === 'bigcan' || e.kind === 'can') e.armor = true; });
         } else {
           g.banner = 'All clear! GO >'; g.bannerT = 2; sfx.chime();
           if (Math.random() < 0.6 || st.kind === 'mid') g.picks.push({ x: p.x + p.face * 50, d: p.d, kind: 'pu', pu: randPu(), t: 0 });
           const wasMid = st.kind === 'mid';
           nextStage();
-          if (wasMid) checkpoint('Big challenge beaten!'); else if (g.cpT >= CP_EVERY) checkpoint('');
+          if (wasMid) { gainXp(100); checkpoint('Big challenge beaten!'); } else if (g.cpT >= CP_EVERY) checkpoint('');
         }
       }
       const bossDone = g.foes.find((e) => (e.kind === 'tires' || e.kind === 'sound') && e.happy && e.happy > 3.2);
@@ -573,11 +653,11 @@ export default function YogasRevenge() {
       const p = g.p, half = e.hp < e.max / 2;
       e.face = p.x > e.x ? 1 : -1;
       if (e.hurt > 0) return;
-      e.cd -= dt * (half ? 1.5 : 1);
+      e.cd -= dt * (half ? 1.5 : 1); e.weak = Math.max(0, (e.weak ?? 0) - dt);
       if (e.kind === 'tires') {
         if (e.phase === 1) {
           e.z = Math.max(0, e.z + e.vd * dt); e.vd -= GRAV * dt; e.x += e.vx * dt;
-          if (e.z === 0 && e.vd < 0) { e.phase = 0; g.shake = 8; sfx.thud(); addFx({ x: e.x, y: sy(e.d), ttl: 0.5, kind: 'poof' }); if (Math.abs(p.x - e.x) < 46 && Math.abs(p.d - e.d) < 0.3 && p.z < 8) hurtPlayer(1, e.face); }
+          if (e.z === 0 && e.vd < 0) { e.phase = 0; e.weak = 1.8; e.cd = Math.max(e.cd, 1.8); g.shake = 8; sfx.thud(); addFx({ x: e.x, y: sy(e.d), ttl: 0.5, kind: 'poof' }); if (Math.abs(p.x - e.x) < 46 && Math.abs(p.d - e.d) < 0.3 && p.z < 8) hurtPlayer(1, e.face); }
           return;
         }
         if (e.cd <= 0) {
@@ -589,7 +669,7 @@ export default function YogasRevenge() {
         e.z = 18 + Math.sin(e.t * 2.4) * 8; e.d += (p.d - e.d) * dt * 0.5;
         if (e.cd <= 0) {
           const r = Math.random();
-          if (r < 0.5) { g.shots.push({ x: e.x, d: e.d, z: 0, vx: 0, ttl: 2.6, kind: 'ring', r: 10 }); sfx.horn(); e.cd = 1.8; g.banner = 'JUMP over the sound rings!'; g.bannerT = 1; }
+          if (r < 0.5) { e.weak = 1.8; g.shots.push({ x: e.x, d: e.d, z: 0, vx: 0, ttl: 2.6, kind: 'ring', r: 10 }); sfx.horn(); e.cd = 1.8; g.banner = 'JUMP over the sound rings!'; g.bannerT = 1; }
           else if (r < 0.8) { e.x = g.cam + (p.x - g.cam > W / 2 ? 80 : W - 80); addFx({ x: e.x, y: sy(e.d) - 30, ttl: 0.6, kind: 'poof' }); sfx.whoosh(); e.cd = 1.2; }
           else { g.foes.push(mkFoe('bird', e.x, Math.random())); e.cd = 2.4; }
         }
@@ -667,7 +747,8 @@ export default function YogasRevenge() {
       R(x - ww / 2 - 2, top - 2, ww + 4, 4, flash ? '#fff' : dark); R(x - ww / 2 - 2, top + 2, ww + 4, 1, line);
       { R(x - ww / 2 + 2, top + 2, 3, 3, '#7cc04a'); R(x + 3, top + 2, 2, 4, '#7cc04a'); R(x + ww / 2 - 6, top + 2, 3, 2, '#7cc04a'); }
       // lid flipped open, hinged at the back
-      const open = wind ? 1 : e.stun > 0 ? 0.6 : 0.35 + Math.abs(Math.sin(e.t * 6)) * 0.25;
+      const open = e.armor && e.stun <= 0 ? 0 : wind ? 1 : e.stun > 0 ? 0.6 : 0.35 + Math.abs(Math.sin(e.t * 6)) * 0.25;
+      if (e.armor && e.stun <= 0) { R(x - 3, top + 3, 7, 6, '#d9b45a'); R(x - 2, top, 5, 4, '#1e1f22'); R(x - 1, top + 1, 3, 3, body); }
       ctx.save(); ctx.translate(Math.round(x + (ww / 2) * -e.face), Math.round(top - 2)); ctx.rotate(-e.face * open * -1.1);
       ctx.fillStyle = flash ? '#fff' : dark; ctx.fillRect(e.face > 0 ? 0 : -ww - 4, -4, ww + 4, 4);
       ctx.fillStyle = line; ctx.fillRect(e.face > 0 ? 0 : -ww - 4, -5, ww + 4, 1);
@@ -716,17 +797,21 @@ export default function YogasRevenge() {
       R(x - 6, sy(k.d) - 1, 12, 2, '#00000033');
       if (k.kind === 'bone') { R(x - 6, y - 2, 12, 4, '#fff8e8'); R(x - 8, y - 4, 4, 4, '#fff8e8'); R(x - 8, y + 1, 4, 4, '#fff8e8'); R(x + 4, y - 4, 4, 4, '#fff8e8'); R(x + 4, y + 1, 4, 4, '#fff8e8'); }
       else if (k.kind === 'treat') { R(x - 4, y - 4, 8, 8, '#c8813a'); R(x - 2, y - 2, 2, 2, '#8a5222'); R(x + 1, y + 1, 2, 2, '#8a5222'); }
+      else if (k.kind === 'pu' && k.pu?.startsWith('potion')) { const im = bg.current[`pu/${k.pu}`]; ctx.globalAlpha = 0.35 + Math.sin(k.t * 6) * 0.2; R(x - 11, y - 22, 22, 26, '#fff6a8'); ctx.globalAlpha = 1; if (im?.width) ctx.drawImage(im, (Math.floor(k.t * 10) % 8) * 22, 0, 22, 37, Math.round(x - 8), Math.round(y - 23), 16, 27); }
+      else if (k.kind === 'weapon' && k.wpn) { const wp = WEAPONS[k.wpn]; ctx.save(); ctx.translate(x, y - 8); ctx.rotate(Math.sin(k.t * 3) * 0.4 - 0.6); R(-2, -wp.len / 2, 4, wp.len, wp.color); R(-5, wp.len / 2 - 6, 10, 3, '#5a3e36'); R(-1, -wp.len / 2, 2, 3, '#ffffffaa'); ctx.restore(); ctx.globalAlpha = 0.5 + Math.sin(k.t * 6) * 0.3; R(x - 1, y - 30, 2, 6, '#fff'); R(x - 3, y - 28, 6, 2, '#fff'); ctx.globalAlpha = 1; }
+      else if (k.kind === 'loot' && k.loot) { const im = bg.current[`loot/${k.loot}`]; ctx.globalAlpha = 0.3 + Math.sin(k.t * 6) * 0.2; R(x - 10, y - 18, 20, 20, '#ffd23f'); ctx.globalAlpha = 1; if (im?.width) ctx.drawImage(im, Math.round(x - 11), Math.round(y - 19), 22, 22); }
       else if (k.kind === 'pu') { const im = bg.current[`pu/${k.pu}`]; ctx.globalAlpha = 0.35 + Math.sin(k.t * 6) * 0.2; R(x - 11, y - 18, 22, 22, '#fff6a8'); ctx.globalAlpha = 1; if (im?.width) ctx.drawImage(im, Math.round(x - 12), Math.round(y - 19), 24, 24); }
       else if (k.kind === 'leash') { R(x - 7, y - 6, 14, 3, '#d63b3b'); R(x + 5, y - 6, 3, 12, '#d63b3b'); R(x - 9, y - 8, 5, 7, '#aaa'); }
       else if (k.kind === 'bags') { R(x - 5, y - 7, 10, 12, '#3bb273'); R(x - 2, y - 9, 4, 3, '#2a8a57'); }
       else { R(x - 6, y - 8, 12, 14, '#ffcf5a'); R(x - 6, y - 8, 12, 3, '#e8a43a'); R(x - 2, y - 3, 4, 4, '#c8813a'); }
-      if (k.kind !== 'treat' && k.kind !== 'bone' && k.kind !== 'pu') { ctx.globalAlpha = 0.5 + Math.sin(k.t * 6) * 0.3; R(x - 1, y - 18, 2, 6, '#fff'); R(x - 3, y - 16, 6, 2, '#fff'); ctx.globalAlpha = 1; }
+      if (k.kind === 'leash' || k.kind === 'bags' || k.kind === 'treats') { ctx.globalAlpha = 0.5 + Math.sin(k.t * 6) * 0.3; R(x - 1, y - 18, 2, 6, '#fff'); R(x - 3, y - 16, 6, 2, '#fff'); ctx.globalAlpha = 1; }
     };
     const drawPlayer = () => {
       const p = g.p, x = p.x - g.cam, y = sy(p.d);
       ctx.globalAlpha = 0.35; R(x - 14, y - 2, 28, 4, '#000'); ctx.globalAlpha = 1;
       if (p.inv > 0 && Math.floor(p.inv * 12) % 2 === 0 && !p.ko) return;
       const a = art.current, flip = p.face < 0;
+      ctx.save(); if (g.pw.potion_gold) { ctx.translate(x, y); ctx.scale(1.5, 1.5); ctx.translate(-x, -y); }
       if (g.pw.star_power) { ctx.globalAlpha = 0.5; R(x - 20, y - 44 - p.z, 40, 40, ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][Math.floor(g.time * 12) % 4]); ctx.globalAlpha = 1; }
       if (g.shield > 0) { ctx.save(); ctx.strokeStyle = '#7fd7ff'; ctx.lineWidth = 2; ctx.globalAlpha = 0.7; ctx.beginPath(); ctx.ellipse(x, y - 22 - p.z, 26, 24, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       if (g.pw.speed_boots && p.walk > 0) { ctx.globalAlpha = 0.5; R(x - p.face * 26, y - 20 - p.z, 10, 2, '#fff'); R(x - p.face * 30, y - 12 - p.z, 12, 2, '#fff'); ctx.globalAlpha = 1; }
@@ -740,6 +825,14 @@ export default function YogasRevenge() {
         if (p.atk > 0) R(x + p.face * 18, y - 30 - p.z, 4, 4, '#fff');
       }
       if (saveRef.current.collar) R(x + (flip ? -10 : 6), y - 28 - p.z, 5, 2, '#5b8cff');
+      if (g.weapon) {
+        const wp = WEAPONS[g.weapon.id], mx = x + p.face * 18, my = y - 30 - p.z;
+        ctx.save(); ctx.translate(mx, my);
+        const ang = g.swing > 0 ? (p.combo === 3 ? (0.3 - g.swing) / 0.3 * Math.PI * 2 : -1.2 + (0.3 - g.swing) / 0.3 * 2.2) : -0.5;
+        ctx.rotate(p.face * ang); R(0, -2, p.face * wp.len, 4, wp.color); R(0, -2, p.face * 3, 4, '#5a3e36'); ctx.restore();
+        if (g.swing > 0) { ctx.save(); ctx.strokeStyle = '#ffffffaa'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(mx, my, wp.len, p.combo === 3 ? 0 : (p.face > 0 ? -1.2 : Math.PI - 1), p.combo === 3 ? Math.PI * 2 : (p.face > 0 ? 1 : Math.PI + 1.2)); ctx.stroke(); ctx.restore(); }
+      }
+      ctx.restore();
       if (p.ko) { ctx.fillStyle = '#fff'; ctx.font = 'bold 10px monospace'; ctx.fillText('z z z', x - 10, y - 52); }
     };
     const outline = (t: string, x: number, y: number, size: number, col: string, align: CanvasTextAlign = 'left') => { ctx.save(); ctx.font = size >= 14 ? `${Math.round(size * 1.15)}px m5x7, monospace` : `bold ${size}px monospace`; ctx.textAlign = align; ctx.lineWidth = Math.max(3, size / 4); ctx.strokeStyle = '#1b1430'; ctx.strokeText(t, x, y); ctx.fillStyle = col; ctx.fillText(t, x, y); ctx.restore(); };
@@ -751,8 +844,10 @@ export default function YogasRevenge() {
       if (lvl === 1 && g.cam < 700) { const tx = 300 - g.cam, ty = sy(0.05); R(tx - 10, ty - 14, 20, 12, '#d9a441'); R(tx + 6, ty - 20, 10, 10, '#d9a441'); R(tx + 10, ty - 16, 6, 4, '#3a2a1a'); R(tx - 8, ty - 4, 3, 4, '#d9a441'); R(tx + 4, ty - 4, 3, 4, '#d9a441'); }
       g.sniffs.forEach((k) => {
         if (k.found) return; const x = k.x - g.cam, y = sy(k.d);
+        const near = Math.abs(k.x - g.p.x) < 90;
+        if (g.lost && k.real) { R(x - 14, y - 2, 4, 2, '#3a2a1a'); R(x - 16, y - 1, 2, 2, '#3a2a1a'); }
         if (g.lost) { ctx.globalAlpha = 0.6 + Math.sin(g.time * 5) * 0.3; for (let i = 0; i < 3; i++) { R(x - 8 + i * 6, y - 4 - (i % 2) * 4, 4, 3, '#3a2a1a'); R(x - 9 + i * 6, y - 7 - (i % 2) * 4, 2, 2, '#3a2a1a'); R(x - 6 + i * 6, y - 7 - (i % 2) * 4, 2, 2, '#3a2a1a'); } R(x - 1, y - 22, 2, 2, '#fff8a8'); ctx.globalAlpha = 1; }
-        else { ctx.globalAlpha = 0.45 + g.sniffs.filter((s) => s.found).length * 0.18; squiggle(x, y - 22, 6, 6, '#c86bff'); ctx.globalAlpha = 1; }
+        else { ctx.globalAlpha = 0.45 + g.sniffs.filter((s) => s.found).length * 0.18; squiggle(x, y - 22, k.real && near ? 9 : 4, k.real && near ? 9 : 6, '#c86bff'); ctx.globalAlpha = 1; }
       });
       if (g.squirrel) { const x = g.squirrel.x - g.cam, y = sy(g.squirrel.d), hop = Math.abs(Math.sin(g.squirrel.t * 12)) * 6; R(x - 6, y - 10 - hop, 10, 7, '#b5651d'); R(x + 2, y - 14 - hop, 6, 6, '#b5651d'); R(x + 6, y - 12 - hop, 1, 1, '#111'); R(x - 12, y - 20 - hop, 7, 12, '#d9822b'); R(x - 14, y - 22 - hop, 5, 5, '#d9822b'); }
       type D = { y: number; f: () => void };
@@ -761,13 +856,21 @@ export default function YogasRevenge() {
       g.foes.forEach((e) => {
         const x = e.x - g.cam, y = sy(e.d);
         list.push({ y, f: () => {
-          if (e.hp <= 0 && !e.happy) return;
+          if (e.hp <= 0 && !e.happy && !e.flee) return;
           ctx.globalAlpha = 0.35; R(x - 12, y - 2, 24, 4, '#000'); ctx.globalAlpha = 1;
+          ctx.save();
+          const sq = e.squash ?? 0; ctx.translate(x, y - e.z); ctx.scale(1 + sq * 1.2, 1 - sq * 1.4);
+          if (e.spin) ctx.rotate((0.6 - e.spin) * 14); if (e.giggle) ctx.rotate(Math.sin(e.t * 18) * 0.25); if (e.flee && e.kind === 'rat') ctx.scale(e.flee < 0 ? -1 : 1, 1);
+          ctx.translate(-x, -(y - e.z));
           if (e.kind === 'can' || e.kind === 'bigcan') drawCan(e, x, y - e.z);
           else if (e.kind === 'tires') drawTires(e, x, y - e.z);
           else if (e.kind === 'sound') drawSound(e, x, y - e.z);
-          else if (e.kind === 'rat') sprite(e.hurt > 0 ? art.current['rat-hurt'] : art.current['rat-walk'], e.t * 10, x - 16, y - 30, e.face < 0);
-          else sprite(art.current['bird-walk'], e.t * 12, x - 16, y - 32 - e.z, e.face < 0);
+          else if (e.kind === 'rat') sprite(e.hurt > 0 ? art.current['rat-hurt'] : art.current['rat-walk'], e.t * (e.flee ? 24 : 10), x - 16, y - 30, (e.flee ? e.flee : e.face) < 0);
+          else sprite(art.current['bird-walk'], e.t * 12, x - 16, y - 32 - e.z, (e.flee ? e.flee : e.face) < 0);
+          ctx.restore();
+          if (e.bubble) { ctx.save(); ctx.strokeStyle = '#bfefff'; ctx.fillStyle = 'rgba(191,239,255,0.25)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y - e.z - 18, 22, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); R(x - 10, y - e.z - 32, 4, 4, '#ffffff'); ctx.restore(); }
+          if (e.stun > 0 && !e.giggle && (e.kind === 'can' || e.kind === 'bigcan')) { for (let i = 0; i < 3; i++) { const a = g.time * 5 + i * 2.1; R(x + Math.cos(a) * 12 - 1, y - e.z - 42 + Math.sin(a) * 3, 3, 3, '#ffe14d'); } }
+          if ((e.kind === 'tires' || e.kind === 'sound') && !e.happy && e.weak) { for (let i = 0; i < 4; i++) { const a = g.time * 6 + i * 1.6; R(x + Math.cos(a) * 20, y - e.z - 76 + Math.sin(a) * 4, 4, 4, '#ffe14d'); } }
           if ((e.kind === 'tires' || e.kind === 'sound') && !e.happy) { R(x - 30, y - 94, 60, 5, '#000'); R(x - 29, y - 93, 58 * Math.max(0, e.hp / e.max), 3, '#ff4d6d'); }
         } });
       });
@@ -801,17 +904,18 @@ export default function YogasRevenge() {
       for (let i = 0; i < p.max; i++) { const hx = 42 + i * 11, on = i < p.hp ? '#ff4d6d' : '#55476b'; R(hx, 23, 9, 7, on); R(hx + 1, 21, 3, 2, on); R(hx + 5, 21, 3, 2, on); R(hx + 2, 30, 5, 2, on); }
       R(42, 35, 128, 4, '#000'); R(42, 35, 128 * (p.superM / 100), 4, p.superM >= 100 ? (Math.floor(g.time * 8) % 2 ? '#7fd7ff' : '#ffffff') : '#5b8cff');
       R(42, 42, 128, 3, '#000'); R(42, 42, 128 * (lv >= 10 ? 1 : (secs % DOG_LEVEL_SECS) / DOG_LEVEL_SECS), 3, '#ffd23f');
-      outline(`${s.points} PP`, 182, 18, 11, '#ffd23f');
+      outline(`${s.points} coins`, 182, 18, 11, '#ffd23f');
       let hx2 = 236;
       const badge = (id: PuId, label: string) => { const im = bg.current[`pu/${id}`]; R(hx2, 6, 22, 22, '#1b1430'); if (im?.width) ctx.drawImage(im, hx2 + 1, 7, 20, 20); outline(label, hx2 + 11, 36, 9, '#ffffff', 'center'); hx2 += 26; };
       (Object.keys(g.pw) as PuId[]).forEach((id) => badge(id, `${Math.ceil(g.pw[id] ?? 0)}`));
       if (g.shield > 0) badge('shield_pickup', `x${g.shield}`);
       if (g.lives > 0) badge('oneup_sprout', `x${g.lives}`);
+      if (g.weapon) { const wp = WEAPONS[g.weapon.id]; R(hx2, 6, 22, 22, '#1b1430'); ctx.save(); ctx.translate(hx2 + 11, 17); ctx.rotate(-0.7); R(-2, -9, 4, 18, wp.color); ctx.restore(); outline(`${g.weapon.uses}`, hx2 + 11, 36, 9, '#ffffff', 'center'); hx2 += 26; }
       if (g.hitT > 0 && g.hits > 1) outline(`${g.hits} HITS`, 182, 40, 18, '#7dff6a');
       if (g.dash > 0) outline(`TREAT DASH ${Math.ceil(g.dash)}s   ${g.dashPts} treats`, W / 2, 70, 15, '#ffffff', 'center');
       const st2 = L.stages[g.stage];
       if (!g.active && st2 && st2.kind !== 'home' && !g.lock && Math.floor(g.time * 2) % 2 === 0 && g.p.x < st2.x - 80) outline('GO >', W - 70, 112, 18, '#ffe14d');
-      if (g.bannerT > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, g.bannerT * 2); outline(g.banner, W / 2, 94, 15, '#ffffff', 'center'); ctx.restore(); }
+      if (g.bannerT > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, g.bannerT * 2); const pop = 1 + Math.max(0, g.bannerT - (g.bannerT > 1.8 ? 1.8 : 99)) * 1.5; ctx.translate(W / 2, 94 + Math.sin(g.time * 6) * 2); ctx.scale(pop, pop); ctx.translate(-W / 2, -94); outline(g.banner, W / 2, 94, 15, '#ffffff', 'center'); ctx.restore(); }
       if (lvl === 0 && g.stage === 0) ['leash', 'bags', 'treats'].forEach((it, i) => { R(W - 92 + i * 28, 8, 24, 24, '#1b1430'); R(W - 91 + i * 28, 9, 22, 22, g.bag.includes(it) ? '#3b8f5a' : '#2d2350'); ctx.fillStyle = '#fff'; ctx.font = '8px monospace'; ctx.fillText(it === 'bags' ? 'bags' : it.slice(0, 5), W - 90 + i * 28, 24); });
       // level progress along the road
       const prog = Math.min(1, g.p.x / L.end); R(W / 2 - 60, H - 8, 120, 3, '#00000066'); R(W / 2 - 60, H - 8, 120 * prog, 3, '#ffe14d'); R(W / 2 - 61 + 120 * prog, H - 11, 3, 9, '#ffffff');
@@ -826,14 +930,20 @@ export default function YogasRevenge() {
 
     api.current.act = (k: string) => {
       const p = g.p; if (paused.current || p.ko || p.chase > 0) return;
-      if (k === 'bite') { if (p.atk > 0.08) return; p.combo = g.time - p.lastAtk < 0.55 ? (p.combo % 3) + 1 : 1; p.lastAtk = g.time; p.atk = 0.32; sfx.click(); }
-      else if (k === 'jump') { if (p.z > 0 && !(g.pw.double_jump_feather && g.jumps < 2)) return; g.jumps = p.z > 0 ? g.jumps + 1 : 1; p.vz = (dog === 'spot' ? 270 : 230) * (g.pw.double_jump_feather ? 1.15 : 1); sfx.boing(); }
+      if (k === 'bite') { if (p.atk > 0.08) return; p.combo = g.time - p.lastAtk < 0.55 ? (p.combo % 3) + 1 : 1; p.lastAtk = g.time; p.atk = 0.32; sfx.click(); if (g.weapon) { g.swing = 0.3; sfx.whoosh(); g.weapon.uses -= 1; if (g.weapon.uses <= 0) { addFx({ x: p.x, y: sy(p.d) - 50, ttl: 1, kind: 'text', text: `${WEAPONS[g.weapon.id].name} broke! Boing!`, color: '#ffffff', vy: -16 }); addFx({ x: p.x + p.face * 20, y: sy(p.d) - 24, ttl: 0.5, kind: 'poof' }); g.weapon = null; } } }
+      else if (k === 'jump') { if (p.z > 0 && !(g.pw.double_jump_feather && g.jumps < 2)) return; g.jumps = p.z > 0 ? g.jumps + 1 : 1; p.vz = (dog === 'spot' ? 270 : 230) * (g.pw.double_jump_feather ? 1.15 : 1) * (g.pw.potion_lime ? 1.35 : 1); sfx.boing(); }
       else if (k === 'bark') { if (p.barkCd > 0) return; p.barkCd = barkCdMax(); const big = bigBark(); g.shots.push({ x: p.x + p.face * 18, d: p.d, z: 0, vx: p.face * 230, ttl: big ? 1.4 : 0.9, kind: 'bark', big }); sfx.horn(); addFx({ x: p.x + p.face * 22, y: sy(p.d) - 44, ttl: 0.6, kind: 'text', text: big ? 'AROOO!' : 'WOOF!', color: '#ffffff', vy: -20 }); }
       else if (k === 'super') {
         if (p.superM < 100) return; p.superM = 0; g.shake = 10; sfx.chime();
         addFx({ x: p.x, y: sy(p.d) - 54, ttl: 1, kind: 'text', text: 'ZOOMIES!', color: '#7fd7ff', vy: -10 });
         g.foes.forEach((e) => { if (e.x > g.cam - 20 && e.x < g.cam + W + 20 && e.hp > 0) { addFx({ x: e.x, y: sy(e.d), ttl: 0.6, kind: 'bolt' }); hitFoe(e, 4 * power(), 16, e.x > p.x ? 1 : -1); } });
       }
+    };
+    api.current.use = (id: ItemId) => {
+      if (paused.current || g.p.ko) return;
+      const s = saveRef.current, have = s.inv?.[id] ?? 0; if (have <= 0) return;
+      patch({ inv: { ...s.inv, [id]: have - 1 } });
+      if (id.startsWith('w_')) equip(id.slice(2) as WeaponId); else usePu(id as PuId);
     };
     api.current.dash = (yes: boolean) => {
       setOffer(false); paused.current = false;
@@ -883,7 +993,7 @@ export default function YogasRevenge() {
   const openPicker = (lvl: number) => { setPickFor(lvl); setScreen('pick'); };
 
   return (
-    <div className="yr-root">
+    <div className="yr-root" onPointerDownCapture={(e) => { const b = (e.target as HTMLElement).closest('button'); if (b && !b.classList.contains('yr-btn') && !b.classList.contains('yr-bone') && !b.disabled) sfx.click(); }}>
       {screen === 'play' && (
         <>
           <canvas ref={cv} width={W} height={H} className="yr-canvas" aria-label="Yoga's Revenge game" />
@@ -901,13 +1011,25 @@ export default function YogasRevenge() {
             <button type="button" className={`yr-btn yr-bark${p.barkCd > 0 ? ' cool' : ''}`} onPointerDown={(e) => { e.preventDefault(); api.current.act?.('bark'); }}>Bark</button>
             <button type="button" className={`yr-btn yr-super${p.superM >= 100 ? ' ready' : ''}`} onPointerDown={(e) => { e.preventDefault(); api.current.act?.('super'); }}>Zoomies</button>
           </div>
+          <div className="yr-hotbar" aria-label="Inventory">
+            {Array.from({ length: 9 }, (_, i) => {
+              const owned = STORE.filter((it) => (save.inv?.[it.id] ?? 0) > 0), it = owned[i];
+              return (
+                <button key={i} type="button" className="yr-slot" disabled={!it} aria-label={it ? `Use ${it.name}, ${save.inv?.[it.id]} left` : 'Empty slot'} onPointerDown={(e) => { e.preventDefault(); if (it) { api.current.use?.(it.id); setSaveState(readSave(studentId)); } }}>
+                  {it && (it.id.startsWith('w_') ? <i className={`yr-wpn ${it.id}`} /> : <img src={itemImg(it.id)} alt="" className={it.id.startsWith('potion') ? 'yr-potion-icon' : ''} />)}
+                  {it && <b>{save.inv?.[it.id]}</b>}
+                </button>
+              );
+            })}
+          </div>
           <p className="yr-keys">Keys: arrows move, Z bite, X jump, C bark, V zoomies</p>
         </>
       )}
 
       {screen === 'title' && (
         <div className="yr-menu">
-          <h1 className="yr-logo">YOGA'S<br />REVENGE</h1>
+          <h1 className="yr-logo" aria-label="Yoga's Revenge">{["YOGA'S", 'REVENGE'].map((wd, r) => <span key={wd} className="yr-logo-row">{wd.split('').map((c, i) => <span key={i} className="yr-letter" style={{ animationDelay: `${(r * 6 + i) * 0.07}s` }}>{c}</span>)}</span>)}</h1>
+          <div className="yr-run-dog" aria-hidden><span className="yr-dog-face" style={{ background: DOGS.yoga.color }}><i className="yr-blaze" /></span><span className="yr-chase-can" /></div>
           <p className="yr-tag">{allDone ? 'You beat every level so far! Replay any level to grow your dogs to Master.' : `Level ${curLvl + 1}: ${LEVELS[curLvl].name}`}</p>
           <div className="yr-mode-pick" role="radiogroup" aria-label="Mode">
             <button type="button" role="radio" aria-checked={!playMode} className={!playMode ? 'on' : ''} onClick={() => setPlayMode(false)}>Learn mode<small>A question before each fight</small></button>
@@ -919,7 +1041,7 @@ export default function YogasRevenge() {
             <div className="yr-row">
               <button type="button" className="yr-small" onClick={() => setScreen('levels')}>Levels</button>
               <button type="button" className="yr-small" onClick={() => { setStatDog(save.levelDog ?? 'yoga'); setScreen('stats'); }}>My dogs</button>
-              <button type="button" className="yr-small" onClick={() => setScreen('shop')}>Treat shop ({save.points} PP)</button>
+              <button type="button" className="yr-small" onClick={() => setScreen('shop')}>Store ({save.points} coins)</button>
               <button type="button" className="yr-small" onClick={() => navigate('/student/games')}>Leave</button>
             </div>
           </div>
@@ -981,7 +1103,7 @@ export default function YogasRevenge() {
               <span className="yr-xp big" aria-label={`Dog level ${lv} of 10`}><span style={{ width: `${lv >= 10 ? 100 : ((secs % DOG_LEVEL_SECS) / DOG_LEVEL_SECS) * 100}%` }} /></span>
               <small>{lv >= 10 ? 'Master dog! The top level.' : `${Math.ceil((DOG_LEVEL_SECS - (secs % DOG_LEVEL_SECS)) / 60)} more minutes to level ${lv + 1}${nextPerk ? `: ${nextPerk.text}` : ''}`}</small>
               <div className="yr-stats">
-                {[['Minutes played', mins], ['Levels beaten', st.levels], ['Monsters beaten', st.monsters], ['Trash cans', st.cans], ['Bosses', st.bosses], ['Treats', st.treats], ['Power ups', st.powerups], ['Best combo', st.best ? `${st.best} hits` : '-']].map(([k, v]) => <div key={k as string}><b>{v}</b><small>{k}</small></div>)}
+                {[['XP (all dogs)', save.xp ?? 0], ['Socks stolen', save.socks ?? 0], ['Minutes played', mins], ['Levels beaten', st.levels], ['Monsters beaten', st.monsters], ['Trash cans', st.cans], ['Bosses', st.bosses], ['Treats', st.treats], ['Power ups', st.powerups], ['Best combo', st.best ? `${st.best} hits` : '-']].map(([k, v]) => <div key={k as string}><b>{v}</b><small>{k}</small></div>)}
               </div>
               <div className="yr-power">
                 <small>Speed {Math.round(DOGS[id].speed * (1 + lv * 0.02) * 100)}% · Strength {Math.round(DOGS[id].power * (1 + lv * 0.05) * 100)}%</small>
@@ -995,12 +1117,22 @@ export default function YogasRevenge() {
 
       {screen === 'shop' && (
         <div className="yr-menu">
-          <h2 className="yr-h">Treat shop</h2>
-          <p className="yr-tag">You have {save.points} puppy points. Collect treats from beaten monsters and the Treat Dash.</p>
+          <h2 className="yr-h">Store</h2>
+          <p className="yr-tag">You have <b className="yr-coins">{save.points} coins</b>. XP earns coins: every 10 XP is 1 coin (you have {save.xp ?? 0} XP). Treats and loot give coins too. Power ups go in your inventory bar to use in battles.</p>
+          <h3 className="yr-sub">Power ups and swords</h3>
+          <div className="yr-store">
+            {STORE.map((it) => (
+              <button key={it.id} type="button" className="yr-item" disabled={save.points < it.cost} onClick={() => { const s = saveRef.current; if (s.points < it.cost) return; patch({ points: s.points - it.cost, inv: { ...s.inv, [it.id]: (s.inv?.[it.id] ?? 0) + 1 } }); sfx.coin(); }}>
+                {it.id.startsWith('w_') ? <i className={`yr-wpn ${it.id}`} /> : <img src={itemImg(it.id)} alt="" className={it.id.startsWith('potion') ? 'yr-potion-icon' : ''} />}
+                <b>{it.name}</b><span className="yr-cost">{it.cost} coins</span>{(save.inv?.[it.id] ?? 0) > 0 && <small>You have {save.inv?.[it.id]}</small>}
+              </button>
+            ))}
+          </div>
+          <h3 className="yr-sub">Upgrades (keep forever)</h3>
           <div className="yr-dogs">
             {SHOP.map((it) => (
               <button key={it.k} type="button" className="yr-dog" disabled={save.points < it.cost || save.up[it.k] >= it.max} onClick={() => buy(it.k)}>
-                <b>{it.name}</b><small>{it.desc}. Level {save.up[it.k]} of {it.max}</small><span className="yr-cost">{save.up[it.k] >= it.max ? 'Maxed' : `${it.cost} PP`}</span>
+                <b>{it.name}</b><small>{it.desc}. Level {save.up[it.k]} of {it.max}</small><span className="yr-cost">{save.up[it.k] >= it.max ? 'Maxed' : `${it.cost} coins`}</span>
               </button>
             ))}
           </div>
@@ -1020,18 +1152,13 @@ export default function YogasRevenge() {
         </div>
       )}
 
-      {talk && (
-        <div className="yr-talk" onClick={() => { if (talk.i < talk.lines.length - 1) setTalk({ ...talk, i: talk.i + 1 }); else { const t = talk; setTalk(null); t.then?.(); } }}>
-          {talk.portrait && <img src={talk.portrait} alt="" className="yr-portrait" />}
-          <div className="yr-talk-box"><b>{talk.who}</b><p>{talk.lines[talk.i]}</p><small>Tap to continue</small></div>
-        </div>
-      )}
+      {talk && <TalkBox talk={talk} onNext={() => { if (talk.i < talk.lines.length - 1) setTalk({ ...talk, i: talk.i + 1 }); else { const t = talk; setTalk(null); t.then?.(); } }} />}
 
       {offer && (
         <div className="yr-overlay">
           <div className="yr-card">
             <h3>Treat Dash!</h3>
-            <p>Bonus round: grab as many treats as you can in 1 minute. Each one is a puppy point for the Treat shop.</p>
+            <p>Bonus round: grab as many treats as you can in 1 minute. Each one is a coin for the Store.</p>
             <div className="yr-row">
               <button type="button" className="yr-big" onClick={() => api.current.dash?.(true)}>Let's go!</button>
               <button type="button" className="yr-small" onClick={() => api.current.dash?.(false)}>Skip it</button>
@@ -1075,6 +1202,31 @@ function Clicker({ title, onDone }: { title: string; onDone: () => void }) {
         </button>
         <div className="yr-meter"><span style={{ width: `${(Math.min(n, need) / need) * 100}%` }} /></div>
         {done && <div className="yr-confetti" aria-hidden>{Array.from({ length: 24 }, (_, i) => <i key={i} style={{ left: `${(i * 37) % 100}%`, animationDelay: `${(i % 6) * 0.05}s`, background: ['#ff5d8f', '#ffd23f', '#3bceac', '#5b8cff'][i % 4] }} />)}</div>}
+      </div>
+    </div>
+  );
+}
+
+// The talk bubble: text types in letter by letter with little blips; a tap finishes the line, the next tap moves on.
+type TalkState = { who: string; lines: string[]; i: number; portrait?: string; quest?: boolean };
+function TalkBox({ talk, onNext }: { talk: TalkState; onNext: () => void }) {
+  const line = talk.lines[talk.i];
+  const [n, setN] = useState(0);
+  useEffect(() => { setN(0); }, [line]);
+  useEffect(() => {
+    if (n >= line.length) return;
+    const t = window.setTimeout(() => { setN((v) => v + 1); if (n % 3 === 0 && line[n] !== ' ') sfx.tick(); }, 26);
+    return () => window.clearTimeout(t);
+  }, [n, line]);
+  const done = n >= line.length;
+  return (
+    <div className={`yr-talk${talk.quest ? ' yr-quest' : ''}`} onClick={() => (done ? onNext() : setN(line.length))}>
+      {talk.portrait && <img src={talk.portrait} alt="" className="yr-portrait" />}
+      <div className="yr-talk-box" key={talk.who}>
+        <span className="yr-name">{talk.who}</span>
+        <p aria-label={line}>{line.slice(0, n)}<span className="yr-caret" aria-hidden>{done ? '' : '|'}</span></p>
+        {done && <img src="/games/yoga/ui/waiting.png" alt="Tap to continue" className="yr-wait" />}
+        {talk.quest && <small className="yr-qstep">{talk.i + 1} / {talk.lines.length}</small>}
       </div>
     </div>
   );

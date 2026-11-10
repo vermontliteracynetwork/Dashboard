@@ -11765,3 +11765,54 @@ button.nqs-step-head { cursor: pointer; }
 .yr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
 .yr-stats div { background: #1b1430; border-radius: 12px; padding: 10px; display: grid; } .yr-stats b { font-size: 26px; color: #ffd23f; } .yr-stats small { opacity: 0.85; }
 .yr-power ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; } .yr-power li { opacity: 0.45; } .yr-power li.on { opacity: 1; color: #9cf6ff; } .yr-power li.on::before { content: '✓ '; }
+
+/* Build Queue 540, 541, 542: lots of motion for Yoga's Revenge: bouncing title letters, a dog chasing a bin across the
+   menu, menus that slide in, typing talk bubbles in the Bubble Talk style, quest scrolls, the inventory bar and the store. */
+.yr-logo-row { display: block; }
+.yr-letter { display: inline-block; animation: yrBounce 1.6s ease-in-out infinite; }
+@keyframes yrBounce { 0%, 60%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-10px) rotate(-4deg); } }
+.yr-run-dog { position: relative; width: min(420px, 90%); height: 40px; overflow: hidden; }
+.yr-run-dog .yr-dog-face { position: absolute; width: 34px; height: 34px; bottom: 0; animation: yrRun 5s linear infinite; }
+.yr-chase-can { position: absolute; bottom: 0; width: 22px; height: 30px; background: #55595f; border: 2px solid #1e1f22; border-radius: 3px 3px 5px 5px; animation: yrRun 5s linear infinite; animation-delay: -0.6s; }
+.yr-chase-can::before { content: ''; position: absolute; left: -3px; right: -3px; top: -6px; height: 5px; background: #3d4045; border: 2px solid #1e1f22; transform-origin: right; animation: yrLid 0.3s ease-in-out infinite alternate; }
+@keyframes yrRun { from { left: -60px; } to { left: 100%; } }
+@keyframes yrLid { to { transform: rotate(-25deg); } }
+.yr-menu > * { animation: yrSlide 0.45s cubic-bezier(.2,1.3,.4,1) both; }
+.yr-menu > *:nth-child(2) { animation-delay: 0.06s; } .yr-menu > *:nth-child(3) { animation-delay: 0.12s; } .yr-menu > *:nth-child(4) { animation-delay: 0.18s; } .yr-menu > *:nth-child(5) { animation-delay: 0.24s; } .yr-menu > *:nth-child(n+6) { animation-delay: 0.3s; }
+@keyframes yrSlide { from { transform: translateY(22px) scale(0.96); opacity: 0; } }
+.yr-big, .yr-small, .yr-dog, .yr-item, .yr-tab, .yr-mode-pick button, .yr-pill { transition: transform 0.08s, filter 0.15s; }
+.yr-big:active, .yr-small:active, .yr-dog:active, .yr-item:active, .yr-tab:active, .yr-mode-pick button:active, .yr-pill:active { transform: scale(0.94); }
+@media (hover: hover) { .yr-big:hover, .yr-small:hover, .yr-dog:hover:not(:disabled), .yr-item:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-2px); } }
+.yr-talk-box { position: relative; background: #e3f4ff; border-color: #1b4e7a; transform: skewX(-4deg); padding-top: 22px; animation: yrTalkIn 0.3s cubic-bezier(.2,1.4,.4,1); }
+.yr-talk-box > * { transform: skewX(4deg); }
+.yr-name { position: absolute; top: -18px; left: 22px; background: url('/games/yoga/ui/name.png') center / 100% 100% no-repeat; color: #0e4b80; font: 900 16px ui-monospace, monospace; padding: 8px 22px; min-width: 120px; text-transform: uppercase; }
+.yr-talk-box p { color: #0e3a63; font-weight: 800; min-height: 2.7em; }
+.yr-caret { animation: yrBlink 0.5s steps(1) infinite; }
+@keyframes yrBlink { 50% { opacity: 0; } }
+.yr-wait { position: absolute; right: 14px; bottom: -14px; width: 70px; animation: yrBob 0.8s ease-in-out infinite; }
+@keyframes yrBob { 50% { transform: skewX(4deg) translateY(-5px); } }
+@keyframes yrTalkIn { from { transform: skewX(-4deg) translateY(30px) scale(0.9); opacity: 0; } }
+.yr-quest { inset: 0; align-items: center; justify-content: center; background: rgba(27, 20, 48, 0.82); }
+.yr-quest .yr-talk-box { background: #fff3d6; border-color: #8a5a2b; max-width: 640px; box-shadow: 0 8px 0 #8a5a2b, 0 0 0 6px #e8c98a inset; }
+.yr-quest .yr-name { background: #8a5a2b; color: #fff3d6; border-radius: 8px; text-transform: none; font-size: 18px; }
+.yr-quest .yr-talk-box p { color: #4a2b14; font-size: 22px; }
+.yr-qstep { position: absolute; left: 16px; bottom: 6px; color: #8a5a2b; font-weight: 800; }
+.yr-hotbar { position: fixed; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 3; display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; width: min(440px, calc(100vw - 420px)); min-width: 300px; aspect-ratio: 332 / 44; padding: 1.2% 1.5%; background: url('/games/yoga/ui/hotbar.png') center / 100% 100% no-repeat; image-rendering: pixelated; }
+@media (max-width: 760px) { .yr-hotbar { bottom: 180px; } }
+.yr-slot { position: relative; border: 0; background: transparent; padding: 0; display: grid; place-items: center; touch-action: none; min-height: 34px; }
+.yr-slot:active:not(:disabled) { transform: scale(0.85); }
+.yr-slot img { width: 78%; height: 78%; object-fit: contain; image-rendering: pixelated; }
+.yr-slot b { position: absolute; right: 2px; bottom: 0; font-size: 11px; color: #fff; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; }
+.yr-potion-icon { object-fit: cover !important; object-position: left center; aspect-ratio: 22 / 37; width: auto !important; }
+.yr-wpn { display: block; width: 6px; height: 70%; border-radius: 3px; transform: rotate(35deg); border: 2px solid #1b1430; }
+.yr-wpn.w_stick { background: #8a5a2b; } .yr-wpn.w_foam { background: #ff6fb5; } .yr-wpn.w_noodle { background: #3bceac; }
+.yr-sub { margin: 4px 0 0; color: #9cf6ff; font-size: 18px; }
+.yr-coins { color: #ffd23f; }
+.yr-store { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; width: 100%; }
+.yr-item { display: grid; justify-items: center; gap: 4px; padding: 10px 8px; border-radius: 14px; border: 3px solid #4a3a80; background: #2d2350; color: #fff; font: inherit; min-height: 120px; }
+.yr-item img { width: 40px; height: 40px; image-rendering: pixelated; object-fit: contain; animation: yrBob2 1.4s ease-in-out infinite; }
+.yr-item .yr-wpn { height: 38px; width: 8px; }
+.yr-item b { font-size: 13px; } .yr-item small { color: #9cf6ff; font-size: 11px; }
+.yr-item:disabled { opacity: 0.45; }
+@keyframes yrBob2 { 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .yr-letter, .yr-run-dog *, .yr-menu > *, .yr-caret, .yr-wait, .yr-talk-box, .yr-item img { animation: none !important; } }
