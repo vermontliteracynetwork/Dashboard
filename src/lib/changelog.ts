@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-yoga-records",
+    date: "2026-11-10",
+    icon: "🏆",
+    title: "Yoga's Revenge: beat your own record",
+    body: "Every game starts fresh at Level 1. Win mini battles and the main battle to earn XP, then try to beat your best score on My records. New look too: a paper menu, a Help book that shows every move, a joystick and one big Jump button, things to jump over (rocks too), Zoomies for super speed, and new sounds. Drag the Giggle Potion onto monsters to freeze them laughing!",
+  },
+  {
     id: "2026-11-10-yoga-store",
     date: "2026-11-10",
     icon: "🎒",

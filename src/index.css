@@ -11874,3 +11874,117 @@ button.nqs-step-head { cursor: pointer; }
 .yr-note { opacity: 0.7; }
 .yr-learn { background: #3bceac; }
 .yr-listen { position: absolute; right: 18px; bottom: 6px; font-size: 18px; animation: yrPulse 0.8s ease-in-out infinite; }
+
+/* Build Queue 549-553: Yoga's Revenge GUI overhaul. Full screen picture, a knob bottom left, one big Jump bottom right,
+   the bag bottom middle, a gear for Settings, a clearer pixel font (Pixelify Sans), standing dog previews. */
+.yr-root { font-family: 'Pixelify Sans', ui-monospace, monospace; }
+.yr-root button, .yr-root small, .yr-root b, .yr-root p, .yr-root h1, .yr-root h2, .yr-root h3 { font-family: 'Pixelify Sans', ui-monospace, monospace; }
+.yr-play { position: fixed; inset: 0; display: block; background: #000; }
+.yr-play .yr-canvas { position: absolute; inset: 0; width: 100vw; height: 100dvh; }
+.yr-gear { position: fixed; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 6; width: 54px; height: 54px; border-radius: 16px; border: 3px solid #120c24; background: #ffd23f; color: #120c24; display: grid; place-items: center; box-shadow: 0 4px 0 #120c24; }
+.yr-gear:active { transform: translateY(3px); box-shadow: 0 1px 0 #120c24; }
+.yr-play .yr-mode { position: fixed; top: 18px; right: 74px; z-index: 6; }
+.yr-knob-base { position: fixed; left: max(22px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); width: 150px; height: 150px; border-radius: 50%; background: radial-gradient(circle, #ffffff22, #ffffff10 60%, #00000030); border: 3px solid #ffffff66; z-index: 5; touch-action: none; box-shadow: inset 0 0 0 10px #00000022; }
+.yr-knob-base::before, .yr-knob-base::after { content: ''; position: absolute; top: 50%; width: 0; height: 0; border: 9px solid transparent; transform: translateY(-50%); opacity: 0.7; }
+.yr-knob-base::before { left: 8px; border-right-color: #fff; } .yr-knob-base::after { right: 8px; border-left-color: #fff; }
+.yr-knob-top { position: absolute; left: 41px; top: 41px; width: 62px; height: 62px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, #c9c2e8); border: 3px solid #120c24; box-shadow: 0 5px 0 #120c24; pointer-events: none; }
+.yr-jumpbtn { position: fixed; right: max(22px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); z-index: 5; width: 132px; height: 132px; border-radius: 50%; border: 4px solid #120c24; background: radial-gradient(circle at 35% 30%, #8fe3ff, #3a9fd8); color: #120c24; display: grid; place-items: center; align-content: center; gap: 2px; box-shadow: 0 7px 0 #120c24; touch-action: none; }
+.yr-jumpbtn span { font-weight: 700; font-size: 28px; letter-spacing: 1px; } .yr-jumpbtn small { font-size: 13px; opacity: 0.8; }
+.yr-jumpbtn:active { transform: translateY(5px); box-shadow: 0 2px 0 #120c24; }
+.yr-play .yr-hotbar { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 5; width: min(420px, calc(100vw - 380px)); min-width: 280px; grid-template-columns: repeat(7, 1fr); aspect-ratio: auto; height: 64px; padding: 6px 8px; background: #120c24cc; border: 3px solid #ffd23f; border-radius: 16px; }
+.yr-play .yr-slot { background: #2d2350; border-radius: 10px; border: 2px solid #4a3f72; }
+.yr-pie-opt.off { opacity: 0.4; filter: grayscale(1); }
+.yr-title { position: fixed; inset: 0; overflow: auto; display: grid; justify-items: center; align-content: center; gap: 14px; padding: 24px 16px; text-align: center; background: linear-gradient(#0000 40%, #120c24ee 88%), url('/games/yoga/autumn-4_forest.png') center bottom / auto 70% repeat-x, url('/games/yoga/autumn-3_hills.png') center bottom / auto 80% repeat-x, url('/games/yoga/autumn-2_mountains.png') center bottom / auto 90% repeat-x, url('/games/yoga/autumn-1_sky.png') center / cover; image-rendering: pixelated; }
+.yr-title .yr-gear { position: absolute; }
+.yr-title .yr-logo { font-family: 'Pixelify Sans', monospace; font-weight: 700; font-size: clamp(54px, 11vw, 104px); color: #ffd23f; text-shadow: 4px 4px 0 #b8541f, 8px 8px 0 #120c24; }
+.yr-hero { height: auto; } .yr-hero canvas { display: block; }
+.yr-title-card { display: grid; gap: 10px; justify-items: center; background: #120c24d9; border: 3px solid #ffd23f; border-radius: 20px; padding: 16px 22px; min-width: min(360px, 90vw); }
+.yr-lvlname { font-size: 20px; color: #ffe9a8; }
+.yr-title .yr-big { min-width: 240px; font-family: 'Pixelify Sans', monospace; font-weight: 700; font-size: 26px; }
+.yr-title .yr-small { font-family: 'Pixelify Sans', monospace; font-weight: 600; }
+.yr-pickscreen .yr-h { font-size: 40px; font-family: 'Pixelify Sans', monospace; font-weight: 700; }
+.yr-dogrow { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 1000px; }
+.yr-dogcard { display: grid; justify-items: center; gap: 2px; width: 172px; padding: 6px 6px 12px; border-radius: 18px; border: 3px solid #ffd23f; background: #120c24d9; color: #fff; }
+.yr-dogcard b { font-size: 22px; } .yr-dogcard em { font-style: normal; background: #5b8cff; border-radius: 8px; padding: 1px 8px; font-weight: 600; } .yr-dogcard em.yr-master { background: #ffd23f; color: #120c24; }
+.yr-dogcard.locked { border-color: #4a3f72; opacity: 0.85; } .yr-dogcard.locked small { color: #ffd23f; font-size: 14px; font-weight: 600; }
+.yr-dogcard:not(:disabled):active { transform: scale(0.96); }
+.yr-preview { image-rendering: pixelated; max-width: 100%; height: auto; } .yr-preview.locked { filter: brightness(0) opacity(0.55); }
+.yr-panel { width: min(440px, 100%); max-height: 90dvh; overflow: auto; background: #1b1430; color: #fff; border: 4px solid #ffd23f; border-radius: 22px; padding: 18px; display: grid; gap: 12px; box-shadow: 0 10px 0 #0b0716; animation: yrIn 0.2s ease-out; font-family: 'Pixelify Sans', monospace; }
+.yr-panel.wide { width: min(720px, 100%); }
+.yr-panel h3 { margin: 0; text-align: center; font-size: 34px; color: #ffd23f; font-weight: 700; }
+.yr-panel .yr-row .yr-small { flex: 1; }
+.yr-setrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 18px; background: #2d2350; border-radius: 14px; padding: 10px 14px; }
+.yr-seg { display: flex; border: 3px solid #120c24; border-radius: 12px; overflow: hidden; }
+.yr-seg button { min-height: 44px; min-width: 80px; border: 0; background: #4a3f72; color: #fff; font-weight: 700; font-size: 16px; }
+.yr-seg button.on { background: #ffd23f; color: #120c24; } .yr-seg button:disabled { opacity: 0.45; }
+.yr-quit { background: #ff8a8a !important; }
+.yr-panel .yr-coinbig { justify-self: center; font-family: 'Pixelify Sans', monospace; font-weight: 700; font-size: 38px; }
+.yr-panel .yr-store { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+.yr-panel .yr-item { min-height: 112px; font-family: 'Pixelify Sans', monospace; }
+.yr-up { font-size: 22px; color: #9cf6ff; }
+.yr-perks { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 15px; } .yr-perks li { opacity: 0.45; } .yr-perks li.on { opacity: 1; color: #9cf6ff; }
+.yr-talk-box p, .yr-quest .yr-talk-box p { font-family: 'Pixelify Sans', monospace; font-weight: 600; font-size: 24px; }
+.yr-name { font-family: 'Pixelify Sans', monospace !important; font-weight: 700 !important; }
+.yr-play ~ .yr-talk, .yr-talk { z-index: 20; }
+@media (orientation: portrait) { .yr-talk { top: auto; bottom: 180px; } }
+
+/* Build Queue 555-556: Yoga's Revenge menus on her Paper UI pack (paper panels, ribbon headers, the green book). */
+.yr-root { --yr-paper: #ecdcbc; --yr-paper2: #d9c49c; --yr-ink: #4a3426; --yr-green: #1f8a5b; --yr-green2: #13583a; }
+.yr-corner { position: fixed; top: max(10px, env(safe-area-inset-top)); right: max(10px, env(safe-area-inset-right)); z-index: 6; display: flex; gap: 10px; }
+.yr-root .yr-corner .yr-gear { position: static; background: var(--yr-paper); color: var(--yr-ink); border-color: var(--yr-ink); box-shadow: 0 4px 0 var(--yr-ink); }
+.yr-bookbtn { width: 54px; height: 54px; padding: 0; border: 0; background: none; display: grid; place-items: center; filter: drop-shadow(0 4px 0 #0006); }
+.yr-bookbtn img { width: 46px; height: 58px; image-rendering: pixelated; transition: transform 0.12s; }
+.yr-bookbtn:active img { transform: translateY(3px) rotate(-4deg); }
+.yr-root .yr-panel { background: none; color: var(--yr-ink); border: 34px solid transparent; border-image: url('/games/yoga/ui/paper-panel.png') 48 fill / 34px stretch; border-radius: 0; box-shadow: none; padding: 4px 6px; filter: drop-shadow(0 10px 0 #0005); image-rendering: pixelated; }
+.yr-root .yr-panel h3:not(.yr-ribbon) { color: var(--yr-ink); }
+.yr-root .yr-panel p, .yr-root .yr-panel small, .yr-root .yr-panel .yr-note { color: var(--yr-ink); }
+.yr-ribbon { justify-self: center; margin: -6px 0 2px !important; width: min(340px, 96%); height: 76px; display: grid; place-items: center; padding-bottom: 8px; background: url('/games/yoga/ui/paper-ribbon.png') center / 100% 100% no-repeat; image-rendering: pixelated; color: var(--yr-ink) !important; font-size: 30px !important; text-shadow: none; }
+.yr-root .yr-big { background: var(--yr-green); color: var(--yr-paper); border: 4px solid var(--yr-green2); box-shadow: 0 6px 0 var(--yr-green2); border-radius: 12px; text-shadow: 2px 2px 0 var(--yr-green2); }
+.yr-root .yr-small { background: var(--yr-paper); color: var(--yr-ink); border: 3px solid var(--yr-ink); box-shadow: 0 4px 0 var(--yr-ink); border-radius: 10px; }
+.yr-root .yr-quit { background: #e8a08a !important; }
+.yr-root .yr-setrow { background: var(--yr-paper2); color: var(--yr-ink); border: 2px solid #b89c6c; font-weight: 600; }
+.yr-root .yr-seg { border-color: var(--yr-ink); }
+.yr-root .yr-seg button { background: var(--yr-paper); color: var(--yr-ink); }
+.yr-root .yr-seg button.on { background: var(--yr-green); color: var(--yr-paper); }
+.yr-root .yr-panel .yr-item { background: var(--yr-paper2); color: var(--yr-ink); border: 2px solid #b89c6c; border-radius: 10px; }
+.yr-root .yr-panel .yr-coinbig { color: var(--yr-ink); }
+.yr-root .yr-stats > div { background: var(--yr-paper2); color: var(--yr-ink); }
+.yr-root .yr-perks li.on { color: var(--yr-green2); }
+.yr-root .yr-title-card { background: none; border: 30px solid transparent; border-image: url('/games/yoga/ui/paper-wide.png') 44 fill / 30px stretch; border-radius: 0; padding: 0 10px; color: var(--yr-ink); filter: drop-shadow(0 8px 0 #0006); image-rendering: pixelated; }
+.yr-root .yr-lvlname { color: var(--yr-ink); }
+.yr-root .yr-dogcard { background: none; color: var(--yr-ink); border: 18px solid transparent; border-image: url('/games/yoga/ui/paper-note.png') 30 fill / 18px stretch; border-radius: 0; padding: 0 0 4px; image-rendering: pixelated; filter: drop-shadow(0 6px 0 #0006); }
+.yr-root .yr-dogcard.locked { opacity: 0.8; } .yr-root .yr-dogcard.locked small { color: #9a4a2a; }
+.yr-root .yr-pickscreen .yr-h { color: var(--yr-paper); text-shadow: 3px 3px 0 var(--yr-ink); }
+/* the help book */
+.yr-book { position: relative; width: min(560px, 94vw); padding: 18px 18px 14px; background: #1f6e4f; border: 4px solid #0f3b2a; border-radius: 10px 18px 18px 10px; box-shadow: inset 10px 0 0 #175a40, 0 10px 0 #0b2a1e; display: grid; gap: 10px; animation: yrIn 0.2s ease-out; font-family: 'Pixelify Sans', monospace; }
+.yr-page { position: relative; background: var(--yr-paper); color: var(--yr-ink); border-radius: 4px 10px 10px 4px; padding: 18px 22px 22px; min-height: 300px; display: grid; justify-items: center; align-content: start; gap: 10px; text-align: center; box-shadow: inset 6px 0 0 var(--yr-paper2), 4px 4px 0 #c9b48a, 8px 8px 0 #b89c6c; transform-origin: left center; }
+.yr-page h3 { margin: 0; font-size: 32px; font-weight: 700; color: var(--yr-green2); }
+.yr-page-art { width: 96px; height: 96px; display: grid; place-items: center; background: var(--yr-paper2); border-radius: 50%; border: 3px dashed #b89c6c; }
+.yr-page-art img { max-width: 64px; max-height: 64px; image-rendering: pixelated; object-fit: contain; object-position: left top; }
+.yr-page p { margin: 0; font-size: 22px; font-weight: 600; line-height: 1.35; max-width: 32ch; }
+.yr-listen { position: absolute; top: 10px; right: 10px; width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--yr-ink); background: var(--yr-paper2); font-size: 22px; }
+.yr-page.flip-next { animation: yrFlipNext 0.18s ease-in forwards; } .yr-page.flip-back { animation: yrFlipBack 0.18s ease-in forwards; }
+@keyframes yrFlipNext { to { transform: perspective(900px) rotateY(-70deg); opacity: 0.4; } }
+@keyframes yrFlipBack { to { transform: perspective(900px) rotateY(40deg); opacity: 0.4; } }
+.yr-book-nav { display: flex; justify-content: space-between; align-items: center; color: var(--yr-paper); font-size: 20px; font-weight: 700; }
+.yr-book-nav button { width: 64px; height: 56px; border: 0; background: none; display: grid; place-items: center; }
+.yr-book-nav button img { width: 40px; image-rendering: pixelated; } .yr-book-nav button:disabled { opacity: 0.3; }
+.yr-book-x { position: absolute; top: -16px; right: -16px; z-index: 2; width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--yr-ink); background: var(--yr-paper); color: var(--yr-ink); font-size: 20px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) { .yr-page.flip-next, .yr-page.flip-back { animation: none; } }
+/* Portrait: keep the game picture its true shape at the top; the controls sit on the ground below it. */
+@media (orientation: portrait) {
+  .yr-play { background: linear-gradient(#a98450, #6b4f2e); }
+  .yr-play .yr-canvas { inset: 0 0 auto 0; height: auto; }
+}
+/* Build Queue 560: personal records */
+.yr-best { color: var(--yr-ink); font-size: 18px; font-weight: 600; } .yr-best b { color: var(--yr-green2); }
+.yr-board { display: grid; gap: 6px; background: var(--yr-paper2); border: 2px solid #b89c6c; border-radius: 10px; padding: 10px 12px; color: var(--yr-ink); }
+.yr-board > b { font-size: 18px; } .yr-board small { font-size: 15px; }
+.yr-board ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.yr-board li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 8px; font-size: 17px; font-variant-numeric: tabular-nums; padding: 2px 6px; border-radius: 6px; }
+.yr-board li.top { background: #ffe9a8; } .yr-board li.top b { color: var(--yr-green2); }
+.yr-result { gap: 6px; } .yr-result small { color: var(--yr-ink); font-size: 16px; }
+.yr-runxp { font-size: 54px; font-weight: 700; color: var(--yr-green2); line-height: 1; }
+.yr-record { font-size: 30px; color: #d64b3b; animation: yrRecord 0.6s ease-in-out infinite alternate; }
+@keyframes yrRecord { from { transform: scale(1) rotate(-3deg); } to { transform: scale(1.12) rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { .yr-record { animation: none; } }
