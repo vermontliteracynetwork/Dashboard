@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-10-yoga-trash-final",
+    date: "2026-11-10",
+    icon: "🗑️",
+    title: "Yoga's Revenge: the Trash Can Army",
+    body: "Every level now ends with the Trash Can Army, right after the big boss. Each level's army is tougher! The road is easier to see too: Yoga walks above your buttons.",
+  },
+  {
     id: "2026-11-10-yoga-platforms",
     date: "2026-11-10",
     icon: "🧗",

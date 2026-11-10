@@ -26,6 +26,9 @@ let W = 480; const H = 270;
 const fitW = () => { W = Math.round(Math.min(640, Math.max(360, (H * window.innerWidth) / Math.max(1, window.innerHeight)))); return W; };
 const BELT_TOP = 172, BELT_H = 82;
 const sy = (d: number) => BELT_TOP + d * BELT_H;
+// Build Queue 573 (her words: "nothing should ever be blocked from view"): the one path runs near the top of the road, above
+// the joystick, bag and buttons, so the dog, monsters and pick ups are never under the controls.
+const PATH_D = 0.15;
 const GRAV = 620;
 const ART = '/games/yoga/';
 // Build Queue 545: Yoga's point of view. Everyone is drawn bigger; Yoga is the biggest, near the bottom, a little left of center.
@@ -81,7 +84,7 @@ type Stage =
   | { kind: 'talk'; x: number; who: string; portrait?: string; lines: string[] }
   | { kind: 'wave'; x: number; foes: FoeKind[]; label: string }
   | { kind: 'mini'; x: number; what: 'squirrel' | 'sound' }
-  | { kind: 'mid'; x: number; label: string; waves: FoeKind[][]; intro: string[] }
+  | { kind: 'mid'; x: number; label: string; waves: FoeKind[][]; intro: string[]; boost?: number }
   | { kind: 'boss'; x: number; boss: 'tires' | 'sound' | 'gshroom' }
   | { kind: 'dash'; x: number }
   | { kind: 'clear'; x: number };
@@ -90,37 +93,40 @@ interface Level { quest: { title: string; lines: string[] }; name: string; theme
 const w = (x: number, label: string, ...foes: FoeKind[]): Stage => ({ kind: 'wave', x, foes, label });
 const LEVELS: Level[] = [
   {
-    quest: { title: 'Quest 1: The Trash Day Trail', lines: ['Fall in Vermont. Yoga is ready for a long walk.', 'But it is trash day. To a dog, trash cans are MONSTERS!', 'Halfway down the road, the Garbage Gang waits.', 'At the end, something big, round and grumpy...', 'Quest: reach the end of the trail!'] },
-    name: 'Vermont Countryside', theme: 'vermont', end: 7900, reward: 'mochi',
+    quest: { title: 'Quest 1: The Trash Day Trail', lines: ['Fall in Vermont. Yoga is ready for a long walk.', 'But it is trash day. To a dog, trash cans are MONSTERS!', 'Something big, round and grumpy waits.', 'At the very end, the Trash Can Army!', 'Quest: reach the end of the trail!'] },
+    name: 'Vermont Countryside', theme: 'vermont', end: 8400, reward: 'mochi',
+    // Build Queue 573 (her words: "trash cans should be final battle in each level. have them more difficult for each level"):
+    // the trash cans only show up in the final battle, after the main battle; the road fights are rats, birds and mushrooms.
     stages: [
       { kind: 'home', x: 680 },
-      w(1000, 'Fence post', 'can', 'can'),
+      w(1000, 'Fence post', 'rat', 'rat'),
       { kind: 'mini', x: 1400, what: 'squirrel' },
-      w(2050, 'Red barn', 'can', 'rat', 'can'),
-      w(2550, 'Maple trees', 'can', 'can', 'shroom'),
-      w(3050, 'Hay bales', 'can', 'can', 'can'),
-      w(3550, 'Covered bridge', 'bigcan', 'rat', 'rat'),
-      { kind: 'mid', x: 4150, label: 'Mini battle 2: Garbage Gang!', intro: ['The Garbage Gang blocks the road!', 'Locked lids go CLANK. Find their weak spot!'], waves: [['bigcan', 'can', 'can', 'rat'], ['bigcan', 'bigcan', 'can', 'rat', 'rat']] },
-      w(4850, 'Pumpkin patch', 'can', 'can', 'rat', 'rat'),
-      w(5350, 'Apple orchard', 'bigcan', 'shroom', 'shroom', 'can'),
-      w(5850, 'Sugar shack', 'can', 'can', 'can', 'rat', 'rat'),
-      w(6350, 'Farm stand', 'bigcan', 'bigcan', 'rat'),
-      w(6850, 'End of the road', 'can', 'can', 'can', 'can'),
+      w(2050, 'Red barn', 'rat', 'bird', 'rat'),
+      w(2550, 'Maple trees', 'shroom', 'rat', 'shroom'),
+      w(3050, 'Hay bales', 'rat', 'bird', 'rat', 'rat'),
+      w(3550, 'Covered bridge', 'shroom', 'rat', 'rat', 'bird'),
+      { kind: 'mid', x: 4150, label: 'Mini battle 2: Rat Pack!', intro: ['A Rat Pack blocks the road!', 'They are fast. Bark to stun them, then bite!'], waves: [['rat', 'rat', 'bird'], ['rat', 'rat', 'shroom', 'bird', 'rat']] },
+      w(4850, 'Pumpkin patch', 'rat', 'rat', 'bird', 'shroom'),
+      w(5350, 'Apple orchard', 'shroom', 'shroom', 'rat'),
+      w(5850, 'Sugar shack', 'rat', 'rat', 'bird', 'bird'),
+      w(6350, 'Farm stand', 'shroom', 'rat', 'bird'),
+      w(6850, 'End of the road', 'rat', 'rat', 'shroom', 'shroom'),
       { kind: 'boss', x: 7400, boss: 'tires' },
-      { kind: 'dash', x: 7480 },
-      { kind: 'clear', x: 7560 },
+      { kind: 'mid', x: 7850, label: 'Final battle: Trash Can Army!', intro: ['It is trash day. Here come the CANS!', 'Locked lids go CLANK. Find their weak spot!'], waves: [['can', 'can', 'bigcan'], ['bigcan', 'can', 'can', 'can']], boost: 1 },
+      { kind: 'dash', x: 7930 },
+      { kind: 'clear', x: 8010 },
     ],
   },
   {
     // Build Queue 554, 557, 559: Level 2 is the forest. Three mini battles, each against her Forest Monsters (the Mushroom),
     // then the main battle (still to be decided by the teacher; the Sound Monster holds its place for now).
-    quest: { title: 'Quest 2: The Whispering Woods', lines: ['The trail goes deep into the forest.', 'Mushroom monsters are waking up!', 'Something big waits past the old rocks.', 'Quest: make it through the woods!'] },
-    name: 'Whispering Woods', theme: 'forest', end: 7900, reward: 'spot',
+    quest: { title: 'Quest 2: The Whispering Woods', lines: ['The trail goes deep into the forest.', 'Mushroom monsters are waking up!', 'Something big waits past the old rocks, then the trash.', 'Quest: make it through the woods!'] },
+    name: 'Whispering Woods', theme: 'forest', end: 8300, reward: 'spot',
     stages: [
       w(800, 'Mossy rocks', 'shroom', 'rat'),
       { kind: 'mid', x: 1400, label: 'Mini battle 1: Mushroom!', intro: ['A Mushroom monster pops up!', 'It spins when it attacks. Jump, then bite!'], waves: [['shroom'], ['shroom', 'shroom']] },
       w(2100, 'Fallen log', 'shroom', 'bird', 'rat'),
-      w(2600, 'Fern path', 'can', 'shroom', 'bird'),
+      w(2600, 'Fern path', 'rat', 'shroom', 'bird'),
       { kind: 'mid', x: 3300, label: 'Mini battle 2: Mushroom Gang!', intro: ['More Mushrooms! They come in a ring.', 'Bark to push them back!'], waves: [['shroom', 'shroom'], ['shroom', 'shroom', 'shroom']] },
       w(4000, 'Creek', 'shroom', 'rat', 'rat'),
       w(4600, 'Old oak', 'shroom', 'shroom', 'bird'),
@@ -128,8 +134,9 @@ const LEVELS: Level[] = [
       w(6000, 'Sunset hill', 'shroom', 'shroom', 'rat', 'bird'),
       w(6600, 'Deep woods', 'shroom', 'shroom', 'shroom'),
       { kind: 'boss', x: 7300, boss: 'gshroom' }, // Build Queue 563: the Giant Mushroom
-      { kind: 'dash', x: 7380 },
-      { kind: 'clear', x: 7460 },
+      { kind: 'mid', x: 7750, label: 'Final battle: Trash Can Army!', intro: ['Someone dumped trash in the woods!', 'More cans, tougher lids. Three waves!'], waves: [['bigcan', 'can', 'can', 'can'], ['bigcan', 'bigcan', 'can', 'can'], ['bigcan', 'bigcan', 'bigcan', 'can', 'can']], boost: 4 },
+      { kind: 'dash', x: 7830 },
+      { kind: 'clear', x: 7910 },
     ],
   },
 ];
@@ -236,7 +243,7 @@ interface Fx { row?: number; x: number; y: number; t: number; ttl: number; kind:
 interface Pick { placed?: boolean; z?: number; x: number; d: number; kind: 'leash' | 'bags' | 'treats' | 'bone' | 'treat' | 'pu' | 'weapon' | 'loot'; t: number; pu?: PuId; wpn?: WeaponId; loot?: LootId }
 interface Sniff { x: number; d: number; found: boolean; real: boolean }
 // Build Queue 543: 5 spots, only 3 are real. Students guess and check; the clue is in how each spot moves.
-const makeSpots = (x0: number): Sniff[] => { const real = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, 3); return [0, 1, 2, 3, 4].map((i) => ({ x: x0 + 70 + i * 78 + Math.random() * 20, d: 0.78, found: false, real: real.includes(i) })); };
+const makeSpots = (x0: number): Sniff[] => { const real = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, 3); return [0, 1, 2, 3, 4].map((i) => ({ x: x0 + 70 + i * 78 + Math.random() * 20, d: PATH_D, found: false, real: real.includes(i) })); };
 const FOE_STATS: Record<FoeKind, { hp: number; speed: number; reach: number; dmg: number }> = {
   can: { hp: 5, speed: 34, reach: 26, dmg: 1 }, bigcan: { hp: 10, speed: 26, reach: 32, dmg: 1 },
   rat: { hp: 2, speed: 70, reach: 20, dmg: 1 }, shroom: { hp: 3, speed: 48, reach: 24, dmg: 1 }, bird: { hp: 2, speed: 60, reach: 22, dmg: 1 },
@@ -336,12 +343,12 @@ export default function YogasRevenge() {
     setDog(d);
     const dl = dogLevel(s.dogs[d] ?? 0);
     const maxHp = 5 + s.up.heart + (s.harness ? 1 : 0) + (dl >= 3 ? 1 : 0) + (dl >= 8 ? 1 : 0);
-    g.p = { ...g.p, x, d: 0.78, z: 0, vz: 0, hp: maxHp, max: maxHp, inv: 1, ko: false, superM: 0, atk: 0, combo: 0, chase: 0 };
+    g.p = { ...g.p, x, d: PATH_D, z: 0, vz: 0, hp: maxHp, max: maxHp, inv: 1, ko: false, superM: 0, atk: 0, combo: 0, chase: 0 };
     g.foes = []; g.shots = []; g.fx = []; g.picks = []; g.sniffs = []; g.stage = stage; g.active = false; g.lock = null; g.hits = 0; g.sub = 0;
-    g.lost = 0; g.mini = ''; g.squirrel = null; g.dash = 0; g.cpT = 0; g.levelT = 0; g.runXp = 0; g.fade = 0; g.pw = {}; g.shield = 0; g.lives = 0; g.jumps = 0; g.weapon = null; g.swing = 0; g.obs = makeObstacles(LEVELS[lvl]).filter((o) => o.x > x + 80); g.obs.filter((o) => o.treat).forEach((o) => g.picks.push({ x: o.x + o.w / 2, d: 0.78, kind: 'loot', loot: 'coins', t: 0, z: o.h + 26, placed: true }));
+    g.lost = 0; g.mini = ''; g.squirrel = null; g.dash = 0; g.cpT = 0; g.levelT = 0; g.runXp = 0; g.fade = 0; g.pw = {}; g.shield = 0; g.lives = 0; g.jumps = 0; g.weapon = null; g.swing = 0; g.obs = makeObstacles(LEVELS[lvl]).filter((o) => o.x > x + 80); g.obs.filter((o) => o.treat).forEach((o) => g.picks.push({ x: o.x + o.w / 2, d: PATH_D, kind: 'loot', loot: 'coins', t: 0, z: o.h + 26, placed: true }));
     g.cam = Math.max(0, x - 140);
     g.bag = LEVELS[lvl].stages[0].kind === 'home' && stage === 0 ? [] : ['leash', 'bags', 'treats'];
-    if (LEVELS[lvl].stages[0].kind === 'home' && stage === 0) g.picks.push({ x: 230, d: 0.78, kind: 'leash', t: 0 }, { x: 400, d: 0.78, kind: 'bags', t: 0 }, { x: 570, d: 0.78, kind: 'treats', t: 0 });
+    if (LEVELS[lvl].stages[0].kind === 'home' && stage === 0) g.picks.push({ x: 230, d: PATH_D, kind: 'leash', t: 0 }, { x: 400, d: PATH_D, kind: 'bags', t: 0 }, { x: 570, d: PATH_D, kind: 'treats', t: 0 });
     setVw(fitW()); setScreen('play'); paused.current = false;
     g.banner = `Level ${lvl + 1}: ${LEVELS[lvl].name}`; g.bannerT = 3;
     if (stage === 0) {
@@ -443,16 +450,16 @@ export default function YogasRevenge() {
       if (p.hp <= 0 && g.lives > 0) { g.lives -= 1; p.hp = p.max; p.inv = 2; addFx({ x: p.x, y: sy(p.d) - 24, ttl: 0.9, kind: 'heal' }); g.banner = 'Extra life used! Keep going!'; g.bannerT = 2; sfx.chime(); return; }
       if (p.hp <= 0) { p.hp = 0; p.ko = true; ask('revive', () => { p.hp = p.max; p.ko = false; p.inv = 2; addFx({ x: p.x, y: sy(p.d) - 20, ttl: 0.9, kind: 'heal' }); sfx.chime(); }); }
     };
-    const spawn = (list: FoeKind[], at: number) => {
+    const spawn = (list: FoeKind[], at: number, boost = 0) => {
       const lane = (i: number) => 0.32 + ((i * 0.37) % 0.66);
-      const extra = Math.floor(g.stage / 4) + lvl * 2; // a little tougher as the level goes on
+      const extra = Math.floor(g.stage / 4) + lvl * 2 + boost; // a little tougher as the level goes on, and each level's final battle tougher still
       list.forEach((k, i) => { const side = i % 2 === 0 ? 1 : -1; g.foes.push(mkFoe(k, at + side * (170 + i * 26), lane(i), k === 'rat' || k === 'bird' ? 0 : extra)); });
     };
     const nextStage = () => { g.active = false; g.lock = null; g.sub = 0; g.stage += 1; };
     const startFight = () => {
       const st = L.stages[g.stage]; if (!st) return;
       if (st.kind === 'wave') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label}: trash monsters!`; g.bannerT = 2; spawn(st.foes, st.x); }
-      else if (st.kind === 'mid') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label} Wave 1 of ${st.waves.length}`; g.bannerT = 2.4; play('growl', 0.8); spawn(st.waves[0], st.x); g.foes.forEach((e) => { if (e.kind === 'bigcan' || (e.kind === 'can' && Math.random() < 0.5)) e.armor = true; }); }
+      else if (st.kind === 'mid') { g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 }; g.banner = `${st.label} Wave 1 of ${st.waves.length}`; g.bannerT = 2.4; play('growl', 0.8); spawn(st.waves[0], st.x, st.boost ?? 0); g.foes.forEach((e) => { if (e.kind === 'bigcan' || (e.kind === 'can' && Math.random() < 0.4 + lvl * 0.3)) e.armor = true; }); }
       else if (st.kind === 'boss') {
         g.active = true; g.lock = { l: st.x - 240, r: st.x + 240 };
         g.foes.push(mkFoe(st.boss, st.x + 150, 0.5)); play('growl', 0.9);
@@ -602,7 +609,7 @@ export default function YogasRevenge() {
       }
       g.hitT = Math.max(0, g.hitT - dt);
       // --- camera ---
-      const want = Math.max(0, Math.min(L.end - W, p.x - W * 0.4));
+      const want = Math.max(0, Math.min(L.end - W, p.x - W * 0.5)); // the dog sits mid screen, clear of the corner HUD
       g.cam += (want - g.cam) * Math.min(1, dt * 5);
       if (g.lock) g.cam = Math.max(g.lock.l, Math.min(g.lock.r - W, g.cam));
       // --- foes ---
@@ -696,7 +703,7 @@ export default function YogasRevenge() {
       if (g.active && !g.mini && (st?.kind === 'wave' || st?.kind === 'mid') && g.foes.every((e) => e.hp <= 0)) {
         g.foes = [];
         if (st.kind === 'mid' && g.sub + 1 < st.waves.length) {
-          g.sub += 1; g.banner = `${st.label} Wave ${g.sub + 1} of ${st.waves.length}`; g.bannerT = 2.2; sfx.horn(); spawn(st.waves[g.sub], st.x); g.foes.forEach((e) => { if (e.kind === 'bigcan' || e.kind === 'can') e.armor = true; });
+          g.sub += 1; g.banner = `${st.label} Wave ${g.sub + 1} of ${st.waves.length}`; g.bannerT = 2.2; sfx.horn(); spawn(st.waves[g.sub], st.x, st.boost ?? 0); g.foes.forEach((e) => { if (e.kind === 'bigcan' || e.kind === 'can') e.armor = true; });
         } else {
           g.banner = 'All clear! GO >'; g.bannerT = 2; sfx.chime();
           p.superM = Math.min(100, p.superM + (st.kind === 'mid' ? 100 : 34));
@@ -971,7 +978,7 @@ export default function YogasRevenge() {
         else if (s.kind === 'tire') { R(x - 8, y - 16, 16, 16, '#2a2a2e'); R(x - 4, y - 12, 8, 8, '#555'); }
         else { ctx.save(); ctx.strokeStyle = '#c86bff'; ctx.lineWidth = 3; ctx.beginPath(); ctx.ellipse(x, sy(s.d), s.r ?? 0, (s.r ?? 0) * 0.25, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }
       } }));
-      g.obs.forEach((o) => { const ox = o.x - g.cam; if (ox < -60 || ox > W + 60) return; const im = bg.current[o.tile]; list.push({ y: sy(0.3) - 1, f: () => { for (let dd = 0.3; dd <= 1.001; dd += 0.14) { const yy = sy(dd), sc = (o.w / 18) * (0.8 + dd * 0.35); if (im?.width && o.kind === 'rock') { const RK = [[0, 0], [40, 0], [0, 80], [80, 80], [0, 120], [40, 120]], k = RK[(Math.round(dd * 7) + Math.floor(o.x / 97)) % RK.length], sz = 30 * (0.8 + dd * 0.35); ctx.globalAlpha = 0.25; R(ox, yy - 2, sz, 4, '#000'); ctx.globalAlpha = 1; ctx.drawImage(im, k[0], k[1], 40, 40, Math.round(ox - 2), Math.round(yy - sz * 0.92), Math.round(sz), Math.round(sz)); } else if (im?.width && o.kind === 'ledge') { const t = 26 * (0.8 + dd * 0.35), cnt = 4; ctx.globalAlpha = 0.25; R(ox, yy - 2, t * cnt, 4, '#000'); ctx.globalAlpha = 1; for (let c = 0; c < cnt; c++) ctx.drawImage(im, Math.round(ox + c * t), Math.round(yy - t), Math.round(t) + 1, Math.round(t)); } else if (im?.width) { const hh = 18 * sc * (o.kind === 'crates' ? 2 : 1); ctx.globalAlpha = 0.25; R(ox, yy - 2, o.w * (0.8 + dd * 0.35), 4, '#000'); ctx.globalAlpha = 1; if (o.kind === 'crates') { ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); ctx.drawImage(im, Math.round(ox), Math.round(yy - hh / 2), Math.round(18 * sc), Math.round(18 * sc)); } else ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); } } } }); });
+      g.obs.forEach((o) => { const ox = o.x - g.cam; if (ox < -60 || ox > W + 60) return; const im = bg.current[o.tile]; list.push({ y: sy(0) - 1, f: () => { for (let dd = 0; dd <= 0.43; dd += 0.14) { const yy = sy(dd), sc = (o.w / 18) * (0.8 + dd * 0.35); if (im?.width && o.kind === 'rock') { const RK = [[0, 0], [40, 0], [0, 80], [80, 80], [0, 120], [40, 120]], k = RK[(Math.round(dd * 7) + Math.floor(o.x / 97)) % RK.length], sz = 30 * (0.8 + dd * 0.35); ctx.globalAlpha = 0.25; R(ox, yy - 2, sz, 4, '#000'); ctx.globalAlpha = 1; ctx.drawImage(im, k[0], k[1], 40, 40, Math.round(ox - 2), Math.round(yy - sz * 0.92), Math.round(sz), Math.round(sz)); } else if (im?.width && o.kind === 'ledge') { const t = 26 * (0.8 + dd * 0.35), cnt = 4; ctx.globalAlpha = 0.25; R(ox, yy - 2, t * cnt, 4, '#000'); ctx.globalAlpha = 1; for (let c = 0; c < cnt; c++) ctx.drawImage(im, Math.round(ox + c * t), Math.round(yy - t), Math.round(t) + 1, Math.round(t)); } else if (im?.width) { const hh = 18 * sc * (o.kind === 'crates' ? 2 : 1); ctx.globalAlpha = 0.25; R(ox, yy - 2, o.w * (0.8 + dd * 0.35), 4, '#000'); ctx.globalAlpha = 1; if (o.kind === 'crates') { ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); ctx.drawImage(im, Math.round(ox), Math.round(yy - hh / 2), Math.round(18 * sc), Math.round(18 * sc)); } else ctx.drawImage(im, Math.round(ox), Math.round(yy - hh), Math.round(18 * sc), Math.round(18 * sc)); } } } }); });
       list.push({ y: sy(g.p.d) + 0.5, f: drawPlayer });
       list.sort((a, b) => a.y - b.y).forEach((d) => d.f());
       g.fx.forEach((f) => {
