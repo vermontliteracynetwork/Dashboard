@@ -34,7 +34,6 @@ export const DISHES: Record<string, Dish> = {
   salad: { course: 'app', avg: 5, cost: 2, pop: 0.8 },
   burger: { course: 'ent', avg: 12, cost: 4, pop: 1.3 },
   vburger: { course: 'ent', avg: 12, cost: 4, pop: 1 },
-  cheese: { course: 'ent', avg: 10, cost: 3, pop: 1.2 },
   ramen: { course: 'ent', avg: 14, cost: 5, pop: 1.1 },
   udon: { course: 'ent', avg: 13, cost: 4, pop: 0.9 },
   sroll: { course: 'ent', avg: 15, cost: 6, pop: 0.9 },
@@ -79,7 +78,8 @@ export const priceOf = (prices: Record<string, number> | undefined, d: string) =
 export const slotCost = (c: Course, have: number) => (c === 'ent' ? 600 : 400) * (have - courseOf(c).slots0 + 1);
 
 // The walk-in fridge (her words: "Walk in fridge with unlimited storage purchased").
-export const WALKIN_COST = 3000;
+// It costs a lot and opens at McYoga level 5 (Build Queue 607).
+export const WALKIN_COST = 15000;
 // Opening McYoga from the first restaurant's Shop.
 export const MCYOGA_COST = 5000;
 export const MCYOGA_LEVEL = 7;
@@ -99,7 +99,7 @@ export type Tone = 'good' | 'low' | 'high' | 'loss';
 export function priceAdvice(d: string, price: number): { tone: Tone; text: string } {
   const dish = DISHES[d], c = courseOf(dish.course);
   if (price <= dish.cost) return { tone: 'loss', text: `It costs $${dish.cost} to make one, so you lose money on every sale. Try $${dish.avg}.` };
-  if (price > c.max) return { tone: 'high', text: `Most restaurants charge $${c.min} to $${c.max} for ${c.plural.toLowerCase()}. Very few customers will buy it at $${price}.` };
+  if (price > c.max) return { tone: 'high', text: `Most restaurants charge $${c.min} to $${c.max} for ${c.plural.toLowerCase()}. ${appeal(price, dish.avg) < 0.35 ? 'Very few' : 'Fewer'} customers will buy it at $${price}.` };
   if (price > dish.avg * 1.3) return { tone: 'high', text: `Higher than usual ($${dish.avg}). Fewer customers will buy it.` };
   if (price < c.min) return { tone: 'low', text: `Lower than most restaurants ($${c.min} to $${c.max}). Customers love it, but you keep less of each sale.` };
   if (price < dish.avg * 0.75) return { tone: 'low', text: `A bargain. Lots of customers will buy it, but you earn less on each one.` };

@@ -12382,7 +12382,7 @@ button.nqs-step-head { cursor: pointer; }
 .mcy-panel { width: min(1100px, 96vw); max-height: 94vh; overflow: auto; background: var(--mcy-c); padding: 0 0 14px; border: 4px solid var(--mcy-y); }
 .mcy-panel-head { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: var(--mcy-r); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
 .mcy-tabs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
-.mcy-tab { min-height: 48px; padding: 0 16px; border-radius: 24px; border: 0; background: rgba(255,255,255,0.18); color: #fff; font: 700 1.05rem 'Speedee', sans-serif; }
+.mcy-tab { min-height: 48px; padding: 0 16px; border-radius: 24px; border: 0; background: #8f0d12; color: #fff; font: 700 1.05rem 'Speedee', sans-serif; }
 .mcy-tab.on { background: var(--mcy-y); color: #3a2a00; }
 .mcy-x { width: 48px; height: 48px; border-radius: 50%; border: 0; background: #fff; color: var(--mcy-r); font-size: 1.8rem; line-height: 1; }
 .mcy-board { display: grid; grid-template-columns: 170px 1fr; gap: 14px; padding: 14px; }
@@ -12397,7 +12397,7 @@ button.nqs-step-head { cursor: pointer; }
 .mcy-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 12px; }
 .mcy-slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px; border-radius: 18px; background: #fff; border: 4px solid #eee2b0; }
 .mcy-slot.on { border-color: var(--mcy-r); box-shadow: 0 0 0 3px var(--mcy-y); }
-.mcy-slot.locked { border-style: dashed; color: #8a7a55; justify-content: center; min-height: 170px; }
+.mcy-slot.locked { border-style: dashed; color: #6b5a3a; justify-content: center; min-height: 170px; }
 .mcy-slot.locked b { font-size: 2.6rem; color: var(--mcy-r); }
 .mcy-slot-pic { display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; background: none; width: 100%; min-height: 110px; }
 .mcy-slot-pic img { width: 84px; height: 84px; object-fit: contain; }
@@ -12411,7 +12411,7 @@ button.nqs-step-head { cursor: pointer; }
 .mcy-dot.low { background: #fff3c2; color: #7a5a00; }
 .mcy-dot.high { background: #ffe0cc; color: #a33a00; }
 .mcy-dot.loss { background: #ffd6d8; color: #a1000a; }
-.mcy-remove { border: 0; background: none; color: #8a7a55; text-decoration: underline; min-height: 36px; }
+.mcy-remove { min-height: 48px; min-width: 110px; border: 2px solid #c9b77a; border-radius: 14px; background: #fff; color: #4a3d22; font-weight: 700; }
 .mcy-advice { padding: 10px 14px; border-radius: 14px; background: #fff; border-left: 8px solid var(--mcy-g); margin: 0 0 12px; font-size: 1rem; }
 .mcy-advice.low { border-color: #e0b400; } .mcy-advice.high { border-color: #e06a00; } .mcy-advice.loss { border-color: var(--mcy-r); }
 .mcy-pick-h { margin: 6px 0 8px; font-size: 1.1rem; }
@@ -12435,3 +12435,27 @@ button.nqs-step-head { cursor: pointer; }
 .mcy-tip { color: #a33a00 !important; font-weight: 700; }
 @media (max-width: 760px) { .mcy-board { grid-template-columns: 1fr; } .mcy-courses { flex-direction: row; overflow-x: auto; } .mcy-course { min-width: 150px; } }
 .mcy-sale { top: 186px; }
+/* McYoga wages (Build Queue 607): three pay choices with a pros and cons note. */
+.mcy-wage { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.mcy-wage > span { font-weight: 700; }
+.mcy-wage-b { min-height: 48px; padding: 4px 12px; border-radius: 14px; border: 3px solid #eee2b0; background: #fff; font-weight: 700; display: flex; flex-direction: column; align-items: center; line-height: 1.1; }
+.mcy-wage-b small { font-weight: 400; color: #6b5a3a; }
+.mcy-wage-b.on { border-color: #da1a23; background: #fff6cc; }
+.mcy-wage-note { flex-basis: 100%; margin: 2px 0 0; font-size: 0.92rem; background: #fff; border-left: 6px solid #2b7a2e; padding: 6px 10px; border-radius: 10px; }
+/* The big walk-in fridge: three walls of shelves and cabinets that wrap around the student (Build Queue 607). */
+.mcy-walkin { width: min(1000px, 96vw); background: #e9f4f7; border: 4px solid #9fc7d3; }
+.mcy-room { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 0; perspective: 900px; margin: 10px 0 14px; }
+.mcy-wall { background: linear-gradient(#cfe3ea, #b9d4dd); padding: 10px; min-height: 260px; border: 3px solid #8fb6c3; }
+.mcy-wall h3 { margin: 0 0 8px; text-align: center; font-size: 1rem; color: #24515e; }
+.mcy-wall.l { transform: rotateY(28deg); transform-origin: right center; border-radius: 12px 0 0 12px; }
+.mcy-wall.r { transform: rotateY(-28deg); transform-origin: left center; border-radius: 0 12px 12px 0; }
+.mcy-wall.b { border-left: 0; border-right: 0; }
+.mcy-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 8px; background: repeating-linear-gradient(to bottom, transparent 0 70px, #7a9aa5 70px 76px); }
+.mcy-jar { position: relative; min-height: 70px; border: 0; border-radius: 10px; background: rgba(255,255,255,0.75); display: grid; place-items: center; }
+.mcy-jar img { width: 52px; height: 52px; object-fit: contain; }
+.mcy-jar b { position: absolute; right: 4px; bottom: 2px; background: #da1a23; color: #fff; border-radius: 10px; padding: 0 6px; font-size: 0.85rem; }
+.mcy-cab { min-height: 70px; border-radius: 8px; background: linear-gradient(90deg, #a9c6cf 0 49%, #8fb0ba 49% 51%, #a9c6cf 51%); opacity: 0.6; }
+@media (max-width: 760px) { .mcy-room { grid-template-columns: 1fr; } .mcy-wall.l, .mcy-wall.r { transform: none; } }
+/* Claudia's review of 607: Save menu stays in reach while scrolling the food grid on an iPad. */
+.mcy-panel > .rt-row { position: sticky; bottom: 0; z-index: 2; background: var(--mcy-c, #f7f5f2); padding: 10px 14px; margin: 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.08); }
+.mcy-shelf { background: repeating-linear-gradient(to bottom, transparent 0 70px, #7a9aa5 70px 78px); }

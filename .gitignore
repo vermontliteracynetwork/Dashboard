@@ -27,3 +27,4 @@ dist-ssr
 *.sw?
 src/devPetMeasure.ts
 dev-pet-measure.html
+.claude/worktrees/

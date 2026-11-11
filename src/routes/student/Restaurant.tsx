@@ -102,7 +102,7 @@ const menuFor = (lv: number, theme: number) => (Object.keys(ITEMS) as Item[]).fi
 let MC = false, OFF = 0;
 const dlv = (s: { level: number }) => s.level + OFF;
 const okLv = (s: { claimed: number }, need: number) => s.claimed + OFF >= need;
-const menuNow = (s: Save): Item[] => (MC ? (menuList(s.menu ?? MENU0).filter((x) => x in ITEMS) as Item[]) : menuFor(s.level, s.theme));
+const menuNow = (s: Save): Item[] => (MC ? (menuList(s.menu ?? MENU0).filter((x) => x in ITEMS && x in DISHES) as Item[]) : menuFor(s.level, s.theme));
 // A sale (her words: "player can start sales"): one dish or the whole menu, some percent off, for 3 minutes.
 interface Sale { item: Item | 'all'; off: number; until: number }
 const saleOff = (sale: Sale | null, it: Item) => (sale && sale.until > Date.now() && (sale.item === 'all' || sale.item === it) ? sale.off : 0);
@@ -152,6 +152,9 @@ const FRIDGE_CAP = 50;
 const TOWER_AT: P = { x: 8, y: 3 };
 const COUNTER: P = { x: 6, y: 3 };
 const WINDOW: P = { x: 13, y: 4 };
+// McYoga's second drive through window (Build Queue 607), one tile down the same wall: two cars are served at once.
+const WINDOW2: P = { x: 13, y: 5 };
+const WINDOWS = [WINDOW, WINDOW2];
 // Tables sit left and right of the middle column, which is kept clear for the line (Build Queue 480).
 const TABLES: P[] = TABLES_AT;
 // Build Queue 491 (her words: "instead of level 10 being a new restuarant, lets keep the main retaruant, no new
@@ -169,7 +172,7 @@ const ORDER_SPOT: P = { x: 6, y: 4 };
 // The line runs down the middle column from the counter (Build Queue 480), then along the bottom row if it is long.
 const LINE_MORE: P[] = [{ x: 7, y: 8 }, { x: 8, y: 8 }, { x: 7, y: 7 }, { x: 8, y: 7 }, { x: 5, y: 8 }];
 const lineSpot = (i: number): P => (i < 5 ? { x: ORDER_SPOT.x, y: ORDER_SPOT.y + i } : LINE_MORE[Math.min(i - 5, LINE_MORE.length - 1)]);
-const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, fridge: { x: FRIDGE.x, y: 2 }, tower: { x: TOWER_AT.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
+const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.x, y: 2 }, fridge: { x: FRIDGE.x, y: 2 }, tower: { x: TOWER_AT.x, y: 2 }, counter: { x: COUNTER.x, y: 2 }, window: { x: 12, y: 4 }, window2: { x: 12, y: 5 }, table: (i: number) => ({ x: TABLES[i].x, y: TABLES[i].y - 1 }) };
 // The counter holds a tower of up to 20 ready pizzas (two stacks of 10, Build Queue 471 and 478).
 // The counter tower grows with the "Bigger pizza tower" upgrade (Build Queue 490, her words: "give upgrade skill to sell
 // more pizzas in larger stacks. add an upgrade where stacks can increase to 15, 20, 25, and 50 at a time").
@@ -200,8 +203,8 @@ const UNLOCKS: Record<number, { title: string; steps: string[] }> = {
 const MC_UNLOCKS: Record<number, { title: string; steps: string[] }> = {
   2: { title: 'Decorate McYoga', steps: ['Find the marked empty spots around the room', 'Tap one and add a decoration', 'Every decoration adds 5% to tips'] },
   3: { title: 'Takeout', steps: ['Takeout customers take their food and go home', 'They do not need a table', 'Keep a tall tower on the counter for them'] },
-  4: { title: 'The drive through', steps: ['A car comes to the window and asks for food', 'Carry that many from the counter', 'Tap the window to hand them over and get paid'] },
-  5: { title: 'Hire a Neighbor as your cook', steps: ['Tap Shop, then Workers', 'Pick the Neighbor you want as your cook', 'The cook bakes what customers want (and pays for the ingredients)'] },
+  4: { title: 'The drive through', steps: ['A car comes to the window and asks for food', 'Carry that many from the counter', 'Tap the window to hand them over and get paid', 'The Shop has a second window, a longer lane, a speaker and a menu board'] },
+  5: { title: 'Hire a cook, and the big walk-in fridge', steps: ['Tap Shop, then Workers, and pick your cook', 'The cook bakes what customers want (and pays for the ingredients)', 'Save up for the walk-in fridge in Kitchen and tables: it stores as much food as you like'] },
   6: { title: 'A third oven and up to 6 tables', steps: ['Tap the empty oven spot or a table spot', 'Tap Add it', 'More tables means bigger groups'] },
   7: { title: 'The birthday party event', steps: ['Tap Events', 'Pick Birthday Party', 'Serve every group fast while it lasts'] },
   8: { title: 'A new dining room next door', steps: ['Tap Shop, then Kitchen and tables', 'Add the new dining room', 'Add up to 4 more tables in it'] },
@@ -210,6 +213,8 @@ const MC_UNLOCKS: Record<number, { title: string; steps: string[] }> = {
 // 20, 24 and on up to 44. Level 10 is the top.
 const MAX_LEVEL = 10;
 const xpFor = (lv: number) => (lv <= 1 ? 1 : lv === 2 ? 10 : 8 + lv * 4);
+// Customers for the next level, by restaurant: McYoga's first two levels come sooner (10 customers each).
+const xpNeed = (s: { level: number }) => (MC && s.level <= 2 ? 10 : xpFor(s.level + OFF));
 const LEVEL_UPGRADES: Record<number, { name: string; done: (s: Save) => boolean }[]> = {
   2: [
     { name: 'Second oven', done: (s) => s.ovens >= 2 },
@@ -228,6 +233,8 @@ const patienceFor = (n: number) => 35 + n * 5;
 const starsFor = (waited: number, n: number) => { const q = waited / patienceFor(n); return q <= 0.4 ? 5 : q <= 0.6 ? 4 : q <= 0.8 ? 3 : q <= 1 ? 2 : 1; };
 const SARCASM = ['Took you long enough. I aged a year.', 'Wow, fast food. Very fast. Said nobody.', 'I ordered that last Tuesday.', 'My pizza grew a beard while I waited.', 'I almost made it myself. At home. From scratch.', 'Great pizza. Shame about the nap I took waiting.'];
 const HAPPY = ['Yum!', 'Best pizza in town!', 'Five stars!', 'So fast!', 'Delicious!'];
+// McYoga says food, never pizza (Claudia's review of 607).
+const forMc = (t: string) => (MC ? t.replace(/pizzas/g, 'dishes').replace(/pizza/g, 'food') : t);
 const EVENT_MS = 5 * 60 * 1000;
 const EVENTS = [
   // `cost`: buy it in the Shop (Build Queue 487); or launch it with 5 questions from the Events button.
@@ -254,20 +261,34 @@ interface Save {
   // McYoga drive through upgrades (Build Queue 606): a longer lane (3 cars wait in line), a speaker (cars come twice as
   // often) and a menu board (bigger orders and a 20% tip).
   dtLane?: boolean; dtSpeaker?: boolean; dtBoard?: boolean;
+  // Build Queue 607: a second drive through window, and each worker's wage choice (Medium unless the student changes it).
+  dtWin2?: boolean; wages?: Partial<Record<Role, Wage>>;
 }
 const FRESH: Save = { money: 0, total: 0, level: 1, claimed: 1, xp: 0, theme: 0, ovens: 1, ovenLv: 0, tables: 1, shelves: 0, stock: [], decor: [], me: { speed: 0, carry: 0, acc: 0 }, best: 0, day: 0, served: 0, ratings: [] };
-// McYoga opens already set up like the pizzeria at level 3: two ovens, three tables, a faster oven, $500 to start, and
-// no tutorial.
-const MC_FRESH: Save = { ...FRESH, theme: 3, ovens: 2, tables: 3, ovenLv: 1, money: 500, menu: MENU0, prices: {}, slots: { app: 1, ent: 2, des: 1 } };
+// McYoga opens already set up like the pizzeria at level 3: two ovens, three tables, a faster oven, and no tutorial.
+// Its money is the student's one bank, shared with the pizzeria (Build Queue 607).
+const MC_FRESH: Save = { ...FRESH, theme: 3, ovens: 2, tables: 3, ovenLv: 1, money: 0, menu: MENU0, prices: {}, slots: { app: 1, ent: 2, des: 1 } };
 const fridgeCap = (s: Save) => (s.walkin ? Infinity : FRIDGE_CAP);
+const wageOf = (s: Save, r: Role): Wage => (MC ? s.wages?.[r] ?? 'med' : 'med');
 type Hand = { item: Item | 'trash'; burnt?: boolean };
 interface Mover { x: number; y: number; path: P[]; face: 1 | -1; hands: Hand[]; job: (() => void) | null }
 // walk-in: on the way to the line; line: waiting for pizzas; eat: at a table; leave: heading out.
 type CState = 'walk-in' | 'line' | 'eat' | 'leave';
 interface Guest { balk?: boolean; got?: number; id: number; npc: string; name: string; m: Mover; waitT?: number; state: CState; item: Item; n: number; takeout: boolean; table: number; arrived: number; critic?: boolean; eatEnd?: number; say?: { text: string; until: number } }
-interface Car { got?: number; id: number; item: Item; n: number; state: 'come' | 'wait' | 'go'; x: number; arrived: number }
+interface Car { win?: number; got?: number; id: number; item: Item; n: number; state: 'come' | 'wait' | 'go'; x: number; arrived: number }
 // The drive through lane: how many cars can wait, one behind the other.
-const laneCap = (s: Save) => (MC && s.dtLane ? 3 : 1);
+const laneCap = (s: Save) => (MC ? (s.dtLane ? 3 : 1) + (s.dtWin2 ? 1 : 0) : 1);
+// Where cars stop along the lane (0 is the street, 1 is window 1; window 2 is one tile back).
+const winStops = (s: Save) => (MC && s.dtWin2 ? [1, 1 - 1 / 6] : [1]);
+// Wages at McYoga (Build Queue 607, her words: "they should have three options for wages and should have a note that
+// explains the pros and cons of giving the employee that wage ... default should be medium and students aren't required
+// to interact with these extra business features"). Pay is times the job's usual wage.
+type Wage = 'low' | 'med' | 'high';
+const WAGE: Record<Wage, { name: string; pay: number; speed: number; tip: number; pros: string; cons: string }> = {
+  low: { name: 'Low', pay: 0.7, speed: 0.85, tip: 0, pros: 'McYoga saves money every day.', cons: 'It is hard for your worker to live on, and an unhappy worker moves about 15% slower.' },
+  med: { name: 'Medium', pay: 1, speed: 1, tip: 0, pros: 'A fair, normal wage. Your worker does their usual job.', cons: 'No extra savings and no extra speed.' },
+  high: { name: 'High (a living wage)', pay: 1.4, speed: 1.15, tip: 0.03, pros: 'Your worker can live comfortably. Happy workers move about 15% faster, and customers notice (a little more in tips).', cons: 'It costs McYoga more at closing time every day.' },
+};
 // Ovens bake a batch: 2 pizzas, and one more for each faster oven upgrade.
 interface Oven { state: 'idle' | 'cook' | 'ready' | 'burnt'; item?: Item; t: number; n: number }
 interface Day { served: number; pizzas: number; money: number; tips: number; slow: number; five: number; stars: number[]; items: Partial<Record<Item, number>>; wages?: { who: string; amt: number }[]; sales: Partial<Record<Item, number>>; walk: Partial<Record<Item, number>>; ingredients: number }
@@ -403,7 +424,7 @@ export default function Restaurant() {
 function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Which) => void }) {
   MC = which === 'mcyoga'; OFF = MC ? MCYOGA_OFFSET : 0; setTableLayout(MC);
   const back = useBack();
-  const { ask, element, pay, student } = useAsk(MC ? 'McYoga' : 'Restaurant', '🍕', 'dinerDash', { startCard: false });
+  const { ask, element, pay, student } = useAsk(MC ? 'McYoga' : 'Restaurant', MC ? '🍔' : '🍕', 'dinerDash', { startCard: false });
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `${MC ? 'mcyoga' : 'diner'}:${student.id}` : '';
@@ -412,7 +433,13 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   const localKey = student ? `${MC ? 'mcy-save' : 'rt-save'}:${student.id}` : '';
   const savedRow = styleLooks.find((r) => r.ownerId === owner)?.look as Partial<Save> | undefined;
   const saved: Partial<Save> = savedRow ?? (() => { try { return localKey ? JSON.parse(localStorage.getItem(localKey) ?? '{}') as Partial<Save> : {}; } catch { return {}; } })();
-  const load = (v: Partial<Save>): Save => ({ ...(MC ? MC_FRESH : FRESH), ...v, ...(MC ? { theme: 3, menu: { ...MENU0, ...(v.menu ?? {}) }, slots: { ...MC_FRESH.slots!, ...(v.slots ?? {}) } } : {}), me: { ...FRESH.me, ...(v.me ?? {}) }, stock: Array.isArray(v.stock) ? v.stock.filter((x) => x in ITEMS) : [], fridge: Array.isArray(v.fridge) ? v.fridge.filter((x) => x in ITEMS) : [], ratings: Array.isArray(v.ratings) ? v.ratings : [] });
+  // One bank for both restaurants (Build Queue 607, her words: "The money the student has earned for their first
+  // restaurant should stay and keep as the students main bank ... money from both restaurants goes into one total"): the
+  // money lives in the pizzeria's save; McYoga reads it when it opens and writes it back every time it saves.
+  const bankOwner = student ? `diner:${student.id}` : '', bankLocal = student ? `rt-save:${student.id}` : '';
+  const bankRow = styleLooks.find((r) => r.ownerId === bankOwner)?.look as Partial<Save> | undefined;
+  const bankMoney = () => { if (typeof bankRow?.money === 'number') return bankRow.money; try { return (JSON.parse(localStorage.getItem(bankLocal) ?? '{}') as Partial<Save>).money ?? 0; } catch { return 0; } };
+  const load = (v: Partial<Save>): Save => ({ ...(MC ? MC_FRESH : FRESH), ...v, ...(MC ? { money: bankMoney(), theme: 3, menu: { ...MENU0, ...(v.menu ?? {}) }, slots: { ...MC_FRESH.slots!, ...(v.slots ?? {}) } } : {}), me: { ...FRESH.me, ...(v.me ?? {}) }, stock: Array.isArray(v.stock) ? v.stock.filter((x) => x in ITEMS) : [], fridge: Array.isArray(v.fridge) ? v.fridge.filter((x) => x in ITEMS) : [], ratings: Array.isArray(v.ratings) ? v.ratings : [] });
   const g = useRef<{ s: Save; me: Mover; guests: Guest[]; cars: Car[]; ovens: Oven[]; server: Mover; cook: Mover; janitor: Mover; takeout: Mover; drive: Mover; away: Away | null; open: boolean; day: Day; nextGuest: number; nextCar: number; event: { id: string; until: number } | null; nextEvent: number; burnAfter: number; spawnQ: Guest[]; staffHome: boolean; mess: Record<number, boolean>; svFridge: boolean; sale: Sale | null } | null>(null);
   if (!g.current) {
     g.current = { s: load(saved), me: mover({ x: 6, y: 2 }), guests: [], cars: [], ovens: Array.from({ length: 3 }, () => ({ state: 'idle', t: 0, n: 0 })), server: mover(ROLES.server.post), cook: mover(ROLES.cook.post), janitor: mover(ROLES.janitor.post), takeout: mover(ROLES.takeout.post), drive: mover(ROLES.drive.post), away: null, open: false, day: NEW_DAY(), nextGuest: 0, nextCar: 0, event: null, nextEvent: Date.now() + 120000, burnAfter: 18, spawnQ: [], staffHome: true, mess: {}, svFridge: false, sale: null };
@@ -442,6 +469,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   const [restartArmed, setRestartArmed] = useState(false);
   const [shownTag, setShownTag] = useState<string | null>(null);
   const [regQuiz, setRegQuiz] = useState(false);
+  const [walkIn, setWalkIn] = useState(false);
   const spokenStep = useRef('');
   const [pops, setPops] = useState<{ id: number; text: string; x: number; y: number }[]>([]);
   const [sfx] = useState(() => lsGet('rt-sfx', 4));
@@ -460,6 +488,10 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   const save = () => {
     if (!owner || !g.current) return;
     mergeStyleRow(owner, { ...g.current.s });
+    if (MC && bankOwner) {
+      mergeStyleRow(bankOwner, { money: g.current.s.money });
+      try { const b = JSON.parse(localStorage.getItem(bankLocal) ?? '{}') as Partial<Save>; localStorage.setItem(bankLocal, JSON.stringify({ ...b, money: g.current.s.money })); } catch { /* private mode */ }
+    }
     try { localStorage.setItem(localKey, JSON.stringify(g.current.s)); } catch { /* private mode */ }
   };
   const saveRef = useRef(save); saveRef.current = save;
@@ -492,7 +524,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
         else { m.x += (dx / d) * stp; m.y += (dy / d) * stp; }
       };
       stepMover(G.me, 3.2 * (1 + s.me.speed * 0.25));
-      for (const r of ROLE_KEYS) { const sk = s[r]; if (sk) stepMover(G[r], 2.6 * (1 + sk.speed * 0.25)); }
+      for (const r of ROLE_KEYS) { const sk = s[r]; if (sk) stepMover(G[r], 2.6 * (1 + sk.speed * 0.25) * WAGE[wageOf(s, r)].speed); }
       // Ovens bake their batch, then burn if left too long.
       const bake = 7 / (1 + s.ovenLv * 0.35);
       G.ovens.forEach((o, i) => {
@@ -546,11 +578,18 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
         G.nextCar = now + (MC && s.dtSpeaker ? 17000 : 35000) / menuPull(s, G.sale, menu);
       }
       // Cars roll up the lane and stop behind the one in front; only the first one at the window is served.
-      const lane = G.cars.filter((c) => c.state !== 'go').sort((a, b) => a.id - b.id);
-      G.cars.forEach((c) => {
-        if (c.state === 'come') { const at = lane.indexOf(c), stop = 1 - at * 0.22; c.x = Math.min(stop, c.x + dt * 0.8); if (at === 0 && c.x >= 1) { c.state = 'wait'; c.arrived = now; } }
-        else if (c.state === 'go') c.x += dt;
-      });
+      // With two windows a car takes the first free window it can reach without passing the car in front.
+      const lane = G.cars.filter((c) => c.state !== 'go').sort((a, b) => a.id - b.id), stops = winStops(s);
+      let block = 1.0001;
+      for (const c of lane) {
+        if (c.state === 'wait') { block = c.x - 0.15; continue; }
+        const wi = stops.findIndex((w, i) => w <= block && !lane.some((o) => o.state === 'wait' && o.win === i));
+        const stop = wi >= 0 ? stops[wi] : block - 0.07;
+        c.x = Math.min(stop, c.x + dt * 0.8);
+        if (wi >= 0 && c.x >= stop - 0.0001) { c.state = 'wait'; c.win = wi; c.arrived = now; }
+        block = stop - 0.15;
+      }
+      G.cars.forEach((c) => { if (c.state === 'go') c.x += dt; });
       G.cars = G.cars.filter((c) => c.x < 2.2);
       // Customers move, keeping their own space (Build Queue 473): one about to walk into another waits a moment.
       G.guests.forEach((c) => {
@@ -612,8 +651,10 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   function ingredients(it: Item, n: number) { return MC ? (DISHES[it]?.cost ?? 0) * n : 0; }
   function payIngredients(it: Item, n: number) {
     const G2 = g.current!, c = ingredients(it, n); if (!c) return true;
-    if (G2.s.money < c) return false;
-    G2.s.money -= c; G2.day.ingredients += c; return true;
+    // Short on money: the supplier lets it slide this time, so McYoga can never get stuck with nothing to bake.
+    const paid = Math.min(c, G2.s.money);
+    if (paid < c) flash('You were short on money, so the supplier let it slide this time. Sell food to earn it back!');
+    G2.s.money -= paid; G2.day.ingredients += paid; return true;
   }
   function cookThink() {
     const G2 = g.current!, s2 = G2.s, ck = G2.cook;
@@ -623,8 +664,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
     const menu2 = menuNow(s2);
     const have = (it: Item) => s2.stock.filter((x) => x === it).length + (s2.fridge ?? []).filter((x) => x === it).length;
     const want = G2.guests.find((c) => c.state === 'line' && have(c.item) < c.n - (c.got ?? 0))?.item ?? G2.cars.find((c) => c.state === 'wait' && have(c.item) < c.n - (c.got ?? 0))?.item;
-    const item = want && menu2.includes(want) ? want : menu2.includes(bakeRef.current) ? bakeRef.current : menu2[0];
-    if (MC && s2.money < ingredients(item, batch(s2))) return; // no money for ingredients: the cook waits
+    const item = want && (MC || menu2.includes(want)) ? want : menu2.includes(bakeRef.current) ? bakeRef.current : menu2[0];
     ck.path = route(ck, use.oven(oi)); ck.job = () => { const o = G2.ovens[oi]; if (o.state === 'idle' && payIngredients(item, batch(s2))) { o.state = 'cook'; o.item = item; o.t = 0; o.n = batch(s2); tally('baked', o.n); } };
   }
   function serverThink() {
@@ -660,17 +700,20 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   // A pizzeria level as McYoga counts it (McYoga level 1 is the pizzeria's level 3).
   const lvName = (need: number) => Math.max(1, need - OFF);
   const unlockFor = (lv: number) => (MC ? MC_UNLOCKS[lv] : UNLOCKS[lv]);
-  if (!menu.includes(bakeType) && menu.length) queueMicrotask(() => setBakeType(menu[0]));
+  // A dish taken off the menu while someone still waits for it stays bakeable until they are served (Claudia's review).
+  const owed = MC ? [...new Set([...G.guests.filter((c) => c.state === 'line' || c.state === 'walk-in').map((c) => c.item), ...G.cars.filter((c) => c.state === 'wait').map((c) => c.item)])].filter((x) => !menu.includes(x)) : [];
+  const bakeList = [...menu, ...owed];
+  if (!bakeList.includes(bakeType) && menu.length) queueMicrotask(() => setBakeType(menu[0]));
 
   // ---- money, ratings, levels, saving ----
   const earn = (n: number, p: P) => { s.money += n; s.total += n; G.day.money += n; pop(`+${fmt(n)}`, p); };
   const checkLevel = () => {
     if (s.level >= MAX_LEVEL) { s.xp = 0; return; }
     if (s.claimed < s.level) return;
-    if (s.xp >= xpFor(dlv(s)) && upgradesDone(dlv(s), s) >= upgradesNeed(dlv(s))) { s.xp = 0; s.level += 1; clip('level'); setLevelUp(s.level); save(); }
+    if (s.xp >= xpNeed(s) && upgradesDone(dlv(s), s) >= upgradesNeed(dlv(s))) { s.xp = 0; s.level += 1; clip('level'); setLevelUp(s.level); save(); }
   };
   const served = (stars: number, n: number, item: Item) => {
-    if (s.xp < xpFor(dlv(s))) s.xp += 1;
+    if (s.xp < xpNeed(s)) s.xp += 1;
     s.served += 1; G.day.served += 1; G.day.pizzas += n; G.day.items[item] = (G.day.items[item] ?? 0) + n;
     s.ratings = [...(s.ratings ?? []), stars].slice(-40); G.day.stars.push(stars);
     if (stars >= 5) G.day.five += 1; if (stars <= 2) G.day.slow += 1;
@@ -690,7 +733,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       clip('lid'); pop(`+${k} ${k === 1 ? PZ : PZS}`, OVENS[i]); return;
     }
     if (o.state === 'cook') return hint('It is still baking. Wait for the ding!');
-    const it = menu.includes(bakeType) ? bakeType : menu[0];
+    const it = bakeList.includes(bakeType) ? bakeType : menu[0];
     if (!payIngredients(it, batch(s))) return hint(`Ingredients for ${batch(s)} ${nameN(it, batch(s))} cost ${fmt(ingredients(it, batch(s)))}. Answer questions at the cash register (while closed) to earn more.`);
     o.state = 'cook'; o.item = it; o.t = 0; o.n = batch(s); clip('stoveFlame');
     flash(`Baking ${o.n} ${nameN(o.item, o.n)}.`);
@@ -708,15 +751,15 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
     if (left > 0) { c.say = { text: `Thanks! I'll wait for ${left} more.`, until: Date.now() + 3000 }; pop(`${c.got} of ${c.n}`, ORDER_SPOT); if (staff) tally('takeout'); return true; }
     const waited = (Date.now() - c.arrived) / 1000, stars = starsFor(waited, c.n);
     const amt = priceOf(c.item, c.n);
-    let tip = amt * ((stars >= 5 ? 0.2 : stars === 4 ? 0.1 : 0) + s.me.acc * 0.04 + s.decor.length * 0.05) * (G.event?.id === 'rush' && G.event.until > Date.now() ? 2 : 1);
+    let tip = amt * ((stars >= 5 ? 0.2 : stars === 4 ? 0.1 : 0) + s.me.acc * 0.04 + s.decor.length * 0.05 + ROLE_KEYS.reduce((t, r) => t + (s[r] ? WAGE[wageOf(s, r)].tip : 0), 0)) * (G.event?.id === 'rush' && G.event.until > Date.now() ? 2 : 1);
     if (c.critic && waited <= 20) { tip += 50; flash('The food critic loved it! +$50'); }
     const paid = Math.round(amt * (stars <= 1 ? 0.6 : 1) + tip);
     G.day.tips += Math.round(tip); earn(paid, ORDER_SPOT); clip('cash'); G.day.sales[c.item] = (G.day.sales[c.item] ?? 0) + paid;
     const pr = MC && DISHES[c.item] ? unitPrice(s, G.sale, c.item) / DISHES[c.item].avg : 1;
     if (stars > 2 && pr < 0.8) { c.say = { text: DEAL[Math.floor(Math.random() * DEAL.length)], until: Date.now() + 2500 }; }
     else if (stars > 2 && pr > 1.25) { c.say = { text: PRICEY[Math.floor(Math.random() * PRICEY.length)], until: Date.now() + 2500 }; }
-    else if (stars <= 2) { c.say = { text: SARCASM[Math.floor(Math.random() * SARCASM.length)], until: Date.now() + 3500 }; clip(Math.random() < 0.5 ? 'meh' : 'bleh'); }
-    else { c.say = { text: HAPPY[Math.floor(Math.random() * HAPPY.length)], until: Date.now() + 2500 }; const v = YUM[Math.floor(Math.random() * YUM.length)]; window.setTimeout(() => clip(v), 700); }
+    else if (stars <= 2) { c.say = { text: forMc(SARCASM[Math.floor(Math.random() * SARCASM.length)]), until: Date.now() + 3500 }; clip(Math.random() < 0.5 ? 'meh' : 'bleh'); }
+    else { c.say = { text: forMc(HAPPY[Math.floor(Math.random() * HAPPY.length)]), until: Date.now() + 2500 }; const v = YUM[Math.floor(Math.random() * YUM.length)]; window.setTimeout(() => clip(v), 700); }
     if (c.takeout) { c.state = 'leave'; c.m.path = route(c.m, DOOR); }
     else { c.state = 'eat'; c.eatEnd = Date.now() + 6000 + c.n * 600; c.m.path = route(c.m, { x: TABLES[c.table].x + 1, y: TABLES[c.table].y }); }
     c.m.job = null; served(stars, c.n, c.item); reline();
@@ -760,6 +803,8 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   const atFridge = () => {
     const fr = (s.fridge ??= []);
     const carried = pizzasIn(G.me.hands);
+    // The big walk-in opens its wrap around shelves to pick from (Build Queue 607).
+    if (MC && s.walkin && !G.me.hands.length && fr.length) { clip('lid'); setWalkIn(true); return; }
     if (carried.length) {
       const room = fridgeCap(s) - fr.length;
       if (room <= 0) return hint(`The fridge is full (it holds ${FRIDGE_CAP}). Take some out first${MC ? ', or buy the walk-in fridge in the Shop' : ''}.`);
@@ -787,9 +832,9 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
     const good = pizzasIn(G.me.hands).length;
     G.me.hands = []; clip('lid'); pop(good ? `Tossed ${good} ${good === 1 ? PZ : PZS}` : 'Clean!', TRASH);
   };
-  const atWindow = () => {
-    const car = G.cars.find((c) => c.state === 'wait');
-    if (!car) return hint('No car at the window.');
+  const atWindow = (w = 0) => {
+    const car = G.cars.find((c) => c.state === 'wait' && (c.win ?? 0) === w);
+    if (!car) return hint('No car at this window.');
     const mine = G.me.hands.filter((h) => h.item === car.item && !h.burnt);
     if (!mine.length) return hint(`The car still needs ${car.n - (car.got ?? 0)} ${nameN(car.item, car.n - (car.got ?? 0))}. Bring them from the counter.`);
     giveCar(car, G.me);
@@ -798,13 +843,13 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   const giveCar = (car: Car, m: Mover, staff = false) => {
     const left = car.n - (car.got ?? 0), give = pizzasIn(m.hands).filter((h) => h.item === car.item).slice(0, left);
     if (!give.length) return; m.hands = m.hands.filter((h) => !give.includes(h)); car.got = (car.got ?? 0) + give.length; clip('plate');
-    if (car.got < car.n) { pop(`${car.got} of ${car.n}`, WINDOW); flash(`The car waits for ${car.n - car.got} more.`); return; }
+    if (car.got < car.n) { pop(`${car.got} of ${car.n}`, WINDOWS[car.win ?? 0]); flash(`The car waits for ${car.n - car.got} more.`); return; }
     payCar(car, staff);
   };
   const payCar = (car: Car, staff = false) => {
     const stars = starsFor((Date.now() - car.arrived) / 1000, car.n); car.state = 'go';
     const paid = Math.round(priceOf(car.item, car.n) * 1.3 * (MC && s.dtBoard ? 1.2 : 1));
-    earn(paid, WINDOW); clip('cash'); G.day.sales[car.item] = (G.day.sales[car.item] ?? 0) + paid; served(stars, car.n, car.item);
+    earn(paid, WINDOWS[car.win ?? 0]); clip('cash'); G.day.sales[car.item] = (G.day.sales[car.item] ?? 0) + paid; served(stars, car.n, car.item);
     if (staff) { tally('drive'); tally('money', paid); }
   };
   // ---- the three new team jobs (Build Queue 491); the game loop calls these through actRef so they see this screen's
@@ -835,7 +880,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       if (!car) { if (m.hands.length) putBack(() => false); else home(m, 'drive'); return; }
       if (goods.some((h) => h.item !== car.item)) { putBack((h) => h.item === car.item); return; }
       const need = car.n - (car.got ?? 0) - goods.length, onTower = s.stock.filter((x) => x === car.item).length;
-      if (goods.length && (need <= 0 || !onTower)) { send(m, use.window, () => { if (car.state === 'wait') giveCar(car, m, true); }); return; }
+      if (goods.length && (need <= 0 || !onTower)) { send(m, car.win ? use.window2 : use.window, () => { if (car.state === 'wait') giveCar(car, m, true); }); return; }
       if (need <= 0 || !onTower) { home(m, 'drive'); return; }
       send(m, TOWER_BACK, () => { const k = Math.min(need, s.stock.filter((x) => x === car.item).length); for (let j = 0; j < k; j++) { s.stock.splice(s.stock.indexOf(car.item), 1); m.hands.push({ item: car.item }); } });
     },
@@ -851,13 +896,13 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       if (G.staffHome) { G.staffHome = false; for (const r of ROLE_KEYS) { const m = G[r]; m.x = DOOR.x; m.y = DOOR.y; m.hands = []; m.path = route(m, ROLES[r].post); m.job = null; } }
       clip('open'); flash('Open for business! Bake ahead and stack your tower.'); return;
     }
-    G.open = false; G.spawnQ = [];
+    G.open = false; G.spawnQ = []; G.sale = null;
     G.guests.forEach((c) => { if (c.state !== 'leave') { c.state = 'leave'; c.say = { text: 'See you next time!', until: Date.now() + 2000 }; c.m.path = route(c.m, DOOR); c.m.job = null; } });
     G.cars.forEach((c) => { c.state = 'go'; });
     for (const r of ROLE_KEYS) { const m = G[r]; m.path = route(m, DOOR); m.job = null; m.hands = []; }
     G.staffHome = true;
     const wages: { who: string; amt: number }[] = [];
-    ROLE_KEYS.forEach((w) => { const sk = s[w]; if (!sk) return; const amt = Math.round(ROLES[w].wage * (1 + (sk.speed + sk.carry + sk.acc) * 0.15)); wages.push({ who: `${profiles[s.staff?.[w] ?? '']?.name ?? 'Your helper'} (${ROLES[w].name.toLowerCase()})`, amt }); });
+    ROLE_KEYS.forEach((w) => { const sk = s[w]; if (!sk) return; const amt = Math.round(WAGE[wageOf(s, w)].pay * ROLES[w].wage * (1 + (sk.speed + sk.carry + sk.acc) * 0.15)); wages.push({ who: `${profiles[s.staff?.[w] ?? '']?.name ?? 'Your helper'} (${ROLES[w].name.toLowerCase()})`, amt }); });
     const paid = wages.reduce((n, w) => n + w.amt, 0);
     s.money = Math.max(0, s.money - paid); G.day.wages = wages;
     s.day += 1; const net = G.day.money - paid - G.day.ingredients; const best = net > s.best; if (best) s.best = net; save();
@@ -947,11 +992,14 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   });
   const inFridge = (s.fridge ?? []).length;
   stations.push({ key: 'fridge', at: FRIDGE, label: `Fridge: ${inFridge} ${inFridge === 1 ? PZ : PZS} stored. Tap to store or take out ${PZS}`, onTap: () => go(use.fridge, atFridge), hit: [1, 1.9, 1], badge: inFridge ? <b className="rt-ready3 cold">🧊 {inFridge}</b> : undefined });
+  // The big walk-in fridge and its shelves can be tapped too (Claudia's review of 607).
+  if (MC && s.walkin) [9, 10].forEach((x) => stations.push({ key: `walkin${x}`, at: { x, y: 1 }, label: 'Walk-in fridge: tap to store food or open the shelves', hit: [1, 1.9, 1], onTap: () => go({ x, y: 2 }, atFridge) }));
   if (s.stock.length) stations.push({ key: 'tower', at: TOWER_AT, label: `${PZC} tower: tap to pick ${PZS} up`, onTap: () => go(use.tower, atTower), hit: [1, 1.2 + Math.min(17, s.stock.length) * 0.085, 1] });
   stations.push({ key: 'trash', at: TRASH, label: 'Trash can', onTap: () => go(use.trash, atTrash), children: <ModelAt url={TRASH_MODEL} fit={0.55} /> });
   stations.push({ key: 'counter', at: COUNTER, label: `Counter: stack ${PZS} and hand them over`, tag: `${s.stock.length} ${s.stock.length === 1 ? PZ : PZS} on the counter`, onTap: () => go(use.counter, atCounter) });
   if (!G.open) stations.push({ key: 'register', at: { x: 7, y: COUNTER.y }, label: 'Cash register: answer questions for money', tag: 'Cash register questions', onTap: () => go({ x: 7, y: 2 }, () => { clip('cash', true); setRegQuiz(true); }) });
-  if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', hit: [1, 1.6, 1], onTap: () => go(use.window, atWindow) });
+  if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', hit: [1, 1.6, 1], onTap: () => go(use.window, () => atWindow(0)) });
+  if (MC && s.dtWin2 && lvOk(6)) stations.push({ key: 'window2', at: WINDOW2, label: 'Second drive through window', tag: 'Window 2', hit: [1, 1.6, 1], onTap: () => go(use.window2, () => atWindow(1)) });
   const tableCap = s.annex ? TABLES.length : lvOk(8) ? MAIN_TABLES : lvOk(2) ? 3 : 1;
   TABLES.forEach((p, i) => {
     const cap = tableCap;
@@ -975,13 +1023,14 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
     ...TABLES.slice(0, s.tables).map((t) => key(t.x, t.y)),
     ...DECOR.filter((d) => s.decor.includes(d.id) && d.id !== 'rug').map((d) => key(d.at.x, d.at.y)),
     key(WINDOW.x, WINDOW.y),
+    ...(MC && s.dtWin2 ? [key(WINDOW2.x, WINDOW2.y)] : []),
   ]);
   // A customer's bubble: their stars on top (how happy they would be right now), then how many pizzas they want.
   const nowMs = Date.now();
   const bubbleFor = (c: Guest) => {
     if (c.say) return <i className="rt-b3"><em>{c.say.text}</em></i>;
     // Only once they are standing in line, one tile apart, so bubbles never pile up on each other (Build Queue 472).
-    if (c.state === 'line') return <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n - (c.got ?? 0)}</b>{c.got ? <small>{c.got} of {c.n}</small> : null}{c.takeout && <img src={`${ICON}pizzabox.png`} alt="to go" />}</span></i>;
+    if (c.state === 'line') return <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n - (c.got ?? 0)}</b>{c.got ? <small>{c.got} of {c.n}</small> : null}{c.takeout && <img src={MC ? `${ICON}my-bag.png` : `${ICON}pizzabox.png`} alt="to go" />}</span></i>;
     return null;
   };
   // Bubbles down the line take turns left and right of each customer, so they never cover one another.
@@ -1004,7 +1053,14 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
     if (!draft) return;
     const m: McMenu = { app: draft.menu.app.filter(Boolean), ent: draft.menu.ent.filter(Boolean), des: draft.menu.des.filter(Boolean) };
     if (!menuList(m).length) { hint('Your menu needs at least one dish.'); return; }
-    s.menu = m; s.prices = draft.prices; save(); clip('buy'); setMcPanel(null); setDraft(null); flash('Menu saved! Customers order from your new menu.');
+    s.menu = m; s.prices = draft.prices;
+    // Customers who have not been handed anything yet pick again from the new menu.
+    const nm = menuNow(s); let moved = 0;
+    for (const c of [...G.guests, ...G.spawnQ]) if (!c.got && (c.state === 'walk-in' || c.state === 'line') && !nm.includes(c.item)) { c.item = chooseDish(s, G.sale, nm); moved += 1; }
+    for (const c of G.cars) if (!c.got && c.state !== 'go' && !nm.includes(c.item)) { c.item = chooseDish(s, G.sale, nm); moved += 1; }
+    if (G.sale && G.sale.item !== 'all' && !nm.includes(G.sale.item)) G.sale = null;
+    if (saleItem !== 'all' && !nm.includes(saleItem)) setSaleItem('all');
+    save(); clip('buy'); setMcPanel(null); setDraft(null); flash(moved ? 'Menu saved! Customers in line picked from your new menu.' : 'Menu saved! Customers order from your new menu.');
   };
   const sale = G.sale && G.sale.until > nowMs ? G.sale : null;
   // McYoga's menu board (her words: "matching my theme for McYoga, i wan the menu to be simple and visual"): big food
@@ -1022,7 +1078,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       const c = courseOf(mcCourse), have = s.slots?.[mcCourse] ?? c.slots0, list = draft.menu[mcCourse];
       const slot = Math.min(mcSlot, have - 1), chosen = list[slot] as Item | undefined;
       const setPrice = (it: Item, v: number) => setDraft({ ...draft, prices: { ...draft.prices, [it]: Math.max(1, Math.min(99, Math.round(v))) } });
-      const pick = (it: Item) => { const next = [...list]; const at = next.indexOf(it); if (at >= 0 && at !== slot) next[at] = next[slot]; next[slot] = it; setDraft({ ...draft, menu: { ...draft.menu, [mcCourse]: next.filter((x, i) => x || i < have) } }); clip('click', true); };
+      const pick = (it: Item) => { const next = [...list]; const at = next.indexOf(it); if (at >= 0 && at !== slot) next[at] = next[slot]; next[slot] = it; setDraft({ ...draft, menu: { ...draft.menu, [mcCourse]: next.filter((x, i) => x || i < have) } }); clip('click', true); const empty = Array.from({ length: have }, (_, i) => i).find((i) => i !== slot && !next[i]); if (empty !== undefined) setMcSlot(empty); };
       body = (
         <div className="mcy-board">
           <nav className="mcy-courses">
@@ -1043,13 +1099,13 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
                       <button type="button" className="mcy-step" aria-label="Raise the price $1" onClick={() => setPrice(it, price + 1)}>+</button>
                     </div>}
                     {it && <i className={`mcy-dot ${adv!.tone}`}>{adv!.tone === 'good' ? 'Fair' : adv!.tone === 'low' ? 'Bargain' : adv!.tone === 'high' ? 'Pricey' : 'Losing money'}</i>}
-                    {it && list.filter(Boolean).length + menuList(draft.menu).length > 1 && <button type="button" className="mcy-remove" onClick={() => { const next = [...list]; next[i] = ''; setDraft({ ...draft, menu: { ...draft.menu, [mcCourse]: next } }); clip('click', true); }}>Take off</button>}
+                    {it && menuList(draft.menu).filter(Boolean).length > 1 && <button type="button" className="mcy-remove" onClick={() => { const next = [...list]; next[i] = ''; setDraft({ ...draft, menu: { ...draft.menu, [mcCourse]: next } }); clip('click', true); }}>Take off</button>}
                   </div>
                 );
               })}
             </div>
             {chosen && (() => { const pr = draft.prices[chosen] ?? DISHES[chosen].avg, adv = priceAdvice(chosen, pr); return (
-              <p className={`mcy-advice ${adv.tone}`}><b>{ITEMS[chosen].name}:</b> {adv.text} It costs ${DISHES[chosen].cost} to make, so you keep ${Math.max(0, pr - DISHES[chosen].cost)} of each sale. {pr !== DISHES[chosen].avg && <button type="button" className="btn btn-sm" onClick={() => setPrice(chosen, DISHES[chosen].avg)}>Use ${DISHES[chosen].avg}</button>} <button type="button" className="btn btn-sm rt-listen" aria-label="Listen" onClick={() => speak(`${ITEMS[chosen].name}, ${pr} dollars. ${adv.text}`, student!.ttsSettings)}>🔊</button></p>
+              <p className={`mcy-advice ${adv.tone}`}><b>{ITEMS[chosen].name}:</b> {adv.text} It costs ${DISHES[chosen].cost} to make, so you keep ${Math.max(0, pr - DISHES[chosen].cost)} of each sale after ingredients. {pr !== DISHES[chosen].avg && <button type="button" className="btn btn-sm" onClick={() => setPrice(chosen, DISHES[chosen].avg)}>Use ${DISHES[chosen].avg}</button>} <button type="button" className="btn btn-sm rt-listen" aria-label="Listen" onClick={() => speak(`${ITEMS[chosen].name}, ${pr} dollars. ${adv.text}`, student!.ttsSettings)}>🔊</button></p>
             ); })()}
             <h3 className="mcy-pick-h">Tap a dish to put it in spot {slot + 1}</h3>
             <div className="mcy-grid">
@@ -1060,18 +1116,19 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       );
     } else if (mcPanel === 'sales') {
       const opts: (Item | 'all')[] = ['all', ...menu];
+      const pickSale: Item | 'all' = saleItem !== 'all' && menu.includes(saleItem) ? saleItem : 'all';
       body = (
         <div className="mcy-sales">
           {sale ? <p className="mcy-advice good">A sale is on now: {sale.item === 'all' ? 'the whole menu' : ITEMS[sale.item].name} is {sale.off}% off. More customers come in and buy it while it lasts.</p>
             : <p className="mcy-hint">A sale makes food cheaper for 3 minutes, so more customers come in and buy it. You earn less on each one, so use sales when a dish is not selling.</p>}
           <h3 className="mcy-pick-h">1. What goes on sale?</h3>
           <div className="mcy-grid">
-            {opts.map((it) => <button key={it} type="button" className={`mcy-card${saleItem === it ? ' in' : ''}`} onClick={() => { clip('click', true); setSaleItem(it); }}>{it === 'all' ? <span className="mcy-all">ALL</span> : <img src={ITEMS[it].img} alt="" />}<b>{it === 'all' ? 'Whole menu' : ITEMS[it].name}</b>{it !== 'all' && <small>now ${mcPriceOf(s.prices, it)}</small>}</button>)}
+            {opts.map((it) => <button key={it} type="button" className={`mcy-card${pickSale === it ? ' in' : ''}`} onClick={() => { clip('click', true); setSaleItem(it); }}>{it === 'all' ? <span className="mcy-all">ALL</span> : <img src={ITEMS[it].img} alt="" />}<b>{it === 'all' ? 'Whole menu' : ITEMS[it].name}</b>{it !== 'all' && <small>now ${mcPriceOf(s.prices, it)}</small>}</button>)}
           </div>
           <h3 className="mcy-pick-h">2. How much off?</h3>
           <div className="mcy-offs">{SALE_OFFS.map((o) => <button key={o} type="button" className={`mcy-off${salePct === o ? ' on' : ''}`} onClick={() => { clip('click', true); setSalePct(o); }}>{o}% off</button>)}</div>
-          {saleItem !== 'all' && menu.includes(saleItem) && <p className="mcy-hint">{ITEMS[saleItem].name} will cost <b>${(mcPriceOf(s.prices, saleItem) * (1 - salePct / 100)).toFixed(2)}</b> instead of ${mcPriceOf(s.prices, saleItem)}.</p>}
-          <button type="button" className="btn btn-primary btn-lg" disabled={!!sale || !G.open} onClick={() => { G.sale = { item: saleItem, off: salePct, until: Date.now() + SALE_MS }; clip('level'); setMcPanel(null); flash(`Sale on! ${saleItem === 'all' ? 'Everything' : ITEMS[saleItem].name} is ${salePct}% off for 3 minutes.`); }}>{!G.open ? 'Open McYoga to start a sale' : sale ? 'Wait for this sale to end' : 'Start the sale'}</button>
+          {pickSale !== 'all' && <p className="mcy-hint">{ITEMS[pickSale].name} will cost <b>${(mcPriceOf(s.prices, pickSale) * (1 - salePct / 100)).toFixed(2)}</b> instead of ${mcPriceOf(s.prices, pickSale)}.{mcPriceOf(s.prices, pickSale) * (1 - salePct / 100) <= DISHES[pickSale].cost ? ` That is less than the $${DISHES[pickSale].cost} it costs to make, so you lose money on each one.` : ''}</p>}
+          <button type="button" className="btn btn-primary btn-lg" disabled={!!sale || !G.open} onClick={() => { G.sale = { item: pickSale, off: salePct, until: Date.now() + SALE_MS }; clip('level'); setMcPanel(null); flash(`Sale on! ${pickSale === 'all' ? 'Everything' : ITEMS[pickSale].name} is ${salePct}% off for 3 minutes.`); }}>{!G.open ? 'Open McYoga to start a sale' : sale ? 'Wait for this sale to end' : 'Start the sale'}</button>
         </div>
       );
     } else if (mcPanel === 'selling') {
@@ -1082,7 +1139,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
             {menu.map((it) => { const sold = G.day.items[it] ?? 0, walked = G.day.walk[it] ?? 0, money = G.day.sales[it] ?? 0, pr = mcPriceOf(s.prices, it), tip = sellingTip(it, pr, sold, walked), a = appeal(unitPrice(s, sale, it), DISHES[it].avg); return (
               <div key={it} className="mcy-card stat">
                 <img src={ITEMS[it].img} alt="" /><b>{ITEMS[it].name} · ${pr}</b>
-                <i className="mcy-meter" aria-label={`How much customers want it: ${Math.round(Math.min(1, a / 1.6) * 100)} out of 100`}><em style={{ width: `${Math.min(100, (a / 1.6) * 100)}%` }} /></i>
+                <small>Customers want it: <b>{a >= 1.1 ? 'a lot' : a >= 0.6 ? 'some' : 'a little'}</b></small><i className="mcy-meter" aria-label={`How much customers want it: ${Math.round(Math.min(1, a / 1.6) * 100)} out of 100`}><em style={{ width: `${Math.min(100, (a / 1.6) * 100)}%` }} /></i>
                 <small>Sold {sold} · {fmt(money)}{walked ? ` · ${walked} said too pricey` : ''}</small>
                 {tip && <small className="mcy-tip">{tip}</small>}
               </div>
@@ -1093,9 +1150,9 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       );
     }
     return (
-      <div className="pf-overlay rt-top" onClick={close}>
+      <div className="pf-overlay rt-top" onClick={() => { if (mcPanel !== 'menu') close(); }}>
         <div className="pf-panel rt-panel mcy-panel" onClick={(e) => e.stopPropagation()}>
-          <header className="mcy-panel-head"><span className="mcy-logo">McYoga</span>{tabs}<button type="button" className="mcy-x" aria-label="Close" onClick={close}>×</button></header>
+          <header className="mcy-panel-head"><span className="mcy-logo">McYoga</span>{tabs}<button type="button" className="mcy-x" aria-label="Listen" onClick={() => speak(mcPanel === 'menu' ? 'Your menu. Pick a group on the left. Tap a spot at the top, then tap a food below to put it there. Use minus and plus to change its price. The tag says if the price is fair, a bargain, pricey, or losing money. Tap Save menu when you are done.' : mcPanel === 'sales' ? 'Sales. First pick what goes on sale, or the whole menu. Then pick how much off. Then tap Start the sale. A sale lasts 3 minutes and brings more customers.' : `How it is selling. ${menu.map((it) => `${ITEMS[it].name}: sold ${G.day.items[it] ?? 0}${G.day.walk[it] ? `, ${G.day.walk[it]} said too pricey` : ''}.`).join(' ')} Profit so far today is ${Math.floor(G.day.money - G.day.ingredients)} dollars.`, student!.ttsSettings)}>🔊</button><button type="button" className="mcy-x" aria-label="Close" onClick={close}>×</button></header>
           {body}
           {mcPanel === 'menu' && <div className="rt-row"><button type="button" className="btn btn-primary btn-lg" onClick={saveMenu}>Save menu</button><button type="button" className="btn btn-lg" onClick={close}>Cancel</button></div>}
         </div>
@@ -1110,11 +1167,11 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
         <div className="rt-head-l">
           <button type="button" className="btn" onClick={() => { clip('click'); setPhase('menu'); }} aria-label="Pause and settings">Pause</button>
           {MC && <b className="mcy-logo" aria-label="McYoga">McYoga</b>}
-          <span className="rt-level"><b>Level {s.level}{s.level >= MAX_LEVEL ? (MC ? ': McYoga master' : ': Pizza master') : ''}</b>{s.level < MAX_LEVEL && <><i><em style={{ width: `${(s.xp / xpFor(dlv(s))) * 100}%` }} /></i><small>{s.xp} / {xpFor(dlv(s))} customers{upgradesNeed(dlv(s)) ? ` · ${Math.min(upgradesDone(dlv(s), s), upgradesNeed(dlv(s)))} / ${upgradesNeed(dlv(s))} upgrades` : ''}</small></>}</span>
+          <span className="rt-level"><b>Level {s.level}{s.level >= MAX_LEVEL ? (MC ? ': McYoga master' : ': Pizza master') : ''}</b>{s.level < MAX_LEVEL && <><i><em style={{ width: `${(s.xp / xpNeed(s)) * 100}%` }} /></i><small>{s.xp} / {xpNeed(s)} customers{upgradesNeed(dlv(s)) ? ` · ${Math.min(upgradesDone(dlv(s), s), upgradesNeed(dlv(s)))} / ${upgradesNeed(dlv(s))} upgrades` : ''}</small></>}</span>
         </div>
         {/* Build Queue 478: the money centered on the red bar, with the five star rating beside it. */}
         <div className="rt-head-c">
-          <span className="rt-money" aria-label={`${theme.name} money`}><b>{fmt(s.money)}</b></span>
+          <span className="rt-money" aria-label={ownsOther ? 'Your bank, shared by both restaurants' : `${theme.name} money`}><b>{fmt(s.money)}</b>{ownsOther && <small>Bank for both restaurants</small>}</span>
           <Stars value={rating} />
         </div>
         <div className="rt-head-r">
@@ -1138,12 +1195,12 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       <div className="rt-stage">
         <Suspense fallback={<p className="rt-loading">Setting up your restaurant...</p>}>
           <RestaurantScene
-            theme={s.theme} ovens={s.ovens} shelves={0} tables={s.tables} showWindow={lvOk(6)} annex={!!s.annex}
+            theme={s.theme} ovens={s.ovens} shelves={0} tables={s.tables} showWindow={lvOk(6)} showWindow2={MC && !!s.dtWin2 && lvOk(6)} annex={!!s.annex}
             stations={tagged} me={sceneMover(G.me)} meLook={meLook}
             staff={G.staffHome && ROLE_KEYS.every((r) => !G[r].path.length) ? [] : ROLE_KEYS.filter((r) => s[r]).map((r) => ({ m: sceneMover(G[r]), look: profiles[s.staff?.[r] ?? '']?.look ?? ROLES[r].look }))}
             guests={G.guests.map((c) => ({ id: c.id, m: sceneMover(c.m), look: profiles[c.npc]?.look ?? defaultLook('dog'), bubble: bubbleFor(c), side: lineSide(c) }))}
             cars={G.cars.map((c) => ({ id: c.id, x: c.x, bubble: c.state === 'wait' ? <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n - (c.got ?? 0)}</b>{c.got ? <small>{c.got} of {c.n}</small> : null}</span></i> : null }))}
-            props={MC ? [...FIXED, ...(s.dtBoard && lvOk(6) ? [{ model: '/games/restaurant/models/ff/menu_board.glb', x: 14.6, y: 6.5, fit: 0.9, rot: -Math.PI / 2 }] : []), ...(s.dtSpeaker && lvOk(6) ? [{ model: '/games/restaurant/models/ff/fastfood_sign.glb', x: 14.6, y: 2.5, fit: 0.7, rot: -Math.PI / 2 }] : [])] : FIXED} tapHere={showHints ? tapHere : null} pops={pops}
+            props={MC ? [...FIXED, ...(s.walkin ? [{ model: '/world/models/restaurant/Environment_CanFridge.gltf', x: 9, y: 1, fit: 0.9 }, { model: '/world/models/restaurant/Environment_Cabinet_Shelves.gltf', x: 10, y: 1, fit: 0.95 }] : []), ...(s.dtBoard && lvOk(6) ? [{ model: '/games/restaurant/models/ff/menu_board.glb', x: 14.6, y: 6.5, fit: 0.9, rot: -Math.PI / 2 }] : []), ...(s.dtSpeaker && lvOk(6) ? [{ model: '/games/restaurant/models/ff/fastfood_sign.glb', x: 14.6, y: 2.5, fit: 0.7, rot: -Math.PI / 2 }] : [])] : FIXED} tapHere={showHints ? tapHere : null} pops={pops}
             ovenFood={[]} shelfFood={[]}
             counterFood={s.stock.map((it) => ITEMS[it].food)}
             tableFood={TABLES.map((_, i) => { const c = G.guests.find((x) => x.table === i && x.state === 'eat' && !x.m.path.length); return c ? ITEMS[c.item].food : null; })}
@@ -1152,10 +1209,10 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
           />
         </Suspense>
       </div>
-      {phase === 'play' && menu.length > 1 && (
+      {phase === 'play' && bakeList.length > 1 && (
         <div className="rt-bake" role="group" aria-label={`Which ${PZ} the ovens bake`}>
           <span>Bake:</span>
-          {menu.map((m) => <button key={m} type="button" className={`rt-bake-b${bakeType === m ? ' on' : ''}`} aria-pressed={bakeType === m} onClick={() => { clip('click', true); setBakeType(m); }}><img src={ITEMS[m].img} alt="" /><small>{ITEMS[m].name.replace(' pizza', '')}{MC && <em className="mcy-price">{fmt(unitPrice(s, sale, m))}</em>}</small></button>)}
+          {bakeList.map((m) => <button key={m} type="button" className={`rt-bake-b${bakeType === m ? ' on' : ''}`} aria-pressed={bakeType === m} onClick={() => { clip('click', true); setBakeType(m); }}><img src={ITEMS[m].img} alt="" /><small>{ITEMS[m].name.replace(' pizza', '')}{MC && <em className="mcy-price">{fmt(unitPrice(s, sale, m))}</em>}</small></button>)}
         </div>
       )}
       {buy && (
@@ -1205,8 +1262,8 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
             <button type="button" className={`rt-q${s.hints ? ' on' : ''}`} aria-pressed={!!s.hints} onClick={() => { s.hints = !s.hints; save(); clip('click', true); setTick((n) => n + 1); }}><b className="rt-q-letter">👆</b><span>Show the steps and where to tap{MC ? '' : ' (always on in level 1)'}</span>{s.hints && <i className="rt-q-check" aria-hidden="true">✓</i>}</button>
             <button type="button" className={`btn rt-restart${restartArmed ? ' armed' : ''}`} onClick={() => {
               if (!restartArmed) { setRestartArmed(true); return; }
-              setRestartArmed(false); G.s = load({ qs: s.qs, mcyoga: s.mcyoga }); G.guests = []; G.cars = []; G.spawnQ = []; G.open = false; G.staffHome = true; G.mess = {}; G.me.hands = []; G.ovens.forEach((o) => { o.state = 'idle'; o.item = undefined; o.n = 0; }); save(); setTick((n) => n + 1); flash('Your restaurant is brand new.');
-            }}>{restartArmed ? 'Tap again to erase your restaurant and start over' : 'Start over'}</button>
+              setRestartArmed(false); G.s = load({ qs: s.qs, mcyoga: s.mcyoga, ...(s.mcyoga || MC ? { money: s.money } : {}) }); G.guests = []; G.cars = []; G.spawnQ = []; G.open = false; G.staffHome = true; G.mess = {}; G.me.hands = []; G.ovens.forEach((o) => { o.state = 'idle'; o.item = undefined; o.n = 0; }); save(); setTick((n) => n + 1); flash('Your restaurant is brand new.');
+            }}>{restartArmed ? (MC || s.mcyoga ? 'Tap again to start this restaurant over (your bank money stays)' : 'Tap again to erase your restaurant and start over') : 'Start over'}</button>
             <div className="rt-row"><button type="button" className="btn" onClick={leaveGame}>Save and leave</button></div>
           </div>
         </div>
@@ -1228,7 +1285,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       {offer && (
         <div className="pf-overlay rt-top">
           <div className="pf-panel rt-panel">
-            <h2>{offer.title}</h2><p>{offer.text}</p>
+            <h2>{offer.title}</h2><p>{forMc(offer.text)}</p>
             <div className="rt-row">
               <button type="button" className="btn btn-primary btn-lg" onClick={() => { G.event = { id: offer.id, until: Date.now() + (offer.id === 'critic' ? 60000 : EVENT_MS) }; setOffer(null); clip('buy'); }}>Start</button>
               <button type="button" className="btn btn-lg" onClick={() => setOffer(null)}>Not now</button>
@@ -1271,14 +1328,15 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
                 { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 1000, act: () => { if (spend(1000)) s.ovens = 3; } },
                 { name: 'New dining room next door (room for 4 more tables)', ok: lvOk(10) && !s.annex, need: 10, cost: ANNEX_COST, act: () => { if (spend(ANNEX_COST)) { s.annex = true; flash('Your new dining room is open! Add tables in it.'); } } },
                 { name: `Table ${s.tables + 1}`, ok: s.tables < tableCap, need: s.tables < 3 ? 2 : s.tables < MAIN_TABLES ? 8 : 10, cost: tableCost(s.tables), act: () => { if (spend(tableCost(s.tables))) s.tables += 1; } },
-                { name: (s.stackLv ?? 0) < STACK_CAPS.length - 1 ? `Bigger counter: holds ${STACK_CAPS[(s.stackLv ?? 0) + 1]} pizzas${(s.stackLv ?? 0) + 1 === STACK_CAPS.length - 1 ? ' (the biggest!)' : ''}, bigger orders` : 'Biggest counter (holds 100)', ok: (s.stackLv ?? 0) < STACK_CAPS.length - 1 && lvOk(STACK_LV[s.stackLv ?? 0]), need: STACK_LV[Math.min(STACK_LV.length - 1, s.stackLv ?? 0)], cost: STACK_COST[Math.min(STACK_COST.length - 1, s.stackLv ?? 0)], act: () => { const lv = s.stackLv ?? 0; if (spend(STACK_COST[lv])) { s.stackLv = lv + 1; flash(`Your counter now holds ${stackCap(s)} pizzas, and customers order more!`); } } },
+                { name: (s.stackLv ?? 0) < STACK_CAPS.length - 1 ? `Bigger counter: holds ${STACK_CAPS[(s.stackLv ?? 0) + 1]} ${PZS}${(s.stackLv ?? 0) + 1 === STACK_CAPS.length - 1 ? ' (the biggest!)' : ''}, bigger orders` : `Biggest counter (holds 100 ${PZS})`, ok: (s.stackLv ?? 0) < STACK_CAPS.length - 1 && lvOk(STACK_LV[s.stackLv ?? 0]), need: STACK_LV[Math.min(STACK_LV.length - 1, s.stackLv ?? 0)], cost: STACK_COST[Math.min(STACK_COST.length - 1, s.stackLv ?? 0)], act: () => { const lv = s.stackLv ?? 0; if (spend(STACK_COST[lv])) { s.stackLv = lv + 1; flash(`Your counter now holds ${stackCap(s)} ${PZS}, and customers order more!`); } } },
                 { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 200 * (s.ovenLv + 1), act: () => { if (spend(200 * (s.ovenLv + 1))) s.ovenLv += 1; } },
                 ...(MC ? [
                   { name: s.dtLane ? 'Long drive through lane (3 cars)' : 'Longer drive through lane: 3 cars can wait in line', ok: !s.dtLane && lvOk(6), need: 6, cost: 1500, act: () => { if (spend(1500)) { s.dtLane = true; flash('Your drive through lane holds 3 cars now!'); } } },
                   { name: s.dtSpeaker ? 'Drive through speaker' : 'Drive through speaker: cars come twice as often', ok: !s.dtSpeaker && lvOk(6), need: 6, cost: 1200, act: () => { if (spend(1200)) { s.dtSpeaker = true; flash('Welcome to McYoga, may I take your order? Cars come twice as often now.'); } } },
                   { name: s.dtBoard ? 'Drive through menu board' : 'Drive through menu board: bigger car orders and a 20% tip', ok: !s.dtBoard && lvOk(6), need: 6, cost: 1000, act: () => { if (spend(1000)) { s.dtBoard = true; flash('Cars can read your menu now. Bigger orders and bigger tips!'); } } },
                 ] : []),
-                ...(MC ? [{ name: s.walkin ? 'Walk-in fridge (no limit)' : `Walk-in fridge: store as much food as you like (now ${FRIDGE_CAP})`, ok: !s.walkin, need: 3, cost: WALKIN_COST, act: () => { if (spend(WALKIN_COST)) { s.walkin = true; flash('Your walk-in fridge is in! It holds as much food as you like.'); } } }]
+                ...(MC ? [{ name: s.dtWin2 ? 'Second drive through window' : 'Second drive through window: serve two cars at once', ok: !s.dtWin2 && lvOk(6), need: 6, cost: 2500, act: () => { if (spend(2500)) { s.dtWin2 = true; flash('Your second drive through window is open! Two cars can be served at once.'); } } }] : []),
+                ...(MC ? [{ name: s.walkin ? 'Walk-in fridge (no limit)' : `Big walk-in fridge with wrap around shelves and cabinets: no limit (now ${FRIDGE_CAP})`, ok: !s.walkin && lvOk(7), need: 7, cost: WALKIN_COST, act: () => { if (spend(WALKIN_COST)) { s.walkin = true; flash('Your walk-in fridge is in! It holds as much food as you like.'); } } }]
                   : [{ name: s.mcyoga ? 'McYoga is yours (tap McYoga at the top to go there)' : 'Open a second restaurant: McYoga', ok: !s.mcyoga && lvOk(MCYOGA_LEVEL), need: MCYOGA_LEVEL, cost: MCYOGA_COST, act: () => { if (spend(MCYOGA_COST)) { s.mcyoga = true; playCheer(); flash('You own McYoga! Tap McYoga at the top to open it.'); } } }]),
               ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(qFor(it.cost))} for this upgrade!`, qFor(it.cost), () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : !lvOk(it.need) ? `Level ${lvName(it.need)}` : 'Got it'}</span></button>)}
             </div>}
@@ -1289,8 +1347,15 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
                 return (
                   <div key={who} className="rt-worker">
                     <b>{who === 'me' ? 'You' : ROLES[who].name}</b>
-                    {who !== 'me' && <small className="rt-job">{ROLES[who].job}</small>}
+                    {who !== 'me' && <small className="rt-job">{MC ? ROLES[who].job.replace(/pizzas/g, "food") : ROLES[who].job}</small>}
                     {who !== 'me' && sk && <small>{profiles[s.staff?.[who] ?? '']?.name ?? 'Your helper'} <button type="button" className="btn btn-sm rt-letgo" onClick={() => { s[who] = undefined; s.staff = { ...(s.staff ?? {}), [who]: undefined }; G[who].path = route(G[who], DOOR); G[who].job = null; G[who].hands = []; save(); setTick((n) => n + 1); flash('They are dismissed. You can hire someone new any time.'); }}>Dismiss</button></small>}
+                    {MC && who !== 'me' && sk && (() => { const cur = wageOf(s, who); return (
+                      <div className="mcy-wage" role="group" aria-label="Pay">
+                        <span>Pay a day:</span>
+                        {(['low', 'med', 'high'] as Wage[]).map((w) => <button key={w} type="button" aria-pressed={cur === w} className={`mcy-wage-b${cur === w ? ' on' : ''}`} onClick={() => { s.wages = { ...(s.wages ?? {}), [who]: w }; save(); clip('click', true); setTick((n) => n + 1); }}>{WAGE[w].name}<small>about {fmt(ROLES[who].wage * WAGE[w].pay)}</small></button>)}
+                        <p className="mcy-wage-note"><b>Good:</b> {WAGE[cur].pros} <b>But:</b> {WAGE[cur].cons} <button type="button" className="btn btn-sm rt-listen" aria-label="Listen" onClick={() => speak(`${WAGE[cur].name} pay. Good: ${WAGE[cur].pros} But: ${WAGE[cur].cons}`, student.ttsSettings)}>🔊</button></p>
+                      </div>
+                    ); })()}
                     {who !== 'me' && !sk ? <button type="button" className="btn rt-item" disabled={!canHire} onClick={() => { setShop(null); setPicker(who); }}><b>Hire a Neighbor</b><span>{canHire ? fmt(ROLES[who].cost) : `Level ${lvName(ROLES[who].lv)}`}</span></button>
                       : sk && (who === 'me' ? (['speed', 'carry', 'acc'] as const) : ROLES[who].skills).map((k) => <button key={k} type="button" className="btn rt-item" disabled={sk[k] >= 3 || !lvOk(2)} onClick={() => { setShop(null); train(who, k); }}><b>{k === 'speed' ? 'Faster' : k === 'carry' ? 'Taller tower' : 'More careful'} {sk[k]}/3</b><span>{sk[k] >= 3 ? 'Best' : fmt(trainCost(who, sk[k]))}</span></button>)}
                   </div>
@@ -1312,7 +1377,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
                 if (!G.open) { hint('Open the shop first, then start an event.'); return; }
                 if (s.money < e.cost) { hint(`You need ${fmt(e.cost - s.money)} more.`); return; }
                 setShop(null); s.money -= e.cost; G.event = { id: e.id, until: Date.now() + (e.id === 'critic' ? 60000 : EVENT_MS) }; clip('level'); save(); flash(`${e.title} is on!`);
-              }}><b>{e.title} · {lvOk(e.lv) ? fmt(e.cost) : `Level ${lvName(e.lv)}`}</b><span>{e.text}</span></button>)}
+              }}><b>{e.title} · {lvOk(e.lv) ? fmt(e.cost) : `Level ${lvName(e.lv)}`}</b><span>{forMc(e.text)}</span></button>)}
               <p className="rt-small">{G.event && G.event.until > nowMs ? 'An event is running now. Start another when it ends.' : 'Buy one to start it right away while the shop is open.'}</p>
             </div>}
             <button type="button" className="btn btn-primary btn-lg" onClick={() => setShop(null)}>Done</button>
@@ -1323,7 +1388,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
         <div className="pf-overlay rt-top" onClick={() => setPicker(null)}>
           <div className="pf-panel rt-panel" onClick={(e) => e.stopPropagation()}>
             <h2>Hire a Neighbor as your {ROLES[picker].name.toLowerCase()} <small>{fmt(ROLES[picker].cost)}</small></h2>
-            <p className="rt-small">{ROLES[picker].job} They work in your pizzeria looking just like they do in Town Square, and are paid a wage at closing time.</p>
+            <p className="rt-small">{MC ? ROLES[picker].job.replace(/pizzas/g, "food") : ROLES[picker].job} They work in your {MC ? 'McYoga' : 'pizzeria'} looking just like they do in Town Square, and are paid a wage at closing time.{MC ? ' Their pay starts at Medium; you can change it in Workers if you want to.' : ''}</p>
             <div className="rt-items">
               {neighbors.filter((n) => !Object.values(s.staff ?? {}).includes(n.id)).map((n) => (
                 <button key={n.id} type="button" className="btn rt-item" onClick={() => hire(picker, n.id)}><b>{n.name}</b><span>{n.title}</span></button>
@@ -1340,7 +1405,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
             <p className="rt-small">Answer 5 questions to launch one. {G.event && G.event.until > nowMs ? 'One is running now, so wait for it to end.' : ''}</p>
             <div className="rt-items">
               {EVENTS.filter((e) => !(MC && e.id === 'pep')).map((e) => (
-                <button key={e.id} type="button" className="btn rt-item rt-ev" disabled={!lvOk(e.lv) || !!(G.event && G.event.until > nowMs)} onClick={() => launchEvent(e)}><b>{e.title}</b><span>{lvOk(e.lv) ? e.text : `Level ${lvName(e.lv)}`}</span></button>
+                <button key={e.id} type="button" className="btn rt-item rt-ev" disabled={!lvOk(e.lv) || !!(G.event && G.event.until > nowMs)} onClick={() => launchEvent(e)}><b>{e.title}</b><span>{lvOk(e.lv) ? forMc(e.text) : `Level ${lvName(e.lv)}`}</span></button>
               ))}
             </div>
             <button type="button" className="btn btn-lg" onClick={() => setEvents(false)}>Done</button>
@@ -1350,9 +1415,9 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
       {away && (() => {
         const nm = (r: Role) => s[r] ? (profiles[s.staff?.[r] ?? '']?.name ?? `Your ${ROLES[r].name.toLowerCase()}`) : '';
         const rows: [string, string][] = [
-          ...(away.baked ? [[`${nm('cook')} baked`, `${away.baked} pizzas`] as [string, string]] : []),
-          ...(away.stacked ? [[`${nm('server')} stacked on the counter`, `${away.stacked} pizzas`] as [string, string]] : []),
-          ...(away.fridged ? [[`${nm('server')} put in the fridge`, `${away.fridged} pizzas`] as [string, string]] : []),
+          ...(away.baked ? [[`${nm('cook')} baked`, `${away.baked} ${PZS}`] as [string, string]] : []),
+          ...(away.stacked ? [[`${nm('server')} stacked on the counter`, `${away.stacked} ${PZS}`] as [string, string]] : []),
+          ...(away.fridged ? [[`${nm('server')} put in the fridge`, `${away.fridged} ${PZS}`] as [string, string]] : []),
           ...(away.cleaned ? [['Tables cleaned', `${away.cleaned}`] as [string, string]] : []),
           ...(away.takeout ? [[`${nm('takeout')} served takeout customers`, `${away.takeout}`] as [string, string]] : []),
           ...(away.drive ? [[`${nm('drive')} served drive through cars`, `${away.drive}`] as [string, string]] : []),
@@ -1371,6 +1436,33 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
         );
       })()}
       {MC && mcPanel && McPanel()}
+      {walkIn && (() => {
+        const fr = s.fridge ?? [], counts = new Map<Item, number>();
+        fr.forEach((it) => counts.set(it, (counts.get(it) ?? 0) + 1));
+        const room = carryMax - G.me.hands.length;
+        const take = (it: Item) => {
+          const k = Math.min(room, counts.get(it) ?? 0); if (k <= 0) { hint('Your hands are full.'); return; }
+          let left = k; s.fridge = fr.filter((x) => (x === it && left > 0 ? (left--, false) : true));
+          for (let j = 0; j < k; j++) G.me.hands.push({ item: it });
+          clip('lid'); save(); setWalkIn(false); flash(`You took out ${k} ${nameN(it, k)}. Tap the counter to stack them.`);
+        };
+        const wall = (c: Course | 'other') => [...counts.keys()].filter((it) => (c === 'other' ? !DISHES[it] : DISHES[it]?.course === c));
+        const shelf = (list: Item[]) => <div className="mcy-shelf">{list.map((it) => <button key={it} type="button" className="mcy-jar" onClick={() => take(it)} aria-label={`${counts.get(it)} ${nameN(it, counts.get(it)!)}. Tap to take some out`}><img src={ITEMS[it].img} alt="" /><b>{counts.get(it)}</b></button>)}{Array.from({ length: Math.max(0, 6 - list.length) }, (_, i) => <span key={i} className="mcy-cab" aria-hidden="true" />)}</div>;
+        return (
+          <div className="pf-overlay rt-top" onClick={() => setWalkIn(false)}>
+            <div className="pf-panel rt-panel mcy-walkin" onClick={(e) => e.stopPropagation()}>
+              <h2>Walk-in fridge <small>{fr.length} stored, no limit</small> <button type="button" className="btn rt-listen" aria-label="Listen" onClick={() => speak(`Walk-in fridge. Appetizers on the left, entrees in the back, desserts on the right. Tap a food to carry some out.`, student.ttsSettings)}>🔊</button></h2>
+              <p className="rt-small">Tap a food to carry out as many as your hands hold ({room}).</p>
+              <div className="mcy-room">
+                <section className="mcy-wall l"><h3>Appetizers</h3>{shelf(wall('app'))}</section>
+                <section className="mcy-wall b"><h3>Entrees</h3>{shelf([...wall('ent'), ...wall('other')])}</section>
+                <section className="mcy-wall r"><h3>Desserts</h3>{shelf(wall('des'))}</section>
+              </div>
+              <button type="button" className="btn btn-primary btn-lg" onClick={() => setWalkIn(false)}>Close the door</button>
+            </div>
+          </div>
+        );
+      })()}
       {regQuiz && <RegisterQuiz tts={student.ttsSettings} onEarn={(n) => { s.money += n; s.total += n; clip('cash', true); save(); setTick((t) => t + 1); }} onClose={(t) => { setRegQuiz(false); save(); if (t) { playCheer(); flash(`The register earned you ${fmt(t)}!`); } }} />}
       {element}
     </div>
