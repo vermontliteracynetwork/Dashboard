@@ -335,6 +335,7 @@ export default function WildMeasures() {
               <span key={b.id} className={`wb-b ${b.type}${fresh === b.id ? ' fresh' : ''}${b.gaps ? ' gapped' : ''}`} style={box(b.r)} title={b.name}>
                 {b.type !== 'wall' && b.type !== 'den' && cellPx * rectW(b.r) > 50 && <b>{BUILD[b.type].icon} {b.name}</b>}
                 {!!b.gaps && <em className="wb-gap" aria-hidden>⚠️ {b.gaps}</em>}
+                {b.type === 'den' && b.wild && <i className="wb-den-who" aria-hidden>{SP(b.wild).icon}</i>}
               </span>
             ))}
             {mark && (Array.isArray(mark) ? mark.map((c) => { const [x, y] = xy(c); return <i key={c} className="wb-mark" style={box({ x0: x, y0: y, x1: x, y1: y })} />; })
@@ -452,7 +453,7 @@ export default function WildMeasures() {
                 <span className="wm-biomes">{world.found.map((b) => <em key={b}><i style={{ background: `rgb(${BIOMES[b].color.join(',')})` }} />{BIOMES[b].name}</em>)}</span>
                 <h3>Wild packs</h3>
                 <ul className="wb-packs">{SPECIES.filter((sp) => sp.wild && world.animals.some((a) => a.kind === sp.id && !a.at)).map((sp) => { const p = world.packs?.[sp.id]; const n = world.animals.filter((a) => a.kind === sp.id && !a.at).length; return (
-                  <li key={sp.id}><span>{sp.icon}</span><b>{sp.many}</b> ×{n}<small>{p ? `🧠 ${p.iq} smarts${p.skills.length ? ` · ${p.skills.join(', ')}` : ''}` : '🧠 0 smarts'}{(world.evolved?.[sp.id] ?? []).length ? ` · ✨ ${(world.evolved?.[sp.id] ?? []).join(', ')}` : ''}</small></li>
+                  <li key={sp.id}><span>{sp.icon}</span><b>{sp.many}</b> ×{n}<small>{p ? `🧠 ${p.iq} smarts${p.skills.length ? ` · ${p.skills.join(', ')}` : ''}` : '🧠 0 smarts'}{p?.milestones.includes('fence') ? ' · has a fence' : ''}{p?.milestones.includes('den') ? ' · has a den' : ''}{(world.evolved?.[sp.id] ?? []).length ? ` · ✨ ${(world.evolved?.[sp.id] ?? []).join(', ')}` : ''}</small></li>
                 ); })}</ul>
                 <h3>XP tiers</h3>
                 <ul className="wb-packs">{XP_TIERS.map((t) => <li key={t.title}><span>{stats.right >= t.at ? '🏅' : '⬜'}</span><b>{t.title}</b><small>{t.at} right answers · +{t.xp} XP</small></li>)}</ul>
