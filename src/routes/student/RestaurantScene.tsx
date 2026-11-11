@@ -237,7 +237,7 @@ function Tiles({ cells, colors }: { cells: P[]; colors: string[] }) {
   ))}</>;
 }
 
-function Walls({ showWindow, annex, theme }: { showWindow: boolean; annex: boolean; theme: number }) {
+function Walls({ showWindow, showWindow2, annex, theme }: { showWindow: boolean; showWindow2?: boolean; annex: boolean; theme: number }) {
   const paper = useWallpaper(theme);
   const aw = ANNEX.x1 - ANNEX.x0 + 1;
   return (
@@ -254,14 +254,18 @@ function Walls({ showWindow, annex, theme }: { showWindow: boolean; annex: boole
           <group position={[wx(0) - 0.55, 0, wz(ROWS - 1)]}><Model url={MODEL.door} fit={1.001} rot={Math.PI / 2} /></group>
         </>}
         <group position={[wx(COLS - 1) + 0.56, 0, wz(1) - 0.5 + 1.5]}><Wall len={3} rot={-Math.PI / 2} paper={paper} /></group>
-        <group position={[wx(COLS - 1) + 0.56, 0, wz(5) - 0.5 + 2]}><Wall len={4} rot={-Math.PI / 2} paper={paper} /></group>
+        {/* McYoga's second drive through window sits right below the first (Build Queue 607). */}
+        {showWindow2 ? <>
+          <group position={[wx(COLS - 1) + 0.55, 0, wz(5)]}><Model url={MODEL.window} fit={1.001} rot={-Math.PI / 2} /></group>
+          <group position={[wx(COLS - 1) + 0.56, 0, wz(6) - 0.5 + 1.5]}><Wall len={3} rot={-Math.PI / 2} paper={paper} /></group>
+        </> : <group position={[wx(COLS - 1) + 0.56, 0, wz(5) - 0.5 + 2]}><Wall len={4} rot={-Math.PI / 2} paper={paper} /></group>}
         <group position={[wx(COLS - 1) + 0.55, 0, wz(4)]}>{showWindow ? <Model url={MODEL.window} fit={1.001} rot={-Math.PI / 2} /> : <Wall len={1} rot={-Math.PI / 2} paper={paper} />}</group>
     </>
   );
 }
 
 export interface SceneProps {
-  theme: number; ovens: number; shelves: number; tables: number; showWindow: boolean; annex?: boolean;
+  theme: number; ovens: number; shelves: number; tables: number; showWindow: boolean; showWindow2?: boolean; annex?: boolean;
   stations: SceneStation[]; me: SceneMover; meLook: StyleLook; staff: { m: SceneMover; look: StyleLook }[];
   guests: SceneGuest[]; cars: { id: number; x: number; bubble: React.ReactNode }[];
   props: Placed[]; tapHere: P | null; pops: { id: number; text: string; x: number; y: number }[];
@@ -294,7 +298,7 @@ export default function RestaurantScene(p: SceneProps) {
           <mesh position={[wx(ANNEX.x0) - 0.5 + aw / 2, -0.07, wz(ANNEX.y0) - 0.5 + ah / 2 + 0.2]}><boxGeometry args={[aw + 0.2, 0.04, ah + 0.4]} /><meshStandardMaterial color={TRIM} /></mesh>
           <Tiles cells={annexCells} colors={TILE_COLORS.dining[p.theme] ?? TILE_COLORS.dining[0]} />
         </>}
-        <Suspense fallback={null}><Walls showWindow={p.showWindow} annex={annex} theme={p.theme} /></Suspense>
+        <Suspense fallback={null}><Walls showWindow={p.showWindow} showWindow2={p.showWindow2} annex={annex} theme={p.theme} /></Suspense>
         {/* The counter across the middle, with the register on it. */}
         {/* The counter, the register on top, and the tower of ready pizzas (two stacks of 10, Build Queue 478). */}
         {[5, 6, 7, 8].map((x) => <group key={x} position={[wx(x), 0, wz(3)]}><Model url={MODEL.counter} fit={1.001} /><Suspense fallback={null}><OnTop base={MODEL.counter} fit={1.001}>{x === 7 && <Model url={MODEL.register} fit={0.42} rot={Math.PI} />}{TOWER_SLOT[x] !== undefined && p.counterFood.length > TOWER_SLOT[x] * TOWER_MAX && <Tower items={p.counterFood.slice(TOWER_SLOT[x] * TOWER_MAX, (TOWER_SLOT[x] + 1) * TOWER_MAX).map((food) => ({ food }))} size={0.42} />}{TOWER_SLOT[x] !== undefined && p.counterFood.length > (3 + TOWER_SLOT[x]) * TOWER_MAX && <group position={[0.24, 0, 0.12]}><Tower items={p.counterFood.slice((3 + TOWER_SLOT[x]) * TOWER_MAX, (4 + TOWER_SLOT[x]) * TOWER_MAX).map((food) => ({ food }))} size={0.42} /></group>}</OnTop></Suspense></group>)}
@@ -367,7 +371,8 @@ export const TABLES_AT: P[] = [{ x: 3, y: 6 }, { x: 9, y: 6 }, { x: 3, y: 8 }, {
 // dining room with tables in two rows along the left wall and a booth row on the right by the drive through, leaving
 // the middle open for the line. The game swaps the first six spots in place, so every part of it sees the same array.
 const PIZZA_TABLES = TABLES_AT.slice(0, 6);
-const MC_TABLES: P[] = [{ x: 2, y: 6 }, { x: 10, y: 6 }, { x: 2, y: 8 }, { x: 10, y: 8 }, { x: 4, y: 6 }, { x: 12, y: 6 }];
+// The bottom row stays clear from the door to the line, so customers never jam in a one tile corridor.
+const MC_TABLES: P[] = [{ x: 2, y: 5 }, { x: 10, y: 6 }, { x: 2, y: 7 }, { x: 10, y: 8 }, { x: 4, y: 7 }, { x: 12, y: 6 }];
 export function setTableLayout(mc: boolean) { (mc ? MC_TABLES : PIZZA_TABLES).forEach((t, i) => { TABLES_AT[i] = t; }); }
 // The new dining room (Build Queue 491): columns -6 to -1, rows 3 to 8.
 export const ANNEX = { x0: -6, x1: -1, y0: 3, y1: ROWS - 1 };
