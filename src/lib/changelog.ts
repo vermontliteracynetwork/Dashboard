@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-picture-pages",
+    date: "2026-11-11",
+    icon: "🖼️",
+    title: "Picture pages in the Dictionary",
+    body: "Gilbert's Dictionary has picture pages now: the kitchen, home, the classroom, food, the farm and the park. Tap any picture and Gilbert says the word and what kind of word it is.",
+  },
+  {
     id: "2026-11-11-mcyoga-v2",
     date: "2026-11-11",
     icon: "🍔",
