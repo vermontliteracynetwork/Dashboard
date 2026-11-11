@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-word-dictionary",
+    date: "2026-11-11",
+    icon: "📖",
+    title: "Grammar checks use a real dictionary",
+    body: "When you type a word in a grammar symbol sentence, a real dictionary checks what kind of word it is. If it does not fit, it tells you what the word is, like \"happy is an adjective, not a verb.\"",
+  },
+  {
     id: "2026-11-11-symbol-fill",
     date: "2026-11-11",
     icon: "✏️",

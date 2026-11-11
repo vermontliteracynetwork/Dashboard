@@ -7,6 +7,7 @@ import { NOUNS, VERBS, ADJECTIVES as GUS_ADJ, ADVERBS as GUS_ADV, PREPOSITIONS, 
 import { PROPER_NOUN_WORDS } from '../games/grammarGus/data/extraNouns';
 import { IRREGULAR_PAST } from '../games/grammarGus/data/irregularVerbs';
 import { SYMBOL_SENTENCE_PAGES } from './symbolDeck';
+import { fitsType, isDictionaryWord, loadWordTypes, readSentence, typeList, typesOf } from './wordTypes';
 
 export const SYMBOLS: Record<SymbolPos, { name: string; def: string; color: string; img?: string }> = {
   article: { name: 'Article', def: 'Refers to nouns (a, an, the)', color: '#F0B0C8', img: '/literacy/symbols/article-triangle.svg' },
@@ -54,9 +55,12 @@ INTERJECTIONS.forEach((w) => add(w, 'interjection'));
 // Her own 43 symbol sentences count too (cat, ran, small...).
 SYMBOL_SENTENCE_PAGES.forEach((p) => p.sentences.forEach((s) => s.words.forEach((w) => add(w.word.replace(/[.,!?]/g, ''), w.wordClass, false))));
 
+const boardPoses = (word: string) => LEX.get(word.trim().toLowerCase().replace(/[.,!?]+$/, '')) ?? null;
+// Every type a word can be: the board's word lists plus the dictionary (Build Queue 597, src/lib/wordTypes.ts).
 export function posesOf(word: string): Set<SymbolPos> | null {
-  const k = word.trim().toLowerCase().replace(/[.,!?]+$/, '');
-  return LEX.get(k) ?? null;
+  const board = boardPoses(word), dict = typesOf(word);
+  if (!board && !dict) return null;
+  return new Set<SymbolPos>([...(board ?? []), ...(dict?.all ?? [])]);
 }
 // Best guess for the teacher's "type a sentence" quick start (she can change any symbol).
 export function guessPos(word: string, i: number): SymbolPos {
@@ -69,9 +73,13 @@ export function guessPos(word: string, i: number): SymbolPos {
   if (/(ed|ing)$/i.test(word)) return 'verb';
   return 'noun';
 }
+// The teacher's typed sentence: each word's symbol is read from the dictionary and its neighbors ("a jump", "they jump").
 export function sentenceToSlots(text: string): SymbolSlot[] {
   const parts = text.match(/[A-Za-z0-9'’-]+|[.!?]/g) ?? [];
-  return parts.map((w, i) => ({ pos: guessPos(w, i), word: w, given: true }));
+  const wordsOnly = parts.filter((w) => !/^[.!?]$/.test(w));
+  const read = readSentence(wordsOnly);
+  let k = 0;
+  return parts.map((w) => (/^[.!?]$/.test(w) ? { pos: 'punctuation' as SymbolPos, word: w, given: true } : { pos: read[k++] as SymbolPos, word: w, given: true }));
 }
 export const randomWord = (pos: SymbolPos, not?: string) => {
   const pool = POOL[pos].filter((w) => w.toLowerCase() !== (not ?? '').toLowerCase());
@@ -85,42 +93,32 @@ let DICT: Set<string> | null = null;
 let dictLoading: Promise<void> | null = null;
 export function loadDictionary(): Promise<void> {
   if (DICT || dictLoading) return dictLoading ?? Promise.resolve();
+  void loadWordTypes();
   dictLoading = fetch('/words/english.txt').then((r) => (r.ok ? r.text() : '')).then((t) => { if (t) DICT = new Set(t.split('\n')); }).catch(() => {});
   return dictLoading;
 }
 export const isRealWord = (word: string) => {
   const k = word.trim().toLowerCase().replace(/[.,!?]+$/, '').replace(/[’]/g, "'");
-  if (!k || LEX.has(k)) return true;
+  if (!k || LEX.has(k) || isDictionaryWord(k)) return true;
   if (!DICT) return true;
   return DICT.has(k) || DICT.has(k.replace(/'s$/, '')) || /^\d+$/.test(k);
 };
-const CLOSED: SymbolPos[] = ['article', 'pronoun', 'preposition', 'conjunction', 'interjection'];
 
-// The grammar check for one typed word: null when it fits, otherwise a kind message.
+// The grammar check for one typed word: null when it fits, otherwise a kind message. Build Queue 597: the word is looked
+// up in a real dictionary (WordNet, then a live dictionary), so the message can say what the word is ("happy" is an
+// adjective, not a verb). A word no dictionary knows gets the benefit of the doubt (the spelling check asks about it).
 export function grammarProblem(word: string, slot: SymbolSlot): string | null {
   const w = word.trim();
   if (!w) return `Type a ${SYMBOLS[slot.pos].name.toLowerCase()}.`;
   if (w.toLowerCase() === slot.word.trim().toLowerCase()) return null;
-  const p = posesOf(w);
   const name = SYMBOLS[slot.pos].name.toLowerCase();
   const an = /^[aeiou]/.test(name) ? 'an' : 'a';
   if (slot.pos === 'propernoun') return /^[A-Z]/.test(w) ? null : 'A proper noun starts with a capital letter. Try again.';
-  if (p) {
-    if (p.has(slot.pos)) return null;
-    if (slot.pos === 'noun' && p.has('propernoun')) return null;
-    // Our word list only knows some uses of a word, so an everyday word in a describing or doing slot is not marked
-    // wrong just because the list has it as something else (fast, light, run, back...). Only clear mix-ups are:
-    // a small word like "the", "she" or "and" in a describing or naming slot, or a naming word in one of those slots.
-    const closedWord = [...p].every((x) => CLOSED.includes(x));
-    if (CLOSED.includes(slot.pos) || closedWord) return `That's not ${an} ${name}. ${SYMBOLS[slot.pos].name}: ${SYMBOLS[slot.pos].def.toLowerCase()}. Try again.`;
-    if (slot.pos === 'adverb' && /ly$/i.test(w)) return null;
-    if (slot.pos === 'adverb' && /(ed|ing)$/i.test(w)) return `That looks like a verb, not ${an} ${name}. Try again.`;
-    return null;
-  }
-  // A word we do not know: the endings give a hint, otherwise it gets the benefit of the doubt.
-  if (slot.pos === 'adverb' && !/ly$/i.test(w) && /(ed|ing)$/i.test(w)) return `That looks like a verb, not ${an} ${name}. Try again.`;
-  if (slot.pos === 'adjective' && /ly$/i.test(w)) return `That looks like an adverb, not ${an} ${name}. Try again.`;
-  return null;
+  const board = boardPoses(w);
+  if (board && (board.has(slot.pos) || (slot.pos === 'noun' && board.has('propernoun')))) return null;
+  if (fitsType(w, slot.pos as Exclude<SymbolPos, 'punctuation'>) !== 'no') return null;
+  const t = typesOf(w)!;
+  return `"${w}" is ${typeList(t.common.length ? t.common : t.all)}, not ${an} ${name}. ${SYMBOLS[slot.pos].name}: ${SYMBOLS[slot.pos].def.toLowerCase()}. Try again.`;
 }
 
 export const fullSentence = (slots: SymbolSlot[], words?: Record<number, string>) =>
@@ -159,10 +157,12 @@ export const blankSymbolQuestion = (id: string, settings: SymbolSettings = DEFAU
 // Does a grammar symbol fit a word the teacher gave (the student picked the symbol)? Words the app does not know get
 // the benefit of the doubt, like the grammar check.
 export function symbolFits(word: string, pos: SymbolPos, first: boolean): boolean {
-  const w = word.trim(), p = posesOf(w);
-  if (pos === 'propernoun' && /^[A-Z]/.test(w) && (!first || !p)) return true;
-  if (!p) return pos !== 'punctuation';
-  return p.has(pos) || (pos === 'noun' && p.has('propernoun'));
+  const w = word.trim(), board = boardPoses(w);
+  if (pos === 'punctuation') return false;
+  if (pos === 'propernoun' && /^[A-Z]/.test(w) && (!first || !posesOf(w))) return true;
+  if (board && (board.has(pos) || (pos === 'noun' && board.has('propernoun')))) return true;
+  const fit = fitsType(w, pos, true);
+  return fit === 'yes' || (fit === 'unknown' && !board);
 }
 
 // ---------- typed-answer help (Build Queue 273) ----------

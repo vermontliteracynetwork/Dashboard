@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { studentSettingsFor } from '../lib/questionFocus';
 import type { SymbolPos, SymbolQuestion, TTSSettings } from '../types';
 import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, modeOf, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
+import { lookUpWords, typesOf } from '../lib/wordTypes';
 import { useTypedSupport } from '../lib/typedSupport';
 import { useVoiceToText } from '../lib/useVoiceToText';
 import { speak } from './ReadAloud';
@@ -129,7 +130,12 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
   };
   const roll = (i: number) => { const p = posAt(i); if (!p) return; const w = randomWord(p, vals[i]); if (!w) return; setVal(i, w); say(w); };
 
-  const check = () => {
+  const [checking, setChecking] = useState(false);
+  const check = async () => {
+    if (checking) return;
+    // Build Queue 597: a typed word the dictionaries here don't have is looked up live first (a couple of seconds at most).
+    const typed = work.filter((i) => !slots[i].given && slots[i].pos !== 'punctuation').map((i) => vals[i] ?? '').filter((w) => w.trim() && !typesOf(w));
+    if (st.grammarCheck && typed.length) { setChecking(true); await lookUpWords(typed); setChecking(false); }
     const said = fullSentence(slots, vals);
     const strict = st.grammarCheck || st.capitalCheck || st.punctuationCheck;
     // The punctuation is fixed only when every word is hers; when the student builds the sentence any mark that ends it counts.
@@ -236,7 +242,7 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
                         enterKeyHint={i === typeAt[typeAt.length - 1] ? 'done' : 'next'}
                         aria-label={info ? `Type ${/^[aeiou]/i.test(info.name) ? 'an' : 'a'} ${info.name.toLowerCase()}${ok[i] ? ', right' : ''}` : 'Type a word'}
                         onFocus={() => setFocus(i)} onChange={(e) => setVal(i, e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') { const nx = typeAt[typeAt.indexOf(i) + 1]; if (nx !== undefined && slots[nx].pos !== 'punctuation') inputs.current[nx]?.focus(); else if (allFilled) check(); } }} />
+                        onKeyDown={(e) => { if (e.key === 'Enter') { const nx = typeAt[typeAt.indexOf(i) + 1]; if (nx !== undefined && slots[nx].pos !== 'punctuation') inputs.current[nx]?.focus(); else if (allFilled) void check(); } }} />
                       {ok[i] && <span className="ssq-ok" aria-hidden>✓</span>}
                     </div>
                   )}
@@ -261,7 +267,7 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
           <div className="ssq-actions">
             {onChangeFormula && !disabled && tries === 0 && <button type="button" className="btn" onClick={onChangeFormula}>Pick another formula</button>}
             {tries >= 2 && !disabled && <button type="button" className="btn" onClick={help}>💡 Help</button>}
-            <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !allFilled} onClick={check}>Check</button>
+            <button type="button" className="btn btn-primary btn-lg" disabled={disabled || !allFilled || checking} onClick={() => void check()}>{checking ? 'Checking...' : 'Check'}</button>
           </div>
         </div>
       </div>

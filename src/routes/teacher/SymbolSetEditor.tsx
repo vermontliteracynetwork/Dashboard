@@ -7,6 +7,7 @@ import { makeId } from '../../lib/id';
 import ImageUploadField from '../../components/ImageUploadField';
 import { DEFAULT_SYMBOL_SETTINGS, MODE_INFO, SYMBOLS, bankSlots, blankSymbolQuestion, emptySlot, inkOn, modeOf, perRow, punctSlot, sentenceToSlots } from '../../lib/symbolSentence';
 import { SYMBOL_SENTENCE_PAGES } from '../../lib/symbolDeck';
+import { loadWordTypes } from '../../lib/wordTypes';
 import SymbolPanel, { MARK_NAME } from '../../components/SymbolPanel';
 import QuestionScreen from '../../components/QuestionScreen';
 import SettingsList, { InfoTip, type SettingItem } from '../../components/SettingsList';
@@ -261,7 +262,7 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
     if (name && formulas) update({ ...q, formulas: formulas.map((f, i) => (i === at ? { ...f, name, slots, bankId } : f)), slots: at === 0 ? slots : q.slots });
     else editShown({ ...shown, slots, bankId });
   };
-  const place = () => { if (!quick.trim()) return; const sl = sentenceToSlots(quick).map((x) => (x.pos === 'punctuation' ? x : mode === 'drag' ? { ...x, pick: true } : mode === 'picture' ? { ...x, given: false } : x)); setSlots(sl); setQuick(''); };
+  const place = async () => { if (!quick.trim()) return; await loadWordTypes(); const sl = sentenceToSlots(quick).map((x) => (x.pos === 'punctuation' ? x : mode === 'drag' ? { ...x, pick: true } : mode === 'picture' ? { ...x, given: false } : x)); setSlots(sl); setQuick(''); };
   const setMode = (m: SymbolMode) => {
     if (!q || m === mode) return;
     const prompt = Object.values(MODE_INFO).some((x) => x.prompt === q.prompt) || !q.prompt.trim() ? MODE_INFO[m].prompt : q.prompt;
@@ -354,8 +355,8 @@ export default function SymbolSetEditor({ questions, onChange, hideSettings = fa
             </div>
             <div className="sgb-start">
               <FormulaPicker label="Start from a formula" current={bank ? `${bank.skill} ${bank.level}  ${bank.formula}` : undefined} onPick={startFrom} />
-              <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="or type a sentence" aria-label="Type a sentence to place its symbols" onKeyDown={(e) => { if (e.key === 'Enter') place(); }} />
-              {quick.trim() && <button type="button" className="btn btn-sm" onClick={place}>Place</button>}
+              <input value={quick} onChange={(e) => setQuick(e.target.value)} placeholder="or type a sentence" aria-label="Type a sentence to place its symbols" onKeyDown={(e) => { if (e.key === 'Enter') void place(); }} />
+              {quick.trim() && <button type="button" className="btn btn-sm" onClick={() => void place()}>Place</button>}
               {mode !== 'picture' && !q.imageUrl && !showPic && <button type="button" className="sgb-link" onClick={() => setShowPic(true)}>Add a picture</button>}
             </div>
             {(mode === 'picture' || q.imageUrl || showPic) && (
