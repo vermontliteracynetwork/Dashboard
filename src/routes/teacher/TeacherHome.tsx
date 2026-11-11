@@ -5,6 +5,7 @@ import TeacherNav from '../../components/TeacherNav';
 import { StylePortrait } from '../../style/StylePortrait';
 import ChatPanel from '../../components/ChatPanel';
 import type { StudentStatus } from '../../types';
+import { setAssignmentsPaused, useAssignmentsPaused } from '../../lib/assignmentPause';
 
 const STATUS_META: Record<StudentStatus, { label: string; dot: string }> = {
   'not-started': { label: 'Not started yet', dot: 'status-idle' },
@@ -75,6 +76,7 @@ export default function TeacherHome() {
                   <button className="btn btn-sm" onClick={() => navigate(`/teacher/live/${st.id}`)}>
                     👁️ Live View
                   </button>
+                  <PauseButton studentId={st.id} name={st.name} />
                 </div>
               </div>
             );
@@ -145,5 +147,16 @@ export default function TeacherHome() {
         </p>
       </div>
     </div>
+  );
+}
+
+// Build Queue 593: pause every current assignment for this student so they can just play (no pop up, no assignment
+// questions in games, Play mode open), and resume when ready.
+function PauseButton({ studentId, name }: { studentId: string; name: string }) {
+  const paused = useAssignmentsPaused(studentId);
+  return (
+    <button className={`btn btn-sm${paused ? ' btn-primary' : ''}`} title={paused ? `${name}'s assignments are paused. Click to turn them back on.` : `Pause all of ${name}'s current assignments so they can just play.`} onClick={() => setAssignmentsPaused(studentId, !paused)}>
+      {paused ? 'Resume assignments' : 'Pause assignments'}
+    </button>
   );
 }

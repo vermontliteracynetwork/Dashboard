@@ -6,6 +6,8 @@
 
 import type { MCQuestion, NativeGameId, QuizRuntimeState, Subject, Task } from '../types';
 import { pickWeighted, playableOf } from './questionPick';
+import { isAssignmentsPaused } from './assignmentPause';
+import { useStore } from '../store/store';
 
 // Native games only render multiple-choice questions (QuestionScreen's
 // choices/correctIndex shape) — a Matching/FillBlank question in the same
@@ -52,6 +54,8 @@ export function findActiveGameplayTask(
   completedIdsBySubject: Record<Subject, string[]>,
   nativeGameId: NativeGameId,
 ): { task: Task; subject: Subject } | null {
+  // Build Queue 593: paused assignments put no assignment questions into games.
+  if (isAssignmentsPaused(useStore.getState().currentStudentId)) return null;
   const subjects: Subject[] = ['math', 'literacy'];
   const isOpen = (t: Task, subject: Subject) =>
     (t.completionMode === 'specificGame' || t.completionMode === 'anyGame') &&

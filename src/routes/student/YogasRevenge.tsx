@@ -9,6 +9,7 @@ import { speak } from '../../components/ReadAloud';
 import { useStreak, streakGoal } from '../../lib/streak';
 import { todayISO } from '../../lib/dates';
 import { useDueAssignments } from '../../components/AssignmentAlert';
+import { useAssignmentsPaused } from '../../lib/assignmentPause';
 import type { MCQuestion } from '../../types';
 
 // Yoga's Revenge (Build Queue 531, 533, 534): the kids' own game. A side scrolling pixel beat 'em up (walk along the road
@@ -263,11 +264,13 @@ export default function YogasRevenge() {
   const questionSets = useStore((s) => s.questionSets);
   const streak = useStreak(studentId);
   const due = useDueAssignments();
+  const assignmentsPaused = useAssignmentsPaused(studentId);
   const today = todayISO();
   const streakDone = streak.lastSavedDay === today || (streak.today?.day === today && (streak.today?.correct ?? 0) >= streakGoal());
   // Play mode (her rule): open once today's streak questions and assignments are done; a new assignment closes it again.
   // The no-login test page (mockup.html) can always use Play mode, for screenshots.
-  const playOpen = (streakDone && due.length === 0) || window.location.pathname.endsWith('mockup.html');
+  // Build Queue 593: when the teacher pauses assignments, Play mode is open.
+  const playOpen = assignmentsPaused || (streakDone && due.length === 0) || window.location.pathname.endsWith('mockup.html');
 
   const [save, setSaveState] = useState<Save>(() => readSave(studentId));
   const saveRef = useRef(save);

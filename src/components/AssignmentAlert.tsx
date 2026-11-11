@@ -4,6 +4,7 @@ import { useStore } from '../store/store';
 import { todayISO } from '../lib/dates';
 import { sfx } from '../lib/miniSfx';
 import { speak } from './ReadAloud';
+import { useAssignmentsPaused } from '../lib/assignmentPause';
 
 // Build Queue 530 (her words: "when an assignment is active, it should be very apprent, popping up in live mode, and
 // prioritzing over all other game play"). While today's assignment still has work, a big card pops up over whatever the
@@ -20,8 +21,9 @@ export function useDueAssignments() {
   const rotations = useStore((s) => s.rotations);
   const progress = useStore((s) => s.progress);
   const today = todayISO();
+  const paused = useAssignmentsPaused(studentId);
   return useMemo(() => {
-    if (role !== 'student' || !studentId) return [];
+    if (role !== 'student' || !studentId || paused) return [];
     const live = assignments.filter((a) => a.studentId === studentId && !a.deletedAt && a.startDate <= today && a.endDate >= today);
     return (['math', 'literacy'] as const).filter((subj) => live.some((a) => a.subject === subj)).map((subj) => {
       const tasks = rotations[studentId]?.[subj] ?? [];
@@ -29,7 +31,7 @@ export function useDueAssignments() {
       const done = prog?.date === today ? prog.completedTaskIds.length : 0;
       return { subj, left: Math.max(0, tasks.length - done), ids: live.filter((a) => a.subject === subj).map((a) => a.id).join(',') };
     }).filter((d) => d.left > 0);
-  }, [role, studentId, assignments, rotations, progress, today]);
+  }, [role, studentId, assignments, rotations, progress, today, paused]);
 }
 
 export default function AssignmentAlert() {
