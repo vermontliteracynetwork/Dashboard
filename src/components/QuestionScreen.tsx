@@ -94,6 +94,9 @@ export interface QuestionScreenProps {
   whoIcon?: string;
   // Build Queue 264: a typed answer question (symbol sentence or Mad Lib) shows its answer boxes instead of choices.
   typed?: SymbolQuestion | MadLibQuestion;
+  // Symbol Sentence Writer (Build Queue 611): the highest help level asked here. Game pop-ups ask levels 1 to 3 only;
+  // Quiz Mode asks every level.
+  writerMaxLevel?: number;
   // Build Queue 288: Plinko asks for no emojis; plain words and a drawn speaker instead.
   plain?: boolean;
   // Build Queue 291 (her words: "in multiplayer game, remove ... label from question. instead, put the name of the player
@@ -163,6 +166,7 @@ export default function QuestionScreen({
   autoRead = false,
   voice,
   typed,
+  writerMaxLevel,
   plain = false,
   playerName,
   topSlot,
@@ -538,7 +542,7 @@ export default function QuestionScreen({
           {typed && (
             <div style={{ opacity: reading ? 0.55 : 1, transition: 'opacity 0.35s' }}>
               {typed.kind === 'symbol'
-                ? <SymbolSentenceAnswer key={typed.id} q={typed} head={promptRow} onSentence={(t) => { sentenceRef.current = t; }} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />
+                ? <SymbolSentenceAnswer key={typed.id} q={typed} maxLevel={writerMaxLevel ?? 3} head={promptRow} onSentence={(t) => { sentenceRef.current = t; }} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />
                 : <MadLibAnswer key={typed.id} q={typed} disabled={reading || answeredCorrectly || feedback === 'wrong'} tts={ttsSettings} onResult={(ok, said) => handleChoice(ok ? correctIndex : -2, said)} />}
             </div>
           )}

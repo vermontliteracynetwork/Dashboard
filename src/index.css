@@ -9479,6 +9479,20 @@ button.sn-saved { min-height: 44px; border: 3px solid #241f45; cursor: pointer; 
 .qs-type { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
 .qs-type-btn { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 12px 14px; border-radius: 14px; border: 3px solid var(--content-border, #d9d3ef); background: #fff; cursor: pointer; min-height: 72px; font: inherit; }
 .qs-type-btn b { font-size: 1.05rem; } .qs-type-btn small { opacity: .75; }
+/* Symbol Sentence Writer set builder (Build Queue 611): help levels and her cards, laptop first. */
+.ssw-edit { display: flex; flex-direction: column; gap: 10px; }
+.ssw-edit-levels { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.ssw-level { display: inline-flex; gap: 6px; align-items: center; padding: 6px 10px; border-radius: 10px; border: 2px solid #e6dccb; background: #fff; cursor: pointer; font-size: .95rem; }
+.ssw-level.on { border-color: #7c6fd6; background: #f3f0ff; }
+.ssw-edit-note { color: #6b6355; }
+.ssw-edit-count { color: #4b4260; font-weight: 600; }
+.ssw-page { display: flex; flex-direction: column; border: 1px solid #eee5d4; border-radius: 12px; overflow: hidden; }
+.ssw-page-head { display: flex; gap: 8px; align-items: center; padding: 6px 10px; background: #fbf3e3; cursor: pointer; }
+.ssw-row { display: grid; grid-template-columns: auto 2.2em minmax(140px, auto) 1fr; gap: 10px; align-items: center; padding: 4px 10px; border-top: 1px solid #f4ede0; cursor: pointer; opacity: .6; }
+.ssw-row.on { opacity: 1; }
+.ssw-num { color: #6b6355; font-weight: 700; text-align: right; }
+.ssw-syms { display: inline-flex; gap: 2px; }
+.ssw-syms img { width: 22px; height: 22px; object-fit: contain; }
 .qs-type-btn.on { border-color: #5a3d9e; background: #f3effc; box-shadow: 0 0 0 3px rgba(90,61,158,.18); }
 .mct-wrap { overflow-x: auto; border: 2px solid var(--content-border, #e3ddf2); border-radius: 12px; }
 .mct { width: 100%; border-collapse: collapse; font-size: .9rem; }
@@ -11433,6 +11447,11 @@ button.nqs-step-head { cursor: pointer; }
 .ssq-formula-name input { flex: 1 1 260px; min-height: 40px; border-radius: 12px; border: 2px solid #dbe6f7; padding: 0 10px; font: 600 .95rem 'Lexend', system-ui, sans-serif; }
 .ssq-pic { display: flex; justify-content: center; padding: 8px; border-radius: 16px; background: #fbf3e3; border: 1px solid #f2e8d6; }
 .ssq-formula-tag { margin: 0; color: #4b4260; font: 600 1rem 'Lexend', system-ui, sans-serif; }
+/* Symbol Sentence Writer (Build Queue 611): level 1 word cards and the step down offer. */
+.ssw-cards { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.ssw-card { min-height: 44px; padding: 0 14px; border-radius: 12px; border: 2px dashed #b8a98f; background: #fffaf2; color: #3a342a; font: 700 1.05rem 'Lexend', system-ui, sans-serif; cursor: pointer; touch-action: manipulation; }
+.ssw-offer { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: center; margin: 0 auto 10px; max-width: 720px; padding: 10px 16px; border-radius: 14px; background: #fff3c4; font: 600 1rem/1.4 'Lexend', system-ui, sans-serif; color: #3a342a; }
+.ssw-offer .btn { min-height: 44px; }
 .ssq-choose { gap: 16px; }
 .ssq-choose-say { margin: 0; font: 800 1.15rem 'Lexend', system-ui, sans-serif; color: #3a342a; }
 .ssq-choose-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; }
