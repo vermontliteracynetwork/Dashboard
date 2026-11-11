@@ -1,0 +1,111 @@
+/* Build Queue 598: Gilbert's Dictionary and Thesaurus Rex (iPad first: big targets, no hover-only parts). */
+.wt { display: flex; flex-direction: column; gap: 12px; color: var(--ink); }
+.wt-muted { color: var(--ink); opacity: .7; font-size: .9rem; margin: 0; }
+
+.wt-mascot-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 18px; background: #e6f6ff; border: 3px solid #9fd8f2; }
+.wt-dino-bar { background: #eaf7e4; border-color: #a6d897; }
+.wt-mascot { width: 96px; height: 80px; flex: none; overflow: visible; }
+.wt-speech { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; background: #fff; border-radius: 14px; padding: 8px 12px; position: relative; font-size: 1.02rem; line-height: 1.35; }
+.wt-speech::before { content: ''; position: absolute; left: -10px; top: 50%; margin-top: -8px; border: 8px solid transparent; border-right-color: #fff; border-left: 0; }
+.wt-speech strong { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; opacity: .7; }
+.wt-read, .wt-say { min-width: 48px; min-height: 48px; font-size: 1.2rem; }
+
+.wt-fish .wt-swim { animation: wt-bob 3s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
+.wt-fish .wt-tail { animation: wt-wag 1.2s ease-in-out infinite; transform-origin: 28px 55px; }
+.wt-fish .wt-bubbles circle { fill: #bfe6fb; opacity: 0; }
+.wt-fish.talking .wt-mouth { animation: wt-chat .22s ease-in-out infinite alternate; transform-origin: 104px 64px; }
+.wt-fish.talking .wt-bubbles circle { animation: wt-rise 1.4s ease-out infinite; }
+.wt-fish.talking .wt-bubbles circle:nth-child(2) { animation-delay: .4s; }
+.wt-fish.talking .wt-bubbles circle:nth-child(3) { animation-delay: .8s; }
+.wt-dino .wt-stomp { animation: wt-bob 2.4s ease-in-out infinite; }
+.wt-dino.talking .wt-jaw { animation: wt-jaw .24s ease-in-out infinite alternate; transform-origin: 88px 54px; }
+@keyframes wt-bob { 50% { transform: translateY(-4px); } }
+@keyframes wt-wag { 50% { transform: rotate(-10deg); } }
+@keyframes wt-chat { to { transform: scaleY(2.6); } }
+@keyframes wt-jaw { to { transform: rotate(12deg); } }
+@keyframes wt-rise { 0% { opacity: .9; transform: translateY(14px); } 100% { opacity: 0; transform: translateY(-10px); } }
+
+.wt-search { display: flex; gap: 8px; }
+.wt-search input { flex: 1; min-width: 0; min-height: 48px; font-size: 1.1rem; padding: 0 14px; border-radius: 14px; border: 3px solid var(--content-border); background: #fff; color: var(--ink); }
+.wt-search .btn { min-height: 48px; }
+
+.wt-try { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.wt-chip { min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid #9fd8f2; background: #fff; color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.wt-chip.wt-opp { border-color: #f3b07a; background: #fff3e8; }
+
+.wt-card { border: 3px solid var(--content-border); border-radius: 18px; background: #fff; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.wt-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.wt-headword { font: inherit; font-size: 2rem; font-weight: 800; text-transform: capitalize; background: none; border: 0; padding: 0; color: var(--purple-dark); cursor: pointer; min-height: 48px; }
+
+.wt-pos { border-radius: 14px; overflow: hidden; border: 2px solid #eee; }
+.wt-pos summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
+.wt-pos summary::-webkit-details-marker { display: none; }
+.wt-pos summary::after { content: '\25BE'; font-size: 1.2rem; transition: transform .2s; }
+.wt-pos[open] summary::after { transform: rotate(180deg); }
+.wt-count { font-weight: 600; font-size: .85rem; opacity: .85; margin-left: auto; }
+.wt-pos ol { margin: 0; padding: 10px 16px 4px 36px; display: flex; flex-direction: column; gap: 10px; }
+.wt-pos li { position: relative; padding-right: 56px; }
+.wt-pos li p { margin: 0; line-height: 1.45; font-size: 1.05rem; }
+.wt-pos .wt-say { position: absolute; right: 0; top: -4px; }
+.wt-example { font-style: italic; opacity: .75; font-size: .95rem !important; }
+.wt-posdef { padding: 0 16px 10px; }
+.wt-tap { cursor: pointer; border-radius: 4px; }
+.wt-tap:active { background: #fff1a8; }
+
+.wt-parts strong { font-size: .9rem; }
+.wt-parts-row { display: flex; gap: 6px; margin-top: 6px; }
+.wt-part { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; border-radius: 10px; padding: 8px 6px; gap: 2px; }
+.wt-part span { font-size: .72rem; opacity: .85; }
+.wt-part.pre { background: var(--purple); color: #fff; }
+.wt-part.base { background: var(--yellow); }
+.wt-part.suf { background: var(--teal); color: #fff; }
+
+.wt-picked { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 14px; background: #fff8d6; border: 2px solid #f1d36b; font-weight: 800; font-size: 1.1rem; }
+.wt-picked .btn { min-height: 44px; }
+
+.wt-slider { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: .9rem; }
+.wt-slider input { flex: 1; min-width: 0; height: 44px; accent-color: #4c9a52; }
+.wt-slider input::-webkit-slider-thumb { width: 32px; height: 32px; }
+
+.wt-tree { width: 100%; height: auto; max-height: 56vh; border-radius: 18px; background: linear-gradient(#e9f7ff, #f6fbef); border: 3px solid #cfe9c2; }
+.wt-ground { fill: #9ccf7b; }
+.wt-trunk { fill: #8a5a35; }
+.wt-branch { fill: none; stroke: #8a5a35; stroke-linecap: round; animation: wt-grow .6s ease-out both; stroke-dasharray: 600; }
+.wt-knot { cursor: pointer; }
+.wt-knot circle { fill: #a4713f; stroke: #6f4524; stroke-width: 5; }
+.wt-knot text { fill: #fff; font-weight: 800; }
+.wt-leaf { cursor: pointer; animation: wt-pop .45s cubic-bezier(.3, 1.6, .5, 1) both; transform-box: fill-box; }
+.wt-leaf-body { fill: #d7f2c4; stroke-width: 4; }
+.wt-leaflet { fill: #7cc06a; }
+.wt-leaf text { fill: #213a17; font-weight: 800; pointer-events: none; }
+.wt-leaf.on .wt-leaf-body { fill: #fff3a6; }
+@keyframes wt-grow { from { stroke-dashoffset: 600; } to { stroke-dashoffset: 0; } }
+@keyframes wt-pop { from { opacity: 0; scale: .2; } to { opacity: 1; scale: 1; } }
+.wt-legend { text-align: center; }
+.wt-roots strong { display: block; margin-bottom: 6px; color: #8a5a35; }
+
+/* The easter egg: the chicken rides the pig across the whole screen. */
+.wt-parade { position: fixed; inset: auto 0 6vh 0; height: 200px; pointer-events: none; z-index: 5000; overflow: hidden; }
+.wt-parade-rider { position: absolute; bottom: 0; left: 0; animation: wt-ride 9s linear forwards; }
+.wt-parade-bubble { position: absolute; left: 120px; top: -18px; white-space: nowrap; background: #fff; border: 3px solid #f6a8bd; border-radius: 14px; padding: 4px 10px; font-weight: 800; color: #7a3b4c; animation: wt-fade 9s linear forwards; }
+.wt-chickenpig { display: block; animation: wt-trot .35s ease-in-out infinite alternate; }
+.wt-leg { transform-box: fill-box; transform-origin: 50% 0; }
+.wt-leg-a { animation: wt-step .35s ease-in-out infinite alternate; }
+.wt-leg-b { animation: wt-step .35s ease-in-out infinite alternate-reverse; }
+.wt-chicken { animation: wt-bounce .35s ease-in-out infinite alternate; }
+.wt-wing { transform-box: fill-box; transform-origin: 80% 20%; animation: wt-flap .18s ease-in-out infinite alternate; }
+@keyframes wt-ride { from { transform: translateX(-240px); } to { transform: translateX(calc(100vw + 40px)); } }
+@keyframes wt-trot { to { transform: translateY(-5px); } }
+@keyframes wt-step { from { transform: rotate(-16deg); } to { transform: rotate(16deg); } }
+@keyframes wt-bounce { to { transform: translateY(-7px) rotate(-3deg); } }
+@keyframes wt-flap { to { transform: rotate(-28deg); } }
+@keyframes wt-fade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+
+@media (max-width: 520px) {
+  .wt-mascot { width: 72px; height: 60px; }
+  .wt-headword { font-size: 1.6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wt *, .wt-parade * { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .wt-parade-rider { animation: wt-ride 9s linear forwards !important; }
+}

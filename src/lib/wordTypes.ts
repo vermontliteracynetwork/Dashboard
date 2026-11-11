@@ -101,6 +101,16 @@ export function lookUpWords(list: string[], ms = 2500): Promise<void> {
   return Promise.race([Promise.all(jobs).then(() => {}), new Promise<void>((r) => window.setTimeout(r, ms))]);
 }
 
+// The Dictionary tool's lookups teach the engine too (Build Queue 598): a word a student looked up is then known to
+// every grammar check, with the parts of speech the dictionary gave it.
+export function rememberTypes(raw: string, parts: string[]) {
+  const w = key(raw);
+  if (!w || localTypes(w)) return;
+  const t = [...new Set(parts.map((p) => ONLINE_PART[p.toLowerCase()]).filter(Boolean))];
+  if (t.length) { ONLINE.set(w, t); save(); notify(); }
+}
+export const typeOfPart = (part: string): WordType | undefined => ONLINE_PART[part.toLowerCase()];
+
 // Screens that show word types redraw when a dictionary arrives.
 const listeners = new Set<() => void>();
 const notify = () => listeners.forEach((f) => f());

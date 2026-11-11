@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-fish-and-rex",
+    date: "2026-11-11",
+    icon: "🐟",
+    title: "Meet Gilbert and Thesaurus Rex",
+    body: "The Dictionary has a new reader, Gilbert the Fish, and every part of speech opens in its own drop down. The Thesaurus has Thesaurus Rex, who grows a word tree: bigger leaves are more common words, and the slider finds fancier ones. And if you tap a word enough times... something silly might happen.",
+  },
+  {
     id: "2026-11-11-word-dictionary",
     date: "2026-11-11",
     icon: "📖",
