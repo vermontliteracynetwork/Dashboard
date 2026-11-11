@@ -95,6 +95,7 @@ Build Queue 405 (2026-10-28). Her words: "give me the full dev plan including ru
 - Hibernation stores in fall: fill a food store of the right volume.
 - Stepped mountains: climbers' homes measured layer by layer.
 - Water and sky: lake depth zones and sky space for flocks (length × width × height).
+- Build Queue 610 (Phase 2 finish): once a wild pack has its fence, it digs its own den on its own (predict its volume in cubic units; drawn as a den with the pack's animal on it). Bedtime questions (young ones need half the space of grown ones: how many grown still fit) and predator questions (a hawk or wolf is coming: the den's room and the seconds left both limit how many get in; nobody is caught). A pack's den shelters its own pack in storms.
 
 **Phase C: seasons, migration and conversion.**
 - Seasons cycle (spring, summer, fall, winter) and change the map (snow spreads, lakes freeze).

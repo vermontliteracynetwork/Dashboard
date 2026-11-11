@@ -346,9 +346,9 @@ const wildKinds = (w: World, n = 2) => SPECIES.filter((sp) => sp.wild && groupOf
 // Phase B: volume. A storm comes and animals shelter in a den: how many fit?
 function denShelterQ(w: World): Question | null {
   const dens = w.buildings.filter((b) => b.type === 'den'); if (!dens.length) return null;
-  const d = pick(dens), sp = pick(wildKinds(w, 1).length ? wildKinds(w, 1) : SPECIES.filter((x) => x.wild));
+  const d = pick(dens), sp = d.wild ? SP(d.wild) : pick(wildKinds(w, 1).length ? wildKinds(w, 1) : SPECIES.filter((x) => x.wild));
   const v = rectW(d.r) * rectH(d.r) * (d.depth ?? 1), fits = Math.floor(v / sp.space);
-  return { kind: 'volume', mark: d.r, shape: { w: rectW(d.r), h: rectH(d.r), d: d.depth ?? 1 }, story: `A storm is coming! ${sp.many} ${sp.icon} hurry to ${d.name.toLowerCase()}, ${rectW(d.r)} by ${rectH(d.r)} by ${d.depth ?? 1} blocks deep. Each ${sp.name.toLowerCase()} needs ${sp.space} cubic ${sp.space === 1 ? 'block' : 'blocks'} of space.`,
+  return { kind: 'volume', mark: d.r, shape: { w: rectW(d.r), h: rectH(d.r), d: d.depth ?? 1 }, story: `A storm is coming! ${sp.many} ${sp.icon} hurry to ${d.wild ? `the ${d.name.toLowerCase()}` : d.name.toLowerCase()}, ${rectW(d.r)} by ${rectH(d.r)} by ${d.depth ?? 1} blocks deep. Each ${sp.name.toLowerCase()} needs ${sp.space} cubic ${sp.space === 1 ? 'block' : 'blocks'} of space.`,
     ask: `How many ${sp.many.toLowerCase()} can shelter in the den?`, answer: { value: fits, unit: 'animals' },
     hint: `Volume ${rectW(d.r)} × ${rectH(d.r)} × ${d.depth ?? 1} = ${v}. ${v} ÷ ${sp.space} = ${fits}${v % sp.space ? `, with ${v % sp.space} left over` : ''}.`, apply: (q) => q, after: `${fits} ${sp.many.toLowerCase()} stay safe and dry until the storm passes.` };
 }
@@ -361,6 +361,72 @@ function hibernateQ(w: World): Question {
     ask: 'How many blocks deep must the store be to hold all the food? (Round up.)', answer: { value: depth, unit: 'blocks' },
     hint: `Food needed: ${n} × ${each} = ${need}. Floor of the store: ${l} × ${wd} = ${area}. ${need} ÷ ${area} = ${(need / area).toFixed(2).replace(/\.00$/, '')}, round up to ${depth}.`,
     apply: (q) => q, after: `A store ${depth} ${depth === 1 ? 'block' : 'blocks'} deep holds ${area * depth} cubic blocks: enough for the winter.` };
+}
+// ---- Build Queue 610: World Box Phase 2 (volume), the packs' own dens ----
+// Once a wild pack has built its fence (the 'fence' milestone), it decides on its own to dig a den: the game pauses,
+// outlines the den on the map, and asks for its volume. Dens then hold bedtime (size and condition) and predator questions.
+const denVol = (b: Building) => rectW(b.r) * rectH(b.r) * (b.depth ?? 1);
+const youngSpace = (sp: Species) => Math.max(1, Math.floor(sp.space / 2));
+const theDen = (b: Building) => (b.wild ? `the ${b.name.toLowerCase()}` : b.name.toLowerCase());
+// A free spot of home ground near the pack's alpha for an l by wd den.
+function denSpot(w: World, sp: Species, l: number, wd: number): Rect | null {
+  const a = alphaOf(w, sp.id); if (!a) return null;
+  const fits = (r: Rect) => !canPlace(w, r) && rectCells(r).every((c) => sp.home.includes(biomeAt(w, ...xy(c))));
+  for (let d = 0; d < 8; d++) for (let dy = -d; dy <= d; dy++) for (let dx = -d; dx <= d; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== d) continue;
+    const r = { x0: a.x + dx, y0: a.y + dy, x1: a.x + dx + l - 1, y1: a.y + dy + wd - 1 };
+    if (fits(r)) return r;
+  }
+  return null;
+}
+function packDenQ(w: World): Question | null {
+  const ready = wildKinds(w, 2).filter((sp) => w.packs?.[sp.id]?.milestones.includes('fence') && !w.buildings.some((b) => b.type === 'den' && b.wild === sp.id));
+  if (!ready.length) return null;
+  const sp = pick(ready);
+  // Big enough for at least two grown animals of the pack.
+  let l = 2, wd = 1, d = 1; for (let i = 0; i < 30 && l * wd * d < sp.space * 2; i++) { l = rnd(2, 4); wd = rnd(1, 3); d = rnd(1, 3); }
+  const r = denSpot(w, sp, l, wd); if (!r) return null;
+  const s = w.side, v = l * wd * d, cubic = s * s * s, p = w.packs?.[sp.id] ?? { iq: 0, skills: [], milestones: [] };
+  const b: Building = { id: id('b'), type: 'den', r, depth: d, wild: sp.id, name: `${sp.name} den` };
+  const many = sp.many.toLowerCase();
+  return { kind: 'volume', mark: r, shape: { w: l, h: wd, d },
+    story: `The ${many} ${sp.icon} have a fence around their land. Now their alpha decides they should dig a den to hide in. It will be ${l} blocks long, ${wd} ${wd === 1 ? 'block' : 'blocks'} wide and ${d} ${d === 1 ? 'block' : 'blocks'} deep. Each block is ${sideText(w)} on each side.`,
+    ask: `What will the den's volume be in cubic ${L(w)}?`, answer: { value: v * cubic, unit: `cu ${w.unit}` },
+    hint: s === 1 ? `Volume = length × width × depth: ${l} × ${wd} × ${d} = ${v} cubic ${L(w)}.` : `${l} × ${wd} × ${d} = ${v} blocks. Each block is ${s} × ${s} × ${s} = ${cubic} cubic ${L(w)}. ${v} × ${cubic} = ${v * cubic}.`,
+    apply: (q) => ({ ...q, buildings: [...q.buildings, b], packs: { ...(q.packs ?? {}), [sp.id]: { ...p, milestones: [...p.milestones, 'den'] } },
+      animals: q.animals.map((a) => (!a.at && inRect(r, a.x, a.y) ? { ...a, ...nudge(q, a, r) } : a)), log: [...q.log, `Day ${q.day}: the ${many} dug a den ${l} by ${wd} by ${d}.`] }),
+    after: `The ${many} dug their den: ${v * cubic} cubic ${L(w)} of space to shelter in from storms and predators.` };
+}
+// Den capacity by size and condition: young ones curl up small and need half the space of a grown one.
+function denFitQ(w: World): Question | null {
+  const dens = w.buildings.filter((b) => b.type === 'den' && denVol(b) >= 4); if (!dens.length) return null;
+  const den = pick(dens), sp = den.wild ? SP(den.wild) : pick(SPECIES.filter((x) => x.wild && x.space >= 2 && x.space <= 4));
+  const v = denVol(den), big = sp.space, small = youngSpace(sp);
+  const maxYoung = Math.floor((v - big) / small); if (maxYoung < 1) return null;
+  const y = rnd(1, Math.min(4, maxYoung)), left = v - y * small, fits = Math.floor(left / big);
+  const dims = `${rectW(den.r)} by ${rectH(den.r)} by ${den.depth ?? 1} blocks`;
+  return { kind: 'volume', mark: den.r, shape: { w: rectW(den.r), h: rectH(den.r), d: den.depth ?? 1 },
+    story: `Bedtime in ${theDen(den)}, ${dims}. ${y} young ${y === 1 ? sp.name.toLowerCase() : sp.many.toLowerCase()} ${sp.icon} ${y === 1 ? 'is' : 'are'} already curled up inside. A young one needs ${small} cubic ${small === 1 ? 'block' : 'blocks'}, and a grown one needs ${big} cubic blocks.`,
+    ask: `How many grown ${sp.many.toLowerCase()} can still fit in?`, answer: { value: fits, unit: 'animals' },
+    hint: `Den volume: ${rectW(den.r)} × ${rectH(den.r)} × ${den.depth ?? 1} = ${v}. The young use ${y} × ${small} = ${y * small}. ${v} - ${y * small} = ${left}. ${left} ÷ ${big} = ${fits}${left % big ? `, with ${left % big} left over` : ''}.`,
+    apply: (q) => ({ ...q, log: [...q.log, `Day ${q.day}: ${y} young and ${fits} grown ${sp.many.toLowerCase()} slept in ${theDen(den)}.`] }),
+    after: `${fits} grown ${fits === 1 ? sp.name.toLowerCase() : sp.many.toLowerCase()} squeeze in beside the young ones, and everyone sleeps snug.` };
+}
+// Predator shelter: the den's room and the time before the predator arrives both limit how many get in.
+function predatorQ(w: World): Question | null {
+  const small = (sp: Species) => sp.space <= 3 && sp.id !== 'wolf';
+  const dens = w.buildings.filter((b) => b.type === 'den' && (!b.wild || small(SP(b.wild)))); if (!dens.length) return null;
+  const den = pick(dens), owner = den.wild ? SP(den.wild) : null;
+  const prey = owner ?? pick(SPECIES.filter((x) => ['rabbit', 'lizard', 'frog', 'fox'].includes(x.id)));
+  const hunter = prey.space <= 2 ? { name: 'hawk', icon: '🦅', go: 'flew off' } : { name: 'wolf', icon: '🐺', go: 'trotted off' };
+  const v = denVol(den), room = Math.floor(v / prey.space); if (room < 1) return null;
+  const each = rnd(2, 4), secs = each * rnd(Math.max(1, room - 2), room + 2), inTime = Math.floor(secs / each), safe = Math.min(room, inTime);
+  return { kind: 'volume', mark: den.r, shape: { w: rectW(den.r), h: rectH(den.r), d: den.depth ?? 1 },
+    story: `A ${hunter.name} ${hunter.icon} is coming! It will be here in ${secs} seconds. The ${prey.many.toLowerCase()} ${prey.icon} run for ${theDen(den)}, ${rectW(den.r)} by ${rectH(den.r)} by ${den.depth ?? 1} blocks. One ${prey.name.toLowerCase()} squeezes in every ${each} seconds, and each needs ${prey.space} cubic ${prey.space === 1 ? 'block' : 'blocks'} of space.`,
+    ask: `How many ${prey.many.toLowerCase()} get safely into the den?`, answer: { value: safe, unit: 'animals' },
+    hint: `Room in the den: ${v} ÷ ${prey.space} = ${room}. Time: ${secs} ÷ ${each} = ${inTime}. The smaller number is how many get in: ${safe}.`,
+    apply: (q) => ({ ...q, log: [...q.log, `Day ${q.day}: ${safe} ${prey.many.toLowerCase()} hid from a ${hunter.name} in ${theDen(den)}.`] }),
+    after: `${safe} ${safe === 1 ? prey.name.toLowerCase() : prey.many.toLowerCase()} made it into the den. Any others hid in the tall grass, and the ${hunter.name} gave up and ${hunter.go}. Nobody was caught.` };
 }
 // Stepped mountains: add the volume of each layer (rectangular prisms).
 function mountainQ(): Question {
@@ -511,7 +577,7 @@ export const GOALS: { text: string; done: (w: World, right: number) => boolean }
   { text: 'Explore the map in any direction', done: (w) => rectW(w.map) * rectH(w.map) > rectW(START_MAP) * rectH(START_MAP) },
   { text: 'Build a barn', done: (w) => w.buildings.some((b) => b.type === 'barn') },
   { text: 'Build a zoo enclosure and tame a wild animal', done: (w) => w.animals.some((a) => a.at && SP(a.kind).wild) },
-  { text: 'Dig a den for storms', done: (w) => w.buildings.some((b) => b.type === 'den') },
+  { text: 'Dig a den for storms', done: (w) => w.buildings.some((b) => b.type === 'den' && !b.wild) },
   { text: 'Build a stone wall', done: (w) => w.buildings.some((b) => b.type === 'wall') },
   { text: 'Train an animal to level 1', done: (w) => w.animals.some((a) => (a.lv ?? 0) >= 1) },
   { text: 'Design your own animal', done: (w) => (w.custom ?? []).length > 0 },
@@ -522,12 +588,14 @@ let lastKind = '';
 export function eventQuestion(w: World): Question {
   const season = seasonOf(w.day);
   for (let i = 0; i < 10; i++) {
-    const r = Math.random();
-    const q = season === 'Fall' && r < 0.12 ? hibernateQ(w)
+    const r = Math.random(), den = Math.random();
+    // Build Queue 610: a pack that has its fence soon digs its own den; dens then hold bedtime and predator questions.
+    const dug = den < 0.3 ? packDenQ(w) : null;
+    const q = dug ? dug : season === 'Fall' && r < 0.12 ? hibernateQ(w)
       : r < 0.1 ? patchQ(w) : r < 0.18 ? spreadQ(w) : r < 0.25 ? shareQ(w) : r < 0.31 ? volumeQ(w) : r < 0.36 ? sideQ(w)
-      : r < 0.43 ? denShelterQ(w) : r < 0.48 ? mountainQ() : r < 0.54 ? waterSkyQ(w) : r < 0.62 ? migrationQ(w) : r < 0.72 ? convertQ(w)
+      : r < 0.43 ? (den < 0.5 ? denShelterQ(w) : den < 0.75 ? denFitQ(w) : predatorQ(w)) : r < 0.48 ? mountainQ() : r < 0.54 ? waterSkyQ(w) : r < 0.62 ? migrationQ(w) : r < 0.72 ? convertQ(w)
       : r < 0.78 ? rivalQ(w) : r < 0.84 ? iqQ(w) : r < 0.9 ? stormFenceQ(w) : evolveQ(w);
-    if (q && (q.kind !== lastKind || i === 9)) { lastKind = q.kind; return q; }
+    if (q && (q.kind !== lastKind || i === 9 || q === dug)) { lastKind = q.kind; return q; }
   }
   return volumeQ(w);
 }
