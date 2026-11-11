@@ -56,7 +56,10 @@ export default function AssignmentAlert() {
   }, [snoozedUntil]);
 
   const where = role === 'student' && (pathname.startsWith('/student') || pathname.startsWith('/world'))
-    && pathname !== '/student/login' && pathname !== '/student/math' && pathname !== '/student/literacy' && !doingIt;
+    && pathname !== '/student/login' && pathname !== '/student/math' && pathname !== '/student/literacy' && !doingIt
+    // Build Queue 592 (her words: "diary can always be acsessed even if there are currently assignmetns runbing"): no pop up
+    // and no bar in the Diary, for as long as they are in it.
+    && !pathname.startsWith('/student/diary');
   if (!where || !due.length) return null;
   const left = due.reduce((n, d) => n + d.left, 0);
   const words = due.map((d) => `${LABEL[d.subj]}: ${d.left} ${d.left === 1 ? 'activity' : 'activities'}`).join(', ');
