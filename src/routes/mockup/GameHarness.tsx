@@ -30,7 +30,11 @@ const GAMES: Record<string, LazyExoticComponent<ComponentType>> = {
   supernature: lazy(() => import('../student/Supernature')),
   'grammar-gus': lazy(() => import('../../games/grammarGus/ui/GusWorkboard')),
   diary: lazy(() => import('../student/Diary')),
+  restaurant: lazy(() => import('../student/Restaurant')),
 };
+
+// Mock-up only: lets a browser test seed saves (for example a Restaurant that already owns McYoga).
+(window as unknown as { __store?: typeof useStore }).__store = useStore;
 
 export default function GameHarness() {
   const { id = '' } = useParams();

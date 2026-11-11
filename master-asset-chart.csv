@@ -1579,6 +1579,19 @@ path,label,category,group,sizeClass,sizeClassSource,targetHeightUnits,walkableOr
 /world/models/transportation/trafficCone.glb,Traffic Cone,transportation,Other,personScale,keyword,1.745,walkable (walk-through),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/transportation/trafficLight.glb,Traffic Light,transportation,Other,pole,keyword,4.363,walkable (walk-through),yes,1000,10.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/transportation/traffic_sign.glb,Traffic Sign,transportation,Other,personScale,keyword,1.745,walkable (walk-through),yes,800,8.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/treats/cake_birthday_slice.gltf,Cake Birthday Slice,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/cake_chocolate_slice.gltf,Cake Chocolate Slice,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/cake_strawberry_slice.gltf,Cake Strawberry Slice,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/cinnamon_roll.gltf,Cinnamon Roll,treats,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/treats/cookie.gltf,Cookie,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/croissant.gltf,Croissant,treats,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/treats/cupcake.gltf,Cupcake,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/donut_chocolate.gltf,Donut Chocolate,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/donut_pink.gltf,Donut Pink,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/muffin.gltf,Muffin,treats,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
+/world/models/treats/pie_apple_slice.gltf,Pie Apple Slice,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/pie_cherry_slice.gltf,Pie Cherry Slice,treats,Other,tiny,keyword,0.218,walkable (walk-through),yes,50,0.50,paid,no,yes,no,static click-to-collect
+/world/models/treats/waffle.gltf,Waffle,treats,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/tree-pine.glb,Tree Pine,misc,Props & Tools,furniture,category-fallback,1.396,solid (blocks movement),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/vehicles/airplane-toy.glb,Airplane Toy,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"
 /world/models/vehicles/boat.glb,Boat,vehicles,Other,furniture,category-fallback,1.745,walkable (walk-through),yes,500,5.00,paid,no,no,no,"placed decoration only, not clickable"

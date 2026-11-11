@@ -31,7 +31,7 @@ export const MODEL = {
 };
 
 export interface Placed { model: string; x: number; y: number; fit: number; rot?: number; lift?: number }
-export interface FoodDef { model: string; parts?: { model: string; x: number; z: number; s: number; ry: number }[]; pizza?: 'plain' | 'pepperoni' | 'burnt' }
+export interface FoodDef { model: string; fit?: number; parts?: { model: string; x: number; z: number; s: number; ry: number }[]; pizza?: 'plain' | 'pepperoni' | 'burnt' }
 export interface SceneMover { x: number; y: number; path: P[]; show: { food: FoodDef | null; trash?: boolean }[] }
 export interface SceneGuest { id: number; m: SceneMover; look: StyleLook; bubble: React.ReactNode | null; side?: number }
 export interface SceneStation { key: string; at: P; label: string; onTap: () => void; badge?: React.ReactNode; tag?: string; glow?: 'ready' | 'burnt' | 'cook' | null; children?: React.ReactNode; hit?: [number, number, number] }
@@ -105,7 +105,7 @@ export function Food({ def, size }: { def: FoodDef; size: number }) {
       </group>
     );
   }
-  return <Model url={def.model} fit={size} />;
+  return <Model url={def.model} fit={size * (def.fit ?? 1)} />;
 }
 
 // Smoothly follows a game mover (the game moves them 20 times a second; this glides between).
@@ -193,14 +193,21 @@ function Rig({ minX }: { minX: number }) {
 // color, so a whole floor is two draw calls on an iPad).
 // Build Queue 463/464: the colors of her vintage tomato vine print, for a real old school pizzeria.
 export const TOMATO = { cream: '#f5eac6', red: '#cb381b', deep: '#8f2510', leaf: '#555034', dark: '#1e200f', mustard: '#d9a83a', ink: '#1f2a1e' };
+// McYoga (Build Queue 606, her words: "make the floor white and black. add red trim instead of brown wood"): red trim
+// and a black and white floor. Only one Restaurant scene is ever on screen, so the scene sets these as it draws.
+let TRIM = '#6b3e22';
+const KITCHEN_MC = ['#f7f5f2', '#1d1d1d'];
 const TILE_COLORS = {
   kitchen: [TOMATO.cream, '#9e9361'],
-  dining: [[TOMATO.cream, '#d9b9a0'], [TOMATO.cream, '#d9b9a0'], [TOMATO.cream, '#d9b9a0']],
+  // McYoga (theme 3): black and white (Build Queue 606).
+  dining: [[TOMATO.cream, '#d9b9a0'], [TOMATO.cream, '#d9b9a0'], [TOMATO.cream, '#d9b9a0'], ['#f7f5f2', '#1d1d1d']],
 };
 
 // The wallpaper: her vintage tomato vine print (Build Queue 463), repeated along every wall.
-function useWallpaper() {
-  const t = useTexture('/games/restaurant/icons/tomato-wallpaper.jpg');
+// McYoga's walls (Build Queue 601, her words: "lets use a pattern like this in the for wallpaper but i want it the
+// yellow in the theme kit"): line drawn burgers, noodles, cups and mochi on the theme kit yellow.
+function useWallpaper(theme = 0) {
+  const t = useTexture(theme === 3 ? '/games/restaurant/icons/mcyoga-wallpaper.png' : '/games/restaurant/icons/tomato-wallpaper.jpg');
   useMemo(() => { t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; t.needsUpdate = true; }, [t]);
   return t;
 }
@@ -210,8 +217,8 @@ function Wall({ len, rot = 0, paper }: { len: number; rot?: number; paper: THREE
   return (
     <group rotation={[0, rot, 0]}>
       <mesh position={[0, 0.7, 0]}><boxGeometry args={[len, 1.4, 0.12]} /><meshStandardMaterial map={tex} roughness={0.9} /></mesh>
-      <mesh position={[0, 0.18, 0.07]}><boxGeometry args={[len, 0.36, 0.04]} /><meshStandardMaterial color="#6b3e22" roughness={0.8} /></mesh>
-      <mesh position={[0, 1.43, 0]}><boxGeometry args={[len + 0.02, 0.08, 0.18]} /><meshStandardMaterial color="#6b3e22" roughness={0.8} /></mesh>
+      <mesh position={[0, 0.18, 0.07]}><boxGeometry args={[len, 0.36, 0.04]} /><meshStandardMaterial color={TRIM} roughness={0.8} /></mesh>
+      <mesh position={[0, 1.43, 0]}><boxGeometry args={[len + 0.02, 0.08, 0.18]} /><meshStandardMaterial color={TRIM} roughness={0.8} /></mesh>
     </group>
   );
 }
@@ -230,8 +237,8 @@ function Tiles({ cells, colors }: { cells: P[]; colors: string[] }) {
   ))}</>;
 }
 
-function Walls({ showWindow, annex }: { showWindow: boolean; annex: boolean }) {
-  const paper = useWallpaper();
+function Walls({ showWindow, annex, theme }: { showWindow: boolean; annex: boolean; theme: number }) {
+  const paper = useWallpaper(theme);
   const aw = ANNEX.x1 - ANNEX.x0 + 1;
   return (
     <>
@@ -263,6 +270,7 @@ export interface SceneProps {
 }
 
 export default function RestaurantScene(p: SceneProps) {
+  TRIM = p.theme === 3 ? '#da1a23' : '#6b3e22';
   const kitchen = useMemo(() => { const c: P[] = []; for (let y = 1; y <= 2; y++) for (let x = 0; x < COLS; x++) c.push({ x, y }); return c; }, []);
   const dining = useMemo(() => { const c: P[] = []; for (let y = 3; y < ROWS; y++) for (let x = 0; x < COLS; x++) c.push({ x, y }); return c; }, []);
   const annexCells = useMemo(() => { const c: P[] = []; for (let y = ANNEX.y0; y <= ANNEX.y1; y++) for (let x = ANNEX.x0; x <= ANNEX.x1; x++) c.push({ x, y }); return c; }, []);
@@ -279,14 +287,14 @@ export default function RestaurantScene(p: SceneProps) {
       <hemisphereLight args={['#ffffff', '#f3d6ff', 0.7]} />
       <directionalLight position={[-4, 9, 6]} intensity={1.3} />
       <Suspense fallback={null}>
-        <mesh position={[0, -0.07, 0.2]}><boxGeometry args={[COLS + 0.2, 0.04, ROWS + 0.4]} /><meshStandardMaterial color="#6b3e22" /></mesh>
-        <Tiles cells={kitchen} colors={TILE_COLORS.kitchen} />
+        <mesh position={[0, -0.07, 0.2]}><boxGeometry args={[COLS + 0.2, 0.04, ROWS + 0.4]} /><meshStandardMaterial color={TRIM} /></mesh>
+        <Tiles cells={kitchen} colors={p.theme === 3 ? KITCHEN_MC : TILE_COLORS.kitchen} />
         <Tiles cells={dining} colors={TILE_COLORS.dining[p.theme] ?? TILE_COLORS.dining[0]} />
         {annex && <>
-          <mesh position={[wx(ANNEX.x0) - 0.5 + aw / 2, -0.07, wz(ANNEX.y0) - 0.5 + ah / 2 + 0.2]}><boxGeometry args={[aw + 0.2, 0.04, ah + 0.4]} /><meshStandardMaterial color="#6b3e22" /></mesh>
+          <mesh position={[wx(ANNEX.x0) - 0.5 + aw / 2, -0.07, wz(ANNEX.y0) - 0.5 + ah / 2 + 0.2]}><boxGeometry args={[aw + 0.2, 0.04, ah + 0.4]} /><meshStandardMaterial color={TRIM} /></mesh>
           <Tiles cells={annexCells} colors={TILE_COLORS.dining[p.theme] ?? TILE_COLORS.dining[0]} />
         </>}
-        <Suspense fallback={null}><Walls showWindow={p.showWindow} annex={annex} /></Suspense>
+        <Suspense fallback={null}><Walls showWindow={p.showWindow} annex={annex} theme={p.theme} /></Suspense>
         {/* The counter across the middle, with the register on it. */}
         {/* The counter, the register on top, and the tower of ready pizzas (two stacks of 10, Build Queue 478). */}
         {[5, 6, 7, 8].map((x) => <group key={x} position={[wx(x), 0, wz(3)]}><Model url={MODEL.counter} fit={1.001} /><Suspense fallback={null}><OnTop base={MODEL.counter} fit={1.001}>{x === 7 && <Model url={MODEL.register} fit={0.42} rot={Math.PI} />}{TOWER_SLOT[x] !== undefined && p.counterFood.length > TOWER_SLOT[x] * TOWER_MAX && <Tower items={p.counterFood.slice(TOWER_SLOT[x] * TOWER_MAX, (TOWER_SLOT[x] + 1) * TOWER_MAX).map((food) => ({ food }))} size={0.42} />}{TOWER_SLOT[x] !== undefined && p.counterFood.length > (3 + TOWER_SLOT[x]) * TOWER_MAX && <group position={[0.24, 0, 0.12]}><Tower items={p.counterFood.slice((3 + TOWER_SLOT[x]) * TOWER_MAX, (4 + TOWER_SLOT[x]) * TOWER_MAX).map((food) => ({ food }))} size={0.42} /></group>}</OnTop></Suspense></group>)}
@@ -355,5 +363,11 @@ Object.values(MODEL).flat().forEach((u) => useGLTF.preload(u));
 // Where the tables stand: left and right of the middle column, which is the line (Build Queue 480).
 // Tables 7 to 10 stand in the new dining room on the left (Build Queue 491), clear of the walk in from its door.
 export const TABLES_AT: P[] = [{ x: 3, y: 6 }, { x: 9, y: 6 }, { x: 3, y: 8 }, { x: 9, y: 8 }, { x: 11, y: 6 }, { x: 11, y: 8 }, { x: -5, y: 4 }, { x: -2, y: 4 }, { x: -5, y: 6 }, { x: -2, y: 6 }];
+// McYoga's own floor plan (Build Queue 606, her words: "change the floor plan of the restaurant for mcyoga"): a fast food
+// dining room with tables in two rows along the left wall and a booth row on the right by the drive through, leaving
+// the middle open for the line. The game swaps the first six spots in place, so every part of it sees the same array.
+const PIZZA_TABLES = TABLES_AT.slice(0, 6);
+const MC_TABLES: P[] = [{ x: 2, y: 6 }, { x: 10, y: 6 }, { x: 2, y: 8 }, { x: 10, y: 8 }, { x: 4, y: 6 }, { x: 12, y: 6 }];
+export function setTableLayout(mc: boolean) { (mc ? MC_TABLES : PIZZA_TABLES).forEach((t, i) => { TABLES_AT[i] = t; }); }
 // The new dining room (Build Queue 491): columns -6 to -1, rows 3 to 8.
 export const ANNEX = { x0: -6, x1: -1, y0: 3, y1: ROWS - 1 };

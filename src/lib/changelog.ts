@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-mcyoga",
+    date: "2026-11-11",
+    icon: "🍔",
+    title: "McYoga: your second restaurant",
+    body: "Reach level 7 in Restaurant and you can buy McYoga! You pick the menu from 38 foods, from fries and ramen to cupcakes and pie, and you set every price. Customers buy what they like at prices they think are fair. If nobody buys something, lower the price or start a sale, and watch your profit in the day report. Switch between your two restaurants any time.",
+  },
+  {
     id: "2026-11-11-restaurant-partial",
     date: "2026-11-11",
     icon: "🍕",

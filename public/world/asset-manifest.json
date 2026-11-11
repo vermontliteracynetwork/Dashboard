@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-29T16:13:25.827Z",
+  "generatedAt": "2026-11-11T19:54:16.210Z",
   "assets": [
     {
       "path": "/world/models/aquarium/anglerfish.glb",
@@ -7900,6 +7900,71 @@
       "path": "/world/models/transportation/traffic_sign.glb",
       "label": "Traffic Sign",
       "category": "transportation"
+    },
+    {
+      "path": "/world/models/treats/cake_birthday_slice.gltf",
+      "label": "Cake Birthday Slice",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/cake_chocolate_slice.gltf",
+      "label": "Cake Chocolate Slice",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/cake_strawberry_slice.gltf",
+      "label": "Cake Strawberry Slice",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/cinnamon_roll.gltf",
+      "label": "Cinnamon Roll",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/cookie.gltf",
+      "label": "Cookie",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/croissant.gltf",
+      "label": "Croissant",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/cupcake.gltf",
+      "label": "Cupcake",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/donut_chocolate.gltf",
+      "label": "Donut Chocolate",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/donut_pink.gltf",
+      "label": "Donut Pink",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/muffin.gltf",
+      "label": "Muffin",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/pie_apple_slice.gltf",
+      "label": "Pie Apple Slice",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/pie_cherry_slice.gltf",
+      "label": "Pie Cherry Slice",
+      "category": "treats"
+    },
+    {
+      "path": "/world/models/treats/waffle.gltf",
+      "label": "Waffle",
+      "category": "treats"
     },
     {
       "path": "/world/models/tree-pine.glb",
