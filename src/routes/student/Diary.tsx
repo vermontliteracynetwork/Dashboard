@@ -13,7 +13,7 @@ import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import { ENERGY_FACE, ENERGY_STEPS, type Energy } from '../../lib/supernature';
 import { petDefById, thumbnailFor } from '../../lib/petCatalog';
 import { todayISO } from '../../lib/dates';
-import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, checkDiaryTask, BITMOJIS, COMIC_LAYOUTS, PET_EMOTES, PHOTO_FILTERS, SOUNDTRACKS, emoteFor, pixelCopy, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
+import { DIARY_LIBRARY, PAPERS, STARTER_MEMES, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, checkDiaryTask, BITMOJIS, COMIC_LAYOUTS, PET_EMOTES, PHOTO_FILTERS, SOUNDTRACKS, emoteFor, pixelCopy, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
 import { PET_REPLY } from '../../lib/petsV2';
 import { recordReel, shareVideo, type ReelPage, type StatNow } from '../../lib/diaryVideo';
 import { useBests, dayFeelings } from '../../components/DiaryPage';
@@ -262,7 +262,7 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, week
   const savedRange = useRef<Range | null>(null);
 
   const stickers = useMemo(() => [...STARTER_STICKERS, ...Object.values(lib.stickers ?? {}).filter((x): x is LibraryPic => !!x)], [lib]);
-  const memes = useMemo(() => Object.values(lib.memes ?? {}).filter((x): x is LibraryPic => !!x), [lib]);
+  const memes = useMemo(() => [...STARTER_MEMES, ...Object.values(lib.memes ?? {}).filter((x): x is LibraryPic => !!x)], [lib]);
   const topZ = () => page.items.reduce((m, i) => Math.max(m, i.z), 0) + 1;
   const add = (d: Drop, x = 25 + Math.random() * 50, y = 25 + Math.random() * 50) => {
     const it: DiaryItem = { id: makeId(), x, y, rot: d.kind === 'tape' ? Math.round((Math.random() - 0.5) * 30) : d.kind === 'stat' || d.kind === 'pet' ? 0 : Math.round((Math.random() - 0.5) * 8), z: topZ(), ...d };

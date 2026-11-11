@@ -63,6 +63,21 @@ export const STARTER_STICKERS: LibraryPic[] = [
   { src: '/games/yoga/pu/double_jump_feather.png', name: 'Feather' },
 ];
 
+// Build Queue 589: her memes, built in to the Memes menu (her teacher uploads add more).
+export const STARTER_MEMES: LibraryPic[] = [
+  { src: '/diary/memes/everywhere.jpg', name: 'Everywhere' },
+  { src: '/diary/memes/mocking-spongebob.jpg', name: 'Mocking SpongeBob' },
+  { src: '/diary/memes/arthur-fist.webp', name: 'Arthur fist' },
+  { src: '/diary/memes/none-of-my-business.jpg', name: 'None of my business' },
+  { src: '/diary/memes/blinking.webp', name: 'Blinking guy' },
+  { src: '/diary/memes/doge.jpg', name: 'Doge' },
+  { src: '/diary/memes/evil-kermit.jpg', name: 'Evil Kermit' },
+  { src: '/diary/memes/roll-safe.jpg', name: 'Think about it' },
+  { src: '/diary/memes/confused.webp', name: 'Confused' },
+  { src: '/diary/memes/salt-bae.webp', name: 'Salt Bae' },
+  { src: '/diary/memes/minion-stare.jpg', name: 'Minion stare' },
+];
+
 // Paper colors for the page.
 export const PAPERS = ['#fffdf6', '#fff1f5', '#eef7ff', '#effaf0', '#fff6e0', '#f3eeff', '#2b2540'];
 

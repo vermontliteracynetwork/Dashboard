@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-diary-memes",
+    date: "2026-11-11",
+    icon: "😂",
+    title: "Diary: memes and a bigger page",
+    body: "The Memes menu in your Diary has classic memes now, like Doge, Evil Kermit and Mocking SpongeBob. Your page is bigger too. Tap a thing for its tools on the right, or drag it back to the menu to delete it.",
+  },
+  {
     id: "2026-11-11-diary-bitmoji",
     date: "2026-11-11",
     icon: "😎",

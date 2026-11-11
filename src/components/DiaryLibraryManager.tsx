@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useStore } from '../store/store';
 import { uploadImage } from '../lib/upload';
 import { makeId } from '../lib/id';
-import { DIARY_LIBRARY, STARTER_STICKERS, type DiaryLibrary, type LibraryPic } from '../lib/diaryBook';
+import { DIARY_LIBRARY, STARTER_MEMES, STARTER_STICKERS, type DiaryLibrary, type LibraryPic } from '../lib/diaryBook';
 
 // Build Queue 577: the teacher adds the stickers and memes students decorate their Diary pages with.
 export default function DiaryLibraryManager() {
@@ -35,7 +35,7 @@ export default function DiaryLibraryManager() {
             <figure key={id}><img src={s.src} alt={s.name} /><figcaption>{s.name}</figcaption>
               <button type="button" className="dlm-x" onClick={() => remove(kind, id)} aria-label={`Remove ${s.name}`}>×</button></figure>
           ))}
-          {kind === 'memes' && !items.length && <p className="dlm-empty">No memes yet. Add pictures students may relate to.</p>}
+          {kind === 'memes' && STARTER_MEMES.map((s2) => <figure key={s2.src} className="dlm-starter" title="Built in"><img src={s2.src} alt={s2.name} /><figcaption>{s2.name}</figcaption></figure>)}
         </div>
       </div>
     );
