@@ -4,7 +4,8 @@ import type { Student } from '../types';
 import { speak } from './ReadAloud';
 import { NPC_VOICE_PRESETS } from '../lib/npcVoices';
 import { fetchEntry, fetchWordWeb, isBlockedTerm, type DictionaryEntry, type WebWord } from '../lib/wordLookup';
-import { rememberTypes, typeOfPart, type WordType } from '../lib/wordTypes';
+import { loadWordTypes, lookUpWords, onWordTypes, rememberTypes, typeOfPart, typesOf, type WordType } from '../lib/wordTypes';
+import { PICTURE_PAGES, type PicturePage } from '../lib/pictureDictionary';
 import { analyzeMorphology } from '../lib/morphology';
 import './wordTools.css';
 
@@ -209,6 +210,7 @@ export function Dictionary({ student }: { student: Student }) {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [picked, setPicked] = useState<string | null>(null);
+  const [mode, setMode] = useState<'word' | 'pictures'>('word');
 
   const search = async (raw: string) => {
     const key = raw.trim().toLowerCase();
@@ -247,7 +249,14 @@ export function Dictionary({ student }: { student: Student }) {
 
   return (
     <div className="wt">
-      <MascotBar who="fish" line={talk.line} talking={talk.talking} onRead={readAll} />
+      <MascotBar who="fish" line={talk.line} talking={talk.talking} onRead={mode === 'pictures' ? () => talk.say(talk.line) : readAll} />
+      <div className="wt-modes" role="tablist" aria-label="Dictionary pages">
+        <button type="button" role="tab" aria-selected={mode === 'word'} className={mode === 'word' ? 'on' : ''} onClick={() => setMode('word')}>Look up a word</button>
+        <button type="button" role="tab" aria-selected={mode === 'pictures'} className={mode === 'pictures' ? 'on' : ''}
+          onClick={() => { setMode('pictures'); talk.say('Pick a picture page. Tap any picture and I will tell you its word.'); }}>Picture pages</button>
+      </div>
+      {mode === 'pictures' && <PictureDictionary talk={talk} onTapWord={egg.tap} onOpen={(w) => { setMode('word'); void search(w); }} />}
+      {mode === 'word' && <>
       <SearchRow value={q} onChange={setQ} onGo={() => void search(q)} label="Word to look up in the dictionary" />
       {loading && <p className="wt-muted">Looking that up...</p>}
       {!entry && !loading && (
@@ -295,7 +304,121 @@ export function Dictionary({ student }: { student: Student }) {
       {picked && entry && picked !== entry.word.toLowerCase() && (
         <div className="wt-picked"><span>"{picked}"</span><button type="button" className="btn btn-sm btn-primary" onClick={() => void search(picked)}>Look it up</button></div>
       )}
+      </>}
       {egg.parade}
+    </div>
+  );
+}
+
+// ---------- Gilbert's Picture Dictionary (Build Queue 608) ----------
+// Themed pages of our own pictures. Tapping one says the word, shows its part of speech from the word type engine
+// (the same one the grammar checks use) and its first dictionary meaning, with a button to open the full entry.
+const article = (w: string) => (/^[aeiou]/i.test(w) ? 'an' : 'a');
+const typeWords = (list: WordType[]) => list.map((t) => `${article(POS_INFO[t].name)} ${POS_INFO[t].name.toLowerCase()}`).join(' or ');
+// A picture shows a thing, so a picture word is read as a noun when the engine says it can be one (and the engine
+// knows "sink" can be a verb too, so Gilbert says that). An action word is read as a verb. Two-word names
+// ("trash can") take the type of their last word, the way English builds them.
+const headWord = (word: string) => word.split(/[\s-]+/).pop() ?? word;
+function pictureTypes(word: string, want: 'noun' | 'verb'): { type: WordType | null; also: WordType[] } {
+  const t = typesOf(headWord(word));
+  if (!t) return { type: null, also: [] };
+  const type = t.all.includes(want) ? want : t.common[0] ?? t.all[0] ?? null;
+  return { type, also: t.common.filter((x) => x !== type && x !== 'propernoun') };
+}
+interface PicturePick { word: string; look: string; img?: string; kind: 'noun' | 'verb' }
+function PictureDictionary({ talk, onTapWord, onOpen }: { talk: ReturnType<typeof useTalk>; onTapWord: (w: string) => void; onOpen: (w: string) => void }) {
+  const [page, setPage] = useState<PicturePage | null>(null);
+  const [pick, setPick] = useState<PicturePick | null>(null);
+  const [meaning, setMeaning] = useState<{ word: string; text: string | null } | null>(null);
+  const [checked, setChecked] = useState(false);
+  const [, redraw] = useState(0);
+  useEffect(() => { void loadWordTypes(); return onWordTypes(() => redraw((n) => n + 1)); }, []);
+  // Words no local dictionary knows are looked up once, so the engine learns them.
+  useEffect(() => {
+    if (!page) return;
+    setChecked(false);
+    void loadWordTypes().then(() => lookUpWords([...page.words.map((w) => headWord(w.look ?? w.word)), ...page.actions])).then(() => setChecked(true));
+  }, [page]);
+
+  const openPage = (p: PicturePage) => { setPage(p); setPick(null); setMeaning(null); talk.say(`${p.title}. Tap a picture to hear its word.`); };
+  const choose = (p: PicturePick) => {
+    setPick(p);
+    onTapWord(p.word);
+    const { type, also } = pictureTypes(p.look, p.kind);
+    const name = type ? POS_INFO[type].name.toLowerCase() : '';
+    const Word = p.word[0].toUpperCase() + p.word.slice(1);
+    const line = type ? `${Word}. It is ${article(name)} ${name}${p.kind === 'verb' && type === 'verb' ? ', something you do' : ''}.` : `${Word}.`;
+    talk.say(`${line}${also.length ? ` It can also be ${typeWords(also)}.` : ''}`, line);
+    setMeaning({ word: p.word, text: null });
+    const done = (text: string) => setMeaning((cur) => (cur?.word === p.word ? { word: p.word, text } : cur));
+    fetchEntry(p.look).then((e) => {
+      if (e) rememberTypes(e.word, e.meanings.map((m) => m.partOfSpeech));
+      const m = e?.meanings.find((x) => typeOfPart(x.partOfSpeech) === (type ?? p.kind)) ?? e?.meanings[0];
+      done(m?.defs[0]?.definition ?? '');
+    }).catch(() => done(''));
+  };
+
+  if (!page) {
+    return (
+      <div className="wt-pp-covers">
+        {PICTURE_PAGES.map((p) => (
+          <button key={p.id} type="button" className="wt-pp-cover" style={{ background: p.color }} onClick={() => openPage(p)}>
+            <img src={p.cover} alt="" loading="lazy" />
+            <span>{p.title}</span>
+            <small>{p.words.length} pictures</small>
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  const types = pick ? pictureTypes(pick.look, pick.kind) : null;
+  const info = types?.type ? POS_INFO[types.type] : null;
+  return (
+    <div className="wt-pp">
+      <div className="wt-pp-head" style={{ background: page.color }}>
+        <button type="button" className="btn btn-sm" onClick={() => { setPage(null); setPick(null); talk.say('Pick a picture page.'); }}>All pages</button>
+        <h3>{page.title}</h3>
+        <button type="button" className="btn btn-sm wt-say" onClick={() => talk.say(`${page.title}. ${page.words.map((w) => w.word).join(', ')}.`, `Reading ${page.title}...`)} aria-label="Read every word on this page">🔊</button>
+      </div>
+      <div className="wt-pp-body">
+        <div className="wt-pp-word" aria-live="polite">
+          {!pick && <p className="wt-muted">Tap a picture to hear its word and see what kind of word it is.</p>}
+          {pick && (
+            <>
+              {pick.img && <img src={pick.img} alt="" />}
+              <button type="button" className="wt-headword" onClick={() => choose(pick)}>{pick.word}</button>
+              {info ? <span className="wt-pp-pos" style={{ background: info.color, color: info.ink }}>{info.name}</span>
+                : <span className="wt-muted">{checked ? 'Gilbert is still learning what kind of word this is.' : 'Checking what kind of word it is...'}</span>}
+              {info?.say && <p className="wt-muted">{info.say}</p>}
+              {types && types.also.length > 0 && <p className="wt-pp-also">It can also be {typeWords(types.also)}.</p>}
+              {meaning?.word === pick.word && (meaning.text === null ? <p className="wt-muted">Finding the meaning...</p> : meaning.text ? (
+                <div className="wt-pp-meaning">
+                  <p>{meaning.text}</p>
+                  <button type="button" className="btn btn-sm wt-say" onClick={() => talk.say(meaning.text!, `${pick.word}: ${meaning.text}`)} aria-label="Read the meaning">🔊</button>
+                </div>
+              ) : null)}
+              <button type="button" className="btn btn-primary wt-pp-open" onClick={() => onOpen(pick.look)}>Open in the dictionary</button>
+            </>
+          )}
+        </div>
+        <div className="wt-pp-grid">
+          {page.words.map((w) => (
+            <button key={w.word} type="button" className={`wt-pp-card${pick?.word === w.word ? ' on' : ''}`} onClick={() => choose({ word: w.word, look: w.look ?? w.word, img: w.img, kind: 'noun' })}>
+              <img src={w.img} alt="" loading="lazy" />
+              <span>{w.word}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="wt-pp-actions">
+        <strong>Things you do here</strong>
+        <div className="wt-try">
+          {page.actions.map((a) => (
+            <button key={a} type="button" className={`wt-chip wt-pp-verb${pick?.word === a ? ' on' : ''}`} onClick={() => choose({ word: a, look: a, kind: 'verb' })}>{a}</button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
