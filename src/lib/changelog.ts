@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-diary-bitmoji",
+    date: "2026-11-11",
+    icon: "😎",
+    title: "Diary: stickers of you!",
+    body: "Open Me in your Diary for stickers made from your own avatar: HI!, GG!, LOL, I WON!, SO TIRED and more. Drag them onto your page and make them dance.",
+  },
+  {
     id: "2026-11-11-diary-emotes",
     date: "2026-11-11",
     icon: "🐶",

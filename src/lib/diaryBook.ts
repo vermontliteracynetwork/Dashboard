@@ -153,3 +153,20 @@ export async function pixelCopy(src: string, cells = 48): Promise<string | null>
     im.onerror = () => res(null); im.src = src;
   });
 }
+
+// Build Queue 586 (her words: "the stickers of their avatar should be like bitmojis"): their own Style avatar on a
+// bold sticker: a colored burst or bubble behind it, a big phrase, little props and a fun tilt.
+export const BITMOJIS: { id: string; text: string; bg: string; shape: 'burst' | 'circle' | 'cloud' | 'heart' | 'star'; ink: string; prop?: string; emote?: string }[] = [
+  { id: 'hi', text: 'HI!', bg: '#facc15', shape: 'burst', ink: '#1f2937', prop: '✋', emote: 'highfive' },
+  { id: 'yay', text: 'YAY!', bg: '#f472b6', shape: 'star', ink: '#ffffff', prop: '★', emote: 'jump' },
+  { id: 'gg', text: 'GG!', bg: '#22c55e', shape: 'burst', ink: '#ffffff', prop: '🎮' },
+  { id: 'lol', text: 'LOL', bg: '#38bdf8', shape: 'circle', ink: '#ffffff', prop: '😂', emote: 'dance' },
+  { id: 'thanks', text: 'THANK YOU', bg: '#fde68a', shape: 'heart', ink: '#b91c1c', prop: '♥', emote: 'love' },
+  { id: 'proud', text: 'PROUD!', bg: '#a78bfa', shape: 'star', ink: '#ffffff', prop: '★' },
+  { id: 'hmm', text: 'HMM...', bg: '#e2e8f0', shape: 'cloud', ink: '#1f2937', prop: '?', emote: 'think' },
+  { id: 'oops', text: 'OOPS!', bg: '#fb923c', shape: 'burst', ink: '#ffffff', prop: '!' },
+  { id: 'tired', text: 'SO TIRED', bg: '#c7d2fe', shape: 'cloud', ink: '#3730a3', prop: 'Zzz', emote: 'sleepy' },
+  { id: 'mad', text: 'GRRR', bg: '#ef4444', shape: 'burst', ink: '#ffffff', prop: '💢' },
+  { id: 'calm', text: 'CHILL', bg: '#99f6e4', shape: 'circle', ink: '#115e59', prop: '~' },
+  { id: 'win', text: 'I WON!', bg: '#fbbf24', shape: 'star', ink: '#7c2d12', prop: '🏆', emote: 'spin' },
+];

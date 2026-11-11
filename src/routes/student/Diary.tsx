@@ -12,7 +12,7 @@ import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import { ENERGY_FACE, ENERGY_STEPS, type Energy } from '../../lib/supernature';
 import { petDefById, thumbnailFor } from '../../lib/petCatalog';
 import { todayISO } from '../../lib/dates';
-import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, checkDiaryTask, COMIC_LAYOUTS, PET_EMOTES, PHOTO_FILTERS, SOUNDTRACKS, emoteFor, pixelCopy, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
+import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, checkDiaryTask, BITMOJIS, COMIC_LAYOUTS, PET_EMOTES, PHOTO_FILTERS, SOUNDTRACKS, emoteFor, pixelCopy, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
 import { PET_REPLY } from '../../lib/petsV2';
 import { recordReel, shareVideo, type ReelPage, type StatNow } from '../../lib/diaryVideo';
 import { useBests, dayFeelings } from '../../components/DiaryPage';
@@ -387,8 +387,13 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, week
             ))}
           </Category>
           <Category label="Me" color="#BBF7D0" open={!!open.me} onToggle={() => tog('me')}>
-            <div className="dm-grid">{tile({ kind: 'avatar', w: 26, ar: 1 }, 'My avatar', <StylePortrait studentId={studentId} size={56} />, 'avatar')}</div>
-            <p className="dm-empty">Your avatar from the Style editor. Pick it on the page to make it do an emote.</p>
+            <p className="dm-empty">Stickers of you, made from your avatar in the Style editor.</p>
+            <div className="dm-grid">
+              {BITMOJIS.map((b) => tile({ kind: 'avatar', pattern: b.id, emote: b.emote, w: 26, ar: 1 }, b.text, (
+                <span className="dm-bmchip"><span className={`dp-bm-bg ${b.shape}`} style={{ background: b.bg }} /><StylePortrait studentId={studentId} size={48} /></span>
+              ), `bm${b.id}`))}
+              {tile({ kind: 'avatar', w: 26, ar: 1 }, 'Just me', <StylePortrait studentId={studentId} size={56} />, 'avatar')}
+            </div>
           </Category>
           {weekPics.length > 0 && (
             <Category label="From my week" color="#FECACA" open={!!open.week} onToggle={() => tog('week')}>

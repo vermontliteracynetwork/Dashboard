@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useRef, useState } from 'react';
-import { ENERGY_LEVELS, PET_EMOTES, TAPES, cleanHtml, pageClass, pageH, type DiaryItem, type DiaryPageData } from '../lib/diaryBook';
+import { BITMOJIS, ENERGY_LEVELS, PET_EMOTES, TAPES, cleanHtml, pageClass, pageH, type DiaryItem, type DiaryPageData } from '../lib/diaryBook';
 import { StylePortrait } from '../style/StylePortrait';
 import { ENERGY_FACE } from '../lib/supernature';
 import { SEL_ZONE_COLORS } from '../lib/selZones';
@@ -114,7 +114,20 @@ function Face({ it, live, lite, studentId, day, onChange }: { it: DiaryItem; liv
       {it.transcript && <p className="dp-transcript">"{it.transcript}"</p>}
     </div>
   );
-  if (it.kind === 'avatar') return <Emoting emote={it.emote}><div className="dp-avatar"><StylePortrait studentId={studentId ?? ''} size={260} /></div></Emoting>;
+  if (it.kind === 'avatar') {
+    const b = BITMOJIS.find((x) => x.id === it.pattern);
+    if (!b) return <Emoting emote={it.emote}><div className="dp-avatar"><StylePortrait studentId={studentId ?? ''} size={260} /></div></Emoting>;
+    return (
+      <Emoting emote={it.emote}>
+        <div className="dp-bitmoji">
+          <span className={`dp-bm-bg ${b.shape}`} style={{ background: b.bg }} aria-hidden />
+          <div className="dp-avatar"><StylePortrait studentId={studentId ?? ''} size={260} /></div>
+          {b.prop && <span className="dp-bm-prop" aria-hidden>{b.prop}</span>}
+          <b className="dp-bm-text" style={{ color: b.ink, WebkitTextStrokeColor: b.ink === '#ffffff' ? '#1f2937' : '#ffffff' }}>{b.text}</b>
+        </div>
+      </Emoting>
+    );
+  }
   if (it.kind === 'feeling') return (
     <figure className="dp-feel"><img src={it.src} alt="" draggable={false} /><figcaption>{it.text}</figcaption></figure>
   );

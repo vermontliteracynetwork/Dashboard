@@ -1,4 +1,4 @@
-import { ENERGY_LEVELS, PET_EMOTES, TAPES, pageH, type DiaryItem, type DiaryPageData } from './diaryBook';
+import { BITMOJIS, ENERGY_LEVELS, PET_EMOTES, TAPES, pageH, type DiaryItem, type DiaryPageData } from './diaryBook';
 import { portraitFor } from '../style/StylePortrait';
 import { ENERGY_FACE } from './supernature';
 import { petDefById, thumbnailFor } from './petCatalog';
@@ -78,6 +78,10 @@ async function paint(g: CanvasRenderingContext2D, rp: ReelPage, bx: number, by: 
       g.fillStyle = '#fff'; g.font = `700 ${2.3 * u}px Nunito, sans-serif`; g.textBaseline = 'alphabetic'; g.fillText(s.label, 0, h / 2 - 2 * u); g.textAlign = 'left'; g.textBaseline = 'top';
     } else if (it.kind === 'energy') { h = w * 2.2; g.fillStyle = '#fff'; round(g, -w / 2, -h / 2, w, h, 3 * u); g.fill(); const v = it.value ?? 2, sy = -h / 2 + 8 * u + (4 - v) * ((h - 16 * u) / 4); if (im) g.drawImage(im, -w * 0.3, sy - w * 0.3, w * 0.6, w * 0.6); g.fillStyle = '#2b2540'; g.font = `700 ${2.4 * u}px Nunito, sans-serif`; g.fillText(`Energy: ${ENERGY_LEVELS[v]}`, -w / 2 + 1.5 * u, h / 2 - 4 * u); }
     else if (it.kind === 'voice') { h = 7 * u; g.fillStyle = '#2b2540'; round(g, -w / 2, -h / 2, w, h, h / 2); g.fill(); g.fillStyle = '#fff'; g.font = `700 ${2.4 * u}px Nunito, sans-serif`; g.fillText(it.text ?? 'My voice', -w / 2 + 2 * u, -1.4 * u); if (it.transcript) { g.font = `italic 600 ${2.2 * u}px Nunito, sans-serif`; g.fillStyle = '#2b2540'; wrapText(g, `"${it.transcript}"`, w).slice(0, 4).forEach((ln, k) => g.fillText(ln, -w / 2, h / 2 + 1.2 * u + k * 2.9 * u)); } }
+    else if (it.kind === 'avatar' && it.pattern) {
+      const b = BITMOJIS.find((x) => x.id === it.pattern); h = w;
+      if (b) { g.fillStyle = b.bg; g.beginPath(); g.arc(0, 0, w * 0.48, 0, Math.PI * 2); g.fill(); if (im) g.drawImage(im, -w * 0.4, -w * 0.45, w * 0.8, w * 0.8); g.font = `900 ${w * 0.17}px Impact, 'Arial Black', sans-serif`; g.textAlign = 'center'; g.lineWidth = w * 0.03; g.strokeStyle = b.ink === '#ffffff' ? '#1f2937' : '#ffffff'; g.strokeText(b.text, 0, w * 0.32); g.fillStyle = b.ink; g.fillText(b.text, 0, w * 0.32); g.textAlign = 'left'; }
+    }
     else if (im) {
       h = w * (im.naturalHeight / Math.max(1, im.naturalWidth));
       const framed = it.kind === 'photo' || it.kind === 'meme' || it.kind === 'feeling', pad = framed ? 1.2 * u : 0, extra = it.kind === 'feeling' ? 4 * u : 0;
