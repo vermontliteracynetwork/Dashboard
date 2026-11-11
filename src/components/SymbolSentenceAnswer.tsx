@@ -186,10 +186,14 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
   const withNote = slots.map((_, i) => i).filter((i) => notes[i] || (hints?.[i] && !ok[i]));
   const msgAt = withNote.includes(focus ?? -1) ? focus! : withNote[0] ?? null;
   const msgPos = msgAt !== null ? posAt(msgAt) : undefined;
+  // Fill in the blank (every symbol already shown, only words to type) needs no symbol menu.
+  const showPanel = !(modeOf(q) === 'fill' && pickAt.length === 0 && slots.some((x) => x.pos !== 'punctuation'));
   return (
     <div className="ssq-c">
-      <div className="ssq">
-        <SymbolPanel onPick={pickFromPanel} onMark={markFromPanel} onDrop={dropOn} disabled={disabled} tts={say} />
+      {/* Build Queue 596 (her words: "for fill in the blank selection, dont show left hand menus at all"): the symbol and
+          punctuation menus show only when the student has a symbol to choose; punctuation circles are tapped. */}
+      <div className={`ssq${showPanel ? '' : ' nopanel'}`}>
+        {showPanel && <SymbolPanel onPick={pickFromPanel} onMark={markFromPanel} onDrop={dropOn} disabled={disabled} tts={say} />}
         <div className="ssq-main">
           {head}
           <Picture q={q} />
@@ -223,10 +227,10 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
                   </div>
                   {tip === i && info && <SymbolTip anchor={icons.current[i] ?? null} name={info.name} def={info.def} />}
                   {s.given ? (
-                    <span className="ssq-pill solid" style={{ ['--c' as string]: info?.color ?? '#c9c2b4', ['--ink' as string]: p ? inkOn(p) : '#231b33' }}>{s.word}</span>
+                    <span className="ssq-pill solid" style={{ ['--c' as string]: info?.color ?? '#c9c2b4', ['--ink' as string]: p ? inkOn(p) : '#231b33', ['--chars' as string]: s.word.length }}>{s.word}</span>
                   ) : (
                     <div className="ssq-pill-wrap">
-                      <input ref={(el) => { inputs.current[i] = el; }} className={`ssq-pill${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} style={{ ['--c' as string]: info?.color ?? '#e3d9c6' }}
+                      <input ref={(el) => { inputs.current[i] = el; }} className={`ssq-pill${notes[i] ? ' fix' : ''}${ok[i] ? ' ok' : ''}`} style={{ ['--c' as string]: info?.color ?? '#e3d9c6', ['--chars' as string]: Math.max((vals[i] ?? '').length, info ? info.name.length : 4) }}
                         value={vals[i] ?? ''} placeholder={info ? info.name.toLowerCase() : ''} disabled={disabled} readOnly={!!ok[i]}
                         spellCheck={level === 3} autoCorrect={level === 3 ? 'on' : 'off'} autoCapitalize={st.capitalCheck ? 'off' : p === 'propernoun' ? 'words' : 'off'} autoComplete="off"
                         enterKeyHint={i === typeAt[typeAt.length - 1] ? 'done' : 'next'}

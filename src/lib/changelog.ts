@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-symbol-fill",
+    date: "2026-11-11",
+    icon: "✏️",
+    title: "Fill in the blank is cleaner",
+    body: "Fill in the blank grammar questions start right away, show just your sentence, and the word bubbles grow so you can see your whole word.",
+  },
+  {
     id: "2026-11-11-restaurant-partial",
     date: "2026-11-11",
     icon: "🍕",

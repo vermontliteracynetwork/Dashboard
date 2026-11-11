@@ -12362,3 +12362,10 @@ button.nqs-step-head { cursor: pointer; }
 .dm2 .dm-tile small, .dm-tile small { white-space: normal; overflow: visible; text-overflow: clip; max-width: none; line-height: 1.15; text-align: center; overflow-wrap: anywhere; }
 .dm2 .dm-tile img { object-fit: contain; }
 .dm-bmchip { width: 72px; height: 72px; overflow: visible; }
+
+/* Build Queue 596: no symbol menus on fill in the blank; word bubbles grow to show the whole word. */
+.ssq.nopanel { grid-template-columns: minmax(0, 1fr); }
+.ssq-slot { width: auto; min-width: calc(var(--box) + 24px); }
+.ssq-pill-wrap { width: auto; }
+.ssq-pill { width: calc(var(--chars, 4) * 0.68em + 40px); min-width: calc(var(--box) + 24px); max-width: 92cqi; overflow: visible; text-overflow: clip; }
+span.ssq-pill { display: flex; width: auto; padding: 0 16px; }

@@ -240,16 +240,19 @@ export default function QuestionScreen({
     setShowExitConfirm(false);
     setMarked(new Set());
     const lead = imageUrl && typed?.kind !== 'symbol' ? PIC_FIRST_MS : 0;
-    shownAt.current = Date.now() + lead + READ_FIRST_MS;
+    // Build Queue 596 (her words: "dont have a time out period before the question appears for the symbolic grammar
+    // questions"): a symbol sentence is ready to answer right away.
+    const readMs = typed?.kind === 'symbol' ? 0 : READ_FIRST_MS;
+    shownAt.current = Date.now() + lead + readMs;
     if (advanceTimer.current) window.clearTimeout(advanceTimer.current);
     closeLog('skipped');
-    qlog.current = { prompt, answer: choices[correctIndex] ?? '', start: Date.now() + lead + READ_FIRST_MS, tries: [], done: false };
-    setReading(true);
+    qlog.current = { prompt, answer: choices[correctIndex] ?? '', start: Date.now() + lead + readMs, tries: [], done: false };
+    setReading(readMs + lead > 0);
     setPicFirst(!!lead);
     if (picTimer.current) window.clearTimeout(picTimer.current);
     if (lead) picTimer.current = window.setTimeout(() => setPicFirst(false), lead);
     if (readTimer.current) window.clearTimeout(readTimer.current);
-    readTimer.current = window.setTimeout(() => { setReading(false); const q = qlog.current; if (q && !q.done) q.start = Date.now(); shownAt.current = Date.now(); }, lead + READ_FIRST_MS);
+    readTimer.current = window.setTimeout(() => { setReading(false); const q = qlog.current; if (q && !q.done) q.start = Date.now(); shownAt.current = Date.now(); }, lead + readMs);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qKey]);
 
