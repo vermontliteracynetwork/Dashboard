@@ -5,7 +5,7 @@ import type { SelZone } from '../types';
 // Build Queue 578 (Canva style): the page also holds typed text (a little word processor), and items can have captions,
 // float over the text or wrap it, move (bounce, wiggle, spin, float, pulse, or a path the student draws), and there are
 // washi tape strips, talk bubbles, the student's live pet and live game stats.
-export type DiaryItemKind = 'photo' | 'drawing' | 'sticker' | 'meme' | 'feeling' | 'note' | 'voice' | 'tape' | 'bubble' | 'pet' | 'stat' | 'frame' | 'sfx' | 'energy';
+export type DiaryItemKind = 'photo' | 'drawing' | 'sticker' | 'meme' | 'feeling' | 'note' | 'voice' | 'tape' | 'bubble' | 'pet' | 'stat' | 'frame' | 'sfx' | 'energy' | 'avatar';
 export type DiaryAnim = 'bounce' | 'wiggle' | 'spin' | 'float' | 'pulse' | 'path';
 export type DiaryStat = 'questions' | 'correct' | 'accuracy' | 'streak' | 'best' | 'feelbar' | 'feelline';
 export type BubbleStyle = 'me' | 'pet' | 'think' | 'shout' | 'whisper' | 'narrate';
@@ -19,12 +19,14 @@ export interface DiaryItem {
   h?: number; // comic frames: height, % of page height
   value?: number; // the energy slider: 0 very low to 4 very high
   game?: string; // brag stats: which game's personal best
+  // Build Queue 584: a pet (or avatar) emote, a photo filter (pix: the small pixel art copy), a voice clip's transcript.
+  emote?: string; filter?: string; pix?: string; transcript?: string;
 }
 // Build Queue 579: a page is landscape (11 by 8.5, the default) or portrait (8.5 by 11); `talk` keeps everything said to
 // the pet (typed or said aloud and transcribed) so the teacher and therapists can read it.
 export type DiaryOrient = 'land' | 'port';
 export interface DiaryTalk { who: 'me' | 'pet'; text: string; at: string; spoken?: boolean }
-export interface DiaryPageData { bg: string; items: DiaryItem[]; html?: string; v?: 2 | 3; orient?: DiaryOrient; talk?: DiaryTalk[] }
+export interface DiaryPageData { bg: string; items: DiaryItem[]; html?: string; v?: 2 | 3; orient?: DiaryOrient; talk?: DiaryTalk[]; music?: string }
 // Page height as a share of its width (in cqw), for each kind of page.
 export const pageH = (p: DiaryPageData) => (p.orient === 'land' ? 77.27 : p.orient === 'port' ? 129.41 : p.v === 2 ? 133.33 : 75);
 export const pageClass = (p: DiaryPageData) => (p.orient === 'land' ? 'land' : p.orient === 'port' ? 'port' : p.v === 2 ? 'v2' : '');
@@ -114,4 +116,40 @@ export function checkDiaryTask(p: DiaryPageData | null, req: { minWords?: number
     ...(req.needs ?? []).map((n) => ({ label: `Add ${NEED_LABEL[n] ?? n}`, ok: has(n) })),
   ];
   return { rows, done: rows.every((r) => r.ok), words };
+}
+
+// Build Queue 584: pet emotes (the 3D pet does the trick; a symbol pops over it), photo filters and page soundtracks.
+export const PET_EMOTES: { id: string; name: string; trick: string; mark: string }[] = [
+  { id: 'dance', name: 'Happy dance', trick: 'Dance', mark: '♪' },
+  { id: 'love', name: 'Love', trick: 'Sit', mark: '♥' },
+  { id: 'jump', name: 'Jump for joy', trick: 'Jump', mark: '!' },
+  { id: 'spin', name: 'Spin', trick: 'Spin', mark: '★' },
+  { id: 'highfive', name: 'High five', trick: 'High Five', mark: '✋' },
+  { id: 'talk', name: 'Chatty', trick: 'Speak', mark: '...' },
+  { id: 'flip', name: 'Backflip', trick: 'Backflip', mark: '★' },
+  { id: 'sleepy', name: 'Sleepy', trick: 'Down', mark: 'Zzz' },
+  { id: 'think', name: 'Hmm?', trick: 'Sit', mark: '?' },
+];
+export const emoteFor = (zone?: string) => (zone === 'green' ? 'dance' : zone === 'yellow' ? 'highfive' : zone === 'blue' ? 'love' : zone === 'red' ? 'love' : 'jump');
+export const PHOTO_FILTERS: { id: string; name: string }[] = [
+  { id: '', name: 'Normal' }, { id: 'comic', name: 'Comic' }, { id: 'pixel', name: 'Pixel art' }, { id: 'outline', name: 'Sticker outline' },
+  { id: 'bw', name: 'Black and white' }, { id: 'sunny', name: 'Sunny' }, { id: 'pop', name: 'Pop' },
+];
+export const SOUNDTRACKS: { id: string; name: string; src: string }[] = [
+  { id: 'dognose', name: 'Dog Nose Magic', src: '/music/dog-nose-magic.m4a' },
+  { id: 'bsb', name: 'The BSB Crew', src: '/music/the-bsb-crew.m4a' },
+  { id: 'ocean', name: 'Calm ocean', src: '/sounds/calm/calming-ocean.wav' },
+  { id: 'waves', name: 'Crashing waves', src: '/sounds/calm/crashing-waves.wav' },
+  { id: 'rain', name: 'Light rain', src: '/games/supernature/sounds/nature/rain_light_loop.wav' },
+  { id: 'forest', name: 'Forest day', src: '/games/supernature/sounds/nature/forest_day_loop.wav' },
+  { id: 'crickets', name: 'Crickets at night', src: '/games/supernature/sounds/nature/crickets_loop.wav' },
+  { id: 'stream', name: 'Little stream', src: '/games/supernature/sounds/nature/stream_loop.wav' },
+];
+// Pixel art filter: a small copy of the picture, drawn with big square pixels on the page.
+export async function pixelCopy(src: string, cells = 48): Promise<string | null> {
+  return new Promise((res) => {
+    const im = new Image(); im.crossOrigin = 'anonymous';
+    im.onload = () => { try { const w = cells, h = Math.max(1, Math.round((cells * im.naturalHeight) / Math.max(1, im.naturalWidth))); const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d')!.drawImage(im, 0, 0, w, h); res(c.toDataURL('image/png')); } catch { res(null); } };
+    im.onerror = () => res(null); im.src = src;
+  });
 }

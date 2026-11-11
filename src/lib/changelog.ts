@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-diary-emotes",
+    date: "2026-11-11",
+    icon: "🐶",
+    title: "Diary: pet emotes, filters and music",
+    body: "Make your pet dance, spin or do a backflip on your page! Add your own avatar, put a Comic or Pixel art filter on your photos, record voice notes that write down what you say, add music to your page and its video, and make a Top 3 page for your week.",
+  },
+  {
     id: "2026-11-11-diary-prompts",
     date: "2026-11-11",
     icon: "🎲",

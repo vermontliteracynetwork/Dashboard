@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
@@ -12,10 +12,11 @@ import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import { ENERGY_FACE, ENERGY_STEPS, type Energy } from '../../lib/supernature';
 import { petDefById, thumbnailFor } from '../../lib/petCatalog';
 import { todayISO } from '../../lib/dates';
-import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, checkDiaryTask, COMIC_LAYOUTS, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
+import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, checkDiaryTask, COMIC_LAYOUTS, PET_EMOTES, PHOTO_FILTERS, SOUNDTRACKS, emoteFor, pixelCopy, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
 import { PET_REPLY } from '../../lib/petsV2';
 import { recordReel, shareVideo, type ReelPage, type StatNow } from '../../lib/diaryVideo';
 import { useBests, dayFeelings } from '../../components/DiaryPage';
+import { StylePortrait } from '../../style/StylePortrait';
 import { dayOwner } from '../../lib/questionMastery';
 import { readStreak } from '../../lib/streak';
 import { sayInPetVoice } from '../../lib/petSpeak';
@@ -64,7 +65,7 @@ function statFor(studentId: string, day: string) {
   };
 }
 
-type View = { k: 'home' } | { k: 'edit'; id: string | null } | { k: 'view'; id: string } | { k: 'charts' };
+type View = { k: 'home' } | { k: 'edit'; id: string | null; top3?: boolean } | { k: 'view'; id: string } | { k: 'charts' };
 
 export default function Diary() {
   const back = useBack();
@@ -77,6 +78,8 @@ export default function Diary() {
   const [view, setView] = useState<View>({ k: 'home' });
   const [petSay, setPetSay] = useState('');
   const [making, setMaking] = useState('');
+  const [hop, setHop] = useState(0);
+  const [music, setMusic] = useState<HTMLAudioElement | null>(null);
   if (!student) return null;
   const entries = Object.entries((row?.look ?? {}) as Record<string, DiaryEntry | null>).filter((x): x is [string, DiaryEntry] => !!x[1] && !!x[1].at).sort((a, b) => (a[1].at < b[1].at ? 1 : -1));
   const mine = checkIns.filter((c) => c.studentId === student.id).sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
@@ -85,7 +88,7 @@ export default function Diary() {
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
   const thisWeek = entries.filter(([, e]) => e.at >= weekAgo).length;
   const petMap = Object.fromEntries(pets.filter((p) => p.studentId === student.id).map((p) => [p.id, { defId: p.petDefId, name: p.customName }]));
-  const reelOf = (list: [string, DiaryEntry][]): ReelPage[] => list.map(([, e]) => ({ page: asPage(e), title: dayLabel(e.at), stat: statFor(student.id, new Date(e.at).toLocaleDateString('en-CA')), pets: petMap }));
+  const reelOf = (list: [string, DiaryEntry][]): ReelPage[] => list.map(([, e]) => ({ page: asPage(e), title: dayLabel(e.at), stat: statFor(student.id, new Date(e.at).toLocaleDateString('en-CA')), pets: petMap, studentId: student.id }));
   // Build Queue 578 and 579: save a page, or the whole week (the highlight reel), as a video.
   const makeVideo = async (list: [string, DiaryEntry][], title: string) => {
     if (!list.length) return;
@@ -97,11 +100,25 @@ export default function Diary() {
   if (view.k === 'edit') {
     const old = view.id ? entries.find(([id]) => id === view.id)?.[1] : undefined;
     const today = mine.filter((c) => c.timestamp.slice(0, 10) === todayISO()).at(-1);
-    return <PageMaker initial={old ? asPage(old) : null} todayFeeling={today ? splitSelEmotion(today.emotion).emotion : null} lib={(libRow?.look ?? {}) as DiaryLibrary} tts={student.ttsSettings}
+    // Build Queue 584: the weekly Top 3 page (best, funniest, hardest moment) and pictures from this week's pages to use.
+    const weekPics = entries.filter(([, e]) => e.at >= weekAgo).flatMap(([, e]) => asPage(e).items.filter((i) => i.src && ['photo', 'drawing', 'meme', 'feeling', 'sticker'].includes(i.kind)).map((i) => ({ kind: i.kind, src: i.src!, text: i.text ?? i.caption ?? '' }))).filter((x, k, a) => a.findIndex((y) => y.src === x.src) === k).slice(0, 30);
+    const top3: DiaryPageData | null = view.k === 'edit' && view.top3 ? { bg: '#fff6e0', v: 3, orient: 'land', html: '', talk: [], items: [
+      { id: makeId(), kind: 'bubble', from: 'narrate', text: 'My week: Top 3', color: '#2b2540', textColor: '#ffffff', x: 50, y: 9, w: 40, rot: 0, z: 5 },
+      { id: makeId(), kind: 'frame', x: 50, y: 52, w: 30, h: 62, rot: 0, z: 0, color: '#eab308' },
+      { id: makeId(), kind: 'frame', x: 17.5, y: 58, w: 30, h: 50, rot: 0, z: 0, color: '#94a3b8' },
+      { id: makeId(), kind: 'frame', x: 82.5, y: 62, w: 30, h: 42, rot: 0, z: 0, color: '#c2410c' },
+      { id: makeId(), kind: 'bubble', from: 'narrate', text: '1st: My best moment', color: '#fde047', x: 50, y: 88, w: 28, rot: 0, z: 6 },
+      { id: makeId(), kind: 'bubble', from: 'narrate', text: '2nd: My funniest moment', color: '#e2e8f0', x: 17.5, y: 88, w: 28, rot: 0, z: 6 },
+      { id: makeId(), kind: 'bubble', from: 'narrate', text: '3rd: My hardest moment', color: '#fed7aa', x: 82.5, y: 88, w: 28, rot: 0, z: 6 },
+    ] } : null;
+    return <PageMaker initial={old ? asPage(old) : top3} weekPics={weekPics} todayFeeling={today ? splitSelEmotion(today.emotion).emotion : null} lib={(libRow?.look ?? {}) as DiaryLibrary} tts={student.ttsSettings}
       studentId={student.id} day={(old?.at ? new Date(old.at) : new Date()).toLocaleDateString('en-CA')} pets={pets.filter((p) => p.studentId === student.id)}
       onCancel={() => setView(view.id ? { k: 'view', id: view.id } : { k: 'home' })}
-      onSave={(page) => {
+      onSave={(page0) => {
         const id = view.id ?? makeId(), at = old?.at ?? new Date().toISOString();
+        // Pet emotes (Build Queue 584): a pet on a page with a feeling reacts to it, unless the student picked an emote.
+        const fz = page0.items.find((i) => i.kind === 'feeling')?.text;
+        const page = fz ? { ...page0, items: page0.items.map((i) => (i.kind === 'pet' && !i.emote ? { ...i, emote: emoteFor(zoneOf(fz)) } : i)) } : page0;
         const note = textOfHtml(page.html) || page.items.find((i) => (i.kind === 'note' || i.kind === 'bubble') && i.text)?.text, photo = page.items.find((i) => i.kind === 'photo')?.src;
         const feel = page.items.find((i) => i.kind === 'feeling')?.text;
         useStore.getState().mergeStyleRow(diaryOwner(student.id), { [id]: { at, page, caption: note ?? '', ...(photo ? { photo } : {}), ...(feel ? { feeling: feel, zone: zoneOf(feel) } : {}) } satisfies DiaryEntry });
@@ -109,7 +126,7 @@ export default function Diary() {
         // Like Finch: the pet is glad you shared, and it feels loved (a "talk" care).
         if (pet && !view.id) carePet(pet.id, 'talk');
         const say = name ? `${name} loved your page! Thanks for sharing with me.` : 'Saved in your diary!';
-        setPetSay(say); speak(say, student.ttsSettings);
+        setPetSay(say); setHop((n) => n + 1); speak(say, student.ttsSettings);
         setView({ k: 'home' });
       }} />;
   }
@@ -120,8 +137,9 @@ export default function Diary() {
     return (
       <div className="diary">
         <header className="diary-head">
-          <button type="button" className="btn" onClick={() => setView({ k: 'home' })}>← My pages</button>
+          <button type="button" className="btn" onClick={() => { music?.pause(); setMusic(null); setView({ k: 'home' }); }}>← My pages</button>
           <h1>{dayLabel(e.at)}</h1>
+          {e.page?.music && <button type="button" className="btn" onClick={() => { if (music) { music.pause(); setMusic(null); } else { const a = new Audio(e.page!.music); a.loop = true; void a.play().catch(() => {}); setMusic(a); } }}>{music ? 'Stop music' : 'Play my soundtrack'}</button>}
           <button type="button" className="btn" disabled={!!making} onClick={() => void makeVideo([entries[i]], `My diary ${new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`)}>Save as video</button>
           <button type="button" className="btn btn-primary" onClick={() => setView({ k: 'edit', id: view.id })}>Add more</button>
         </header>
@@ -147,11 +165,14 @@ export default function Diary() {
       </header>
       {making && <p className="diary-making" role="status">{making}</p>}
       <section className="diary-hero">
-        <div className="diary-buddy">
+        <div className="diary-buddy" key={hop} data-hop={hop > 0 ? 'y' : undefined}>
           {pet ? <img src={(() => { const d = petDefById(pet.petDefId); return d ? thumbnailFor(d) : '/sel/feelings/happy.jpg'; })()} alt="" onError={(e) => { e.currentTarget.src = '/sel/feelings/happy.jpg'; }} /> : <img src="/sel/feelings/happy.jpg" alt="" />}
           <div className="diary-bubble" role="status">{petSay || (pet ? `Hi ${first}! It's ${pet.customName}. What happened today?` : `Hi ${first}! What happened today?`)}</div>
         </div>
-        <button type="button" className="diary-new" onClick={() => setView({ k: 'edit', id: null })}><span aria-hidden>+</span>New page</button>
+        <div className="diary-newcol">
+          <button type="button" className="diary-new" onClick={() => setView({ k: 'edit', id: null })}><span aria-hidden>+</span>New page</button>
+          <button type="button" className="diary-top3" onClick={() => setView({ k: 'edit', id: null, top3: true })}>My week's Top 3</button>
+        </div>
         <div className="diary-week" aria-label={`${thisWeek} pages this week`}>
           {Array.from({ length: 7 }, (_, k) => <i key={k} className={k < thisWeek ? 'on' : ''} />)}
           <small>{thisWeek} {thisWeek === 1 ? 'page' : 'pages'} this week</small>
@@ -203,9 +224,9 @@ function Category({ label, color, open, onToggle, children }: { label: string; c
   );
 }
 
-function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSave, onCancel }: {
+function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, weekPics, onSave, onCancel }: {
   initial: DiaryPageData | null; todayFeeling: string | null; lib: DiaryLibrary; tts?: Parameters<typeof speak>[1]; studentId: string; day: string;
-  pets: { id: string; petDefId: string; customName: string }[];
+  pets: { id: string; petDefId: string; customName: string }[]; weekPics: { kind: string; src: string; text: string }[];
   onSave: (p: DiaryPageData) => void; onCancel: () => void;
 }) {
   const [page, setPage] = useState<DiaryPageData>(() => initial ? { ...initial } : { bg: PAPERS[0], items: [], html: '', v: 3, orient: 'land' as DiaryOrient, talk: [] });
@@ -213,6 +234,10 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
   const [open, setOpen] = useState<Record<string, boolean>>({ feelings: true });
   const [sub, setSub] = useState<string | null>(null);
   const [busy, setBusy] = useState('');
+  const [preview, setPreview] = useState<{ id: string; a: HTMLAudioElement } | null>(null);
+  useEffect(() => () => { preview?.a.pause(); }, [preview]);
+  const heard = useRef<string[]>([]);
+  const recRecog = useRef<{ stop: () => void } | null>(null);
   const [drawing, setDrawing] = useState(false);
   const [rec, setRec] = useState<{ r: MediaRecorder; stream: MediaStream; t0: number } | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number; d: Drop } | null>(null);
@@ -289,8 +314,12 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
     try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const r = new MediaRecorder(stream); const chunks: Blob[] = []; r.ondataavailable = (ev) => chunks.push(ev.data);
       const t0 = Date.now();
       r.onstop = async () => { stream.getTracks().forEach((t) => t.stop()); const secs = Math.max(1, Math.round((Date.now() - t0) / 1000)); setBusy('Saving your voice...');
-        try { const src = await uploadVoiceMemo(new Blob(chunks, { type: r.mimeType || 'audio/webm' })); add({ kind: 'voice', src, text: `My voice (${secs}s)`, w: 32 }); setBusy(''); } catch { setBusy('Your voice did not save. Try again.'); window.setTimeout(() => setBusy(''), 2500); } };
+        try { const src = await uploadVoiceMemo(new Blob(chunks, { type: r.mimeType || 'audio/webm' })); add({ kind: 'voice', src, text: `My voice (${secs}s)`, w: 32, transcript: heard.current.join(' ').trim() || undefined }); setBusy(''); } catch { setBusy('Your voice did not save. Try again.'); window.setTimeout(() => setBusy(''), 2500); } };
       r.start(); setRec({ r, stream, t0 });
+      // Build Queue 584: a full transcript of the voice note, written down while they talk.
+      heard.current = [];
+      const W = window as unknown as Record<string, unknown>; const SR = (W.SpeechRecognition ?? W.webkitSpeechRecognition) as (new () => { lang: string; interimResults: boolean; continuous: boolean; start(): void; stop(): void; onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null; onerror: (() => void) | null }) | undefined;
+      if (SR) { try { const sr = new SR(); sr.lang = 'en-US'; sr.continuous = true; sr.interimResults = false; sr.onresult = (ev) => { for (let k = ev.resultIndex; k < ev.results.length; k++) if (ev.results[k].isFinal) heard.current.push(ev.results[k][0].transcript.trim()); }; sr.onerror = () => {}; sr.start(); recRecog.current = sr; } catch { /* recording still works */ } }
     } catch { setBusy('Allow the microphone to record.'); window.setTimeout(() => setBusy(''), 2500); }
   };
   // Talk to your pet: your words and its answer appear as talk bubbles beside it.
@@ -357,6 +386,15 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
               </div>
             ))}
           </Category>
+          <Category label="Me" color="#BBF7D0" open={!!open.me} onToggle={() => tog('me')}>
+            <div className="dm-grid">{tile({ kind: 'avatar', w: 26, ar: 1 }, 'My avatar', <StylePortrait studentId={studentId} size={56} />, 'avatar')}</div>
+            <p className="dm-empty">Your avatar from the Style editor. Pick it on the page to make it do an emote.</p>
+          </Category>
+          {weekPics.length > 0 && (
+            <Category label="From my week" color="#FECACA" open={!!open.week} onToggle={() => tog('week')}>
+              <div className="dm-grid">{weekPics.map((w2, k) => tile({ kind: w2.kind as DiaryItemKind, src: w2.src, text: w2.text, w: w2.kind === 'sticker' ? 18 : 30 }, w2.text || 'From my week', <img src={w2.src} alt="" />, `wk${k}`))}</div>
+            </Category>
+          )}
           <Category label="My pet" color="#FEDBC1" open={!!open.pet} onToggle={() => tog('pet')}>
             {pets.length ? <div className="dm-grid">{pets.map((p) => tile({ kind: 'pet', petId: p.id, w: 36, ar: 1 }, p.customName, <PetPortrait defId={p.petDefId} size={60} />, p.id))}</div> : <p className="dm-empty">Adopt a pet to bring it onto your pages.</p>}
           </Category>
@@ -403,7 +441,19 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
               <button type="button" className="dm-big" onClick={() => fileIn.current?.click()}>Take or pick a photo</button>
               <input ref={fileIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void addPhoto(f); }} />
               <button type="button" className="dm-big" onClick={() => setDrawing(true)}>Draw a picture</button>
-              {rec ? <button type="button" className="dm-big dm-rec" onClick={() => { rec.r.stop(); setRec(null); }}>Stop and add my voice</button> : <button type="button" className="dm-big" onClick={() => void startRec()}>Record my voice</button>}
+              {rec ? <button type="button" className="dm-big dm-rec" onClick={() => { recRecog.current?.stop(); recRecog.current = null; window.setTimeout(() => { rec.r.stop(); setRec(null); }, 600); }}>Stop and add my voice</button> : <button type="button" className="dm-big" onClick={() => void startRec()}>Record my voice</button>}
+            </div>
+          </Category>
+          <Category label="Soundtrack" color="#BAE6FD" open={!!open.music} onToggle={() => tog('music')}>
+            <p className="dm-empty">Music for your page and its video. Tap ▶ to listen.</p>
+            <div className="dm-col">
+              <button type="button" className={`dm-track${!page.music ? ' on' : ''}`} onClick={() => setPage((p) => ({ ...p, music: undefined }))}>No music</button>
+              {SOUNDTRACKS.map((t) => (
+                <div key={t.id} className="dm-trackrow">
+                  <button type="button" className={`dm-track${page.music === t.src ? ' on' : ''}`} onClick={() => setPage((p) => ({ ...p, music: t.src }))}>{t.name}</button>
+                  <button type="button" className="dm-trackplay" aria-label={`Listen to ${t.name}`} onClick={() => { preview?.a.pause(); if (preview?.id === t.id) { setPreview(null); return; } const a = new Audio(t.src); void a.play().catch(() => {}); setPreview({ id: t.id, a }); }}>{preview?.id === t.id ? '■' : '▶'}</button>
+                </div>
+              ))}
             </div>
           </Category>
           <Category label="Paper" color="#EDE9FE" open={!!open.paper} onToggle={() => tog('paper')}>
@@ -478,7 +528,28 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
                   <button type="button" className="on" onClick={sayToPet} disabled={!talk.trim()}>Say it</button>
                 </div>
               )}
-              {selected.kind === 'voice' && selected.src && <div className="dm-row"><button type="button" onClick={() => { void new Audio(selected.src).play().catch(() => {}); }}>Play</button></div>}
+              {selected.kind === 'voice' && selected.src && (
+                <div className="dm-row">
+                  <button type="button" onClick={() => { void new Audio(selected.src).play().catch(() => {}); }}>Play</button>
+                  <textarea className="dm-notetext" value={selected.transcript ?? ''} placeholder="What I said (the transcript). Fix any words here." onChange={(e) => upd(selected.id, () => ({ transcript: e.target.value.slice(0, 2000) }))} aria-label="Transcript of my voice note" />
+                </div>
+              )}
+              {(selected.kind === 'pet' || selected.kind === 'avatar') && (
+                <div className="dm-row">
+                  <span className="dm-lab">Emote</span>
+                  <button type="button" className={!selected.emote ? 'on' : ''} onClick={() => upd(selected.id, () => ({ emote: undefined }))}>None</button>
+                  {PET_EMOTES.map((em) => <button key={em.id} type="button" className={selected.emote === em.id ? 'on' : ''} onClick={() => upd(selected.id, () => ({ emote: em.id }))}>{em.name}</button>)}
+                </div>
+              )}
+              {['photo', 'meme', 'drawing', 'sticker'].includes(selected.kind) && selected.src && (
+                <div className="dm-row">
+                  <span className="dm-lab">Filter</span>
+                  {PHOTO_FILTERS.map((f) => <button key={f.id || 'none'} type="button" className={(selected.filter ?? '') === f.id ? 'on' : ''} onClick={async () => {
+                    if (f.id === 'pixel' && !selected.pix) { const pix = await pixelCopy(selected.src!); if (!pix) { setBusy('That picture cannot be made into pixel art.'); window.setTimeout(() => setBusy(''), 2500); return; } upd(selected.id, () => ({ filter: 'pixel', pix })); return; }
+                    upd(selected.id, () => ({ filter: f.id || undefined }));
+                  }}>{f.name}</button>)}
+                </div>
+              )}
             </div>
           )}
         </main>

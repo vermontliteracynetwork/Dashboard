@@ -49,6 +49,12 @@ function Snap({ onShot }: { onShot: (url: string) => void }) {
 
 const DEFAULT_LOOK = defaultLook('dog');
 
+// Build Queue 584: the student's portrait picture if it has been drawn already (for the Diary videos).
+export function portraitFor(studentId: string): string | null {
+  const l = useStore.getState().styleLooks.find((r) => r.ownerId === studentId)?.look as StyleLook | undefined;
+  return cache.get(JSON.stringify(l && l.species && l.body && l.outfit ? l : DEFAULT_LOOK)) ?? null;
+}
+
 export function StylePortrait({ studentId, size = 56 }: { studentId: string; size?: number }) {
   const row = useStore((s) => s.styleLooks.find((r) => r.ownerId === studentId));
   const look = useMemo(() => { const l = row?.look as StyleLook | undefined; return l && l.species && l.body && l.outfit ? l : DEFAULT_LOOK; }, [row]);

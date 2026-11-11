@@ -12282,3 +12282,38 @@ button.nqs-step-head { cursor: pointer; }
 .diary-task-list li { display: flex; gap: 10px; align-items: center; font-size: 1.05rem; padding: 10px 12px; border-radius: 12px; background: #f3f4f6; }
 .diary-task-list li span { width: 28px; height: 28px; border-radius: 8px; border: 2px solid #9ca3af; display: grid; place-items: center; font-weight: 900; flex: none; }
 .diary-task-list li.ok { background: #ecfdf5; } .diary-task-list li.ok span { background: #22c55e; border-color: #22c55e; color: #fff; }
+
+/* Build Queue 584: emotes, filters, avatar, voice transcripts, soundtrack, Top 3 */
+.dp-emoting { position: relative; }
+.dp-emote-mark { position: absolute; top: -4%; right: 2%; font: 900 7cqw/1 'Nunito', system-ui, sans-serif; color: #8a63d2; -webkit-text-stroke: 0.4cqw #fff; paint-order: stroke fill; animation: dpMark 1.2s ease-in-out infinite; pointer-events: none; }
+.dp-emote-mark.m-love { color: #ef4444; } .dp-emote-mark.m-sleepy { font-size: 5cqw; color: #3b82f6; } .dp-emote-mark.m-dance { color: #22c55e; }
+@keyframes dpMark { 50% { transform: translateY(-25%) scale(1.15); } }
+.dpe-dance { animation: dpWiggle 0.6s ease-in-out infinite; }
+.dpe-jump, .dpe-flip { animation: dpBounce 0.9s ease-in-out infinite; }
+.dpe-spin { animation: dpSpin 1.6s linear infinite; }
+.dpe-love, .dpe-highfive { animation: dpPulse 1s ease-in-out infinite; }
+.dpe-talk { animation: dpWiggle 0.3s ease-in-out infinite; }
+.dpe-sleepy { animation: dpFloat 3s ease-in-out infinite; opacity: 0.85; }
+.dpe-think { animation: dpWiggle 2s ease-in-out infinite; }
+.dp-avatar { width: 100%; aspect-ratio: 1; display: grid; place-items: center; }
+.dp-avatar img, .dp-avatar span { width: 100% !important; height: 100% !important; }
+.dp-voicewrap { display: grid; gap: 0.8cqw; }
+.dp-transcript { margin: 0; background: #ffffffdd; border-radius: 1cqw; padding: 1cqw 1.4cqw; font: italic 600 2.2cqw/1.35 'Nunito', system-ui, sans-serif; color: #2b2540; max-height: 14cqw; overflow: auto; }
+.dpf-bw { filter: grayscale(1); }
+.dpf-sunny { filter: sepia(0.45) saturate(1.5) brightness(1.08); }
+.dpf-pop { filter: saturate(2.2) contrast(1.15); }
+.dpf-outline { filter: drop-shadow(0.5cqw 0 0 #fff) drop-shadow(-0.5cqw 0 0 #fff) drop-shadow(0 0.5cqw 0 #fff) drop-shadow(0 -0.5cqw 0 #fff) drop-shadow(0 0.6cqw 0.8cqw #0004); }
+.dpf-pixel { image-rendering: pixelated; }
+.dpf-comicwrap { position: relative; } .dpf-comicwrap img { filter: contrast(1.5) saturate(1.7); }
+.dpf-comicwrap::after { content: ''; position: absolute; inset: 0; background: radial-gradient(#0003 30%, transparent 32%) 0 0 / 1.4cqw 1.4cqw; mix-blend-mode: multiply; pointer-events: none; }
+.diary-newcol { grid-row: span 2; display: grid; gap: 10px; }
+.diary-newcol .diary-new { grid-row: auto; }
+.diary-top3 { min-height: 54px; border: 3px solid #2b2540; border-radius: 16px; background: #fde047; color: #2b2540; font-weight: 800; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 0 #2b2540; }
+.diary-top3:active { transform: translateY(3px); box-shadow: 0 1px 0 #2b2540; }
+.diary-buddy[data-hop] img { animation: diaryHop 0.6s ease-out 3, diaryBob 2.4s ease-in-out 1.8s infinite; }
+@keyframes diaryHop { 40% { transform: translateY(-22px) rotate(-6deg); } }
+.dm-trackrow { display: flex; gap: 6px; }
+.dm-track { flex: 1; min-height: 44px; border-radius: 12px; border: 2px solid #bae6fd; background: #f0f9ff; font-weight: 700; text-align: left; padding: 0 10px; color: #0f2b45; }
+.dm-track.on { background: #0ea5e9; border-color: #0ea5e9; color: #fff; }
+.dm-trackplay { width: 44px; min-height: 44px; border-radius: 12px; border: 2px solid #0f2b45; background: #fff; font-weight: 900; }
+@media (prefers-reduced-motion: reduce) { .dp-emoting, .dp-emote-mark { animation: none !important; } }

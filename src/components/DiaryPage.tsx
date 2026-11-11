@@ -1,5 +1,6 @@
-import { Suspense, lazy, useEffect, useRef } from 'react';
-import { ENERGY_LEVELS, TAPES, cleanHtml, pageClass, pageH, type DiaryItem, type DiaryPageData } from '../lib/diaryBook';
+import { Suspense, lazy, useEffect, useRef, useState } from 'react';
+import { ENERGY_LEVELS, PET_EMOTES, TAPES, cleanHtml, pageClass, pageH, type DiaryItem, type DiaryPageData } from '../lib/diaryBook';
+import { StylePortrait } from '../style/StylePortrait';
 import { ENERGY_FACE } from '../lib/supernature';
 import { SEL_ZONE_COLORS } from '../lib/selZones';
 import { feelingImg, splitSelEmotion } from '../lib/feelingsWheel';
@@ -105,32 +106,59 @@ function Face({ it, live, lite, studentId, day, onChange }: { it: DiaryItem; liv
     </div>
   );
   if (it.kind === 'voice') return (
-    <div className="dp-voice">
-      <span aria-hidden>🎤</span><b>{it.text || 'My voice'}</b>
-      {live && it.src && <button type="button" className="dp-say" onClick={() => { void new Audio(it.src).play().catch(() => {}); }} aria-label="Play my voice">▶</button>}
+    <div className="dp-voicewrap">
+      <div className="dp-voice">
+        <span aria-hidden>🎤</span><b>{it.text || 'My voice'}</b>
+        {live && it.src && <button type="button" className="dp-say" onClick={() => { void new Audio(it.src).play().catch(() => {}); }} aria-label="Play my voice">▶</button>}
+      </div>
+      {it.transcript && <p className="dp-transcript">"{it.transcript}"</p>}
     </div>
   );
+  if (it.kind === 'avatar') return <Emoting emote={it.emote}><div className="dp-avatar"><StylePortrait studentId={studentId ?? ''} size={260} /></div></Emoting>;
   if (it.kind === 'feeling') return (
     <figure className="dp-feel"><img src={it.src} alt="" draggable={false} /><figcaption>{it.text}</figcaption></figure>
   );
-  if (it.kind === 'pet') return <LivePet petId={it.petId} lite={lite} />;
+  if (it.kind === 'pet') return <LivePet petId={it.petId} lite={lite} emote={it.emote} />;
   if (it.kind === 'stat') return <StatWidget it={it} studentId={studentId} day={day} />;
-  return <img src={it.src} alt={it.text ?? ''} draggable={false} className={it.kind === 'photo' || it.kind === 'meme' ? 'dp-framed' : ''} />;
+  const filt = it.filter ? ` dpf-${it.filter}` : '';
+  const img = <img src={it.filter === 'pixel' && it.pix ? it.pix : it.src} alt={it.text ?? ''} draggable={false} className={`${it.kind === 'photo' || it.kind === 'meme' ? 'dp-framed' : ''}${filt}`} />;
+  return it.filter === 'comic' ? <div className="dpf-comicwrap">{img}</div> : img;
 }
 
 // The student's own pet, live: the 3D pet doing its idle moves, gently swaying (a picture in small previews).
-function LivePet({ petId, lite }: { petId?: string; lite: boolean }) {
+function LivePet({ petId, lite, emote }: { petId?: string; lite: boolean; emote?: string }) {
   const pet = useStore((s) => s.pets.find((p) => p.id === petId));
+  const em = PET_EMOTES.find((e) => e.id === emote);
+  // Build Queue 584, pet emotes: the 3D pet repeats its emote trick every few seconds.
+  const [cue, setCue] = useState<{ name: string; at: number } | null>(null);
+  useEffect(() => {
+    if (!em || lite) { setCue(null); return; }
+    const go = () => setCue({ name: em.trick, at: performance.now() / 1000 });
+    go(); const t = window.setInterval(go, 3600); return () => window.clearInterval(t);
+  }, [em, lite]);
   if (!pet) return <div className="dp-pet gone">My pet</div>;
   const def = petDefById(pet.petDefId);
   return (
-    <div className="dp-pet">
-      {lite || !def ? <div className="dp-pet-pic"><PetPortrait defId={pet.petDefId} size={200} /></div> : (
-        <Suspense fallback={<div className="dp-pet-pic"><PetPortrait defId={pet.petDefId} size={200} /></div>}>
-          <div className="dp-pet-3d"><PetStage3D modelPath={def.modelPath} ageScale={AGE_SCALE[ageForTraining(pet.trainingProgress)]} platform={false} yaw={-0.35} /></div>
-        </Suspense>
-      )}
-      <span className="dp-pet-name">{pet.customName}</span>
+    <Emoting emote={emote} css={lite || !def}>
+      <div className="dp-pet">
+        {lite || !def ? <div className="dp-pet-pic"><PetPortrait defId={pet.petDefId} size={200} /></div> : (
+          <Suspense fallback={<div className="dp-pet-pic"><PetPortrait defId={pet.petDefId} size={200} /></div>}>
+            <div className="dp-pet-3d"><PetStage3D modelPath={def.modelPath} ageScale={AGE_SCALE[ageForTraining(pet.trainingProgress)]} platform={false} yaw={-0.35} trick={cue} /></div>
+          </Suspense>
+        )}
+        <span className="dp-pet-name">{pet.customName}</span>
+      </div>
+    </Emoting>
+  );
+}
+
+// An emote: the symbol pops over the pet or avatar; `css` also moves the picture itself (pictures and the avatar).
+function Emoting({ emote, css = true, children }: { emote?: string; css?: boolean; children: React.ReactNode }) {
+  const em = PET_EMOTES.find((e) => e.id === emote);
+  return (
+    <div className={`dp-emoting${em && css ? ` dpe-${em.id}` : ''}`}>
+      {children}
+      {em && <span className={`dp-emote-mark m-${em.id}`} aria-hidden>{em.mark}</span>}
     </div>
   );
 }
