@@ -1,5 +1,6 @@
 import { useStore } from '../store/store';
 import { setQuestionWeight } from './questionPick';
+import { todayISO } from './dates';
 
 // Build Queue 505 (her words: "students are presented questions that they frequently or have previously gotten incorrect
 // more often than questions that they continuously answer correctly. Weight the questions they've gotten wrong more
@@ -36,7 +37,14 @@ export function recordAnswer(key: string, correct: boolean) {
   const keys = Object.keys(all);
   if (keys.length > MAX_KEYS) keys.slice(0, keys.length - MAX_KEYS).forEach((k) => delete all[k]);
   st.mergeStyleRow(owner(id), { s: all });
+  // Build Queue 578: a per day tally (right, wrong) for the Diary's live game stats (questions today, accuracy ring).
+  const day = todayISO(), drow = (st.styleLooks.find((x) => x.ownerId === dayOwner(id))?.look ?? {}) as Record<string, [number, number] | null>;
+  const [dr, dw] = drow[day] ?? [0, 0];
+  const keep = Object.keys(drow).filter((k) => drow[k]).sort().slice(-60);
+  const next: Record<string, [number, number] | null> = {}; Object.keys(drow).forEach((k) => { if (drow[k] && !keep.includes(k)) next[k] = null; });
+  st.mergeStyleRow(dayOwner(id), { ...next, [day]: correct ? [dr + 1, dw] : [dr, dw + 1] });
 }
+export const dayOwner = (id: string) => `qday:${id}`;
 
 export function weightOf(key: string, stats: Record<string, Stat> = myStats()): number {
   const s = stats[key];

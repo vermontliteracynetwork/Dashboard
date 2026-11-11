@@ -11,7 +11,10 @@ import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import { ENERGY_FACE, ENERGY_STEPS, type Energy } from '../../lib/supernature';
 import { petDefById, thumbnailFor } from '../../lib/petCatalog';
 import { todayISO } from '../../lib/dates';
-import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, diaryOwner, type DiaryEntry, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
+import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
+import { PET_REPLY } from '../../lib/petsV2';
+import { sayInPetVoice } from '../../lib/petSpeak';
+import { PetPortrait } from './PetFinder';
 import type { SelZone } from '../../types';
 
 export { diaryOwner };
@@ -61,10 +64,11 @@ export default function Diary() {
     const old = view.id ? entries.find(([id]) => id === view.id)?.[1] : undefined;
     const today = mine.filter((c) => c.timestamp.slice(0, 10) === todayISO()).at(-1);
     return <PageMaker initial={old ? asPage(old) : null} todayFeeling={today ? splitSelEmotion(today.emotion).emotion : null} lib={(libRow?.look ?? {}) as DiaryLibrary} tts={student.ttsSettings}
+      studentId={student.id} day={(old?.at ? new Date(old.at) : new Date()).toLocaleDateString('en-CA')} pets={pets.filter((p) => p.studentId === student.id)}
       onCancel={() => setView(view.id ? { k: 'view', id: view.id } : { k: 'home' })}
       onSave={(page) => {
         const id = view.id ?? makeId(), at = old?.at ?? new Date().toISOString();
-        const note = page.items.find((i) => i.kind === 'note' && i.text)?.text, photo = page.items.find((i) => i.kind === 'photo')?.src;
+        const note = textOfHtml(page.html) || page.items.find((i) => (i.kind === 'note' || i.kind === 'bubble') && i.text)?.text, photo = page.items.find((i) => i.kind === 'photo')?.src;
         const feel = page.items.find((i) => i.kind === 'feeling')?.text;
         useStore.getState().mergeStyleRow(diaryOwner(student.id), { [id]: { at, page, caption: note ?? '', ...(photo ? { photo } : {}), ...(feel ? { feeling: feel, zone: zoneOf(feel) } : {}) } satisfies DiaryEntry });
         const name = pet?.customName;
@@ -88,7 +92,7 @@ export default function Diary() {
         </header>
         <div className="dp-viewer">
           <button type="button" className="dp-turn" disabled={i >= entries.length - 1} onClick={() => setView({ k: 'view', id: entries[i + 1][0] })} aria-label="Older page">‹</button>
-          <DiaryPage page={asPage(e)} className="dp-big" />
+          <DiaryPage page={asPage(e)} className="dp-big" studentId={student.id} day={new Date(e.at).toLocaleDateString('en-CA')} />
           <button type="button" className="dp-turn" disabled={i <= 0} onClick={() => setView({ k: 'view', id: entries[i - 1][0] })} aria-label="Newer page">›</button>
         </div>
       </div>
@@ -121,7 +125,7 @@ export default function Diary() {
         <div className="diary-shelf">
           {entries.map(([id, e]) => (
             <button key={id} type="button" className="diary-thumb" onClick={() => setView({ k: 'view', id })}>
-              <DiaryPage page={asPage(e)} className="dp-mini" />
+              <DiaryPage page={asPage(e)} className="dp-mini" lite studentId={student.id} day={new Date(e.at).toLocaleDateString('en-CA')} />
               <span>{new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{e.feeling ? ` · ${e.feeling}` : ''}</span>
             </button>
           ))}
@@ -131,60 +135,86 @@ export default function Diary() {
   );
 }
 
-// ---------- the page maker: drag things from the tray onto the page ----------
-type Tab = 'feelings' | 'stickers' | 'memes' | 'photo' | 'draw' | 'voice' | 'note' | 'paper';
-const TABS: { k: Tab; label: string }[] = [
-  { k: 'feelings', label: 'Feelings' }, { k: 'stickers', label: 'Stickers' }, { k: 'memes', label: 'Memes' }, { k: 'photo', label: 'Photo' },
-  { k: 'draw', label: 'Draw' }, { k: 'voice', label: 'Voice' }, { k: 'note', label: 'Note' }, { k: 'paper', label: 'Paper' },
-];
-type Drop = { kind: DiaryItemKind; src?: string; text?: string; w: number; color?: string };
+// ---------- the page maker (Build Queue 578: Canva style) ----------
+// Left: a sidebar of drop-down menus like the Literacy Manipulatives board. Middle: the page, with a word processor
+// right on it (type, colors, highlight, sizes) and everything dragged on top. The picked item gets its own bar:
+// size, turn, caption, float over the text or wrap the text around it, animations (or draw a path), talk to your pet.
+type Drop = Partial<DiaryItem> & { kind: DiaryItemKind; w: number };
+const BUBBLE_COLORS = ['#ffffff', '#fff59d', '#c8f1ff', '#ffd1dc', '#d4f8c4', '#2b2540'];
+const SWATCHES = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
+const HIGHLIGHTS = ['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#fed7aa'];
+const ANIMS: [DiaryAnim | null, string][] = [[null, 'Still'], ['bounce', 'Bounce'], ['wiggle', 'Wiggle'], ['spin', 'Spin'], ['float', 'Float'], ['pulse', 'Pulse'], ['path', 'Draw a path']];
+const PET_LINES = ['That sounds awesome! Tell me more!', 'Woof! That made my tail wag!', 'You are the best. I love hearing about your day!', 'Cool! What was the best part?', 'High five! Or high paw!', 'Wow! I wish I was there with you!'];
+const HARD_WORDS = /\b(sad|mad|angry|bad|tired|hate|upset|worried|scared|lonely|bored|cry|hurt)\b/i;
+const petAnswer = (said: string) => (HARD_WORDS.test(said) ? PET_REPLY[/\b(mad|angry|hate|upset)\b/i.test(said) ? 'yellow' : 'blue'][Math.floor(Math.random() * 2)] : PET_LINES[Math.floor(Math.random() * PET_LINES.length)]);
+const loadAr = (src: string) => new Promise<number>((res) => { const im = new Image(); im.onload = () => res(im.naturalWidth ? im.naturalHeight / im.naturalWidth : 1); im.onerror = () => res(1); im.src = src; });
 
-function PageMaker({ initial, todayFeeling, lib, tts, onSave, onCancel }: {
-  initial: DiaryPageData | null; todayFeeling: string | null; lib: DiaryLibrary; tts?: Parameters<typeof speak>[1];
+function Category({ label, color, open, onToggle, children }: { label: string; color: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <div className="dm-cat">
+      <button type="button" className="dm-cat-head" style={{ background: color }} onClick={onToggle} aria-expanded={open}><span>{label}</span><span aria-hidden>{open ? '▾' : '▸'}</span></button>
+      {open && <div className="dm-cat-body">{children}</div>}
+    </div>
+  );
+}
+
+function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSave, onCancel }: {
+  initial: DiaryPageData | null; todayFeeling: string | null; lib: DiaryLibrary; tts?: Parameters<typeof speak>[1]; studentId: string; day: string;
+  pets: { id: string; petDefId: string; customName: string }[];
   onSave: (p: DiaryPageData) => void; onCancel: () => void;
 }) {
-  const [page, setPage] = useState<DiaryPageData>(initial ?? { bg: PAPERS[0], items: [] });
+  const [page, setPage] = useState<DiaryPageData>(() => initial ? { ...initial, v: initial.v ?? (initial.items.length ? undefined : 2) } : { bg: PAPERS[0], items: [], html: '', v: 2 });
   const [sel, setSel] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>('feelings');
-  const [core, setCore] = useState<string | null>(null);
+  const [open, setOpen] = useState<Record<string, boolean>>({ feelings: true });
+  const [sub, setSub] = useState<string | null>(null);
   const [busy, setBusy] = useState('');
   const [drawing, setDrawing] = useState(false);
   const [rec, setRec] = useState<{ r: MediaRecorder; stream: MediaStream; t0: number } | null>(null);
   const [ghost, setGhost] = useState<{ x: number; y: number; d: Drop } | null>(null);
+  const [pathing, setPathing] = useState<{ id: string; pts: [number, number][] } | null>(null);
+  const [talk, setTalk] = useState('');
+  const [textColor, setTextColor] = useState('#1f2937');
   const pageEl = useRef<HTMLDivElement | null>(null);
+  const textEl = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const trayDrag = useRef<{ d: Drop; x0: number; y0: number; moved: boolean } | null>(null);
   const fileIn = useRef<HTMLInputElement | null>(null);
+  const savedRange = useRef<Range | null>(null);
 
   const stickers = useMemo(() => [...STARTER_STICKERS, ...Object.values(lib.stickers ?? {}).filter((x): x is LibraryPic => !!x)], [lib]);
   const memes = useMemo(() => Object.values(lib.memes ?? {}).filter((x): x is LibraryPic => !!x), [lib]);
   const topZ = () => page.items.reduce((m, i) => Math.max(m, i.z), 0) + 1;
-  const add = (d: Drop, x = 22 + Math.random() * 56, y = 22 + Math.random() * 56) => {
-    const it: DiaryItem = { id: makeId(), kind: d.kind, x, y, w: d.w, rot: Math.round((Math.random() - 0.5) * 10), z: topZ(), src: d.src, text: d.text, color: d.color };
+  const add = (d: Drop, x = 25 + Math.random() * 50, y = 25 + Math.random() * 50) => {
+    const it: DiaryItem = { id: makeId(), x, y, rot: d.kind === 'tape' ? Math.round((Math.random() - 0.5) * 30) : d.kind === 'stat' || d.kind === 'pet' ? 0 : Math.round((Math.random() - 0.5) * 8), z: topZ(), ...d };
     setPage((p) => ({ ...p, items: [...p.items, it] })); setSel(it.id);
+    if (it.src && (it.kind === 'photo' || it.kind === 'meme' || it.kind === 'sticker' || it.kind === 'drawing')) void loadAr(it.src).then((ar) => upd(it.id, () => ({ ar })));
+    return it;
   };
   const upd = (id: string, f: (i: DiaryItem) => Partial<DiaryItem>) => setPage((p) => ({ ...p, items: p.items.map((i) => (i.id === id ? { ...i, ...f(i) } : i)) }));
   const selected = page.items.find((i) => i.id === sel) ?? null;
   const pct = (cx: number, cy: number) => { const r = pageEl.current!.getBoundingClientRect(); return { x: ((cx - r.left) / r.width) * 100, y: ((cy - r.top) / r.height) * 100, inside: cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom }; };
 
-  // Move things on the page with a finger.
+  // Move things on the page with a finger (or draw a path for the picked item).
   const itemDown = (e: React.PointerEvent<HTMLDivElement>, it: DiaryItem) => {
-    if ((e.target as HTMLElement).closest('button')) return;
+    if (pathing || (e.target as HTMLElement).closest('button')) return;
     e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId);
     const p = pct(e.clientX, e.clientY); drag.current = { id: it.id, dx: p.x - it.x, dy: p.y - it.y }; setSel(it.id);
     upd(it.id, () => ({ z: topZ() }));
   };
-  const pageMove = (e: React.PointerEvent) => { const d = drag.current; if (!d) return; const p = pct(e.clientX, e.clientY); upd(d.id, () => ({ x: Math.max(0, Math.min(100, p.x - d.dx)), y: Math.max(0, Math.min(100, p.y - d.dy)) })); };
-  const pageUp = () => { drag.current = null; };
+  const stageDown = (e: React.PointerEvent) => { if (!pathing) return; e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); const p = pct(e.clientX, e.clientY); setPathing({ ...pathing, pts: [[p.x, p.y]] }); };
+  const stageMove = (e: React.PointerEvent) => {
+    if (pathing && pathing.pts.length) { const p = pct(e.clientX, e.clientY), last = pathing.pts[pathing.pts.length - 1]; if (Math.hypot(p.x - last[0], p.y - last[1]) > 1.2) setPathing({ ...pathing, pts: [...pathing.pts, [p.x, p.y]] }); return; }
+    const d = drag.current; if (!d) return; const p = pct(e.clientX, e.clientY); upd(d.id, () => ({ x: Math.max(0, Math.min(100, p.x - d.dx)), y: Math.max(0, Math.min(100, p.y - d.dy)) }));
+  };
+  const stageUp = () => {
+    drag.current = null;
+    if (pathing && pathing.pts.length > 2) { const [x0, y0] = pathing.pts[0]; const step = Math.max(1, Math.floor(pathing.pts.length / 80)); upd(pathing.id, () => ({ anim: 'path', path: pathing.pts.filter((_, k) => k % step === 0).map(([x, y]) => [x - x0, y - y0] as [number, number]) })); setPathing(null); }
+  };
 
-  // Drag from the tray onto the page, or tap a tray item to drop it in the middle.
+  // Drag from the sidebar onto the page, or tap a tile to drop it on the page.
   const trayDown = (e: React.PointerEvent<HTMLButtonElement>, d: Drop) => { e.currentTarget.setPointerCapture(e.pointerId); trayDrag.current = { d, x0: e.clientX, y0: e.clientY, moved: false }; };
   const trayMove = (e: React.PointerEvent<HTMLButtonElement>) => { const t = trayDrag.current; if (!t) return; if (!t.moved && Math.hypot(e.clientX - t.x0, e.clientY - t.y0) > 10) t.moved = true; if (t.moved) setGhost({ x: e.clientX, y: e.clientY, d: t.d }); };
-  const trayUp = (e: React.PointerEvent<HTMLButtonElement>) => {
-    const t = trayDrag.current; trayDrag.current = null; setGhost(null); if (!t) return;
-    if (!t.moved) { add(t.d); return; }
-    const p = pct(e.clientX, e.clientY); if (p.inside) add(t.d, p.x, p.y);
-  };
+  const trayUp = (e: React.PointerEvent<HTMLButtonElement>) => { const t = trayDrag.current; trayDrag.current = null; setGhost(null); if (!t) return; if (!t.moved) { add(t.d); return; } const p = pct(e.clientX, e.clientY); if (p.inside) add(t.d, p.x, p.y); };
   const tile = (d: Drop, label: string, face: React.ReactNode, key: string, say?: string) => (
     <button key={key} type="button" className="dm-tile" aria-label={`Add ${label}`} onPointerDown={(e) => trayDown(e, d)} onPointerMove={trayMove} onPointerUp={trayUp} onPointerCancel={() => { trayDrag.current = null; setGhost(null); }}>
       {face}<small>{label}</small>
@@ -192,82 +222,163 @@ function PageMaker({ initial, todayFeeling, lib, tts, onSave, onCancel }: {
     </button>
   );
 
-  const addPhoto = async (f: File) => { setBusy('Adding your picture...'); try { add({ kind: 'photo', src: await uploadImage(f), w: 42 }); } catch { setBusy('That picture did not upload. Try again.'); window.setTimeout(() => setBusy(''), 2500); return; } setBusy(''); };
-  const addDrawing = async (dataUrl: string) => {
-    setDrawing(false); setBusy('Adding your drawing...');
-    let src = dataUrl; try { src = await uploadImage(await (await fetch(dataUrl)).blob()); } catch { /* keep the small picture itself */ }
-    add({ kind: 'drawing', src, w: 34 }); setBusy('');
+  // The word processor on the page.
+  const keepSel = () => { const s = window.getSelection(); if (s && s.rangeCount && textEl.current?.contains(s.anchorNode)) savedRange.current = s.getRangeAt(0); };
+  const fmt = (cmd: string, val?: string) => {
+    const box = textEl.current; if (!box) return;
+    box.focus(); const s = window.getSelection(); if (savedRange.current && s) { s.removeAllRanges(); s.addRange(savedRange.current); }
+    document.execCommand('styleWithCSS', false, 'true'); document.execCommand(cmd, false, val);
+    setPage((p) => ({ ...p, html: box.innerHTML })); keepSel();
   };
+  const addPhoto = async (f: File) => { setBusy('Adding your picture...'); try { add({ kind: 'photo', src: await uploadImage(f), w: 44 }); setBusy(''); } catch { setBusy('That picture did not upload. Try again.'); window.setTimeout(() => setBusy(''), 2500); } };
+  const addDrawing = async (dataUrl: string) => { setDrawing(false); setBusy('Adding your drawing...'); let src = dataUrl; try { src = await uploadImage(await (await fetch(dataUrl)).blob()); } catch { /* keep the small picture */ } add({ kind: 'drawing', src, w: 36, ar: 1 }); setBusy(''); };
   const startRec = async () => {
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === 'undefined') { setBusy('This device cannot record here.'); window.setTimeout(() => setBusy(''), 2500); return; }
     try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); const r = new MediaRecorder(stream); const chunks: Blob[] = []; r.ondataavailable = (ev) => chunks.push(ev.data);
+      const t0 = Date.now();
       r.onstop = async () => { stream.getTracks().forEach((t) => t.stop()); const secs = Math.max(1, Math.round((Date.now() - t0) / 1000)); setBusy('Saving your voice...');
-        try { const src = await uploadVoiceMemo(new Blob(chunks, { type: r.mimeType || 'audio/webm' })); add({ kind: 'voice', src, text: `My voice (${secs}s)`, w: 30 }); setBusy(''); } catch { setBusy('Your voice did not save. Try again.'); window.setTimeout(() => setBusy(''), 2500); } };
-      const t0 = Date.now(); r.start(); setRec({ r, stream, t0 });
+        try { const src = await uploadVoiceMemo(new Blob(chunks, { type: r.mimeType || 'audio/webm' })); add({ kind: 'voice', src, text: `My voice (${secs}s)`, w: 32 }); setBusy(''); } catch { setBusy('Your voice did not save. Try again.'); window.setTimeout(() => setBusy(''), 2500); } };
+      r.start(); setRec({ r, stream, t0 });
     } catch { setBusy('Allow the microphone to record.'); window.setTimeout(() => setBusy(''), 2500); }
   };
-  const stopRec = () => { rec?.r.stop(); setRec(null); };
+  // Talk to your pet: your words and its answer appear as talk bubbles beside it.
+  const sayToPet = () => {
+    const p = selected; if (!p || p.kind !== 'pet' || !talk.trim()) return;
+    const said = talk.trim().slice(0, 160), reply = petAnswer(said), up = Math.max(8, p.y - 22);
+    const me = add({ kind: 'bubble', from: 'me', text: said, w: 34, color: '#ffffff' }, Math.max(18, p.x - 22), up);
+    add({ kind: 'bubble', from: 'pet', text: reply, w: 34, color: '#fff59d' }, Math.min(82, p.x + 22), Math.max(8, up - 6));
+    setSel(me.id); setTalk(''); setSel(p.id);
+    sayInPetVoice(reply);
+  };
 
-  const coreList = FEELING_ROOTS;
-  const feelList = core ? ALL_FEELINGS.filter((f) => f.core === core) : [];
+  const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
+  const imageLike = selected && !['note', 'bubble', 'tape', 'stat', 'voice'].includes(selected.kind);
   return (
-    <div className="dm">
+    <div className="dm dm2">
       <header className="dm-head">
         <button type="button" className="btn" onClick={onCancel}>Cancel</button>
         <h1>{initial ? 'My page' : 'New page'}</h1>
-        <button type="button" className="btn btn-primary btn-lg" disabled={!page.items.length || !!busy} onClick={() => onSave(page)}>Save page</button>
+        <button type="button" className="btn btn-primary btn-lg" disabled={!!busy} onClick={() => onSave({ ...page, html: cleanHtml(textEl.current?.innerHTML ?? page.html ?? '') })}>Save page</button>
       </header>
-      <div className="dm-main">
-        <div className="dm-stage" onPointerMove={pageMove} onPointerUp={pageUp} onPointerCancel={pageUp}>
-          <DiaryPage page={page} selected={sel} onItemDown={itemDown} onBackDown={() => setSel(null)} pageRef={pageEl} className="dp-edit" />
-          {!page.items.length && <p className="dm-hint">Drag things from below onto your page.</p>}
-          {busy && <p className="dm-busy" role="status">{busy}</p>}
-        </div>
-        {selected && (
-          <div className="dm-tools" role="toolbar" aria-label="Change this">
-            <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.min(95, i.w * 1.2) }))}>Bigger</button>
-            <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.max(8, i.w / 1.2) }))}>Smaller</button>
-            <button type="button" onClick={() => upd(selected.id, (i) => ({ rot: i.rot + 15 }))}>Turn</button>
-            {selected.kind === 'note' && <button type="button" onClick={() => upd(selected.id, (i) => ({ color: NOTE_COLORS[(NOTE_COLORS.indexOf(i.color ?? NOTE_COLORS[0]) + 1) % NOTE_COLORS.length] }))}>Color</button>}
-            {selected.kind === 'voice' && selected.src && <button type="button" onClick={() => { void new Audio(selected.src).play().catch(() => {}); }}>Play</button>}
-            {(selected.kind === 'note' || selected.kind === 'feeling') && selected.text && <button type="button" onClick={() => speak(selected.text!, tts)}>🔊</button>}
-            <button type="button" className="dm-del" onClick={() => { setPage((p) => ({ ...p, items: p.items.filter((i) => i.id !== selected.id) })); setSel(null); }}>Remove</button>
-            {selected.kind === 'note' && <textarea className="dm-notetext" value={selected.text ?? ''} placeholder="Type or talk your note" onChange={(e) => upd(selected.id, () => ({ text: e.target.value.slice(0, 280) }))} aria-label="My note" />}
-          </div>
-        )}
-        <div className="dm-tray">
-          <div className="dm-tabs" role="tablist">
-            {TABS.map((t) => <button key={t.k} type="button" role="tab" aria-selected={tab === t.k} className={tab === t.k ? 'on' : ''} onClick={() => setTab(t.k)}>{t.label}</button>)}
-          </div>
-          <div className="dm-strip">
-            {tab === 'feelings' && !core && (<>
-              {todayFeeling && tile({ kind: 'feeling', src: feelingImg(todayFeeling), text: todayFeeling, w: 26 }, `Today: ${todayFeeling}`, <img src={feelingImg(todayFeeling)} alt="" />, 'today', todayFeeling)}
-              {coreList.map((r) => (
-                <button key={r.w} type="button" className="dm-tile dm-core" onClick={() => setCore(r.w)} aria-label={`${r.w} feelings`}><img src={feelingImg(r.w)} alt="" /><small>{r.w}</small></button>
-              ))}
-            </>)}
-            {tab === 'feelings' && core && (<>
-              <button type="button" className="dm-tile dm-backtile" onClick={() => setCore(null)}>‹<small>All feelings</small></button>
-              {feelList.map((f) => tile({ kind: 'feeling', src: feelingImg(f.w), text: f.w, w: 26 }, f.w, <img src={feelingImg(f.w)} alt="" style={{ outlineColor: SEL_ZONE_COLORS[f.zone] }} />, f.w, f.w))}
-            </>)}
-            {tab === 'stickers' && stickers.map((s, k) => tile({ kind: 'sticker', src: s.src, text: s.name, w: 18 }, s.name, <img src={s.src} alt="" />, `${s.src}${k}`))}
-            {tab === 'memes' && (memes.length ? memes.map((s, k) => tile({ kind: 'meme', src: s.src, text: s.name, w: 38 }, s.name, <img src={s.src} alt="" />, `${s.src}${k}`)) : <p className="dm-empty">Your teacher will add memes here soon.</p>)}
-            {tab === 'photo' && (<>
+      <div className="dm2-body">
+        <aside className="dm-side" aria-label="Things to add">
+          <Category label="Feelings" color="#E5B9E0" open={!!open.feelings} onToggle={() => tog('feelings')}>
+            <div className="dm-grid">{todayFeeling && tile({ kind: 'feeling', src: feelingImg(todayFeeling), text: todayFeeling, w: 26 }, `Today: ${todayFeeling}`, <img src={feelingImg(todayFeeling)} alt="" />, 'today', todayFeeling)}</div>
+            {FEELING_ROOTS.map((r) => (
+              <div key={r.w} className="dm-subcat">
+                <button type="button" className="dm-subhead" onClick={() => setSub(sub === r.w ? null : r.w)} aria-expanded={sub === r.w}><img src={feelingImg(r.w)} alt="" /><span>{r.w}</span><span aria-hidden>{sub === r.w ? '▾' : '▸'}</span></button>
+                {sub === r.w && <div className="dm-grid">{ALL_FEELINGS.filter((f) => f.core === r.w).map((f) => tile({ kind: 'feeling', src: feelingImg(f.w), text: f.w, w: 26 }, f.w, <img src={feelingImg(f.w)} alt="" />, f.w, f.w))}</div>}
+              </div>
+            ))}
+          </Category>
+          <Category label="My pet" color="#FEDBC1" open={!!open.pet} onToggle={() => tog('pet')}>
+            {pets.length ? <div className="dm-grid">{pets.map((p) => tile({ kind: 'pet', petId: p.id, w: 36, ar: 1 }, p.customName, <PetPortrait defId={p.petDefId} size={60} />, p.id))}</div> : <p className="dm-empty">Adopt a pet to bring it onto your pages.</p>}
+          </Category>
+          <Category label="Game stats" color="#C0D6F5" open={!!open.stats} onToggle={() => tog('stats')}>
+            <div className="dm-grid">
+              {tile({ kind: 'stat', stat: 'questions', w: 30, ar: 0.7 }, 'Questions today', <b className="dm-statchip">123</b>, 'sq')}
+              {tile({ kind: 'stat', stat: 'accuracy', w: 30, ar: 1.1 }, 'Accuracy ring', <span className="dm-ringchip" />, 'sa')}
+              {tile({ kind: 'stat', stat: 'correct', w: 30, ar: 0.7 }, 'Right answers', <b className="dm-statchip ok">✓</b>, 'sc')}
+              {tile({ kind: 'stat', stat: 'streak', w: 30, ar: 0.7 }, 'My streak', <img src="/games/yoga/pu/star_power.png" alt="" />, 'ss')}
+            </div>
+          </Category>
+          <Category label="Notes and bubbles" color="#FBF2BB" open={!!open.notes} onToggle={() => tog('notes')}>
+            <div className="dm-grid">
+              {NOTE_COLORS.map((c) => tile({ kind: 'note', text: '', color: c, w: 36 }, 'Sticky note', <span className="dm-notechip" style={{ background: c }} />, `n${c}`))}
+              {tile({ kind: 'bubble', from: 'me', text: '', color: '#ffffff', w: 34 }, 'Talk bubble', <span className="dm-bubblechip" />, 'b1')}
+              {tile({ kind: 'bubble', from: 'think', text: '', color: '#ffffff', w: 34 }, 'Think bubble', <span className="dm-bubblechip think" />, 'b2')}
+            </div>
+          </Category>
+          <Category label="Washi tape" color="#F9D5E5" open={!!open.tape} onToggle={() => tog('tape')}>
+            <div className="dm-grid">{TAPES.map((t) => tile({ kind: 'tape', pattern: t.id, w: 34 }, t.name, <span className="dm-tapechip" style={{ background: t.css }} />, t.id))}</div>
+          </Category>
+          <Category label="Stickers" color="#C5E4ED" open={!!open.stickers} onToggle={() => tog('stickers')}>
+            <div className="dm-grid">{stickers.map((s, k) => tile({ kind: 'sticker', src: s.src, text: s.name, w: 18 }, s.name, <img src={s.src} alt="" />, `${s.src}${k}`))}</div>
+          </Category>
+          <Category label="Memes" color="#E2E8F0" open={!!open.memes} onToggle={() => tog('memes')}>
+            {memes.length ? <div className="dm-grid">{memes.map((s, k) => tile({ kind: 'meme', src: s.src, text: s.name, w: 40 }, s.name, <img src={s.src} alt="" />, `${s.src}${k}`))}</div> : <p className="dm-empty">Your teacher will add memes here soon.</p>}
+          </Category>
+          <Category label="Photos, drawing and voice" color="#D9F99D" open={!!open.media} onToggle={() => tog('media')}>
+            <div className="dm-col">
               <button type="button" className="dm-big" onClick={() => fileIn.current?.click()}>Take or pick a photo</button>
               <input ref={fileIn} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void addPhoto(f); }} />
-            </>)}
-            {tab === 'draw' && <button type="button" className="dm-big" onClick={() => setDrawing(true)}>Open the drawing pad</button>}
-            {tab === 'voice' && (rec
-              ? <button type="button" className="dm-big dm-rec" onClick={stopRec}>Stop and add</button>
-              : <button type="button" className="dm-big" onClick={() => void startRec()}>Record my voice</button>)}
-            {tab === 'note' && NOTE_COLORS.map((c) => tile({ kind: 'note', text: '', color: c, w: 40 }, 'Note', <span className="dm-notechip" style={{ background: c }} />, c))}
-            {tab === 'paper' && PAPERS.map((c) => (
-              <button key={c} type="button" className={`dm-tile dm-paper${page.bg === c ? ' on' : ''}`} onClick={() => setPage((p) => ({ ...p, bg: c }))} aria-label="Paper color"><span style={{ background: c }} /></button>
-            ))}
+              <button type="button" className="dm-big" onClick={() => setDrawing(true)}>Draw a picture</button>
+              {rec ? <button type="button" className="dm-big dm-rec" onClick={() => { rec.r.stop(); setRec(null); }}>Stop and add my voice</button> : <button type="button" className="dm-big" onClick={() => void startRec()}>Record my voice</button>}
+            </div>
+          </Category>
+          <Category label="Paper" color="#EDE9FE" open={!!open.paper} onToggle={() => tog('paper')}>
+            <div className="dm-grid">{PAPERS.map((c) => <button key={c} type="button" className={`dm-tile dm-paper${page.bg === c ? ' on' : ''}`} onClick={() => setPage((p) => ({ ...p, bg: c }))} aria-label="Paper color"><span style={{ background: c }} /></button>)}</div>
+          </Category>
+        </aside>
+        <main className="dm-center">
+          <div className="dm-textbar" role="toolbar" aria-label="Text" onPointerDown={(e) => e.preventDefault()}>
+            <button type="button" onClick={() => fmt('bold')} aria-label="Bold"><b>B</b></button>
+            <button type="button" onClick={() => fmt('italic')} aria-label="Italic"><i>I</i></button>
+            <button type="button" onClick={() => fmt('underline')} aria-label="Underline"><u>U</u></button>
+            <button type="button" onClick={() => fmt('fontSize', '5')} aria-label="Bigger words">A+</button>
+            <button type="button" onClick={() => fmt('fontSize', '3')} aria-label="Normal words">A</button>
+            <span className="dm-sep" />
+            {SWATCHES.slice(0, 6).map((c) => <button key={c} type="button" className="dm-sw" style={{ background: c }} onClick={() => { setTextColor(c); fmt('foreColor', c); }} aria-label={`Text color ${c}`} />)}
+            <label className="dm-wheel" aria-label="Pick any text color" style={{ background: `conic-gradient(red, yellow, lime, cyan, blue, magenta, red)` }}><input type="color" value={textColor} onChange={(e) => { setTextColor(e.target.value); fmt('foreColor', e.target.value); }} /></label>
+            <span className="dm-sep" />
+            <span className="dm-hl-label">Highlight</span>
+            {HIGHLIGHTS.map((c) => <button key={c} type="button" className="dm-sw hl" style={{ background: c }} onClick={() => fmt('hiliteColor', c)} aria-label={`Highlight ${c}`} />)}
+            <button type="button" onClick={() => fmt('hiliteColor', 'transparent')} aria-label="No highlight">✕</button>
+            <span className="dm-sep" />
+            <button type="button" onClick={() => speak(textOfHtml(textEl.current?.innerHTML) || 'Type about your day first.', tts)} aria-label="Read my words aloud">🔊</button>
           </div>
-        </div>
+          <div className={`dm-stage${pathing ? ' pathing' : ''}`} onPointerDown={stageDown} onPointerMove={stageMove} onPointerUp={stageUp} onPointerCancel={stageUp} onKeyUp={keepSel} onMouseUp={keepSel} onTouchEnd={keepSel}>
+            <DiaryPage page={page} selected={sel} onItemDown={itemDown} onBackDown={() => setSel(null)} pageRef={pageEl} className="dp-edit" studentId={studentId} day={day} textRef={textEl} onText={(html) => setPage((p) => (p.html === html ? p : { ...p, html }))} />
+            {pathing && (
+              <svg className="dm-pathsvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden><polyline points={pathing.pts.map((p) => p.join(',')).join(' ')} fill="none" stroke="#8a63d2" strokeWidth="0.8" strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke" /></svg>
+            )}
+            {pathing && <p className="dm-busy" role="status">Draw the path with your finger.</p>}
+            {busy && <p className="dm-busy" role="status">{busy}</p>}
+          </div>
+          {selected && !pathing && (
+            <div className="dm-tools" role="toolbar" aria-label="Change this">
+              <div className="dm-row">
+                <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.min(95, i.w * 1.15) }))}>Bigger</button>
+                <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.max(6, i.w / 1.15) }))}>Smaller</button>
+                <button type="button" onClick={() => upd(selected.id, (i) => ({ rot: i.rot + 15 }))}>Turn</button>
+                <button type="button" onClick={() => upd(selected.id, () => ({ z: topZ() }))}>To front</button>
+                {selected.kind !== 'tape' && (
+                  <div className="dm-seg" role="radiogroup" aria-label="Text around it">
+                    <button type="button" role="radio" aria-checked={!selected.wrap} className={!selected.wrap ? 'on' : ''} onClick={() => upd(selected.id, () => ({ wrap: false }))}>Float over words</button>
+                    <button type="button" role="radio" aria-checked={!!selected.wrap} className={selected.wrap ? 'on' : ''} onClick={() => upd(selected.id, () => ({ wrap: true }))}>Wrap words</button>
+                  </div>
+                )}
+                <button type="button" className="dm-del" onClick={() => { setPage((p) => ({ ...p, items: p.items.filter((i) => i.id !== selected.id) })); setSel(null); }}>Remove</button>
+              </div>
+              <div className="dm-row">
+                <span className="dm-lab">Move</span>
+                {ANIMS.map(([a, l]) => <button key={l} type="button" className={(selected.anim ?? null) === a ? 'on' : ''} onClick={() => { if (a === 'path') setPathing({ id: selected.id, pts: [] }); else upd(selected.id, () => ({ anim: a, path: undefined })); }}>{l}</button>)}
+              </div>
+              {(selected.kind === 'note' || selected.kind === 'bubble') && (
+                <div className="dm-row">
+                  <textarea className="dm-notetext" value={selected.text ?? ''} placeholder="Type or talk your words" onChange={(e) => upd(selected.id, () => ({ text: e.target.value.slice(0, 280) }))} aria-label="Words" />
+                  {(selected.kind === 'note' ? NOTE_COLORS : BUBBLE_COLORS).map((c) => <button key={c} type="button" className="dm-sw" style={{ background: c }} onClick={() => upd(selected.id, () => ({ color: c, textColor: c === '#2b2540' ? '#ffffff' : undefined }))} aria-label={`Color ${c}`} />)}
+                  {selected.text && <button type="button" onClick={() => speak(selected.text!, tts)}>🔊</button>}
+                </div>
+              )}
+              {imageLike && (
+                <div className="dm-row">
+                  <input className="dm-cap" value={selected.caption ?? ''} placeholder="Add a caption" onChange={(e) => upd(selected.id, () => ({ caption: e.target.value.slice(0, 120) }))} aria-label="Caption" />
+                  {SWATCHES.slice(0, 5).map((c) => <button key={c} type="button" className="dm-sw" style={{ background: c }} onClick={() => upd(selected.id, () => ({ textColor: c }))} aria-label={`Caption color ${c}`} />)}
+                </div>
+              )}
+              {selected.kind === 'pet' && (
+                <div className="dm-row">
+                  <input className="dm-cap" value={talk} placeholder={`Say something to ${pets.find((p) => p.id === selected.petId)?.customName ?? 'your pet'}`} onChange={(e) => setTalk(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sayToPet(); }} aria-label="Talk to your pet" />
+                  <button type="button" className="on" onClick={sayToPet} disabled={!talk.trim()}>Say it</button>
+                </div>
+              )}
+              {selected.kind === 'voice' && selected.src && <div className="dm-row"><button type="button" onClick={() => { void new Audio(selected.src).play().catch(() => {}); }}>Play</button></div>}
+            </div>
+          )}
+        </main>
       </div>
-      {ghost && <div className="dm-ghost" style={{ left: ghost.x, top: ghost.y }}>{ghost.d.src ? <img src={ghost.d.src} alt="" /> : <span className="dm-notechip" style={{ background: ghost.d.color }} />}</div>}
+      {ghost && <div className="dm-ghost" style={{ left: ghost.x, top: ghost.y }}>{ghost.d.src ? <img src={ghost.d.src} alt="" /> : <span className="dm-notechip" style={{ background: ghost.d.color ?? '#fff' }} />}</div>}
       {drawing && <PaintDesigner title="Draw for my diary" onSave={(u) => void addDrawing(u)} onClose={() => setDrawing(false)} />}
     </div>
   );

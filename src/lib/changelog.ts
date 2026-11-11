@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-diary-canva",
+    date: "2026-11-11",
+    icon: "🎨",
+    title: "Diary: type, decorate and animate",
+    body: "Type right on your diary page and color or highlight your words. Drag on feelings, stickers, washi tape, talk bubbles and your own pet, then talk to your pet! Add live game stats like how many questions you answered today. Make things bounce, spin or follow a path you draw.",
+  },
+  {
     id: "2026-11-10-diary-scrapbook",
     date: "2026-11-10",
     icon: "📒",

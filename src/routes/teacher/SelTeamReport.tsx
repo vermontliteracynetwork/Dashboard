@@ -263,7 +263,7 @@ export default function SelTeamReport({ studentName, rows, from, to, zones, memo
               <p className="selr-small">Scrapbook pages the student made in the Diary app (photos, drawings, feeling pictures, stickers, notes and voice clips), with the note text below.</p>
               <div className="selr-mems">{diary.map((d, i) => (
                 <figure key={i}>
-                  {d.page ? <DiaryPage page={d.page} className="dp-report" /> : d.photo ? <img src={d.photo} alt="" /> : <span className="selr-nopic">No picture</span>}
+                  {d.page ? <DiaryPage page={d.page} className="dp-report" lite day={d.at.slice(0, 10)} /> : d.photo ? <img src={d.photo} alt="" /> : <span className="selr-nopic">No picture</span>}
                   <figcaption><b>{fmtDate(new Date(d.at))} {fmtTime(new Date(d.at))}</b><br />"{d.caption || 'No caption'}"</figcaption>
                 </figure>
               ))}</div>
