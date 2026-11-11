@@ -419,6 +419,8 @@ export interface SymbolQuestion {
   imageUrl?: string;
   imageAlt?: string;
   settings: SymbolSettings;
+  // Symbol Sentence Writer (Build Queue 611, src/lib/sentenceWriter.ts): her card and the help levels the set uses.
+  writer?: { sentenceId: string; levels: (1 | 2 | 3 | 4)[] };
 }
 
 export type QuizQuestion = MCQuestion | MatchingQuestion | FillBlankQuestion | SpeakQuestion | MadLibQuestion | SymbolQuestion;

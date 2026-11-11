@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { studentSettingsFor } from '../lib/questionFocus';
 import type { SymbolPos, SymbolQuestion, TTSSettings } from '../types';
-import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, modeOf, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
+import { DEFAULT_SYMBOL_SETTINGS, SYMBOLS, modeOf, perRow, examplesFor, fullSentence, grammarProblem, inkOn, isKnownWord, posesOf, loadDictionary, randomWord, suggestWords, symbolFits } from '../lib/symbolSentence';
 import { useTypedSupport } from '../lib/typedSupport';
+import { isCloseEnoughAnswer } from '../lib/answerMatch';
+import { WRITER_LEVEL_INFO, bare, helperCards, levelWithin, useWriterLadder, writerBlanks, type WriterLevel } from '../lib/sentenceWriter';
 import { useVoiceToText } from '../lib/useVoiceToText';
 import { speak } from './ReadAloud';
 import SymbolTip from './SymbolTip';
@@ -24,7 +26,11 @@ type AnswerProps = {
   onResult: (correct: boolean, said: string) => void; onSentence?: (text: string) => void;
   // The question text and its 🔊 Listen, shown at the top of the right side.
   head?: React.ReactNode;
+  // Symbol Sentence Writer: the highest help level this place may ask (game pop-ups ask levels 1 to 3 only).
+  maxLevel?: number;
 };
+// Symbol Sentence Writer play details for the inner screen (Build Queue 611).
+type WriterPlay = { level: WriterLevel; helpers: Record<number, string[]>; onFinish: (firstTry: boolean) => void };
 // The picture (a picture response's, or any question's optional one), above the sentence.
 const Picture = ({ q }: { q: SymbolQuestion }) => (q.imageUrl ? <div className="ssq-pic"><ZoomableImage src={q.imageUrl} alt={q.imageAlt} maxHeight={modeOf(q) === 'picture' ? 220 : 140} /></div> : null);
 
@@ -32,6 +38,48 @@ const Picture = ({ q }: { q: SymbolQuestion }) => (q.imageUrl ? <div className="
 // can select from a set of defined formulas (selected by teacher to give options)"), then answers with it. They can go
 // back and pick another until they check.
 export default function SymbolSentenceAnswer(props: AnswerProps) {
+  if (props.q.writer) return <WriterAnswer {...props} />;
+  return <SymbolSentenceChooser {...props} />;
+}
+
+// Symbol Sentence Writer (Build Queue 611, src/lib/sentenceWriter.ts): her card, with the boxes to type picked from the
+// student's place on the help ladder. After 3 misses in a row a step down is offered, never forced.
+function WriterAnswer(props: AnswerProps) {
+  const { q, disabled, tts } = props;
+  const ladder = useWriterLadder();
+  const allowed = (q.writer!.levels.length ? q.writer!.levels : [1]).filter((l) => l <= (props.maxLevel ?? 4)) as WriterLevel[];
+  const levels = allowed.length ? allowed : ([1] as WriterLevel[]);
+  // The level, its boxes and its word cards are set once per question (and again on a step down), so nothing moves while
+  // the student types.
+  const setup = (lv: WriterLevel) => {
+    const blanks = writerBlanks(q.slots, lv);
+    return { level: lv, blanks, helpers: lv === 1 ? Object.fromEntries(blanks.map((i) => [i, helperCards(q.slots[i])])) as Record<number, string[]> : {} };
+  };
+  const [play, setPlay] = useState(() => setup(levelWithin(ladder.level, levels)));
+  const { level, blanks } = play;
+  const [offer, setOffer] = useState(() => ladder.missRun >= 3 && levels.some((l) => l < play.level));
+  const slots = q.slots.map((s, i) => ({ ...s, given: s.pos === 'punctuation' || !blanks.includes(i) }));
+  const stepDown = () => {
+    const down = [...levels].sort().reverse().find((l) => l < level) ?? level;
+    ladder.stepDown(level, levels); setPlay(setup(down)); setOffer(false);
+    speak(`Okay. ${WRITER_LEVEL_INFO[down].prompt}`, tts);
+  };
+  return (
+    <>
+      {offer && !disabled && (
+        <div className="ssw-offer" role="status">
+          <span>That was a tricky one. Want a little more help?</span>
+          <button type="button" className="btn btn-primary" onClick={stepDown}>Yes, more help</button>
+          <button type="button" className="btn" onClick={() => { ladder.keepGoing(); setOffer(false); }}>No, keep going</button>
+        </div>
+      )}
+      <SymbolSentenceInner key={`${level}-${blanks.join(',')}`} {...props} q={{ ...q, slots, prompt: WRITER_LEVEL_INFO[level].prompt }}
+        writer={{ level, helpers: play.helpers, onFinish: (firstTry) => ladder.record(firstTry, level, levels) }} />
+    </>
+  );
+}
+
+function SymbolSentenceChooser(props: AnswerProps) {
   const { q, tts, head, disabled } = props;
   const options = modeOf(q) === 'picture' && (q.formulas?.length ?? 0) > 1 ? q.formulas! : null;
   const [chosen, setChosen] = useState<number | null>(null);
@@ -57,9 +105,11 @@ export default function SymbolSentenceAnswer(props: AnswerProps) {
   return <SymbolSentenceInner key={chosen ?? -1} {...props} q={options ? { ...q, slots: options[chosen!].slots } : q} formulaName={options ? options[chosen!].name : undefined} onChangeFormula={options ? () => setChosen(null) : undefined} />;
 }
 
-function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, formulaName, onChangeFormula }: AnswerProps & { formulaName?: string; onChangeFormula?: () => void }) {
+function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, formulaName, onChangeFormula, writer }: AnswerProps & { formulaName?: string; onChangeFormula?: () => void; writer?: WriterPlay }) {
   // Build Queue 338: the student's own settings for this set win over the set's.
-  const st = { ...DEFAULT_SYMBOL_SETTINGS, ...q.settings, ...studentSettingsFor(q.id) };
+  // The Symbol Sentence Writer types her card's own words, so the dice and the capital letter and punctuation checks
+  // (Phase 2 levels) stay off there.
+  const st = { ...DEFAULT_SYMBOL_SETTINGS, ...q.settings, ...studentSettingsFor(q.id), ...(writer ? { dice: false, capitalCheck: false, punctuationCheck: false, grammarCheck: true } : {}) };
   const { level, record } = useTypedSupport();
   const [vals, setVals] = useState<Record<number, string>>({});
   const [syms, setSyms] = useState<Record<number, SymbolPos>>({});
@@ -71,6 +121,10 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
   const [tries, setTries] = useState(0);
   const [hints, setHints] = useState<Record<number, string> | null>(null);
   const [focus, setFocus] = useState<number | null>(null);
+  // Symbol Sentence Writer: misses per box (2nd try shows the first letter, 3rd the word to copy) and every Check's
+  // sentence, so Question Reports show what was typed and the help used.
+  const [misses, setMisses] = useState<Record<number, number>>({});
+  const attempts = useRef<string[]>([]);
   const inputs = useRef<Record<number, HTMLInputElement | null>>({});
   const icons = useRef<Record<number, HTMLButtonElement | null>>({});
   const say = (t: string) => speak(t, tts);
@@ -129,7 +183,46 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
   };
   const roll = (i: number) => { const p = posAt(i); if (!p) return; const w = randomWord(p, vals[i]); if (!w) return; setVal(i, w); say(w); };
 
+  // Her card's word only, close spellings count (answerMatch.ts) and are put right; the right spelling always shows.
+  const checkWriter = () => {
+    const tried = fullSentence(slots, vals);
+    attempts.current.push(tried);
+    const bad: Record<number, string> = {}, good: Record<number, boolean> = { ...ok }, fixed: Record<number, string> = {}, miss = { ...misses };
+    let almost = '';
+    for (const i of typeAt) {
+      if (ok[i] || slots[i].pos === 'punctuation') continue;
+      const s = slots[i], target = bare(s.word), w = (vals[i] ?? '').trim();
+      if (isCloseEnoughAnswer(w, target)) {
+        good[i] = true; fixed[i] = s.word;
+        if (w.toLowerCase() !== target.toLowerCase()) almost = `Almost! It is spelled ${target}.`;
+        continue;
+      }
+      miss[i] = (miss[i] ?? 0) + 1;
+      // Support level 1 just says try again; levels 2 and 3 also say whether the word is the right kind.
+      const name = SYMBOLS[s.pos].name.toLowerCase();
+      const why = level === 1 ? 'Not quite.' : (grammarProblem(w, s)?.replace(/ Try again\.$/, '') ?? (posesOf(w) ? `That is ${/^[aeiou]/.test(name) ? 'an' : 'a'} ${name}, but your card has a different one.` : 'Not quite.'));
+      bad[i] = miss[i] >= 2 ? `Copy this word: ${target}.` : `${why} It starts with "${target[0]}".`;
+    }
+    setOk(good); setMisses(miss); setVals((x) => ({ ...x, ...fixed }));
+    if (Object.keys(bad).length) {
+      setNotes(bad); setTries((t) => t + 1);
+      const first = Number(Object.keys(bad)[0]);
+      say(bad[first]);
+      window.setTimeout(() => { const el = inputs.current[first]; if (el) { el.focus(); el.select(); } }, 40);
+      return;
+    }
+    const said = fullSentence(slots, { ...vals, ...fixed });
+    setNotes(almost ? { [typeAt[0]]: almost } : {});
+    say(almost ? `${almost} ${said}` : said);
+    const helped = Object.values(miss).some((m) => m >= 2) ? 'copied a word' : Object.values(miss).some((m) => m >= 1) ? 'first letter shown' : '';
+    const earlier = attempts.current.slice(0, -1);
+    const report = `${said} (Writer level ${writer!.level}${earlier.length ? `; tried: ${earlier.join(' / ')}` : ''}${helped ? `; help: ${helped}` : ''})`;
+    record(tries === 0);
+    writer!.onFinish(tries === 0);
+    onResult(tries === 0, report);
+  };
   const check = () => {
+    if (writer) { checkWriter(); return; }
     const said = fullSentence(slots, vals);
     const strict = st.grammarCheck || st.capitalCheck || st.punctuationCheck;
     // The punctuation is fixed only when every word is hers; when the student builds the sentence any mark that ends it counts.
@@ -173,6 +266,7 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
     for (const i of work) {
       if (ok[i]) continue;
       const s = slots[i], p = posAt(i);
+      if (writer && s.pos !== 'punctuation') { h[i] = `This box needs ${/^[aeiou]/i.test(SYMBOLS[s.pos].name) ? 'an' : 'a'} ${SYMBOLS[s.pos].name.toLowerCase()}. The word on your card is "${bare(s.word)}".`; continue; }
       if (s.pos === 'punctuation') { h[i] = 'A telling sentence ends with a period, a question with a question mark, and a strong feeling with an exclamation point.'; continue; }
       if (s.pick && s.given) { h[i] = `Say "${s.word}" in the sentence. Is it a person, place or thing? An action? A word that describes? Pick that symbol.`; continue; }
       if (!p) { h[i] = 'Pick any grammar symbol for this box, then type a word that fits it.'; continue; }
@@ -194,6 +288,7 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
           {head}
           <Picture q={q} />
           {formulaName && <p className="ssq-formula-tag">Your formula: <b>{formulaName}</b></p>}
+          {writer && <p className="ssq-formula-tag">Level {writer.level}: <b>{WRITER_LEVEL_INFO[writer.level].label}</b></p>}
           <div className="ssq-row" style={{ ['--n' as string]: perRow(slots.filter((s) => s.pos !== 'punctuation').length), ['--extra' as string]: `${slots.some((s) => s.pos === 'punctuation') ? 68 : 0}px` }} role="group" aria-label="Symbol sentence">
             {slots.map((s, i) => {
               if (s.pos === 'punctuation') {
@@ -235,6 +330,12 @@ function SymbolSentenceInner({ q, disabled, tts, onResult, onSentence, head, for
                         onKeyDown={(e) => { if (e.key === 'Enter') { const nx = typeAt[typeAt.indexOf(i) + 1]; if (nx !== undefined && slots[nx].pos !== 'punctuation') inputs.current[nx]?.focus(); else if (allFilled) check(); } }} />
                       {ok[i] && <span className="ssq-ok" aria-hidden>✓</span>}
                     </div>
+                  )}
+                  {/* Level 1 word cards: the student types the right one (a tap reads it aloud). */}
+                  {writer?.helpers[i] && !s.given && !ok[i] && (
+                    <span className="ssw-cards" aria-label="Word cards">
+                      {writer.helpers[i].map((w) => <button key={w} type="button" className="ssw-card" onClick={() => say(w)} aria-label={`Word card: ${w}. Tap to hear it.`}>{w}</button>)}
+                    </span>
                   )}
                   {!s.given && !disabled && !ok[i] && (st.dice || (level === 3 && voice.supported)) && (
                     <div className="ssq-tools">

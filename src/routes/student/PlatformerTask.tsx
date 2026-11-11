@@ -1107,7 +1107,7 @@ export default function PlatformerTask({ student, subject, task, onDone, onExit 
                 <SpeakAnswer key={activeQ.id} q={activeQ} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />
               )}
               {activeQ.kind === 'symbol' && (
-                <SymbolSentenceAnswer key={activeQ.id} q={activeQ} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />
+                <SymbolSentenceAnswer key={activeQ.id} q={activeQ} maxLevel={3} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />
               )}
               {activeQ.kind === 'madlib' && (
                 <MadLibAnswer key={activeQ.id} q={activeQ} disabled={pendingCorrect !== null} onResult={(c) => submitAnswer(c)} />

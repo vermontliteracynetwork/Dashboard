@@ -6,6 +6,7 @@ import TeacherNav from '../../components/TeacherNav';
 import { blankMC, sanitizeQuizQuestions, validateQuizQuestions } from './QuizEditor';
 import McTableEditor from './McTableEditor';
 import SymbolSetEditor, { symbolSettingItems } from './SymbolSetEditor';
+import WriterSetEditor, { isWriterSet, writerDefaultQuestions } from './WriterSetEditor';
 import SettingsList, { type SettingItem } from '../../components/SettingsList';
 import { DEFAULT_SYMBOL_SETTINGS, blankSymbolQuestion } from '../../lib/symbolSentence';
 import { makeId } from '../../lib/id';
@@ -44,18 +45,20 @@ function NewQuestionSet() {
   const [tags, setTags] = useState<string[]>(existing?.tags ?? []);
   const [tagInput, setTagInput] = useState('');
   // Build Queue 253: pick the kind of set first, then only that kind's fields show.
-  const [setType, setSetType] = useState<'mc' | 'text' | null>(existing ? (existing.questions[0]?.kind === 'symbol' ? 'text' : 'mc') : null);
+  // Build Queue 611: a third kind, the Symbol Sentence Writer (her symbol sentence cards, typed answers on a help ladder).
+  const [setType, setSetType] = useState<'mc' | 'text' | 'writer' | null>(existing ? (isWriterSet(existing.questions) ? 'writer' : existing.questions[0]?.kind === 'symbol' ? 'text' : 'mc') : null);
+  const literacyOnly = setType === 'text' || setType === 'writer';
   const [questions, setQuestions] = useState<QuizQuestion[]>(existing?.questions ?? []);
   // What was last saved, to tell the teacher whether there are unsaved changes.
   const [savedSnap, setSavedSnap] = useState(() => (existing ? JSON.stringify([existing.name, existing.subject, existing.description ?? '', !!existing.isFocus, existing.tags ?? [], existing.questions]) : ''));
-  const snap = JSON.stringify([name.trim(), setType === 'text' ? 'literacy' : subject, description.trim(), isFocus, tags, questions]);
+  const snap = JSON.stringify([name.trim(), literacyOnly ? 'literacy' : subject, description.trim(), isFocus, tags, questions]);
   const dirty = existing ? snap !== savedSnap : false;
-  const chooseType = (t: 'mc' | 'text') => {
+  const chooseType = (t: 'mc' | 'text' | 'writer') => {
     if (t === setType) return;
     const hasWork = questions.some((q) => (q.kind === 'mc' ? q.prompt.trim() : q.kind === 'symbol' ? q.slots.length : true));
     if (hasWork && !window.confirm('Switching the kind of set clears the questions written so far. Switch?')) return;
-    setSetType(t); setSubject(t === 'text' ? 'literacy' : subject);
-    setQuestions(t === 'mc' ? [blankMC()] : [blankSymbolQuestion(makeId())]);
+    setSetType(t); setSubject(t !== 'mc' ? 'literacy' : subject);
+    setQuestions(t === 'mc' ? [blankMC()] : t === 'writer' ? writerDefaultQuestions() : [blankSymbolQuestion(makeId())]);
   };
   const [tried, setTried] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(true);
@@ -68,7 +71,7 @@ function NewQuestionSet() {
   ];
 
   const issues = validateQuizQuestions(questions);
-  const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(setType ? [] : ['Pick Multiple choice or Symbolic Grammar.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
+  const problems = [...(name.trim() ? [] : ['Give the set a name.']), ...(setType ? [] : ['Pick Multiple choice, Symbolic Grammar or Symbol Sentence Writer.']), ...(questions.length ? [] : ['Add at least one question.']), ...issues];
   const started = existing ? dirty : !!name.trim() || questions.some((q) => q.kind === 'mc' ? q.prompt.trim() || q.choices.some((c) => c.trim()) : true);
   useEffect(() => {
     if (!started) return;
@@ -84,16 +87,16 @@ function NewQuestionSet() {
     if (existing) {
       const qs = sanitizeQuizQuestions(questions);
       updateQuestionSet(existing.id, {
-        name: name.trim(), subject: setType === 'text' ? 'literacy' : subject, questions: qs, tags, description: description.trim() || undefined,
+        name: name.trim(), subject: literacyOnly ? 'literacy' : subject, questions: qs, tags, description: description.trim() || undefined,
         isFocus: isFocus || undefined, focusedAt: isFocus ? (existing.isFocus ? existing.focusedAt : new Date().toISOString()) : undefined,
       });
       setQuestions(qs);
-      setSavedSnap(JSON.stringify([name.trim(), setType === 'text' ? 'literacy' : subject, description.trim(), isFocus, tags, qs]));
+      setSavedSnap(JSON.stringify([name.trim(), literacyOnly ? 'literacy' : subject, description.trim(), isFocus, tags, qs]));
       setTried(false);
       return;
     }
     const id = addQuestionSet({
-      name: name.trim(), subject: setType === 'text' ? 'literacy' : subject, kind: 'quiz', questions: sanitizeQuizQuestions(questions), cards: [], tags,
+      name: name.trim(), subject: literacyOnly ? 'literacy' : subject, kind: 'quiz', questions: sanitizeQuizQuestions(questions), cards: [], tags,
       description: description.trim() || undefined, isFocus: isFocus || undefined, focusedAt: isFocus ? new Date().toISOString() : undefined,
     });
     navigate(`/teacher/question-sets/${id}`, { replace: true });
@@ -142,7 +145,7 @@ function NewQuestionSet() {
               <div className="nqs-line">
                 <div className="nqs-seg" role="radiogroup" aria-label="Subject">
                   {(['math', 'literacy'] as const).map((sj) => (
-                    <button key={sj} type="button" role="radio" aria-checked={subject === sj} className={subject === sj ? 'on' : ''} disabled={setType === 'text' && sj === 'math'} title={setType === 'text' && sj === 'math' ? 'Symbolic Grammar sets are always literacy.' : undefined} onClick={() => setSubject(sj)}>
+                    <button key={sj} type="button" role="radio" aria-checked={subject === sj} className={subject === sj ? 'on' : ''} disabled={literacyOnly && sj === 'math'} title={literacyOnly && sj === 'math' ? 'Symbolic Grammar and Symbol Sentence Writer sets are always literacy.' : undefined} onClick={() => setSubject(sj)}>
                       {sj === 'math' ? 'Math' : 'Literacy'}
                     </button>
                   ))}
@@ -174,18 +177,21 @@ function NewQuestionSet() {
             <button type="button" role="radio" aria-checked={setType === 'text'} className={`qs-type-btn${setType === 'text' ? ' on' : ''}`} onClick={() => chooseType('text')}>
               <b>Symbolic Grammar</b><small>Fill in the blank, drag and drop, and picture response questions with grammar symbols, mixed in one set. Plays in assignments and Quiz Mode.</small>
             </button>
+            <button type="button" role="radio" aria-checked={setType === 'writer'} className={`qs-type-btn${setType === 'writer' ? ' on' : ''}`} onClick={() => chooseType('writer')}>
+              <b>Symbol Sentence Writer</b><small>Your 43 symbol sentence cards. Students type the missing words, and the help moves with each student. Plays in assignments and Quiz Mode.</small>
+            </button>
           </div>
         </section>
 
         <section id="nqs-s3" className="nqs-step nqs-settings">
           <SettingsList lead={<span className="nqs-num">3</span>} title="Settings" items={settingItems}
-            note={setType === 'text' ? 'Student settings are for the whole set.' : setType === 'mc' ? undefined : 'Pick Symbolic Grammar to see the student settings for its questions.'} />
+            note={setType === 'text' ? 'Student settings are for the whole set.' : setType === 'writer' ? 'Spelling, typing help and hints follow each student\'s typed answer support level. Pick help levels and cards below.' : setType === 'mc' ? undefined : 'Pick Symbolic Grammar to see the student settings for its questions.'} />
         </section>
 
         {setType && (
           <section id="nqs-s4" className="nqs-step">
             <div className="nqs-step-head static"><span className="nqs-num">4</span><span className="nqs-step-title">Questions</span></div>
-            {setType === 'mc' ? <McTableEditor subject={subject} questions={questions} onChange={setQuestions} /> : <SymbolSetEditor questions={questions} onChange={setQuestions} hideSettings />}
+            {setType === 'mc' ? <McTableEditor subject={subject} questions={questions} onChange={setQuestions} /> : setType === 'writer' ? <WriterSetEditor questions={questions} onChange={setQuestions} /> : <SymbolSetEditor questions={questions} onChange={setQuestions} hideSettings />}
           </section>
         )}
 
