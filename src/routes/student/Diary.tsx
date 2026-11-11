@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { sfx } from '../../lib/miniSfx';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { uploadImage, uploadVoiceMemo } from '../../lib/upload';
@@ -252,6 +253,8 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, week
   const spokeRef = useRef(false);
   const bests = useBests(studentId);
   const pageEl = useRef<HTMLDivElement | null>(null);
+  const sideEl = useRef<HTMLElement | null>(null);
+  const [overSide, setOverSide] = useState(false);
   const textEl = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
   const trayDrag = useRef<{ d: Drop; x0: number; y0: number; moved: boolean } | null>(null);
@@ -282,9 +285,14 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, week
   const stageMove = (e: React.PointerEvent) => {
     if (pathing && pathing.pts.length) { const p = pct(e.clientX, e.clientY), last = pathing.pts[pathing.pts.length - 1]; if (Math.hypot(p.x - last[0], p.y - last[1]) > 1.2) setPathing({ ...pathing, pts: [...pathing.pts, [p.x, p.y]] }); return; }
     const d = drag.current; if (!d) return; const p = pct(e.clientX, e.clientY); upd(d.id, () => ({ x: Math.max(0, Math.min(100, p.x - d.dx)), y: Math.max(0, Math.min(100, p.y - d.dy)) }));
+    const over = inSide(e.clientX, e.clientY); if (over !== overSide) setOverSide(over);
   };
-  const stageUp = () => {
-    drag.current = null;
+  // Build Queue 587: drag a thing back onto the menu on the left to delete it.
+  const inSide = (cx: number, cy: number) => { const r = sideEl.current?.getBoundingClientRect(); return !!r && cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom; };
+  const remove = (id: string) => { setPage((p) => ({ ...p, items: p.items.filter((i) => i.id !== id) })); setSel(null); sfx.pop(); };
+  const stageUp = (e?: React.PointerEvent) => {
+    const d = drag.current; drag.current = null; setOverSide(false);
+    if (d && e && inSide(e.clientX, e.clientY)) { remove(d.id); return; }
     if (pathing && pathing.pts.length > 2) { const [x0, y0] = pathing.pts[0]; const step = Math.max(1, Math.floor(pathing.pts.length / 80)); upd(pathing.id, () => ({ anim: 'path', path: pathing.pts.filter((_, k) => k % step === 0).map(([x, y]) => [x - x0, y - y0] as [number, number]) })); setPathing(null); }
   };
 
@@ -367,7 +375,8 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, week
         <button type="button" className="btn btn-primary btn-lg" disabled={!!busy} onClick={() => onSave({ ...page, html: cleanHtml(textEl.current?.innerHTML ?? page.html ?? '') })}>Save page</button>
       </header>
       <div className="dm2-body">
-        <aside className="dm-side" aria-label="Things to add">
+        <aside ref={sideEl} className={`dm-side${overSide ? ' trash' : ''}`} aria-label="Things to add">
+          {overSide && <div className="dm-trashzone" aria-hidden><span>🗑</span><b>Let go to delete</b></div>}
           <button type="button" className={`dm-dice${rolling ? ' rolling' : ''}`} onClick={roll} aria-label="Roll the dice for a writing prompt"><span className="dm-die" aria-hidden>{[0, 1, 2, 3, 4, 5].map((d) => <i key={d} />)}</span><span><b>Roll a prompt</b><small>{rolled ?? 'Need an idea? Roll the dice!'}</small></span></button>
           <Category label="Prompts and sentence starters" color="#DDD6FE" open={!!open.prompts} onToggle={() => tog('prompts')}>
             {PROMPTS.map((g) => (
@@ -486,16 +495,23 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, week
             <div className={`dm-task${r.done ? ' done' : ''}`} role="status"><b>{task.title}</b>{task.instructions && <span>{task.instructions}</span>}
               <ul>{r.rows.slice(1).map((x) => <li key={x.label} className={x.ok ? 'ok' : ''}>{x.ok ? '✓ ' : ''}{x.label}</li>)}</ul>{r.done && <em>All done! Save your page.</em>}</div>
           ); })()}
-          <div className={`dm-stage${pathing ? ' pathing' : ''}`} onPointerDown={stageDown} onPointerMove={stageMove} onPointerUp={stageUp} onPointerCancel={stageUp} onKeyUp={keepSel} onMouseUp={keepSel} onTouchEnd={keepSel}>
+          <div className={`dm-stage${pathing ? ' pathing' : ''}`} onPointerDown={stageDown} onPointerMove={stageMove} onPointerUp={stageUp} onPointerCancel={() => stageUp()} onKeyUp={keepSel} onMouseUp={keepSel} onTouchEnd={keepSel}>
+            <div className="dm-pagewrap">
             <DiaryPage page={page} selected={sel} onItemDown={itemDown} onBackDown={() => setSel(null)} pageRef={pageEl} className="dp-edit" studentId={studentId} day={day} textRef={textEl} onText={(html) => setPage((p) => (p.html === html ? p : { ...p, html }))} onItemChange={(id, patch) => upd(id, () => patch)} />
             {pathing && (
               <svg className="dm-pathsvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden><polyline points={pathing.pts.map((p) => p.join(',')).join(' ')} fill="none" stroke="#8a63d2" strokeWidth="0.8" strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke" /></svg>
             )}
+            </div>
             {pathing && <p className="dm-busy" role="status">Draw the path with your finger.</p>}
             {busy && <p className="dm-busy" role="status">{busy}</p>}
           </div>
           {selected && !pathing && (
-            <div className="dm-tools" role="toolbar" aria-label="Change this">
+            <div className="dm-tools dm-float" role="toolbar" aria-label="Change this">
+              <div className="dm-floathead">
+                <b>Change this</b>
+                <button type="button" className="dm-delete" onClick={() => remove(selected.id)}><span aria-hidden>🗑</span> Delete</button>
+                <button type="button" className="dm-close" onClick={() => setSel(null)} aria-label="Close the tools">✕</button>
+              </div>
               <div className="dm-row">
                 <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.min(100, i.w * 1.15), ...(i.h ? { h: Math.min(100, i.h * 1.15) } : {}) }))}>Bigger</button>
                 <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.max(6, i.w / 1.15), ...(i.h ? { h: Math.max(6, i.h / 1.15) } : {}) }))}>Smaller</button>
@@ -507,7 +523,6 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, week
                     <button type="button" role="radio" aria-checked={!!selected.wrap} className={selected.wrap ? 'on' : ''} onClick={() => upd(selected.id, () => ({ wrap: true }))}>Wrap words</button>
                   </div>
                 )}
-                <button type="button" className="dm-del" onClick={() => { setPage((p) => ({ ...p, items: p.items.filter((i) => i.id !== selected.id) })); setSel(null); }}>Remove</button>
               </div>
               <div className="dm-row">
                 <span className="dm-lab">Move</span>
