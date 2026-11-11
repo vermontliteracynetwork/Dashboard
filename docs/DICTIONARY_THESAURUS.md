@@ -1,6 +1,6 @@
 # Dictionary and Thesaurus: the living doc
 
-Started 2026-11-11 (Build Queue 597 and 598). This one doc follows the Dictionary and Thesaurus everywhere they go:
+Started 2026-11-11 (Build Queue 597 and 598, picture pages 608). This one doc follows the Dictionary and Thesaurus everywhere they go:
 
 1. **The dashboard version:** silly, gamified, for her own classroom.
 2. **Notes for Literacy Manipulatives and the Symbolic Grammar curriculum:** the professional, public versions.
@@ -14,7 +14,7 @@ Her words that started it (2026-11-11): "lets improve the main Dictionary/Thesau
 
 ## Part 1. The dashboard version (silly, gamified)
 
-Students open both tools from the main menu's tools. Both now open big, like the Whiteboard. Code: `src/components/WordTools.tsx` and `src/components/wordTools.css`.
+Students open both tools from the main menu's tools. Both now open big, like the Whiteboard. Code: `src/components/WordTools.tsx` and `src/components/wordTools.css`. The picture pages' words and pictures are all in one small file, `src/lib/pictureDictionary.ts`.
 
 ### Shipped
 
@@ -31,6 +31,7 @@ Students open both tools from the main menu's tools. Both now open big, like the
 | Grow its tree | Tap a leaf, then "Grow its tree" to start a new tree from that word. | On preview 2026-11-11 |
 | Easter egg: the chicken riding the pig | Tap the same word three times, in either tool, and a chicken riding a pig trots across the bottom of the screen with an "Oink! Bawk bawk!" bubble and little oink and cluck sounds. It happens once a day per student. | On preview 2026-11-11 |
 | Same logic as the question sets | Both tools use the word type engine that grades the symbol sentence questions (`src/lib/wordTypes.ts`, Build Queue 597). A word looked up in the Dictionary teaches that engine its parts of speech, so the grammar checks know it right away. | On preview 2026-11-11 |
+| Gilbert's Picture Dictionary (608) | A second tab in the Dictionary, "Picture pages", next to "Look up a word". Six themed pages, each with a big colored cover: The Kitchen (18 pictures), At Home (18), The Classroom (16), Food (20), The Farm (18) and The Park (18), 108 pictures in all. Tap a picture: it wiggles, Gilbert says the word and what kind of word it is ("Sink. It is a noun. It can also be a verb."), and a side card shows the picture, the word, a part of speech badge in her grammar symbol color, a plain line about that part of speech, the first dictionary meaning (with its own 🔊) and an "Open in the dictionary" button for the full entry. Each page also has "Things you do here": four action words (cook, wash, stir, pour...) that Gilbert reads as verbs, "something you do". A 🔊 on the page title reads every word on the page. Tapping a picture three times counts for the chicken and pig easter egg too. | On preview 2026-11-11 |
 
 ### Silly ideas and easter eggs (not built yet: pick the ones you like)
 
@@ -47,7 +48,12 @@ Students open both tools from the main menu's tools. Both now open big, like the
 - **Opposite Day.** On a surprise day, Rex shows the opposites first and talks backwards ("Bye! Rex I'm.").
 - **Fancy word bonus in games.** Using a "fancy" (right side of the slider) word in a typed answer or a Diary note gives a small XP sparkle.
 - **Ask Gilbert in questions.** When a grammar check says "'happy' is an adjective, not a verb", an "Ask Gilbert" button opens the Dictionary on that word.
-- **Picture dictionary pages (599, waiting on her).** Themed scene pages (kitchen, classroom, farm, park) where every object is tappable. Gilbert says the word, and it opens in the Dictionary with its part of speech. These would be built from our own art (Kenney CC0 models and thumbnails already in the app) and Mulberry Symbols, not the Oxford Picture Dictionary.
+- **Picture dictionary pages: first version built (608, see Shipped).** Next ideas for it:
+  - **Real scenes.** Place the pictures inside one big kitchen or park picture (like a page of a picture dictionary) instead of a grid, so students find the fridge in the kitchen.
+  - **More pages.** Bathroom, bedroom, town and stores, vehicles, animals, clothes, weather, body parts, feelings. Clothes, body parts and feelings need new art (nothing in the app fits yet), so they would wait for Mulberry Symbols or our own drawings.
+  - **Find it game.** Gilbert says "Find the spoon", and the student taps it.
+  - **Describing words.** Add a describing word row next to "Things you do here" (big, round, hot, soft) for adjectives.
+  - **Student pages.** Students make their own picture page from things they photograph or draw.
 - **Rhyme time.** After a lookup, Rex says one silly rhyme with the word.
 
 ---
@@ -62,6 +68,7 @@ Students open both tools from the main menu's tools. Both now open big, like the
 - **Word choice for revision in Write mode.**
   - Tap a word to get a trimmed word tree that only offers words of the same part of speech, so the word's symbol stays correct after the swap.
   - The slider is labeled by vocabulary tier instead of "everyday / fancy".
+- **Picture pages (608).** The same pages in her board style: the part of speech badge becomes her real symbol shape, and dragging a picture onto the board drops its word with the right symbol. Her version would need pictures she can sell with (see Part 4).
 - **Teacher controls.**
   - Turn live lookups off, so only the local dictionary is used.
   - Set the slider's range per student.
@@ -87,6 +94,7 @@ Students open both tools from the main menu's tools. Both now open big, like the
   - "Upgrade the word" tasks: replace a Tier 1 word with a Tier 2 word of the same part of speech.
   - Part of speech sorting using the drop downs.
   - Opposites as a sentence-meaning check.
+- **Picture pages and word types (608).** A picture always shows a thing, so a picture word is shown as a noun, and the engine adds what else the word can be ("sink", "slide" and "swing" can also be verbs). This is a ready lesson: the same word is a noun in "the sink" and a verb in "the boat will sink". Action words on each page are shown as verbs. Two-word names ("trash can", "bunk bed") take the type of their last word, the way English builds them; curriculum notes should explain this (compound nouns).
 
 ---
 
@@ -115,6 +123,8 @@ Each source's license needs a final check before any public launch.
 
 ### Picture sources that are commercial-friendly
 
+**What the picture pages use now (608):** only art already in the app. The pictures are renders of the app's 3D model library (`public/world/thumbnails/`) and the Restaurant game's food icons (`public/games/restaurant/icons/`, renders of the food models in that game). They are fine for the dashboard. The library mixes licenses: many packs are CC0 (Kenney, Quaternius, the AssetQuest Free Pond Kit), some are CC BY with credits on the teacher home page (the farm hen and rooster are Poly by Google models), and a few are packs she uploaded (the Styloo butterfly, for one). Before any public version, check each picture's source pack one by one (each picture's file is listed in `src/lib/pictureDictionary.ts`), or redraw them. Mulberry Symbols are not in the app yet.
+
 - **Mulberry Symbols:** CC BY-SA, about 3,000 symbols, commercial use allowed with attribution.
 - **OpenMoji** (CC BY-SA 4.0) and **Twemoji graphics** (CC BY 4.0).
 - **Kenney asset packs:** CC0.
@@ -128,6 +138,7 @@ Each source's license needs a final check before any public launch.
 - Tap-any-word lookups inside meanings.
 - The word tree with the commonness slider, closeness by distance from the trunk, and opposites as roots.
 - Lookups that teach the same engine the grammar checks use, so one source of truth for word types.
+- Picture pages where every picture says its word, shows its part of speech from the engine and opens its dictionary entry, with action words for verbs.
 - A configurable easter egg system: teacher on/off, once-a-day limits, original art only.
 
 ### Art and characters
@@ -138,6 +149,7 @@ Gilbert the Fish, Thesaurus Rex and the chicken riding the pig are original draw
 
 ## Change log of this doc
 
+- **2026-11-11:** Gilbert's Picture Dictionary (608): six picture pages with 108 pictures shipped to preview, with next ideas, notes for Literacy Manipulatives and the curriculum, and where the pictures come from.
 - **2026-11-11:** The Oxford Picture Dictionary repo was checked and is not usable. Added a picture dictionary idea (599) and a list of commercial-friendly picture sources.
 - **2026-11-11:** Doc started.
   - The fish and dinosaur mascots, part of speech drop downs, the word tree with the slider, opposites roots, tap-any-word, and the chicken and pig easter egg shipped to preview (598).

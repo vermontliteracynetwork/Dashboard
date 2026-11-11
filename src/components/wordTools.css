@@ -84,6 +84,43 @@
 .wt-legend { text-align: center; }
 .wt-roots strong { display: block; margin-bottom: 6px; color: #8a5a35; }
 
+/* Build Queue 608: Gilbert's Picture Dictionary. */
+.wt-modes { display: flex; gap: 8px; }
+.wt-modes button { flex: 1; min-height: 52px; border-radius: 14px; border: 3px solid #9fd8f2; background: #fff; color: var(--ink); font: inherit; font-weight: 800; font-size: 1.05rem; cursor: pointer; }
+.wt-modes button.on { background: #ffa53a; border-color: #f08a24; color: #231b33; }
+.wt-pp-covers { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+.wt-pp-cover { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 10px; min-height: 170px; border-radius: 18px; border: 3px solid rgba(0, 0, 0, .12); color: #231b33; font: inherit; cursor: pointer; transition: transform .15s; }
+.wt-pp-cover:active { transform: scale(.96); }
+.wt-pp-cover img { width: 96px; height: 96px; object-fit: contain; background: #fff; border-radius: 14px; padding: 4px; }
+.wt-pp-cover span { font-weight: 800; font-size: 1.15rem; }
+.wt-pp-cover small { opacity: .75; font-weight: 600; }
+.wt-pp { display: flex; flex-direction: column; gap: 10px; }
+.wt-pp-head { display: flex; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 16px; }
+.wt-pp-head h3 { flex: 1; margin: 0; text-align: center; font-size: 1.35rem; color: #231b33; }
+.wt-pp-head .btn { min-height: 48px; }
+.wt-pp-body { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.wt-pp-word { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 12px; border-radius: 18px; background: #fff; border: 3px solid #9fd8f2; min-height: 96px; justify-content: center; }
+.wt-pp-word img { width: 120px; height: 120px; object-fit: contain; }
+.wt-pp-word .wt-headword { min-height: 44px; }
+.wt-pp-pos { display: inline-block; padding: 6px 16px; border-radius: 999px; font-weight: 800; font-size: 1.05rem; }
+.wt-pp-also { margin: 0; font-weight: 700; font-size: .95rem; }
+.wt-pp-meaning { display: flex; align-items: flex-start; gap: 8px; text-align: left; background: #f4fbff; border-radius: 12px; padding: 8px 10px; }
+.wt-pp-meaning p { margin: 0; flex: 1; line-height: 1.4; }
+.wt-pp-open { min-height: 48px; }
+.wt-pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; align-content: start; }
+.wt-pp-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 6px 10px; border-radius: 16px; border: 3px solid var(--content-border); background: #fff; color: var(--ink); font: inherit; cursor: pointer; min-height: 132px; transition: transform .12s, border-color .12s; }
+.wt-pp-card img { width: 88px; height: 88px; object-fit: contain; pointer-events: none; }
+.wt-pp-card span { font-weight: 800; font-size: 1.05rem; line-height: 1.15; }
+.wt-pp-card:active { transform: scale(.95); }
+.wt-pp-card.on { border-color: #f08a24; box-shadow: 0 0 0 3px #ffd7a8; animation: wt-pp-wiggle .4s ease-in-out; }
+.wt-pp-verb.on { background: #40A870; border-color: #2f8a57; color: #fff; }
+.wt-pp-actions strong { display: block; margin-bottom: 6px; }
+@keyframes wt-pp-wiggle { 30% { transform: rotate(-4deg) scale(1.04); } 70% { transform: rotate(3deg) scale(1.04); } }
+@media (min-width: 760px) {
+  .wt-pp-body { grid-template-columns: 1fr 260px; }
+  .wt-pp-word { order: 2; position: sticky; top: 0; align-self: start; min-height: 260px; }
+}
+
 /* The easter egg: the chicken rides the pig across the whole screen. */
 .wt-parade { position: fixed; inset: auto 0 6vh 0; height: 200px; pointer-events: none; z-index: 5000; overflow: hidden; }
 .wt-parade-rider { position: absolute; bottom: 0; left: 0; animation: wt-ride 9s linear forwards; }
