@@ -277,7 +277,7 @@ export const QUIZ_THEME_LABELS: Record<QuizTheme, string> = {
   fantasy: 'Fantasy',
 };
 
-export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice' | 'platformer';
+export type TaskType = 'quiz' | 'link' | 'offscreen' | 'video' | 'passage' | 'drill' | 'wordchain' | 'sentenceEdit' | 'article' | 'sentenceBuilder' | 'linkChoice' | 'platformer' | 'diary';
 
 export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   quiz: 'Question Set (practice or checkpoint)',
@@ -292,6 +292,7 @@ export const TASK_TYPE_LABELS: Record<TaskType, string> = {
   sentenceBuilder: 'Sentence Builder (graphic organizer)',
   linkChoice: 'Pick One (2-4 video/link options, student chooses)',
   platformer: '🎮 Platformer Game + Quiz (Blooket-style homework)',
+  diary: 'Diary entry (a page in their Diary for the day)',
 };
 
 // One consistent icon per activity type, independent of an activity's own
@@ -314,6 +315,7 @@ export const TASK_TYPE_ICONS: Record<TaskType, string> = {
   sentenceBuilder: '🧩',
   linkChoice: '🎬',
   platformer: '🎮',
+  diary: '📔',
 };
 
 export interface MCQuestion {
@@ -437,6 +439,12 @@ export interface LinkContent {
   // for a site that blocks framing just shows a blank box.
   embed?: boolean;
 }
+
+// Build Queue 582 (her words: "assign a diary entry as the requirement for that day ... specifications, like if there's
+// a word count that I need, if I have requirements for them to like add specific pictures"): a Diary page made today,
+// with an optional word count and things that must be on the page.
+export type DiaryNeed = 'photo' | 'drawing' | 'feeling' | 'pet' | 'voice' | 'energy' | 'sticker' | 'bubble' | 'feelchart';
+export interface DiaryTaskContent { instructions: string; minWords?: number; needs?: DiaryNeed[] }
 
 export interface OffscreenContent {
   instructions: string;
@@ -641,6 +649,7 @@ export interface Task {
   quiz?: QuizContent; // used by 'quiz', and as the attached comprehension questions on 'passage'
   link?: LinkContent;
   offscreen?: OffscreenContent;
+  diary?: DiaryTaskContent;
   video?: VideoContent;
   passage?: PassageContent;
   drill?: DrillContent;

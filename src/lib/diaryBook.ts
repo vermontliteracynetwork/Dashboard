@@ -7,7 +7,7 @@ import type { SelZone } from '../types';
 // washi tape strips, talk bubbles, the student's live pet and live game stats.
 export type DiaryItemKind = 'photo' | 'drawing' | 'sticker' | 'meme' | 'feeling' | 'note' | 'voice' | 'tape' | 'bubble' | 'pet' | 'stat' | 'frame' | 'sfx' | 'energy';
 export type DiaryAnim = 'bounce' | 'wiggle' | 'spin' | 'float' | 'pulse' | 'path';
-export type DiaryStat = 'questions' | 'correct' | 'accuracy' | 'streak' | 'best';
+export type DiaryStat = 'questions' | 'correct' | 'accuracy' | 'streak' | 'best' | 'feelbar' | 'feelline';
 export type BubbleStyle = 'me' | 'pet' | 'think' | 'shout' | 'whisper' | 'narrate';
 export interface DiaryItem {
   id: string; kind: DiaryItemKind;
@@ -97,3 +97,21 @@ export function cleanHtml(html: string): string {
   return root.innerHTML.slice(0, 20000);
 }
 export const textOfHtml = (html?: string) => { if (!html || typeof DOMParser === 'undefined') return ''; return new DOMParser().parseFromString(html, 'text/html').body.textContent?.trim() ?? ''; };
+
+// Build Queue 582: does a page meet a Diary assignment? (word count from the typed words, notes, bubbles and captions;
+// plus the things that must be on the page).
+export const NEED_LABEL: Record<string, string> = { photo: 'a photo', drawing: 'a drawing', feeling: 'a feeling picture', pet: 'your pet', voice: 'a voice clip', energy: 'the energy slider', sticker: 'a sticker', bubble: 'a talk bubble or note', feelchart: "today's feelings chart" };
+export function wordsOn(p: DiaryPageData): number {
+  const text = [textOfHtml(p.html), ...p.items.map((i) => (i.kind === 'note' || i.kind === 'bubble' ? i.text ?? '' : i.caption ?? ''))].join(' ');
+  return (text.match(/[A-Za-z0-9']+/g) ?? []).length;
+}
+export function checkDiaryTask(p: DiaryPageData | null, req: { minWords?: number; needs?: string[] }) {
+  const has = (n: string) => !!p && p.items.some((i) => (n === 'bubble' ? i.kind === 'bubble' || i.kind === 'note' : n === 'feelchart' ? i.kind === 'stat' && (i.stat === 'feelbar' || i.stat === 'feelline') : i.kind === n));
+  const words = p ? wordsOn(p) : 0;
+  const rows = [
+    { label: 'Make a Diary page today', ok: !!p },
+    ...(req.minWords ? [{ label: `Write at least ${req.minWords} words (${Math.min(words, req.minWords)} of ${req.minWords})`, ok: words >= req.minWords }] : []),
+    ...(req.needs ?? []).map((n) => ({ label: `Add ${NEED_LABEL[n] ?? n}`, ok: has(n) })),
+  ];
+  return { rows, done: rows.every((r) => r.ok), words };
+}

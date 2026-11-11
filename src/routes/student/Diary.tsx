@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { uploadImage, uploadVoiceMemo } from '../../lib/upload';
@@ -11,10 +12,10 @@ import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import { ENERGY_FACE, ENERGY_STEPS, type Energy } from '../../lib/supernature';
 import { petDefById, thumbnailFor } from '../../lib/petCatalog';
 import { todayISO } from '../../lib/dates';
-import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, COMIC_LAYOUTS, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
+import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, checkDiaryTask, COMIC_LAYOUTS, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
 import { PET_REPLY } from '../../lib/petsV2';
 import { recordReel, shareVideo, type ReelPage, type StatNow } from '../../lib/diaryVideo';
-import { useBests } from '../../components/DiaryPage';
+import { useBests, dayFeelings } from '../../components/DiaryPage';
 import { dayOwner } from '../../lib/questionMastery';
 import { readStreak } from '../../lib/streak';
 import { sayInPetVoice } from '../../lib/petSpeak';
@@ -58,6 +59,7 @@ function statFor(studentId: string, day: string) {
       if (it.game === 'yoga') { try { const y = JSON.parse(localStorage.getItem(`yoga.save3.${studentId}`) || '{}') as { records?: Record<string, { xp: number }[]> }; n = Math.max(0, ...Object.values(y.records ?? {}).map((l) => l?.[0]?.xp ?? 0)); } catch { /* none */ } }
       return { n, label: 'my best' };
     }
+    if (it.stat === 'feelbar' || it.stat === 'feelline') return { label: 'My feelings today', feel: dayFeelings(st.selCheckIns, studentId, day) };
     return { n: right + wrong, label: 'questions today' };
   };
 }
@@ -176,6 +178,13 @@ export default function Diary() {
 // right on it (type, colors, highlight, sizes) and everything dragged on top. The picked item gets its own bar:
 // size, turn, caption, float over the text or wrap the text around it, animations (or draw a path), talk to your pet.
 type Drop = Partial<DiaryItem> & { kind: DiaryItemKind; w: number };
+// Build Queue 583: prompts, sentence starters and sentence frames to drag on (or roll the dice for one).
+const PROMPTS: { group: string; list: string[] }[] = [
+  { group: 'Questions', list: ['How was your day today?', 'What was the best part of your day?', 'What was hard today?', 'What made you laugh today?', 'Who did you spend time with today?', 'What are you proud of today?', 'What do you want to do tomorrow?', 'What did you learn today?', 'If today was a movie, what would it be called?', 'What game did you play today? How did it go?'] },
+  { group: 'Sentence starters', list: ['Today I was feeling ...', 'The best part of today was ...', 'Something hard today was ...', 'I felt proud when ...', 'I laughed when ...', 'Tomorrow I want to ...', 'My pet would say ...', 'One thing I learned is ...'] },
+  { group: 'Sentence frames', list: ['Today ____ happened.', 'I felt ____ because ____ happened.', 'First ____, then ____, and last ____.', 'I was ____ when ____.', 'My energy was ____ because ____.', 'I wish ____ because ____.', 'The funniest thing was ____.', 'Next time I will ____.'] },
+];
+const ALL_PROMPTS = PROMPTS.flatMap((g) => g.list);
 const BUBBLE_COLORS = ['#ffffff', '#fff59d', '#c8f1ff', '#ffd1dc', '#d4f8c4', '#2b2540'];
 const SWATCHES = ['#1f2937', '#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#ffffff'];
 const HIGHLIGHTS = ['#fef08a', '#bbf7d0', '#bfdbfe', '#fbcfe8', '#fed7aa'];
@@ -210,6 +219,9 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
   const [pathing, setPathing] = useState<{ id: string; pts: [number, number][] } | null>(null);
   const [talk, setTalk] = useState('');
   const [textColor, setTextColor] = useState('#1f2937');
+  const [rolling, setRolling] = useState(false);
+  const [rolled, setRolled] = useState<string | null>(null);
+  const task = (useLocation().state as { diaryTask?: { title: string; instructions?: string; minWords?: number; needs?: string[] } } | null)?.diaryTask ?? null;
   const [listening, setListening] = useState(false);
   const recog = useRef<{ stop: () => void } | null>(null);
   const spokeRef = useRef(false);
@@ -307,6 +319,11 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
     const lay = COMIC_LAYOUTS.find((l) => l.id === id); if (!lay) return;
     setPage((p) => ({ ...p, items: [...p.items, ...lay.frames.map(([x, y, w, h]) => ({ id: makeId(), kind: 'frame' as const, x, y, w, h, rot: 0, z: 0 }))] }));
   };
+  // The randomizer dice: rolls for a moment, then drops a random prompt on the page and reads it aloud.
+  const roll = () => {
+    if (rolling) return; setRolling(true);
+    let k = 0; const spin = window.setInterval(() => { setRolled(ALL_PROMPTS[Math.floor(Math.random() * ALL_PROMPTS.length)]); if (++k > 8) { window.clearInterval(spin); const pick = ALL_PROMPTS[Math.floor(Math.random() * ALL_PROMPTS.length)]; setRolled(pick); setRolling(false); add({ kind: 'bubble', from: 'narrate', text: pick, color: '#ede9fe', w: 40 }, 50, 14); speak(pick, tts); } }, 90);
+  };
   const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
   const imageLike = selected && !['note', 'bubble', 'tape', 'stat', 'voice', 'frame', 'sfx', 'energy'].includes(selected.kind);
   return (
@@ -322,8 +339,17 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
       </header>
       <div className="dm2-body">
         <aside className="dm-side" aria-label="Things to add">
+          <button type="button" className={`dm-dice${rolling ? ' rolling' : ''}`} onClick={roll} aria-label="Roll the dice for a writing prompt"><span className="dm-die" aria-hidden>{[0, 1, 2, 3, 4, 5].map((d) => <i key={d} />)}</span><span><b>Roll a prompt</b><small>{rolled ?? 'Need an idea? Roll the dice!'}</small></span></button>
+          <Category label="Prompts and sentence starters" color="#DDD6FE" open={!!open.prompts} onToggle={() => tog('prompts')}>
+            {PROMPTS.map((g) => (
+              <div key={g.group} className="dm-subcat">
+                <button type="button" className="dm-subhead" onClick={() => setSub(sub === g.group ? null : g.group)} aria-expanded={sub === g.group}><span>{g.group}</span><span aria-hidden>{sub === g.group ? '▾' : '▸'}</span></button>
+                {sub === g.group && <div className="dm-plist">{g.list.map((t) => tile({ kind: 'bubble', from: 'narrate', text: t, color: '#ede9fe', w: 40 }, t, null, t, t))}</div>}
+              </div>
+            ))}
+          </Category>
           <Category label="Feelings" color="#E5B9E0" open={!!open.feelings} onToggle={() => tog('feelings')}>
-            <div className="dm-grid">{tile({ kind: 'energy', value: 2, w: 12 }, 'Energy slider', <img src={ENERGY_FACE['just right']} alt="" />, 'energy')}{todayFeeling && tile({ kind: 'feeling', src: feelingImg(todayFeeling), text: todayFeeling, w: 26 }, `Today: ${todayFeeling}`, <img src={feelingImg(todayFeeling)} alt="" />, 'today', todayFeeling)}</div>
+            <div className="dm-grid">{tile({ kind: 'stat', stat: 'feelline', w: 36, ar: 0.8 }, 'Today line graph', <span className="dm-chartchip line" />, 'fl')}{tile({ kind: 'stat', stat: 'feelbar', w: 36, ar: 0.8 }, 'Today bar graph', <span className="dm-chartchip bar"><i /><i /><i /></span>, 'fb')}{tile({ kind: 'energy', value: 2, w: 12 }, 'Energy slider', <img src={ENERGY_FACE['just right']} alt="" />, 'energy')}{todayFeeling && tile({ kind: 'feeling', src: feelingImg(todayFeeling), text: todayFeeling, w: 26 }, `Today: ${todayFeeling}`, <img src={feelingImg(todayFeeling)} alt="" />, 'today', todayFeeling)}</div>
             {FEELING_ROOTS.map((r) => (
               <div key={r.w} className="dm-subcat">
                 <button type="button" className="dm-subhead" onClick={() => setSub(sub === r.w ? null : r.w)} aria-expanded={sub === r.w}><img src={feelingImg(r.w)} alt="" /><span>{r.w}</span><span aria-hidden>{sub === r.w ? '▾' : '▸'}</span></button>
@@ -401,6 +427,10 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
             <span className="dm-sep" />
             <button type="button" onClick={() => speak(textOfHtml(textEl.current?.innerHTML) || 'Type about your day first.', tts)} aria-label="Read my words aloud">🔊</button>
           </div>
+          {task && (() => { const r = checkDiaryTask({ ...page, html: textEl.current?.innerHTML ?? page.html }, task); return (
+            <div className={`dm-task${r.done ? ' done' : ''}`} role="status"><b>{task.title}</b>{task.instructions && <span>{task.instructions}</span>}
+              <ul>{r.rows.slice(1).map((x) => <li key={x.label} className={x.ok ? 'ok' : ''}>{x.ok ? '✓ ' : ''}{x.label}</li>)}</ul>{r.done && <em>All done! Save your page.</em>}</div>
+          ); })()}
           <div className={`dm-stage${pathing ? ' pathing' : ''}`} onPointerDown={stageDown} onPointerMove={stageMove} onPointerUp={stageUp} onPointerCancel={stageUp} onKeyUp={keepSel} onMouseUp={keepSel} onTouchEnd={keepSel}>
             <DiaryPage page={page} selected={sel} onItemDown={itemDown} onBackDown={() => setSel(null)} pageRef={pageEl} className="dp-edit" studentId={studentId} day={day} textRef={textEl} onText={(html) => setPage((p) => (p.html === html ? p : { ...p, html }))} onItemChange={(id, patch) => upd(id, () => patch)} />
             {pathing && (

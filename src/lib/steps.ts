@@ -13,6 +13,11 @@ const DEFAULT_STEPS: Record<TaskType, Omit<StepDef, 'id'>[]> = {
     { icon: '🔙', text: 'Come back to this tab' },
     { icon: '✅', text: 'Tap "I did it!"' },
   ],
+  diary: [
+    { icon: '📔', text: 'Tap Open my Diary' },
+    { icon: '✏️', text: 'Make a page about your day' },
+    { icon: '✅', text: 'Check the list, then tap I did it!' },
+  ],
   offscreen: [
     { icon: '👀', text: 'Read what to do' },
     { icon: '✏️', text: 'Do it away from the screen' },

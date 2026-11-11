@@ -7,6 +7,7 @@ import QuizTask from './QuizTask';
 import PlatformerTask from './PlatformerTask';
 import LinkTask from './LinkTask';
 import OffscreenTask from './OffscreenTask';
+import DiaryTask from './DiaryTask';
 import VideoTask from './VideoTask';
 import PassageTask from './PassageTask';
 import DrillTask from './DrillTask';
@@ -208,6 +209,7 @@ export default function SubjectDashboard() {
           />
         );
       case 'offscreen': return <OffscreenTask student={student} task={task} onDone={handleDone} />;
+      case 'diary': return <DiaryTask student={student} task={task} onDone={() => handleDone()} />;
       case 'video': return <VideoTask student={student} task={task} onDone={handleDone} />;
       case 'passage': return <PassageTask student={student} subject={subj} task={task} onDone={handleDone} onExit={() => setSelectedTaskId(null)} />;
       case 'drill': return <DrillTask student={student} task={task} onDone={handleDone} />;

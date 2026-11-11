@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-diary-prompts",
+    date: "2026-11-11",
+    icon: "🎲",
+    title: "Diary: roll a prompt and chart your feelings",
+    body: "Stuck on what to write? Roll the dice for a prompt, or drag on a sentence starter like Today I was feeling ... Add a line graph or bar graph of today's feelings check-ins, and it keeps growing all day.",
+  },
+  {
     id: "2026-11-11-diary-comics",
     date: "2026-11-11",
     icon: "💥",

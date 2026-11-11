@@ -1,6 +1,9 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
 import { ENERGY_LEVELS, TAPES, cleanHtml, pageClass, pageH, type DiaryItem, type DiaryPageData } from '../lib/diaryBook';
 import { ENERGY_FACE } from '../lib/supernature';
+import { SEL_ZONE_COLORS } from '../lib/selZones';
+import { feelingImg, splitSelEmotion } from '../lib/feelingsWheel';
+import type { SelZone } from '../types';
 import { useStore } from '../store/store';
 import { petDefById } from '../lib/petCatalog';
 import { AGE_SCALE, ageForTraining } from '../lib/petsV2';
@@ -138,6 +141,7 @@ function StatWidget({ it, studentId, day }: { it: DiaryItem; studentId?: string;
   const streak = useStreak(studentId);
   const [right, wrong] = ((row?.look ?? {}) as Record<string, [number, number] | null>)[day ?? ''] ?? [0, 0];
   const total = right + wrong, acc = total ? Math.round((right / total) * 100) : 0;
+  if (it.stat === 'feelbar' || it.stat === 'feelline') return <FeelChart it={it} studentId={studentId} day={day} />;
   if (it.stat === 'accuracy') return (
     <div className="dp-stat ring">
       <div className="dp-ring" style={{ background: total ? `conic-gradient(#22c55e 0 ${acc}%, #ef4444 ${acc}% 100%)` : '#e5e7eb' }}><span><b>{acc}%</b><small>right</small></span></div>
@@ -195,6 +199,48 @@ function BestStat({ it, studentId }: { it: DiaryItem; studentId?: string }) {
   return (
     <div className="dp-stat best">
       <small>My best</small><b className="dp-stat-n" key={b?.score ?? 0}>{b?.score ?? 0}</b><small>{b ? `${b.unit} in ${b.name}` : 'Play to set a record!'}</small>
+    </div>
+  );
+}
+
+// Build Queue 581: the day's feelings wheel check-ins as a live line graph (energy through the day, a dot per check-in
+// with its feeling picture) or bar graph (how many times each feeling). New check-ins later that day keep adding to it.
+export function useDayFeelings(studentId?: string, day?: string) {
+  const all = useStore((s) => s.selCheckIns);
+  return dayFeelings(all, studentId, day);
+}
+export function dayFeelings(all: { studentId: string; timestamp: string; zone: SelZone; emotion: string }[], studentId?: string, day?: string) {
+  return all.filter((c) => c.studentId === studentId && new Date(c.timestamp).toLocaleDateString('en-CA') === day)
+    .sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1))
+    .map((c) => { const { emotion, energy } = splitSelEmotion(c.emotion); return { w: emotion, zone: c.zone, energy: energy ? Math.max(0, ENERGY_LEVELS.indexOf(energy as (typeof ENERGY_LEVELS)[number])) : 2, at: c.timestamp }; });
+}
+function FeelChart({ it, studentId, day }: { it: DiaryItem; studentId?: string; day?: string }) {
+  const pts = useDayFeelings(studentId, day);
+  if (!pts.length) return <div className="dp-stat feel"><small>My feelings today</small><small className="dp-feel-empty">Do a feelings check-in and it shows up here!</small></div>;
+  if (it.stat === 'feelbar') {
+    const counts = new Map<string, { n: number; zone: SelZone }>(); pts.forEach((p) => counts.set(p.w, { n: (counts.get(p.w)?.n ?? 0) + 1, zone: p.zone }));
+    const bars = [...counts.entries()].slice(0, 7), max = Math.max(...bars.map(([, v]) => v.n));
+    return (
+      <div className="dp-stat feel">
+        <small>My feelings today</small>
+        <div className="dp-fbars">{bars.map(([w, v]) => (
+          <div key={w} className="dp-fbar"><b>{v.n}</b><i style={{ height: `${(v.n / max) * 100}%`, background: SEL_ZONE_COLORS[v.zone] }} /><img src={feelingImg(w)} alt={w} onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} /></div>
+        ))}</div>
+      </div>
+    );
+  }
+  const n = pts.length, X = (k: number) => (n === 1 ? 50 : 8 + (k / (n - 1)) * 84), Y = (e: number) => 82 - e * 17;
+  return (
+    <div className="dp-stat feel">
+      <small>My feelings today</small>
+      <div className="dp-fline">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+          {[0, 1, 2, 3, 4].map((e) => <line key={e} x1="0" x2="100" y1={Y(e)} y2={Y(e)} stroke="#ffffff22" strokeWidth="0.6" vectorEffect="non-scaling-stroke" />)}
+          <polyline points={pts.map((p, k) => `${X(k)},${Y(p.energy)}`).join(' ')} fill="none" stroke="#fde047" strokeWidth="2.5" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        </svg>
+        {pts.map((p, k) => <img key={p.at} src={feelingImg(p.w)} alt={p.w} title={`${p.w} at ${new Date(p.at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`} style={{ left: `${X(k)}%`, top: `${Y(p.energy)}%`, borderColor: SEL_ZONE_COLORS[p.zone] }} onError={(e) => { e.currentTarget.removeAttribute('src'); e.currentTarget.style.background = SEL_ZONE_COLORS[p.zone]; }} />)}
+      </div>
+      <small className="dp-fline-axis">Higher up = more energy</small>
     </div>
   );
 }

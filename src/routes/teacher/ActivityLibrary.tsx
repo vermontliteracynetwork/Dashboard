@@ -11,6 +11,8 @@ import { PART_COLORS, ORGANIZER_PRESETS } from '../../lib/sentenceOrganizers';
 import { extractYouTubeId, youtubeThumbnailUrl } from '../../lib/youtube';
 import type { Subject, Task, TaskType, ActivityLibraryItem, ArticleSnapshot, SentencePart, LinkChoiceContent, LinkChoiceOption } from '../../types';
 import { TASK_TYPE_LABELS, TASK_TYPE_ICONS } from '../../types';
+import { NEED_LABEL } from '../../lib/diaryBook';
+import type { DiaryNeed } from '../../types';
 
 const MAX_ARTICLES_PER_TASK = 3;
 
@@ -379,7 +381,7 @@ export const activityToTaskSnapshot = (a: ActivityLibraryItem): Task => ({
 // activities anymore, matching how the SEL/finance Focus lanes were
 // retired — existing activities/assignments of those types keep working
 // exactly as before, nothing is deleted or migrated.
-const CREATABLE_TASK_TYPES: TaskType[] = ['quiz', 'link', 'video', 'platformer'];
+const CREATABLE_TASK_TYPES: TaskType[] = ['quiz', 'link', 'video', 'platformer', 'diary']; // Build Queue 582: Diary entry
 const CREATABLE_TASK_TYPE_LABELS: Partial<Record<TaskType, string>> = {
   platformer: '🎮 Native Game (in-game quiz, e.g. Platformer)',
 };
@@ -534,6 +536,33 @@ export function TaskEditor({
           content={task.linkChoice ?? { options: [] }}
           onChange={(linkChoice) => setTask({ ...task, linkChoice })}
         />
+      )}
+
+      {task.type === 'diary' && (
+        <div className="stack">
+          <div>
+            <label>Instructions for the student</label>
+            <textarea style={{ width: '100%' }} rows={2} value={task.diary?.instructions ?? ''} placeholder="Make a Diary page about your day."
+              onChange={(e) => setTask({ ...task, diary: { ...task.diary, instructions: e.target.value } })} />
+          </div>
+          <label title="Counts the words they type on the page, in notes and bubbles, and in captions. Leave empty for no word count.">
+            Word count (optional)&nbsp;
+            <input type="number" min={0} max={500} style={{ width: 90 }} value={task.diary?.minWords ?? ''}
+              onChange={(e) => setTask({ ...task, diary: { instructions: task.diary?.instructions ?? '', ...task.diary, minWords: e.target.value ? Math.max(0, Number(e.target.value)) : undefined } })} />
+          </label>
+          <div>
+            <label title="Things that must be on today's page before they can check this off.">Must include (optional)</label>
+            <div className="row" style={{ flexWrap: 'wrap', gap: 10 }}>
+              {(Object.keys(NEED_LABEL) as DiaryNeed[]).map((n) => (
+                <label key={n} style={{ fontWeight: 400 }}>
+                  <input type="checkbox" checked={task.diary?.needs?.includes(n) ?? false} style={{ marginRight: 4 }}
+                    onChange={(e) => { const cur = task.diary?.needs ?? []; setTask({ ...task, diary: { instructions: task.diary?.instructions ?? '', ...task.diary, needs: e.target.checked ? [...cur, n] : cur.filter((x) => x !== n) } }); }} />
+                  {NEED_LABEL[n].replace(/^(a|an|the|your) /, '').replace(/^./, (c) => c.toUpperCase())}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
 
       {task.type === 'offscreen' && (

@@ -39,6 +39,7 @@ export default function GameHarness() {
     if (!st.currentStudentId) {
       const sid = st.addStudent('Test', '🐶');
       useStore.setState({ currentStudentId: sid, role: 'student' } as never);
+      (window as unknown as { __store?: unknown }).__store = useStore; // mock up page only: lets screenshots add sample data
     }
     return true;
   });
