@@ -47,6 +47,7 @@ Students open both tools from the main menu's tools. Both now open big, like the
 - **Opposite Day.** On a surprise day, Rex shows the opposites first and talks backwards ("Bye! Rex I'm.").
 - **Fancy word bonus in games.** Using a "fancy" (right side of the slider) word in a typed answer or a Diary note gives a small XP sparkle.
 - **Ask Gilbert in questions.** When a grammar check says "'happy' is an adjective, not a verb", an "Ask Gilbert" button opens the Dictionary on that word.
+- **Picture dictionary pages (599, waiting on her).** Themed scene pages (kitchen, classroom, farm, park) where every object is tappable. Gilbert says the word, and it opens in the Dictionary with its part of speech. These would be built from our own art (Kenney CC0 models and thumbnails already in the app) and Mulberry Symbols, not the Oxford Picture Dictionary.
 - **Rhyme time.** After a lookup, Rex says one silly rhyme with the word.
 
 ---
@@ -106,6 +107,20 @@ Each source's license needs a final check before any public launch.
 | Voices | Human neural voice through `api/tts.ts` (OpenAI), device voice backup | Commercial use allowed under the provider's terms (say it is an AI voice) | Keep, or swap providers. Cache common words. |
 | Word parts | `morphology.ts`, our own prefix and suffix list | Ours | Keep, and grow it. |
 
+### Not usable
+
+| Source | Why not |
+|---|---|
+| Kolyn090/oxford-picture-dictionary (GitHub, asked about 2026-11-11) | The picture pages are Oxford University Press artwork used without permission. The README says it is not authorized by OUP and bans revenue-generating use and AI analysis. Its OSL-3.0 license covers only the app code, not the pages. A licensed Oxford Picture Dictionary digital edition can be bought from OUP instead. |
+
+### Picture sources that are commercial-friendly
+
+- **Mulberry Symbols:** CC BY-SA, about 3,000 symbols, commercial use allowed with attribution.
+- **OpenMoji** (CC BY-SA 4.0) and **Twemoji graphics** (CC BY 4.0).
+- **Kenney asset packs:** CC0.
+- **Our own drawings.**
+- **ARASAAC pictograms:** non-commercial license (CC BY-NC-SA), so the dashboard only, never the public version.
+
 ### Features worth keeping in the public version
 
 - Part of speech drop downs in grammar symbol colors (her symbols, her design).
@@ -123,6 +138,7 @@ Gilbert the Fish, Thesaurus Rex and the chicken riding the pig are original draw
 
 ## Change log of this doc
 
+- **2026-11-11:** The Oxford Picture Dictionary repo was checked and is not usable. Added a picture dictionary idea (599) and a list of commercial-friendly picture sources.
 - **2026-11-11:** Doc started.
   - The fish and dinosaur mascots, part of speech drop downs, the word tree with the slider, opposites roots, tap-any-word, and the chicken and pig easter egg shipped to preview (598).
   - The word type engine shared with the question sets (597).
