@@ -109,11 +109,15 @@ const use = { oven: (i: number) => ({ x: OVENS[i].x, y: 2 }), trash: { x: TRASH.
 // The counter holds a tower of up to 20 ready pizzas (two stacks of 10, Build Queue 471 and 478).
 // The counter tower grows with the "Bigger pizza tower" upgrade (Build Queue 490, her words: "give upgrade skill to sell
 // more pizzas in larger stacks. add an upgrade where stacks can increase to 15, 20, 25, and 50 at a time").
-const STACK_CAPS = [10, 15, 20, 25, 50];
-const STACK_COST = [400, 800, 1200, 2400];
+// Build Queue 590 (her words: "add a power up ability to increase countertop holding to 100. that must be very expensive
+// and hard to get, work up to it with incremental counter top increase power ups"): 60, 75 and 90 on the way, then 100,
+// the last one $25,000 and only at level 10.
+const STACK_CAPS = [10, 15, 20, 25, 50, 60, 75, 90, 100];
+const STACK_COST = [400, 800, 1200, 2400, 5000, 9000, 15000, 25000];
+const STACK_LV = [2, 2, 2, 2, 6, 7, 9, 10];
 const stackCap = (s: { stackLv?: number }) => STACK_CAPS[Math.min(STACK_CAPS.length - 1, s.stackLv ?? 0)];
 // A bigger tower also brings bigger orders, so a tall stack sells in one go.
-const STACK_ORDER = [0, 3, 6, 10, 20];
+const STACK_ORDER = [0, 3, 6, 10, 20, 22, 25, 28, 30];
 
 // Levels: what each one adds, taught as numbered steps (following multistep directions).
 const UNLOCKS: Record<number, { title: string; steps: string[] }> = {
@@ -176,8 +180,8 @@ type Hand = { item: Item | 'trash'; burnt?: boolean };
 interface Mover { x: number; y: number; path: P[]; face: 1 | -1; hands: Hand[]; job: (() => void) | null }
 // walk-in: on the way to the line; line: waiting for pizzas; eat: at a table; leave: heading out.
 type CState = 'walk-in' | 'line' | 'eat' | 'leave';
-interface Guest { id: number; npc: string; name: string; m: Mover; waitT?: number; state: CState; item: Item; n: number; takeout: boolean; table: number; arrived: number; critic?: boolean; eatEnd?: number; say?: { text: string; until: number } }
-interface Car { id: number; item: Item; n: number; state: 'come' | 'wait' | 'go'; x: number; arrived: number }
+interface Guest { got?: number; id: number; npc: string; name: string; m: Mover; waitT?: number; state: CState; item: Item; n: number; takeout: boolean; table: number; arrived: number; critic?: boolean; eatEnd?: number; say?: { text: string; until: number } }
+interface Car { got?: number; id: number; item: Item; n: number; state: 'come' | 'wait' | 'go'; x: number; arrived: number }
 // Ovens bake a batch: 2 pizzas, and one more for each faster oven upgrade.
 interface Oven { state: 'idle' | 'cook' | 'ready' | 'burnt'; item?: Item; t: number; n: number }
 interface Day { served: number; pizzas: number; money: number; tips: number; slow: number; five: number; stars: number[]; items: Partial<Record<Item, number>>; wages?: { who: string; amt: number }[] }
@@ -483,7 +487,7 @@ export default function Restaurant() {
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && o.state === 'idle'); if (oi < 0) return;
     const menu2 = menuFor(s2.level, s2.theme);
     const have = (it: Item) => s2.stock.filter((x) => x === it).length + (s2.fridge ?? []).filter((x) => x === it).length;
-    const want = G2.guests.find((c) => c.state === 'line' && have(c.item) < c.n)?.item ?? G2.cars.find((c) => c.state === 'wait' && have(c.item) < c.n)?.item;
+    const want = G2.guests.find((c) => c.state === 'line' && have(c.item) < c.n - (c.got ?? 0))?.item ?? G2.cars.find((c) => c.state === 'wait' && have(c.item) < c.n - (c.got ?? 0))?.item;
     const item = want && menu2.includes(want) ? want : menu2.includes(bakeRef.current) ? bakeRef.current : menu2[0];
     ck.path = route(ck, use.oven(oi)); ck.job = () => { const o = G2.ovens[oi]; if (o.state === 'idle') { o.state = 'cook'; o.item = item; o.t = 0; o.n = batch(s2); tally('baked', o.n); } };
   }
@@ -500,7 +504,7 @@ export default function Restaurant() {
     if (sv.hands.some((h) => h.item === 'trash' || h.burnt)) { sv.path = route(sv, use.trash); sv.job = () => { sv.hands = []; }; return; }
     // A customer or car is waiting on pizzas that are in the fridge: bring them out to the counter.
     const need = [...G2.guests.filter((c) => c.state === 'line').sort((a, b) => a.arrived - b.arrived), ...G2.cars.filter((c) => c.state === 'wait')]
-      .map((c) => ({ item: c.item, n: c.n - s2.stock.filter((x) => x === c.item).length })).find((w) => w.n > 0 && fr.includes(w.item));
+      .map((c) => ({ item: c.item, n: c.n - (c.got ?? 0) - s2.stock.filter((x) => x === c.item).length })).find((w) => w.n > 0 && fr.includes(w.item));
     if (need && !sv.hands.length && s2.stock.length < stackCap(s2)) { sv.path = route(sv, use.fridge); sv.job = () => { const k = Math.min(need.n, cap, stackCap(s2) - s2.stock.length); for (let j = 0; j < k; j++) { const at = fr.indexOf(need.item); if (at < 0) break; fr.splice(at, 1); sv.hands.push({ item: need.item }); } }; return; }
     const oi = G2.ovens.findIndex((o, i) => i < s2.ovens && (o.state === 'ready' || o.state === 'burnt'));
     if (oi >= 0) { sv.path = route(sv, use.oven(oi)); sv.job = () => { const o = G2.ovens[oi]; if (o.state === 'burnt') { sv.hands.push({ item: o.item ?? 'cheese', burnt: true }); o.state = 'idle'; o.n = 0; } else if (o.state === 'ready') { const k = Math.min(o.n, cap); for (let j = 0; j < k; j++) sv.hands.push({ item: o.item! }); o.n -= k; if (!o.n) o.state = 'idle'; } }; return; }
@@ -549,8 +553,16 @@ export default function Restaurant() {
     flash(`Baking ${o.n} ${ITEMS[o.item].name.toLowerCase()}s.`);
   };
   // Hand a customer their pizzas from the tower and take payment (the student at the counter, or the takeout attendant).
-  const handOver = (c: Guest, staff = false) => {
-    for (let k = 0; k < c.n; k++) s.stock.splice(s.stock.indexOf(c.item), 1);
+  // Build Queue 590 (her words: "allow player and employee to give partial order from hands or from counter, the npc must
+  // wait for the rest of their order"): give what is there (from hands first, then the counter); the customer keeps
+  // waiting in line for the rest, then pays once the whole order is in.
+  const handOver = (c: Guest, staff = false, hands?: Mover) => {
+    let left = c.n - (c.got ?? 0), k = 0;
+    if (hands) { const mine = pizzasIn(hands.hands).filter((h) => h.item === c.item).slice(0, left); hands.hands = hands.hands.filter((h) => !mine.includes(h)); k += mine.length; left -= mine.length; }
+    while (left > 0 && s.stock.includes(c.item)) { s.stock.splice(s.stock.indexOf(c.item), 1); k += 1; left -= 1; }
+    if (!k) return false;
+    c.got = (c.got ?? 0) + k; clip('plate');
+    if (left > 0) { c.say = { text: `Thanks! I'll wait for ${left} more.`, until: Date.now() + 3000 }; pop(`${c.got} of ${c.n}`, ORDER_SPOT); if (staff) tally('takeout'); return true; }
     const waited = (Date.now() - c.arrived) / 1000, stars = starsFor(waited, c.n);
     const amt = priceOf(c.item, c.n);
     let tip = amt * ((stars >= 5 ? 0.2 : stars === 4 ? 0.1 : 0) + s.me.acc * 0.04 + s.decor.length * 0.05) * (G.event?.id === 'rush' && G.event.until > Date.now() ? 2 : 1);
@@ -563,10 +575,13 @@ export default function Restaurant() {
     else { c.state = 'eat'; c.eatEnd = Date.now() + 6000 + c.n * 600; c.m.path = route(c.m, { x: TABLES[c.table].x + 1, y: TABLES[c.table].y }); }
     c.m.job = null; served(stars, c.n, c.item); reline();
     if (staff) { tally('takeout'); tally('money', paid); }
+    return true;
   };
   // The counter: stack what you carry on the tower, then hand the first customer in line their pizzas and take payment.
   const atCounter = () => {
     let did = false;
+    const first = G.guests.filter((x) => x.state === 'line').sort((a, b) => a.arrived - b.arrived)[0];
+    if (first && (pizzasIn(G.me.hands).some((h) => h.item === first.item) || s.stock.includes(first.item))) { handOver(first, false, G.me); did = true; if (first.state === 'line') { save(); } }
     const carried = pizzasIn(G.me.hands);
     if (carried.length) {
       const room = stackCap(s) - s.stock.length;
@@ -575,16 +590,14 @@ export default function Restaurant() {
     }
     const c = G.guests.filter((x) => x.state === 'line').sort((a, b) => a.arrived - b.arrived)[0];
     if (c) {
-      const have = s.stock.filter((x) => x === c.item).length;
-      if (have >= c.n) { handOver(c); return; }
-      const cold = (s.fridge ?? []).filter((x) => x === c.item).length;
-      if (!did) hint(`${c.name} wants ${c.n} ${ITEMS[c.item].name.toLowerCase()}${c.n === 1 ? '' : 's'}. The counter has ${have}.${cold ? ` The fridge has ${cold}.` : ` Bake ${c.n - have} more!`}`);
+      const left = c.n - (c.got ?? 0), cold = (s.fridge ?? []).filter((x) => x === c.item).length;
+      if (!did) hint(`${c.name} still needs ${left} ${ITEMS[c.item].name.toLowerCase()}${left === 1 ? '' : 's'}.${cold ? ` The fridge has ${cold}.` : ` Bake ${left} more!`}`);
       return;
     }
     // A car waiting at the drive through: pick its pizzas up from the tower to carry to the window.
     const car = G.cars.find((x) => x.state === 'wait');
     if (car && !did) {
-      const have = s.stock.filter((x) => x === car.item).length, k = Math.min(car.n, have, carryMax - G.me.hands.length);
+      const have = s.stock.filter((x) => x === car.item).length, k = Math.min(car.n - (car.got ?? 0) - pizzasIn(G.me.hands).filter((h) => h.item === car.item).length, have, carryMax - G.me.hands.length);
       if (k > 0) { for (let j = 0; j < k; j++) { s.stock.splice(s.stock.indexOf(car.item), 1); G.me.hands.push({ item: car.item }); } clip('plate'); flash(`Carry them to the drive through window.`); return; }
     }
     if (!did) hint(s.stock.length ? 'No one is in line right now. Your tower is ready for them.' : 'Bake some pizzas, then stack them here.');
@@ -632,9 +645,15 @@ export default function Restaurant() {
     const car = G.cars.find((c) => c.state === 'wait');
     if (!car) return hint('No car at the window.');
     const mine = G.me.hands.filter((h) => h.item === car.item && !h.burnt);
-    if (mine.length < car.n) return hint(`The car wants ${car.n} ${ITEMS[car.item].name.toLowerCase()}${car.n === 1 ? '' : 's'}. You are carrying ${mine.length}.`);
-    const give = mine.slice(0, car.n); G.me.hands = G.me.hands.filter((h) => !give.includes(h));
-    payCar(car);
+    if (!mine.length) return hint(`The car still needs ${car.n - (car.got ?? 0)} ${ITEMS[car.item].name.toLowerCase()}${car.n - (car.got ?? 0) === 1 ? '' : 's'}. Bring them from the counter.`);
+    giveCar(car, G.me);
+  };
+  // Partial drive through orders (Build Queue 590): the car waits at the window for the rest.
+  const giveCar = (car: Car, m: Mover, staff = false) => {
+    const left = car.n - (car.got ?? 0), give = pizzasIn(m.hands).filter((h) => h.item === car.item).slice(0, left);
+    if (!give.length) return; m.hands = m.hands.filter((h) => !give.includes(h)); car.got = (car.got ?? 0) + give.length; clip('plate');
+    if (car.got < car.n) { pop(`${car.got} of ${car.n}`, WINDOW); flash(`The car waits for ${car.n - car.got} more.`); return; }
+    payCar(car, staff);
   };
   const payCar = (car: Car, staff = false) => {
     const stars = starsFor((Date.now() - car.arrived) / 1000, car.n); car.state = 'go';
@@ -659,9 +678,9 @@ export default function Restaurant() {
     // The takeout attendant: any takeout customer in line whose pizzas are on the tower gets them, line or no line.
     takeout: () => {
       const m = G.takeout;
-      const c = G.guests.filter((x) => x.state === 'line' && x.takeout && s.stock.filter((i) => i === x.item).length >= x.n).sort((a, b) => a.arrived - b.arrived)[0];
+      const c = G.guests.filter((x) => x.state === 'line' && x.takeout && s.stock.includes(x.item)).sort((a, b) => a.arrived - b.arrived)[0];
       if (!c) { home(m, 'takeout'); return; }
-      send(m, use.counter, () => { if (c.state === 'line' && s.stock.filter((i) => i === c.item).length >= c.n) handOver(c, true); });
+      send(m, use.counter, () => { if (c.state === 'line' && s.stock.includes(c.item)) handOver(c, true); });
     },
     // The drive through attendant: takes the car's pizzas off the tower and carries them to the window.
     drive: () => {
@@ -669,9 +688,9 @@ export default function Restaurant() {
       const putBack = (keep: (h: Hand) => boolean) => send(m, TOWER_BACK, () => { const back = pizzasIn(m.hands).filter((h) => !keep(h)).slice(0, Math.max(0, stackCap(s) - s.stock.length)); s.stock.push(...back.map((h) => h.item as Item)); m.hands = m.hands.filter((h) => keep(h)); });
       if (!car) { if (m.hands.length) putBack(() => false); else home(m, 'drive'); return; }
       if (goods.some((h) => h.item !== car.item)) { putBack((h) => h.item === car.item); return; }
-      if (goods.length >= car.n) { send(m, use.window, () => { if (car.state !== 'wait') return; const give = pizzasIn(m.hands).filter((h) => h.item === car.item).slice(0, car.n); if (give.length < car.n) return; m.hands = m.hands.filter((h) => !give.includes(h)); payCar(car, true); }); return; }
-      const need = car.n - goods.length;
-      if (s.stock.filter((x) => x === car.item).length < need) { home(m, 'drive'); return; }
+      const need = car.n - (car.got ?? 0) - goods.length, onTower = s.stock.filter((x) => x === car.item).length;
+      if (goods.length && (need <= 0 || !onTower)) { send(m, use.window, () => { if (car.state === 'wait') giveCar(car, m, true); }); return; }
+      if (need <= 0 || !onTower) { home(m, 'drive'); return; }
       send(m, TOWER_BACK, () => { const k = Math.min(need, s.stock.filter((x) => x === car.item).length); for (let j = 0; j < k; j++) { s.stock.splice(s.stock.indexOf(car.item), 1); m.hands.push({ item: car.item }); } });
     },
   };
@@ -815,7 +834,7 @@ export default function Restaurant() {
   const bubbleFor = (c: Guest) => {
     if (c.say) return <i className="rt-b3"><em>{c.say.text}</em></i>;
     // Only once they are standing in line, one tile apart, so bubbles never pile up on each other (Build Queue 472).
-    if (c.state === 'line') return <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n}</b>{c.takeout && <img src={`${ICON}pizzabox.png`} alt="to go" />}</span></i>;
+    if (c.state === 'line') return <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n - (c.got ?? 0)}</b>{c.got ? <small>{c.got} of {c.n}</small> : null}{c.takeout && <img src={`${ICON}pizzabox.png`} alt="to go" />}</span></i>;
     return null;
   };
   // Bubbles down the line take turns left and right of each customer, so they never cover one another.
@@ -859,7 +878,7 @@ export default function Restaurant() {
             stations={tagged} me={sceneMover(G.me)} meLook={meLook}
             staff={G.staffHome && ROLE_KEYS.every((r) => !G[r].path.length) ? [] : ROLE_KEYS.filter((r) => s[r]).map((r) => ({ m: sceneMover(G[r]), look: profiles[s.staff?.[r] ?? '']?.look ?? ROLES[r].look }))}
             guests={G.guests.map((c) => ({ id: c.id, m: sceneMover(c.m), look: profiles[c.npc]?.look ?? defaultLook('dog'), bubble: bubbleFor(c), side: lineSide(c) }))}
-            cars={G.cars.map((c) => ({ id: c.id, x: c.x, bubble: c.state === 'wait' ? <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n}</b></span></i> : null }))}
+            cars={G.cars.map((c) => ({ id: c.id, x: c.x, bubble: c.state === 'wait' ? <i className="rt-b3 ask"><Stars small value={starsFor((nowMs - c.arrived) / 1000, c.n)} /><span className="rt-want"><img src={ITEMS[c.item].img} alt="" /><b>× {c.n - (c.got ?? 0)}</b>{c.got ? <small>{c.got} of {c.n}</small> : null}</span></i> : null }))}
             props={FIXED} tapHere={showHints ? tapHere : null} pops={pops}
             ovenFood={[]} shelfFood={[]}
             counterFood={s.stock.map((it) => ITEMS[it].food)}
@@ -980,7 +999,7 @@ export default function Restaurant() {
                 { name: 'Third oven', ok: lvOk(8) && s.ovens === 2, need: 8, cost: 1000, act: () => { if (spend(1000)) s.ovens = 3; } },
                 { name: 'New dining room next door (room for 4 more tables)', ok: lvOk(10) && !s.annex, need: 10, cost: ANNEX_COST, act: () => { if (spend(ANNEX_COST)) { s.annex = true; flash('Your new dining room is open! Add tables in it.'); } } },
                 { name: `Table ${s.tables + 1}`, ok: s.tables < tableCap, need: s.tables < 3 ? 2 : s.tables < MAIN_TABLES ? 8 : 10, cost: tableCost(s.tables), act: () => { if (spend(tableCost(s.tables))) s.tables += 1; } },
-                { name: (s.stackLv ?? 0) < 4 ? `Bigger pizza tower (holds ${STACK_CAPS[(s.stackLv ?? 0) + 1]}, bigger orders)` : 'Bigger pizza tower (holds 50)', ok: lvOk(2) && (s.stackLv ?? 0) < 4, need: 2, cost: STACK_COST[Math.min(3, s.stackLv ?? 0)], act: () => { const lv = s.stackLv ?? 0; if (spend(STACK_COST[lv])) { s.stackLv = lv + 1; flash(`Your counter tower now holds ${stackCap(s)} pizzas, and customers order more!`); } } },
+                { name: (s.stackLv ?? 0) < STACK_CAPS.length - 1 ? `Bigger counter: holds ${STACK_CAPS[(s.stackLv ?? 0) + 1]} pizzas${(s.stackLv ?? 0) + 1 === STACK_CAPS.length - 1 ? ' (the biggest!)' : ''}, bigger orders` : 'Biggest counter (holds 100)', ok: (s.stackLv ?? 0) < STACK_CAPS.length - 1 && lvOk(STACK_LV[s.stackLv ?? 0]), need: STACK_LV[Math.min(STACK_LV.length - 1, s.stackLv ?? 0)], cost: STACK_COST[Math.min(STACK_COST.length - 1, s.stackLv ?? 0)], act: () => { const lv = s.stackLv ?? 0; if (spend(STACK_COST[lv])) { s.stackLv = lv + 1; flash(`Your counter now holds ${stackCap(s)} pizzas, and customers order more!`); } } },
                 { name: `Faster, bigger oven ${s.ovenLv + 1} (bakes ${batch(s) + 1} at a time)`, ok: lvOk(2) && s.ovenLv < 5, need: 2, cost: 200 * (s.ovenLv + 1), act: () => { if (spend(200 * (s.ovenLv + 1))) s.ovenLv += 1; } },
               ].map((it) => <button key={it.name} type="button" className="btn rt-item" disabled={!it.ok} onClick={() => { if (s.money < it.cost) { clip('error'); flash(`You need ${fmt(it.cost - s.money)} more.`); return; } setShop(null); gate(`Answer ${plural(qFor(it.cost))} for this upgrade!`, qFor(it.cost), () => { it.act(); checkLevel(); save(); setTick((n) => n + 1); }); }}><b>{it.name}</b><span>{it.ok ? fmt(it.cost) : s.claimed < it.need ? `Level ${it.need}` : 'Got it'}</span></button>)}
             </div>}

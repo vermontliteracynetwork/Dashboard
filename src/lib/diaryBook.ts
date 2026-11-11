@@ -76,6 +76,8 @@ export const STARTER_MEMES: LibraryPic[] = [
   { src: '/diary/memes/confused.webp', name: 'Confused' },
   { src: '/diary/memes/salt-bae.webp', name: 'Salt Bae' },
   { src: '/diary/memes/minion-stare.jpg', name: 'Minion stare' },
+  { src: '/diary/memes/ostrich.jpg', name: 'Ostrich stare' },
+  { src: '/diary/memes/sad-frog.jpg', name: 'Sad frog' },
 ];
 
 // Paper colors for the page.

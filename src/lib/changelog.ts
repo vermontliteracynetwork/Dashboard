@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-restaurant-partial",
+    date: "2026-11-11",
+    icon: "🍕",
+    title: "Restaurant: part of an order, and a giant counter",
+    body: "Hand a customer some of their pizzas now and the rest later. They wait for the rest! Save up for bigger counters: 60, 75, 90, and the giant 100 pizza counter for real pizza masters.",
+  },
+  {
     id: "2026-11-11-diary-memes",
     date: "2026-11-11",
     icon: "😂",
