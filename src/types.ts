@@ -797,7 +797,10 @@ export interface ScratchGame {
 export interface MusicTrack {
   id: string;
   title: string;
-  url: string; // a youtube.com/watch or youtu.be URL
+  // A YouTube link (youtube.com/watch or youtu.be), or a song file: an MP3/M4A she uploaded (a Supabase Storage
+  // public URL, Build Queue 349/609), a direct link to a song file, or a built-in /music/ file. isSongFile() in
+  // GlobalMusicPlayer.tsx tells them apart; song files play through a plain audio element.
+  url: string;
   createdAt: string;
   tags?: string[]; // teacher-authored, free-form — same search/filter pattern as CinemaVideo.tags
 }

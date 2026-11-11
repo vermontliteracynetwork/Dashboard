@@ -3,14 +3,36 @@ import { useStore } from '../../store/store';
 import { extractYouTubeId } from '../../lib/youtube';
 import type { MusicTrack } from '../../types';
 import { uploadAudio } from '../../lib/upload';
-import { useMusicTracks } from '../../lib/musicLibrary';
+import { playableSrc, useMusicTracks } from '../../lib/musicLibrary';
 import { isSongFile } from '../../components/GlobalMusicPlayer';
+
+// Build Queue 609: song file uploads (an MP3 from Suno, for example) with no YouTube step. Checks the file first and
+// turns a storage error into a plain next step instead of a raw message.
+const MAX_SONG_MB = 50; // Supabase's standard upload limit per file
+const SONG_EXT = /\.(mp3|m4a|aac|wav|ogg|oga|webm|flac)$/i;
+const songFileProblem = (f: File) =>
+  !(f.type.startsWith('audio/') || SONG_EXT.test(f.name)) ? `"${f.name}" is not a song file. Use an MP3, M4A, WAV or OGG file.`
+    : f.size > MAX_SONG_MB * 1024 * 1024 ? `"${f.name}" is too big (over ${MAX_SONG_MB} MB). Download it again as MP3, which is much smaller.`
+      : null;
+const uploadErrorText = (e: unknown) => {
+  const m = e instanceof Error ? e.message : String(e ?? '');
+  if (/bucket not found/i.test(m)) return 'Song uploads need the "videos" storage bucket. Run supabase/schema.sql (the Storage part near the end) in the Supabase SQL Editor once, then try again.';
+  if (/row-level security|policy|unauthorized|403/i.test(m)) return 'Supabase did not allow the upload. Run supabase/schema.sql (the Storage part near the end) in the Supabase SQL Editor once, then try again.';
+  if (/payload too large|exceeded the maximum|413/i.test(m)) return `That file is too big for storage (over ${MAX_SONG_MB} MB). Download it again as MP3, which is much smaller.`;
+  return m || 'That song could not be uploaded. Check the internet connection and try again.';
+};
+// Where a track's sound comes from, for the row label.
+const sourceLabel = (url: string) =>
+  extractYouTubeId(url) ? 'YouTube link, audio only'
+    : /\/storage\/v1\/object\/public\//.test(url) ? 'Uploaded song file'
+      : url.startsWith('/music/') ? 'Built-in song file'
+        : 'Song file link';
 
 // A shared music library — direct teacher request: a car radio, the
 // Concert Hall building, and a placeable Boom Box all draw from this same
-// list. Always audio only: unlike Cinema, nothing here ever shows video —
-// students hear it through a hidden YouTube embed, so there's no cover
-// image/upload option to add here, just a title and a link.
+// list. Always audio only: unlike Cinema, nothing here ever shows video.
+// Students hear a YouTube link through a hidden YouTube embed, and an
+// uploaded song file (Build Queue 349/609) through a hidden audio element.
 export default function MusicManager() {
   const musicTracks = useMusicTracks();
   const addMusicTrack = useStore((s) => s.addMusicTrack);
@@ -24,14 +46,27 @@ export default function MusicManager() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   // Build Queue 349 (her words: "add this suno song to the mp3 music library as a song. call it "Dog Nose Magic""):
   // song files (an MP3 downloaded from Suno, for example) upload straight into the library.
-  const [uploading, setUploading] = useState(false);
-  const uploadSong = async (file: File | undefined, name?: string) => {
-    if (!file) return;
-    const t = (name ?? title).trim() || file.name.replace(/\.[a-z0-9]+$/i, '');
-    setUploading(true); setError(null);
-    try { const url = await uploadAudio(file); addMusicTrack({ title: t, url, tags }); resetForm(); }
-    catch (e) { setError(e instanceof Error ? e.message : 'That song could not be uploaded.'); }
-    setUploading(false);
+  // Build Queue 609: several files at once; each one is titled from its file name unless a title is typed (a typed
+  // title is used for a single file). Bad files are skipped with a reason; the rest still upload.
+  const [uploading, setUploading] = useState<string | null>(null);
+  const uploadSongs = async (files: File[]) => {
+    if (!files.length) return;
+    setError(null);
+    const pending = tagInput.trim();
+    const finalTags = pending && !tags.includes(pending) ? [...tags, pending] : tags;
+    const problems: string[] = [];
+    let added = 0;
+    for (const [i, file] of files.entries()) {
+      const bad = songFileProblem(file);
+      if (bad) { problems.push(bad); continue; }
+      setUploading(files.length > 1 ? `Uploading ${i + 1} of ${files.length}...` : 'Uploading...');
+      const t = (files.length === 1 && title.trim()) || file.name.replace(/\.[a-z0-9]+$/i, '').replace(/_+/g, ' ').trim() || 'New song';
+      try { const url = await uploadAudio(file); addMusicTrack({ title: t, url, tags: finalTags }); added++; }
+      catch (e) { problems.push(uploadErrorText(e)); break; }
+    }
+    setUploading(null);
+    if (added) resetForm();
+    if (problems.length) setError(Array.from(new Set(problems)).join(' '));
   };
 
   const allTags = useMemo(
@@ -73,9 +108,9 @@ export default function MusicManager() {
 
   return (
     <div className="content-well stack">
-      <strong>🎵 Music</strong>
+      <strong>Music</strong>
       <p style={{ fontSize: '0.8rem', opacity: 0.75, margin: 0 }}>
-        A shared music library: plays audio only (no video) from the car radio, the Concert Hall building, the Boom Box and the Music app on the student computer. Paste a YouTube link, or upload a song file (MP3, M4A), and give it a title.
+        A shared music library: plays audio only (no video) from the car radio, the Concert Hall building, the Boom Box and the Music app on the student computer. Upload song files (MP3, M4A, WAV or OGG, for example a song downloaded from Suno; you can pick several at once), or paste a YouTube link with a title.
       </p>
 
       <div className="stack" style={{ gap: 8 }}>
@@ -89,7 +124,7 @@ export default function MusicManager() {
           <input
             className="input"
             style={{ flex: 1 }}
-            placeholder="Paste a YouTube link…"
+            placeholder="Paste a YouTube link or a link to a song file…"
             value={linkUrl}
             onChange={(e) => setLinkUrl(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') addLink(); }}
@@ -97,8 +132,10 @@ export default function MusicManager() {
           <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!title.trim() || !linkUrl.trim()} onClick={addLink}>
             + Add Track
           </button>
-          <label className="btn btn-sm" style={{ minHeight: 44, position: 'relative' }}>{uploading ? 'Uploading...' : 'Upload a song file'}
-            <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden onChange={(e) => { void uploadSong(e.target.files?.[0]); e.target.value = ''; }} />
+          <label className="btn btn-sm" style={{ minHeight: 44, position: 'relative', opacity: uploading ? 0.6 : 1, pointerEvents: uploading ? 'none' : undefined }}
+            title="Pick one or more song files from this computer. The title box is used when you pick one file; otherwise each song is named after its file.">
+            {uploading ?? 'Upload song files'}
+            <input type="file" multiple accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden disabled={!!uploading} onChange={(e) => { void uploadSongs(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
           </label>
         </div>
         <div className="stack" style={{ gap: 6, maxWidth: 320 }}>
@@ -146,7 +183,7 @@ export default function MusicManager() {
                   className={`btn chip-filter-sm ${tagFilter === t ? 'btn-primary' : ''}`}
                   onClick={() => setTagFilter(tagFilter === t ? null : t)}
                 >
-                  🏷️ {t}
+                  {t}
                 </button>
               ))}
             </div>
@@ -171,6 +208,9 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
   const [editTags, setEditTags] = useState<string[]>(track.tags ?? []);
   const [tagInput, setTagInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const builtin = track.id.startsWith('builtin-');
+  const songFile = isSongFile(track.url);
 
   const startEdit = () => {
     setEditTitle(track.title);
@@ -192,8 +232,8 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
     const t = editTitle.trim();
     if (!t) return;
     const u = editUrl.trim();
-    if (!extractYouTubeId(u)) {
-      setError("That doesn't look like a YouTube link.");
+    if (!extractYouTubeId(u) && !isSongFile(u)) {
+      setError('Paste a YouTube link or a link to a song file, or use Replace with a song file.');
       return;
     }
     const pending = tagInput.trim();
@@ -202,11 +242,28 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
     setEditing(false);
   };
 
+  // Build Queue 609: swap the sound for a new song file and keep the title and tags.
+  const replaceFile = async (file: File | undefined) => {
+    if (!file) return;
+    const bad = songFileProblem(file);
+    if (bad) { setError(bad); return; }
+    setReplacing(true); setError(null);
+    try { setEditUrl(await uploadAudio(file)); }
+    catch (e) { setError(uploadErrorText(e)); }
+    setReplacing(false);
+  };
+
   if (editing) {
     return (
       <div className="stack" style={{ gap: 8, border: '2px solid var(--purple)', borderRadius: 10, padding: 10 }}>
         <input className="input" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="Track title" />
-        <input className="input" value={editUrl} onChange={(e) => setEditUrl(e.target.value)} placeholder="YouTube link" />
+        <div className="row" style={{ gap: 8 }}>
+          <input className="input" style={{ flex: 1 }} value={editUrl} onChange={(e) => setEditUrl(e.target.value)} placeholder="YouTube link or song file link" />
+          <label className="btn btn-sm" style={{ minHeight: 44, opacity: replacing ? 0.6 : 1, pointerEvents: replacing ? 'none' : undefined }} title="Upload a new song file for this track. The title and tags stay.">
+            {replacing ? 'Uploading...' : 'Replace with a song file'}
+            <input type="file" accept="audio/*,.mp3,.m4a,.wav,.ogg,.aac" hidden disabled={replacing} onChange={(e) => { void replaceFile(e.target.files?.[0]); e.target.value = ''; }} />
+          </label>
+        </div>
         <div className="stack" style={{ gap: 6 }}>
           <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>Tags/categories</label>
           {editTags.length > 0 && (
@@ -239,7 +296,7 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
         </div>
         {error && <p style={{ color: '#c0392b', fontSize: '0.8rem', margin: 0 }}>{error}</p>}
         <div className="row" style={{ gap: 8 }}>
-          <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!editTitle.trim()} onClick={save}>✅ Save</button>
+          <button className="btn btn-sm btn-primary" style={{ minHeight: 44 }} disabled={!editTitle.trim() || replacing} onClick={save}>Save</button>
           <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={() => setEditing(false)}>Cancel</button>
         </div>
       </div>
@@ -248,10 +305,9 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
 
   return (
     <div className="row" style={{ gap: 10, alignItems: 'center', border: '2px solid var(--content-border)', borderRadius: 10, padding: 8 }}>
-      <div style={{ width: 44, height: 44, borderRadius: 8, background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>🎵</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{track.title}</div>
-        <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>Audio only</div>
+        <div style={{ fontSize: '0.7rem', opacity: 0.6 }}>{sourceLabel(track.url)}</div>
         {(track.tags ?? []).length > 0 && (
           <div className="row-wrap" style={{ gap: 3, marginTop: 3 }}>
             {(track.tags ?? []).map((t) => (
@@ -260,7 +316,10 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
           </div>
         )}
       </div>
-      <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={startEdit} aria-label={`Edit ${track.title}`}>✏️ Edit</button>
+      {/* Build Queue 609: listen to a song file right here before students hear it. */}
+      {songFile && <audio controls preload="none" src={playableSrc(track.url)} style={{ height: 32, width: 240, flexShrink: 0 }} aria-label={`Preview ${track.title}`} />}
+      {builtin ? <span style={{ fontSize: '0.72rem', opacity: 0.6 }} title="Built into the app, so it cannot be edited or deleted here.">Built in</span> : <>
+      <button className="btn btn-sm" style={{ minHeight: 44 }} onClick={startEdit} aria-label={`Edit ${track.title}`}>Edit</button>
       {confirmDelete ? (
         <>
           <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={onDelete}>Confirm</button>
@@ -268,9 +327,10 @@ function MusicTrackRow({ track, onDelete }: { track: MusicTrack; onDelete: () =>
         </>
       ) : (
         <button className="btn btn-sm btn-danger" style={{ minHeight: 44 }} onClick={() => setConfirmDelete(true)} aria-label={`Delete ${track.title}`}>
-          🗑️
+          Delete
         </button>
       )}
+      </>}
     </div>
   );
 }
