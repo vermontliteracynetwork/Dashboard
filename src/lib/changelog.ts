@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-diary-comics",
+    date: "2026-11-11",
+    icon: "💥",
+    title: "Diary: comics, videos and brag stats",
+    body: "Turn your diary page into a comic with frames, shout bubbles and POW! words. Pick landscape or portrait. Show off your best game scores, slide your energy level, and talk out loud to your pet. Then save your page, or your whole week, as a video!",
+  },
+  {
     id: "2026-11-11-diary-canva",
     date: "2026-11-11",
     icon: "🎨",

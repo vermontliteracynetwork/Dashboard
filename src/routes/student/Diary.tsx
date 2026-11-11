@@ -11,8 +11,12 @@ import { SEL_ZONE_COLORS, SEL_ZONE_LABELS } from '../../lib/selZones';
 import { ENERGY_FACE, ENERGY_STEPS, type Energy } from '../../lib/supernature';
 import { petDefById, thumbnailFor } from '../../lib/petCatalog';
 import { todayISO } from '../../lib/dates';
-import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
+import { DIARY_LIBRARY, PAPERS, STARTER_STICKERS, TAPES, cleanHtml, diaryOwner, textOfHtml, type DiaryAnim, type DiaryEntry, type DiaryOrient, COMIC_LAYOUTS, SFX_WORDS, type BubbleStyle, type DiaryItem, type DiaryItemKind, type DiaryLibrary, type DiaryPageData, type LibraryPic } from '../../lib/diaryBook';
 import { PET_REPLY } from '../../lib/petsV2';
+import { recordReel, shareVideo, type ReelPage, type StatNow } from '../../lib/diaryVideo';
+import { useBests } from '../../components/DiaryPage';
+import { dayOwner } from '../../lib/questionMastery';
+import { readStreak } from '../../lib/streak';
 import { sayInPetVoice } from '../../lib/petSpeak';
 import { PetPortrait } from './PetFinder';
 import type { SelZone } from '../../types';
@@ -40,6 +44,24 @@ const asPage = (e: DiaryEntry): DiaryPageData => e.page ?? {
 };
 const dayLabel = (iso: string) => new Date(iso).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
+// Live numbers for a page's day, for its video (the same numbers the page shows).
+function statFor(studentId: string, day: string) {
+  const st = useStore.getState();
+  const [right, wrong] = ((st.styleLooks.find((r) => r.ownerId === dayOwner(studentId))?.look ?? {}) as Record<string, [number, number] | null>)[day] ?? [0, 0];
+  return (it: DiaryItem): StatNow => {
+    if (it.stat === 'accuracy') return { label: `${right} of ${right + wrong} right`, ring: { right, total: right + wrong } };
+    if (it.stat === 'streak') return { n: readStreak(studentId).count ?? 0, label: 'day streak' };
+    if (it.stat === 'correct') return { n: right, label: 'right answers today' };
+    if (it.stat === 'best') {
+      const row = st.styleLooks.find((r) => r.ownerId === `board:${it.game}:${studentId}`)?.look as { games?: { score: number }[] } | undefined;
+      let n = row?.games?.[0]?.score ?? 0;
+      if (it.game === 'yoga') { try { const y = JSON.parse(localStorage.getItem(`yoga.save3.${studentId}`) || '{}') as { records?: Record<string, { xp: number }[]> }; n = Math.max(0, ...Object.values(y.records ?? {}).map((l) => l?.[0]?.xp ?? 0)); } catch { /* none */ } }
+      return { n, label: 'my best' };
+    }
+    return { n: right + wrong, label: 'questions today' };
+  };
+}
+
 type View = { k: 'home' } | { k: 'edit'; id: string | null } | { k: 'view'; id: string } | { k: 'charts' };
 
 export default function Diary() {
@@ -52,6 +74,7 @@ export default function Diary() {
   const carePet = useStore((s) => s.carePet);
   const [view, setView] = useState<View>({ k: 'home' });
   const [petSay, setPetSay] = useState('');
+  const [making, setMaking] = useState('');
   if (!student) return null;
   const entries = Object.entries((row?.look ?? {}) as Record<string, DiaryEntry | null>).filter((x): x is [string, DiaryEntry] => !!x[1] && !!x[1].at).sort((a, b) => (a[1].at < b[1].at ? 1 : -1));
   const mine = checkIns.filter((c) => c.studentId === student.id).sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1));
@@ -59,6 +82,15 @@ export default function Diary() {
   const first = student.name.split(' ')[0];
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
   const thisWeek = entries.filter(([, e]) => e.at >= weekAgo).length;
+  const petMap = Object.fromEntries(pets.filter((p) => p.studentId === student.id).map((p) => [p.id, { defId: p.petDefId, name: p.customName }]));
+  const reelOf = (list: [string, DiaryEntry][]): ReelPage[] => list.map(([, e]) => ({ page: asPage(e), title: dayLabel(e.at), stat: statFor(student.id, new Date(e.at).toLocaleDateString('en-CA')), pets: petMap }));
+  // Build Queue 578 and 579: save a page, or the whole week (the highlight reel), as a video.
+  const makeVideo = async (list: [string, DiaryEntry][], title: string) => {
+    if (!list.length) return;
+    setMaking('Making your video...');
+    try { const f = await recordReel(reelOf(list), { title, onProgress: (k) => setMaking(`Making your video... page ${k + 1} of ${list.length}`) }); setMaking(''); await shareVideo(f); }
+    catch { setMaking('This device could not make the video.'); window.setTimeout(() => setMaking(''), 3000); }
+  };
 
   if (view.k === 'edit') {
     const old = view.id ? entries.find(([id]) => id === view.id)?.[1] : undefined;
@@ -88,8 +120,10 @@ export default function Diary() {
         <header className="diary-head">
           <button type="button" className="btn" onClick={() => setView({ k: 'home' })}>← My pages</button>
           <h1>{dayLabel(e.at)}</h1>
+          <button type="button" className="btn" disabled={!!making} onClick={() => void makeVideo([entries[i]], `My diary ${new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`)}>Save as video</button>
           <button type="button" className="btn btn-primary" onClick={() => setView({ k: 'edit', id: view.id })}>Add more</button>
         </header>
+        {making && <p className="diary-making" role="status">{making}</p>}
         <div className="dp-viewer">
           <button type="button" className="dp-turn" disabled={i >= entries.length - 1} onClick={() => setView({ k: 'view', id: entries[i + 1][0] })} aria-label="Older page">‹</button>
           <DiaryPage page={asPage(e)} className="dp-big" studentId={student.id} day={new Date(e.at).toLocaleDateString('en-CA')} />
@@ -106,8 +140,10 @@ export default function Diary() {
       <header className="diary-head">
         <button type="button" className="btn" onClick={() => back.go()}>← Back</button>
         <h1>My Diary</h1>
+        <button type="button" className="btn" disabled={!thisWeek || !!making} onClick={() => void makeVideo(entries.filter(([, e]) => e.at >= weekAgo).slice(0, 10).reverse(), `${first}'s week`)}>My week highlight reel</button>
         <button type="button" className="btn" onClick={() => setView({ k: 'charts' })}>My feelings charts</button>
       </header>
+      {making && <p className="diary-making" role="status">{making}</p>}
       <section className="diary-hero">
         <div className="diary-buddy">
           {pet ? <img src={(() => { const d = petDefById(pet.petDefId); return d ? thumbnailFor(d) : '/sel/feelings/happy.jpg'; })()} alt="" onError={(e) => { e.currentTarget.src = '/sel/feelings/happy.jpg'; }} /> : <img src="/sel/feelings/happy.jpg" alt="" />}
@@ -163,7 +199,7 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
   pets: { id: string; petDefId: string; customName: string }[];
   onSave: (p: DiaryPageData) => void; onCancel: () => void;
 }) {
-  const [page, setPage] = useState<DiaryPageData>(() => initial ? { ...initial, v: initial.v ?? (initial.items.length ? undefined : 2) } : { bg: PAPERS[0], items: [], html: '', v: 2 });
+  const [page, setPage] = useState<DiaryPageData>(() => initial ? { ...initial } : { bg: PAPERS[0], items: [], html: '', v: 3, orient: 'land' as DiaryOrient, talk: [] });
   const [sel, setSel] = useState<string | null>(null);
   const [open, setOpen] = useState<Record<string, boolean>>({ feelings: true });
   const [sub, setSub] = useState<string | null>(null);
@@ -174,6 +210,10 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
   const [pathing, setPathing] = useState<{ id: string; pts: [number, number][] } | null>(null);
   const [talk, setTalk] = useState('');
   const [textColor, setTextColor] = useState('#1f2937');
+  const [listening, setListening] = useState(false);
+  const recog = useRef<{ stop: () => void } | null>(null);
+  const spokeRef = useRef(false);
+  const bests = useBests(studentId);
   const pageEl = useRef<HTMLDivElement | null>(null);
   const textEl = useRef<HTMLDivElement | null>(null);
   const drag = useRef<{ id: string; dx: number; dy: number } | null>(null);
@@ -247,23 +287,43 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
     const said = talk.trim().slice(0, 160), reply = petAnswer(said), up = Math.max(8, p.y - 22);
     const me = add({ kind: 'bubble', from: 'me', text: said, w: 34, color: '#ffffff' }, Math.max(18, p.x - 22), up);
     add({ kind: 'bubble', from: 'pet', text: reply, w: 34, color: '#fff59d' }, Math.min(82, p.x + 22), Math.max(8, up - 6));
-    setSel(me.id); setTalk(''); setSel(p.id);
+    const at = new Date().toISOString();
+    setPage((pg) => ({ ...pg, talk: [...(pg.talk ?? []), { who: 'me', text: said, at, ...(spokeRef.current ? { spoken: true } : {}) }, { who: 'pet', text: reply, at }] }));
+    spokeRef.current = false; setSel(me.id); setTalk(''); setSel(p.id);
     sayInPetVoice(reply);
   };
 
+  // Talk out loud to the pet: what they say is written down (speech to text) and kept with the page.
+  const listen = () => {
+    const W = window as unknown as Record<string, unknown>; const SR = (W.SpeechRecognition ?? W.webkitSpeechRecognition) as (new () => { lang: string; interimResults: boolean; continuous: boolean; start(): void; stop(): void; onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null; onend: (() => void) | null; onerror: (() => void) | null }) | undefined;
+    if (!SR) { setBusy('Talking is not ready on this device. Use the microphone key on the keyboard.'); window.setTimeout(() => setBusy(''), 3000); return; }
+    if (listening) { recog.current?.stop(); return; }
+    const r = new SR(); r.lang = 'en-US'; r.interimResults = true; r.continuous = false;
+    r.onresult = (e) => { const t = Array.from(e.results).map((x) => x[0].transcript).join(' '); setTalk(t); spokeRef.current = true; };
+    r.onend = () => { setListening(false); recog.current = null; }; r.onerror = () => { setListening(false); recog.current = null; };
+    recog.current = r; setListening(true); r.start();
+  };
+  const addComic = (id: string) => {
+    const lay = COMIC_LAYOUTS.find((l) => l.id === id); if (!lay) return;
+    setPage((p) => ({ ...p, items: [...p.items, ...lay.frames.map(([x, y, w, h]) => ({ id: makeId(), kind: 'frame' as const, x, y, w, h, rot: 0, z: 0 }))] }));
+  };
   const tog = (k: string) => setOpen((o) => ({ ...o, [k]: !o[k] }));
-  const imageLike = selected && !['note', 'bubble', 'tape', 'stat', 'voice'].includes(selected.kind);
+  const imageLike = selected && !['note', 'bubble', 'tape', 'stat', 'voice', 'frame', 'sfx', 'energy'].includes(selected.kind);
   return (
     <div className="dm dm2">
       <header className="dm-head">
         <button type="button" className="btn" onClick={onCancel}>Cancel</button>
         <h1>{initial ? 'My page' : 'New page'}</h1>
+        <div className="dm-seg dm-orient" role="radiogroup" aria-label="Page shape">
+          <button type="button" role="radio" aria-checked={page.orient !== 'port'} className={page.orient !== 'port' ? 'on' : ''} onClick={() => setPage((p) => ({ ...p, orient: 'land', v: 3 }))}><span className="dm-oicon land" />Landscape</button>
+          <button type="button" role="radio" aria-checked={page.orient === 'port'} className={page.orient === 'port' ? 'on' : ''} onClick={() => setPage((p) => ({ ...p, orient: 'port', v: 3 }))}><span className="dm-oicon port" />Portrait</button>
+        </div>
         <button type="button" className="btn btn-primary btn-lg" disabled={!!busy} onClick={() => onSave({ ...page, html: cleanHtml(textEl.current?.innerHTML ?? page.html ?? '') })}>Save page</button>
       </header>
       <div className="dm2-body">
         <aside className="dm-side" aria-label="Things to add">
           <Category label="Feelings" color="#E5B9E0" open={!!open.feelings} onToggle={() => tog('feelings')}>
-            <div className="dm-grid">{todayFeeling && tile({ kind: 'feeling', src: feelingImg(todayFeeling), text: todayFeeling, w: 26 }, `Today: ${todayFeeling}`, <img src={feelingImg(todayFeeling)} alt="" />, 'today', todayFeeling)}</div>
+            <div className="dm-grid">{tile({ kind: 'energy', value: 2, w: 12 }, 'Energy slider', <img src={ENERGY_FACE['just right']} alt="" />, 'energy')}{todayFeeling && tile({ kind: 'feeling', src: feelingImg(todayFeeling), text: todayFeeling, w: 26 }, `Today: ${todayFeeling}`, <img src={feelingImg(todayFeeling)} alt="" />, 'today', todayFeeling)}</div>
             {FEELING_ROOTS.map((r) => (
               <div key={r.w} className="dm-subcat">
                 <button type="button" className="dm-subhead" onClick={() => setSub(sub === r.w ? null : r.w)} aria-expanded={sub === r.w}><img src={feelingImg(r.w)} alt="" /><span>{r.w}</span><span aria-hidden>{sub === r.w ? '▾' : '▸'}</span></button>
@@ -281,6 +341,20 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
               {tile({ kind: 'stat', stat: 'correct', w: 30, ar: 0.7 }, 'Right answers', <b className="dm-statchip ok">✓</b>, 'sc')}
               {tile({ kind: 'stat', stat: 'streak', w: 30, ar: 0.7 }, 'My streak', <img src="/games/yoga/pu/star_power.png" alt="" />, 'ss')}
             </div>
+            <span className="dm-sublabel">My best scores</span>
+            {bests.length ? <div className="dm-grid">{bests.map((b) => tile({ kind: 'stat', stat: 'best', game: b.game, w: 30, ar: 0.75 }, `${b.name}: ${b.score}`, <b className="dm-statchip">{b.score}</b>, `best${b.game}`))}</div> : <p className="dm-empty">Play games to get best scores to brag about!</p>}
+          </Category>
+          <Category label="Comics" color="#FDE68A" open={!!open.comics} onToggle={() => tog('comics')}>
+            <span className="dm-sublabel">Make the page a comic</span>
+            <div className="dm-grid">{COMIC_LAYOUTS.map((l) => (
+              <button key={l.id} type="button" className="dm-tile" onClick={() => addComic(l.id)} aria-label={`Comic layout ${l.name}`}>
+                <span className="dm-layout">{l.frames.map(([x, y, w, h], k) => <i key={k} style={{ left: `${x - w / 2}%`, top: `${y - h / 2}%`, width: `${w}%`, height: `${h}%` }} />)}</span><small>{l.name}</small>
+              </button>
+            ))}{tile({ kind: 'frame', w: 40, h: 40, rot: 0 }, 'One frame', <span className="dm-layout"><i style={{ left: '15%', top: '15%', width: '70%', height: '70%' }} /></span>, 'frame1')}</div>
+            <span className="dm-sublabel">Speech bubbles</span>
+            <div className="dm-grid">{([['me', 'Talk'], ['think', 'Think'], ['shout', 'Shout'], ['whisper', 'Whisper'], ['narrate', 'Narrator box']] as [BubbleStyle, string][]).map(([f, l]) => tile({ kind: 'bubble', from: f, text: '', color: f === 'narrate' ? '#fde68a' : f === 'shout' ? '#fde047' : '#ffffff', w: 30 }, l, <span className={`dm-bubblechip ${f}`} />, `cb${f}`))}</div>
+            <span className="dm-sublabel">Sound effects</span>
+            <div className="dm-grid">{SFX_WORDS.map((wd, k) => tile({ kind: 'sfx', text: wd, w: 24, color: ['#facc15', '#ef4444', '#22d3ee', '#a3e635', '#f472b6', '#fb923c', '#c084fc', '#facc15'][k] }, wd, <b className="dm-sfxchip">{wd}</b>, wd))}</div>
           </Category>
           <Category label="Notes and bubbles" color="#FBF2BB" open={!!open.notes} onToggle={() => tog('notes')}>
             <div className="dm-grid">
@@ -328,7 +402,7 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
             <button type="button" onClick={() => speak(textOfHtml(textEl.current?.innerHTML) || 'Type about your day first.', tts)} aria-label="Read my words aloud">🔊</button>
           </div>
           <div className={`dm-stage${pathing ? ' pathing' : ''}`} onPointerDown={stageDown} onPointerMove={stageMove} onPointerUp={stageUp} onPointerCancel={stageUp} onKeyUp={keepSel} onMouseUp={keepSel} onTouchEnd={keepSel}>
-            <DiaryPage page={page} selected={sel} onItemDown={itemDown} onBackDown={() => setSel(null)} pageRef={pageEl} className="dp-edit" studentId={studentId} day={day} textRef={textEl} onText={(html) => setPage((p) => (p.html === html ? p : { ...p, html }))} />
+            <DiaryPage page={page} selected={sel} onItemDown={itemDown} onBackDown={() => setSel(null)} pageRef={pageEl} className="dp-edit" studentId={studentId} day={day} textRef={textEl} onText={(html) => setPage((p) => (p.html === html ? p : { ...p, html }))} onItemChange={(id, patch) => upd(id, () => patch)} />
             {pathing && (
               <svg className="dm-pathsvg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden><polyline points={pathing.pts.map((p) => p.join(',')).join(' ')} fill="none" stroke="#8a63d2" strokeWidth="0.8" strokeDasharray="2 1.5" vectorEffect="non-scaling-stroke" /></svg>
             )}
@@ -338,8 +412,8 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
           {selected && !pathing && (
             <div className="dm-tools" role="toolbar" aria-label="Change this">
               <div className="dm-row">
-                <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.min(95, i.w * 1.15) }))}>Bigger</button>
-                <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.max(6, i.w / 1.15) }))}>Smaller</button>
+                <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.min(100, i.w * 1.15), ...(i.h ? { h: Math.min(100, i.h * 1.15) } : {}) }))}>Bigger</button>
+                <button type="button" onClick={() => upd(selected.id, (i) => ({ w: Math.max(6, i.w / 1.15), ...(i.h ? { h: Math.max(6, i.h / 1.15) } : {}) }))}>Smaller</button>
                 <button type="button" onClick={() => upd(selected.id, (i) => ({ rot: i.rot + 15 }))}>Turn</button>
                 <button type="button" onClick={() => upd(selected.id, () => ({ z: topZ() }))}>To front</button>
                 {selected.kind !== 'tape' && (
@@ -370,6 +444,7 @@ function PageMaker({ initial, todayFeeling, lib, tts, studentId, day, pets, onSa
               {selected.kind === 'pet' && (
                 <div className="dm-row">
                   <input className="dm-cap" value={talk} placeholder={`Say something to ${pets.find((p) => p.id === selected.petId)?.customName ?? 'your pet'}`} onChange={(e) => setTalk(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') sayToPet(); }} aria-label="Talk to your pet" />
+                  <button type="button" className={listening ? 'dm-listening' : ''} onClick={listen} aria-label={listening ? 'Stop listening' : 'Talk out loud'}>{listening ? 'Listening...' : '🎤 Talk'}</button>
                   <button type="button" className="on" onClick={sayToPet} disabled={!talk.trim()}>Say it</button>
                 </div>
               )}

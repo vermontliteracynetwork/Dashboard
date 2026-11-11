@@ -5,18 +5,40 @@ import type { SelZone } from '../types';
 // Build Queue 578 (Canva style): the page also holds typed text (a little word processor), and items can have captions,
 // float over the text or wrap it, move (bounce, wiggle, spin, float, pulse, or a path the student draws), and there are
 // washi tape strips, talk bubbles, the student's live pet and live game stats.
-export type DiaryItemKind = 'photo' | 'drawing' | 'sticker' | 'meme' | 'feeling' | 'note' | 'voice' | 'tape' | 'bubble' | 'pet' | 'stat';
+export type DiaryItemKind = 'photo' | 'drawing' | 'sticker' | 'meme' | 'feeling' | 'note' | 'voice' | 'tape' | 'bubble' | 'pet' | 'stat' | 'frame' | 'sfx' | 'energy';
 export type DiaryAnim = 'bounce' | 'wiggle' | 'spin' | 'float' | 'pulse' | 'path';
-export type DiaryStat = 'questions' | 'correct' | 'accuracy' | 'streak';
+export type DiaryStat = 'questions' | 'correct' | 'accuracy' | 'streak' | 'best';
+export type BubbleStyle = 'me' | 'pet' | 'think' | 'shout' | 'whisper' | 'narrate';
 export interface DiaryItem {
   id: string; kind: DiaryItemKind;
   x: number; y: number; w: number; rot: number; z: number; // x, y: center, % of page width and height; w: % of page width
   src?: string; text?: string; color?: string;
   caption?: string; ar?: number; // height / width, used to wrap text around it
   wrap?: boolean; anim?: DiaryAnim | null; path?: [number, number][]; // path: offsets from the item, % of page width and height
-  pattern?: string; from?: 'me' | 'pet' | 'think'; petId?: string; stat?: DiaryStat; textColor?: string;
+  pattern?: string; from?: BubbleStyle; petId?: string; stat?: DiaryStat; textColor?: string;
+  h?: number; // comic frames: height, % of page height
+  value?: number; // the energy slider: 0 very low to 4 very high
+  game?: string; // brag stats: which game's personal best
 }
-export interface DiaryPageData { bg: string; items: DiaryItem[]; html?: string; v?: 2 }
+// Build Queue 579: a page is landscape (11 by 8.5, the default) or portrait (8.5 by 11); `talk` keeps everything said to
+// the pet (typed or said aloud and transcribed) so the teacher and therapists can read it.
+export type DiaryOrient = 'land' | 'port';
+export interface DiaryTalk { who: 'me' | 'pet'; text: string; at: string; spoken?: boolean }
+export interface DiaryPageData { bg: string; items: DiaryItem[]; html?: string; v?: 2 | 3; orient?: DiaryOrient; talk?: DiaryTalk[] }
+// Page height as a share of its width (in cqw), for each kind of page.
+export const pageH = (p: DiaryPageData) => (p.orient === 'land' ? 77.27 : p.orient === 'port' ? 129.41 : p.v === 2 ? 133.33 : 75);
+export const pageClass = (p: DiaryPageData) => (p.orient === 'land' ? 'land' : p.orient === 'port' ? 'port' : p.v === 2 ? 'v2' : '');
+export const ENERGY_LEVELS = ['very low', 'low', 'just right', 'high', 'very high'] as const;
+
+// Comic page layouts: [x, y, w, h] of each frame, in % of the page.
+export const COMIC_LAYOUTS: { id: string; name: string; frames: [number, number, number, number][] }[] = [
+  { id: 'three', name: '3 in a row', frames: [[17.5, 50, 30, 88], [50, 50, 30, 88], [82.5, 50, 30, 88]] },
+  { id: 'four', name: '2 by 2', frames: [[26, 26.5, 45, 44], [74, 26.5, 45, 44], [26, 73.5, 45, 44], [74, 73.5, 45, 44]] },
+  { id: 'bigtwo', name: '1 big and 2', frames: [[34, 50, 61, 92], [83, 26.5, 31, 44], [83, 73.5, 31, 44]] },
+  { id: 'six', name: '6 panels', frames: [[17.5, 26.5, 30, 44], [50, 26.5, 30, 44], [82.5, 26.5, 30, 44], [17.5, 73.5, 30, 44], [50, 73.5, 30, 44], [82.5, 73.5, 30, 44]] },
+  { id: 'strip', name: 'Strip on top', frames: [[17.5, 22, 30, 38], [50, 22, 30, 38], [82.5, 22, 30, 38]] },
+];
+export const SFX_WORDS = ['POW!', 'BAM!', 'WOW!', 'ZOOM!', 'YES!', 'BOOM!', 'HAHA!', 'OOPS!'];
 export interface DiaryEntry { at: string; caption?: string; photo?: string; page?: DiaryPageData; feeling?: string; zone?: SelZone }
 export const diaryOwner = (studentId: string) => `diary:${studentId}`;
 

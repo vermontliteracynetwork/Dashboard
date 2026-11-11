@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useRef } from 'react';
-import { TAPES, cleanHtml, type DiaryItem, type DiaryPageData } from '../lib/diaryBook';
+import { ENERGY_LEVELS, TAPES, cleanHtml, pageClass, pageH, type DiaryItem, type DiaryPageData } from '../lib/diaryBook';
+import { ENERGY_FACE } from '../lib/supernature';
 import { useStore } from '../store/store';
 import { petDefById } from '../lib/petCatalog';
 import { AGE_SCALE, ageForTraining } from '../lib/petsV2';
@@ -14,17 +15,18 @@ const PetStage3D = lazy(() => import('./PetStage3D'));
 // the SEL team report) and inside the editor (with onItemDown, selected and the editable text). Sizes are in container
 // units, so a small preview looks exactly like the full page. `lite` (shelf previews, the report) shows the pet as a
 // picture instead of the live 3D pet.
-export default function DiaryPage({ page, selected, onItemDown, onBackDown, className = '', pageRef, lite, studentId, day, textRef, onText }: {
+export default function DiaryPage({ page, selected, onItemDown, onBackDown, className = '', pageRef, lite, studentId, day, textRef, onText, onItemChange }: {
   page: DiaryPageData; selected?: string | null; className?: string;
   onItemDown?: (e: React.PointerEvent<HTMLDivElement>, it: DiaryItem) => void;
   onBackDown?: () => void; pageRef?: React.Ref<HTMLDivElement>; lite?: boolean;
   studentId?: string; day?: string; textRef?: React.RefObject<HTMLDivElement | null>; onText?: (html: string) => void;
+  onItemChange?: (id: string, patch: Partial<DiaryItem>) => void;
 }) {
-  const dark = page.bg === '#2b2540', v2 = page.v === 2, H = v2 ? 133.333 : 75;
+  const dark = page.bg === '#2b2540', v2 = !!page.v, H = pageH(page);
   const editing = !!onText;
-  const wraps = page.items.filter((i) => i.wrap && i.kind !== 'tape');
+  const wraps = page.items.filter((i) => i.wrap && i.kind !== 'tape' && i.kind !== 'frame');
   return (
-    <div ref={pageRef} className={`dp-page${dark ? ' dark' : ''}${v2 ? ' v2' : ''} ${className}`} style={{ background: page.bg }} onPointerDown={(e) => { if (e.target === e.currentTarget) onBackDown?.(); }}>
+    <div ref={pageRef} className={`dp-page${dark ? ' dark' : ''} ${pageClass(page)} ${className}`} style={{ background: page.bg }} onPointerDown={(e) => { if (e.target === e.currentTarget) onBackDown?.(); }}>
       {(v2 || page.html) && (
         <div className="dp-text" onPointerDown={() => onBackDown?.()}>
           {/* Wrap text: an invisible float beside each wrapped picture pushes the words around it, like a word processor. */}
@@ -40,7 +42,7 @@ export default function DiaryPage({ page, selected, onItemDown, onBackDown, clas
         </div>
       )}
       {[...page.items].sort((a, b) => a.z - b.z).map((it) => (
-        <Item key={it.id} it={it} sel={selected === it.id} onDown={onItemDown} lite={!!lite} live={!onItemDown} studentId={studentId} day={day} H={H} />
+        <Item key={it.id} it={it} sel={selected === it.id} onDown={onItemDown} lite={!!lite} live={!onItemDown} studentId={studentId} day={day} H={H} onChange={onItemChange} />
       ))}
     </div>
   );
@@ -55,7 +57,7 @@ function EditableText({ html, textRef, onText }: { html: string; textRef?: React
     onInput={(e) => onText(e.currentTarget.innerHTML)} onBlur={(e) => onText(e.currentTarget.innerHTML)} />;
 }
 
-function Item({ it, sel, onDown, lite, live, studentId, day, H }: { it: DiaryItem; sel: boolean; onDown?: (e: React.PointerEvent<HTMLDivElement>, it: DiaryItem) => void; lite: boolean; live: boolean; studentId?: string; day?: string; H: number }) {
+function Item({ it, sel, onDown, lite, live, studentId, day, H, onChange }: { it: DiaryItem; sel: boolean; onDown?: (e: React.PointerEvent<HTMLDivElement>, it: DiaryItem) => void; lite: boolean; live: boolean; studentId?: string; day?: string; H: number; onChange?: (id: string, patch: Partial<DiaryItem>) => void }) {
   const el = useRef<HTMLDivElement | null>(null);
   // A drawn path (like Canva's custom animation): the item glides along it and back, over and over.
   useEffect(() => {
@@ -72,18 +74,21 @@ function Item({ it, sel, onDown, lite, live, studentId, day, H }: { it: DiaryIte
   }, [it.anim, it.path, it.x, it.y]);
   const tape = it.kind === 'tape' ? TAPES.find((t) => t.id === it.pattern) ?? TAPES[0] : null;
   return (
-    <div ref={el} className={`dp-item dp-${it.kind}${sel ? ' sel' : ''}`}
-      style={{ left: `${it.x}%`, top: `${it.y}%`, width: `${it.w}%`, transform: `translate(-50%, -50%) rotate(${it.rot}deg)`, zIndex: it.z + 1 }}
+    <div ref={el} className={`dp-item dp-k-${it.kind}${sel ? ' sel' : ''}`}
+      style={{ left: `${it.x}%`, top: `${it.y}%`, width: `${it.w}%`, ...(it.kind === 'frame' ? { height: `${it.h ?? 40}%` } : {}), transform: `translate(-50%, -50%) rotate(${it.rot}deg)`, zIndex: it.kind === 'frame' ? 1 : it.z + 2 }}
       onPointerDown={onDown ? (e) => onDown(e, it) : undefined}>
       <div className={`dp-move${it.anim && it.anim !== 'path' ? ` dp-anim-${it.anim}` : ''}`}>
-        {tape ? <div className="dp-tape" style={{ background: tape.css, height: `${H > 100 ? 5 : 4}cqw` }} /> : <Face it={it} live={live} lite={lite} studentId={studentId} day={day} />}
-        {it.caption && it.kind !== 'tape' && it.kind !== 'note' && it.kind !== 'bubble' && <p className="dp-cap" style={{ color: it.textColor }}>{it.caption}</p>}
+        {tape ? <div className="dp-tape" style={{ background: tape.css, height: `${H > 100 ? 5 : 4}cqw` }} /> : <Face it={it} live={live} lite={lite} studentId={studentId} day={day} onChange={onChange} />}
+        {it.caption && !['tape', 'note', 'bubble', 'frame', 'sfx', 'energy'].includes(it.kind) && <p className="dp-cap" style={{ color: it.textColor }}>{it.caption}</p>}
       </div>
     </div>
   );
 }
 
-function Face({ it, live, lite, studentId, day }: { it: DiaryItem; live: boolean; lite: boolean; studentId?: string; day?: string }) {
+function Face({ it, live, lite, studentId, day, onChange }: { it: DiaryItem; live: boolean; lite: boolean; studentId?: string; day?: string; onChange?: (id: string, patch: Partial<DiaryItem>) => void }) {
+  if (it.kind === 'frame') return <div className="dp-frame" style={{ borderColor: it.color ?? '#111827' }} />;
+  if (it.kind === 'sfx') return <b className="dp-sfx" style={{ fontSize: `${it.w * 0.28}cqw`, color: it.color ?? '#facc15' }}>{it.text}</b>;
+  if (it.kind === 'energy') return <EnergySlider it={it} onChange={onChange} />;
   if (it.kind === 'note') return (
     <div className="dp-note" style={{ background: it.color ?? '#fff59d', color: it.textColor }}>
       <p>{it.text || 'My note'}</p>
@@ -139,11 +144,57 @@ function StatWidget({ it, studentId, day }: { it: DiaryItem; studentId?: string;
       <small>{total ? `${right} of ${total} right` : 'No answers yet'}</small>
     </div>
   );
+  if (it.stat === 'best') return <BestStat it={it} studentId={studentId} />;
   const n = it.stat === 'streak' ? streak.count ?? 0 : it.stat === 'correct' ? right : total;
   const label = it.stat === 'streak' ? `day streak` : it.stat === 'correct' ? 'right answers today' : 'questions answered today';
   return (
     <div className={`dp-stat ${it.stat}`}>
       <b className="dp-stat-n" key={n}>{n}</b><small>{label}</small>
+    </div>
+  );
+}
+
+// Build Queue 579: a vertical energy slider (very low at the bottom to very high at the top). Tap a stop to move it.
+function EnergySlider({ it, onChange }: { it: DiaryItem; onChange?: (id: string, patch: Partial<DiaryItem>) => void }) {
+  const v = it.value ?? 2;
+  return (
+    <div className="dp-energy">
+      <b>My energy</b>
+      <div className="dp-energy-track">
+        {[4, 3, 2, 1, 0].map((k) => (
+          onChange
+            ? <button key={k} type="button" className={`dp-energy-stop${k === v ? ' on' : ''}`} onClick={() => onChange(it.id, { value: k })} aria-label={`Energy ${ENERGY_LEVELS[k]}`}>{k === v && <img src={ENERGY_FACE[ENERGY_LEVELS[k]]} alt="" />}</button>
+            : <span key={k} className={`dp-energy-stop${k === v ? ' on' : ''}`}>{k === v && <img src={ENERGY_FACE[ENERGY_LEVELS[k]]} alt="" />}</span>
+        ))}
+      </div>
+      <small>{ENERGY_LEVELS[v]}</small>
+    </div>
+  );
+}
+
+// Brag stats (Build Queue 579): their personal best in a game, from their personal leaderboards (and Yoga's Revenge records).
+export function useBests(studentId?: string): { game: string; name: string; score: number; unit: string }[] {
+  const rows = useStore((s) => s.styleLooks);
+  if (!studentId) return [];
+  const out: { game: string; name: string; score: number; unit: string }[] = [];
+  rows.forEach((r) => {
+    const m = r.ownerId.match(/^board:(.+):(.+)$/);
+    if (!m || m[2] !== studentId) return;
+    const best = ((r.look as { games?: { score: number }[] })?.games ?? [])[0]?.score;
+    if (typeof best === 'number') out.push({ game: m[1], name: m[1].replace(/([A-Z])/g, ' $1').replace(/^./, (c) => c.toUpperCase()), score: best, unit: 'points' });
+  });
+  try {
+    const y = JSON.parse(localStorage.getItem(`yoga.save3.${studentId}`) || '{}') as { records?: Record<string, { xp: number }[]> };
+    const best = Math.max(0, ...Object.values(y.records ?? {}).map((l) => l?.[0]?.xp ?? 0));
+    if (best > 0) out.push({ game: 'yoga', name: "Yoga's Revenge", score: best, unit: 'XP' });
+  } catch { /* no saved game here */ }
+  return out;
+}
+function BestStat({ it, studentId }: { it: DiaryItem; studentId?: string }) {
+  const b = useBests(studentId).find((x) => x.game === it.game);
+  return (
+    <div className="dp-stat best">
+      <small>My best</small><b className="dp-stat-n" key={b?.score ?? 0}>{b?.score ?? 0}</b><small>{b ? `${b.unit} in ${b.name}` : 'Play to set a record!'}</small>
     </div>
   );
 }
