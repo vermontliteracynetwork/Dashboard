@@ -49,6 +49,7 @@ import SupernatureLocks from './routes/teacher/SupernatureLocks';
 import PlinkoThemeBuilder from './routes/teacher/PlinkoThemeBuilder';
 import GameThemes from './routes/teacher/GameThemes';
 import SelCheckInLog from './routes/teacher/SelCheckInLog';
+import ProviderView from './routes/provider/ProviderView';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
@@ -267,6 +268,8 @@ export default function App() {
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>
             <Route path="/teacher" element={<TeacherHome />} />
+            {/* Build Queue 625: the Service Provider View, behind the same sign in as the Teacher Area. */}
+            <Route path="/provider" element={<ProviderView />} />
             <Route path="/teacher/students" element={<StudentManager />} />
             <Route path="/teacher/assignments" element={<AssignmentsIndex />} />
             <Route path="/teacher/lesson-plan/:studentId" element={<LessonPlanBuilder />} />

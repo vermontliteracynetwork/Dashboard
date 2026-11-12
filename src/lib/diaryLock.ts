@@ -7,8 +7,9 @@ import { useStore } from '../store/store';
 // A lock hides the page from anyone using the student's iPad without the code; the teacher always sees every page.
 export interface DiaryLock { code?: string; locked?: Record<string, boolean | null> }
 export const diaryLockOwner = (studentId: string) => `diarylock:${studentId}`;
+const NONE: DiaryLock = {}; // one shared empty value: a fresh {} each render would loop the store subscription forever
 export const useDiaryLock = (studentId: string): DiaryLock =>
-  useStore((s) => (s.styleLooks.find((r) => r.ownerId === diaryLockOwner(studentId))?.look ?? {}) as DiaryLock);
+  useStore((s) => (s.styleLooks.find((r) => r.ownerId === diaryLockOwner(studentId))?.look ?? NONE) as DiaryLock);
 export const isLocked = (l: DiaryLock, pageId: string) => !!l.locked?.[pageId];
 export const setDiaryCode = (studentId: string, code: string) => useStore.getState().mergeStyleRow(diaryLockOwner(studentId), { code });
 export const setPageLocked = (studentId: string, lock: DiaryLock, pageId: string, on: boolean) =>

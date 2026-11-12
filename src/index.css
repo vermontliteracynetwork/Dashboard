@@ -12648,3 +12648,69 @@ body.calm-games .me-burst { display: none; }
 .dprint-photo { max-width: 100%; max-height: 520px; }
 .dprint-words { white-space: pre-wrap; }
 @media print { .dprint-page { break-after: page; page-break-after: always; border-top: 0; } .dprint-page:last-child { break-after: auto; } .dprint-dp, .dprint-dp * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+/* Service Provider View (Build Queue 625): wide, calm, clear cards; every card prints on its own */
+.pv { min-height: 100vh; box-sizing: border-box; padding: 28px clamp(16px, 4vw, 56px) 48px; background: #f4f6fa; color: #1d2433; font-family: system-ui, -apple-system, 'Segoe UI', sans-serif; }
+.pv-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; max-width: 1500px; margin: 0 auto 22px; padding: 22px 28px; border-radius: 14px; background: #1f3a5f; color: #fff; }
+.pv-top h1 { margin: 0 0 6px; font-size: 1.9rem; letter-spacing: 0.01em; }
+.pv-top p { margin: 0; max-width: 760px; line-height: 1.5; color: #dbe6f5; }
+.pv-top-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.pv-top .pv-btn { background: #fff; color: #1f3a5f; border-color: #fff; }
+.pv-btn { min-height: 44px; padding: 0 18px; border-radius: 10px; border: 2px solid #c8d2e1; background: #fff; color: #1f3a5f; font: inherit; font-weight: 700; cursor: pointer; }
+.pv-btn:hover:not(:disabled) { border-color: #1f3a5f; }
+.pv-btn:disabled { opacity: 0.5; cursor: default; }
+.pv-btn.pv-primary { background: #1f3a5f; color: #fff; border-color: #1f3a5f; }
+.pv-btn.pv-small { min-height: 36px; padding: 0 12px; font-size: 0.9rem; }
+.pv-card { max-width: 1500px; margin: 0 auto; box-sizing: border-box; background: #fff; border: 1px solid #dde3ec; border-radius: 14px; padding: 22px 26px; box-shadow: 0 1px 2px rgba(16,24,40,0.05); }
+.pv-card h2 { margin: 0; font-size: 1.25rem; }
+.pv-card-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.pv-sub { margin: 4px 0 0; color: #566175; }
+.pv-students { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 18px; }
+.pv-student { display: grid; justify-items: start; gap: 6px; padding: 18px; border-radius: 12px; border: 2px solid #dde3ec; background: #fbfcfe; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.pv-student:hover { border-color: #1f3a5f; }
+.pv-student b { font-size: 1.15rem; }
+.pv-student small { color: #566175; }
+.pv-initial { width: 44px; height: 44px; border-radius: 50%; background: #e3ebf7; color: #1f3a5f; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem; }
+.pv-initial.big { width: 56px; height: 56px; font-size: 1.5rem; }
+.pv-controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.pv-who { display: flex; gap: 14px; align-items: center; }
+.pv-range { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pv-range label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
+.pv-range input { min-height: 40px; border-radius: 8px; border: 2px solid #c8d2e1; padding: 0 8px; font: inherit; }
+.pv-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; max-width: 1500px; margin: 0 auto; }
+.pv-grid .pv-card { max-width: none; margin: 0; }
+.pv-grid .pv-card.wide { grid-column: 1 / -1; }
+@media (max-width: 1100px) { .pv-grid { grid-template-columns: 1fr; } }
+.pv-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.pv-stats > div { display: grid; gap: 4px; padding: 16px; border-radius: 12px; background: #f4f6fa; }
+.pv-stats b { font-size: 1.7rem; color: #1f3a5f; }
+.pv-stats span { color: #566175; font-weight: 600; }
+.pv-bars { display: grid; gap: 10px; }
+.pv-bar-row { display: grid; grid-template-columns: minmax(110px, 180px) 1fr 96px; gap: 12px; align-items: center; }
+.pv-bar-label { font-weight: 600; }
+.pv-bar-track { height: 18px; border-radius: 4px; background: #eef1f6; overflow: hidden; }
+.pv-bar-fill { display: block; height: 100%; border-radius: 0 4px 4px 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.pv-bar-num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.pv-bar-num small { font-weight: 500; color: #566175; }
+.pv-cols { display: flex; align-items: flex-end; gap: 6px; height: 200px; padding-top: 8px; border-bottom: 1px solid #c8d2e1; overflow-x: auto; }
+.pv-col { flex: 1 0 22px; max-width: 48px; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+.pv-col-stack { width: 100%; height: calc(100% - 20px); display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 2px; }
+.pv-col-stack i { display: block; width: 100%; border-radius: 3px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.pv-col small { font-size: 0.7rem; color: #566175; white-space: nowrap; }
+.pv-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; color: #3a4558; font-weight: 600; }
+.pv-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.pv-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.pv-table th, .pv-table td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #e6eaf1; vertical-align: top; }
+.pv-table th { background: #f4f6fa; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.pv-row-btns { margin-bottom: 12px; }
+.pv-empty { color: #566175; margin: 0; }
+.pv-print-only { display: none; }
+@media print {
+  .pv { background: #fff; padding: 0; }
+  .pv-top, .pv-controls, .pv-btn, .pv-noprint { display: none !important; }
+  .pv-print-only { display: block; margin: 0 0 8px; color: #3a4558; }
+  .pv-print-title { font-size: 1.2rem; font-weight: 700; color: #1d2433; }
+  .pv-grid { display: block; }
+  .pv-card { border: 1px solid #ccd; box-shadow: none; margin: 0 0 14px !important; break-inside: avoid; }
+  .pv-cols { overflow: visible; }
+}
