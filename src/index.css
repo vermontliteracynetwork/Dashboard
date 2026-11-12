@@ -12621,3 +12621,30 @@ body.calm-games .me-burst { display: none; }
 .me-sliders label { display: grid; gap: 6px; font-weight: 600; }
 .me-sliders input[type=range] { width: 100%; min-height: 44px; accent-color: #7c3aed; touch-action: manipulation; }
 @media (max-width: 600px) { .me-power-name { font-size: 0.75rem; } .me-logo { height: 36px; } }
+
+/* Diary locks (Build Queue 624): the student's code pad, locked page cards, and the teacher's diary PDF */
+.dcp { padding: 22px; max-width: 380px; width: 100%; align-items: center; text-align: center; gap: 10px; }
+.dcp-title { font-size: 1.35rem; }
+.dcp-help { margin: 0; line-height: 1.4; }
+.dcp-dots { display: flex; gap: 14px; justify-content: center; margin: 4px 0; }
+.dcp-dots i { width: 18px; height: 18px; border-radius: 50%; border: 3px solid #7c3aed; }
+.dcp-dots i.on { background: #7c3aed; }
+.dcp-msg { margin: 0; color: #b42318; font-weight: 700; }
+.dcp-keys { display: grid; grid-template-columns: repeat(3, 76px); gap: 10px; justify-content: center; }
+.dcp-key { height: 64px; border-radius: 16px; border: 2px solid #d8d3ea; background: #fff; font: inherit; font-size: 1.6rem; font-weight: 800; color: #2b2540; cursor: pointer; touch-action: manipulation; }
+.dcp-key:active { transform: scale(0.95); background: #f1ecff; }
+.dcp-key.dcp-small { font-size: 1rem; }
+.diary-lockcard { aspect-ratio: 4 / 3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border-radius: 12px; background: repeating-linear-gradient(45deg, #ede9fe 0 12px, #e4dcff 12px 24px); color: #6d28d9; border: 2px dashed #a78bfa; }
+.diary-lockcard b { font-size: 1.05rem; color: #3b2a6b; }
+.diary-lockcard small { color: #5b4a8a; }
+.dtt-code { font-family: ui-monospace, monospace; letter-spacing: 3px; }
+.dprint { max-width: 960px; }
+.dprint-title { margin: 0 0 4px; }
+.dprint-sub { margin: 0 0 18px; opacity: 0.8; }
+.dprint-page { border-top: 2px solid #d8d3ea; padding-top: 14px; margin-bottom: 22px; }
+.dprint-page h2 { margin: 0 0 4px; font-size: 1.2rem; }
+.dprint-meta { margin: 0 0 10px; opacity: 0.85; }
+.dprint-dp { width: 100%; max-width: 900px; }
+.dprint-photo { max-width: 100%; max-height: 520px; }
+.dprint-words { white-space: pre-wrap; }
+@media print { .dprint-page { break-after: page; page-break-after: always; border-top: 0; } .dprint-page:last-child { break-after: auto; } .dprint-dp, .dprint-dp * { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }

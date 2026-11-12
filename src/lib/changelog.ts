@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-12-diary-lock",
+    date: "2026-11-12",
+    icon: "🔒",
+    title: "Lock a Diary page",
+    body: "Open a page in your Diary and tap Lock this page. Make a 4 number code you will remember. Locked pages are just for you, and only your code opens them. Your teacher can always read your diary and can help if you forget your code.",
+  },
+  {
     id: "2026-11-12-alchemy-feelings",
     date: "2026-11-12",
     icon: "😠",
