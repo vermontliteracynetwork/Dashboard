@@ -18,7 +18,7 @@ type Id = NativeGameCard['id'];
 const SHELVES: { title: string; ids: Id[] }[] = [
   { title: 'Food games', ids: ['bakery', 'idleTycoon', 'dinerDash', 'farmGrow'] },
   { title: 'Pet and animal games', ids: ['petShow', 'rescueShelter', 'fishingDock', 'crossyHopper'] },
-  { title: 'Basics', ids: ['memoryMatch', 'wordSearch', 'quizMode', 'plinkoDrop'] },
+  { title: 'Basics', ids: ['mergeEm', 'memoryMatch', 'wordSearch', 'quizMode', 'plinkoDrop'] },
   { title: 'Cool themes', ids: ['chess', 'spaceBowling', 'alchemy', 'castleDefense', 'shapeDash', 'gemMine', 'lighthouse', 'bubbleShooter'] },
 ];
 const NEW_FOR_MS = 14 * 24 * 3600 * 1000;

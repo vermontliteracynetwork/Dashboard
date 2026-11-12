@@ -12487,3 +12487,41 @@ span.ssq-pill { display: flex; width: auto; padding: 0 16px; }
 /* Claudia's review of 607: Save menu stays in reach while scrolling the food grid on an iPad. */
 .mcy-panel > .rt-row { position: sticky; bottom: 0; z-index: 2; background: var(--mcy-c, #f7f5f2); padding: 10px 14px; margin: 0; box-shadow: 0 -4px 10px rgba(0,0,0,0.08); }
 .mcy-shelf { background: repeating-linear-gradient(to bottom, transparent 0 70px, #7a9aa5 70px 78px); }
+
+/* Merge 'Em (native game, Build Queue 615): tile art by Zro Dfects, cut into public/games/merge-em/ */
+.me { position: fixed; inset: 0; overflow: hidden auto; color: #2a1d14; background: #5b7fe0 url(/games/merge-em/brick.png) repeat; background-size: 128px 128px; image-rendering: pixelated; }
+.me-head { background: rgba(28, 36, 92, 0.85); }
+.me-logo { height: 48px; image-rendering: pixelated; }
+.me-main { min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 88px 16px max(20px, env(safe-area-inset-bottom)); }
+.me-hud { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.me-box { position: relative; min-width: 104px; min-height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 12px; background: #c98a3c; border: 4px solid #7a4a1a; border-radius: 10px; box-shadow: inset 0 -4px 0 rgba(0,0,0,0.2); color: #fff8e6; font-weight: 800; text-shadow: 0 2px 0 #4a2a0a; }
+.me-box small { font-size: 0.8rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.me-box b { font-size: 1.4rem; }
+.me-next { flex-direction: row; flex-wrap: wrap; cursor: pointer; font: inherit; color: #fff8e6; touch-action: manipulation; width: 170px; }
+.me-next small { width: 100%; text-align: center; }
+.me-next:active { transform: translateY(2px); }
+.me-bump { position: absolute; top: -6px; right: -6px; font-style: normal; font-size: 0.9rem; background: #ffe14d; color: #4a2a0a; text-shadow: none; padding: 2px 6px; border-radius: 8px; animation: me-bump 0.9s ease-out forwards; pointer-events: none; }
+@keyframes me-bump { 0% { opacity: 0; transform: translateY(6px) scale(0.8); } 20% { opacity: 1; transform: translateY(0) scale(1.1); } 100% { opacity: 0; transform: translateY(-16px); } }
+.me-msg { text-align: center; max-width: 560px; min-height: 1.6em; margin: 0; }
+.me-board { position: relative; box-sizing: border-box; background: #3d2814; border: 6px solid #c98a3c; border-radius: 12px; box-shadow: 0 0 0 4px #7a4a1a, 0 10px 24px rgba(0,0,0,0.35); }
+.me-cols { position: absolute; inset: 8px; display: flex; }
+.me-col { border: 0; padding: 0; margin: 0; background: repeating-linear-gradient(#4a3219 0 calc(100% / 7 - 2px), #2e1d0c calc(100% / 7 - 2px) calc(100% / 7)); border-right: 2px solid #2e1d0c; cursor: pointer; touch-action: manipulation; }
+.me-col:last-child { border-right: 0; }
+.me-col:active:not(:disabled), .me-col:hover:not(:disabled) { background-color: #5a3d1e; filter: brightness(1.25); }
+.me-col:disabled { cursor: default; }
+.me-tile { display: inline-block; background-image: url(/games/merge-em/tiles.png); background-repeat: no-repeat; background-position-y: 0; image-rendering: pixelated; flex: none; }
+.me-cell { position: absolute; border: 0; padding: 0; transition: top 0.18s ease-in; }
+.me-cell.born { animation: me-fall 0.2s ease-in; }
+.me-cell.fresh { animation: me-merge 0.3s steps(1) forwards, me-pop 0.3s ease-out; }
+@keyframes me-fall { from { transform: translateY(var(--fall)); } to { transform: none; } }
+@keyframes me-merge { 0% { background-position-y: calc(var(--s) * -1); } 33% { background-position-y: calc(var(--s) * -2); } 66% { background-position-y: calc(var(--s) * -3); } 100% { background-position-y: 0; } }
+@keyframes me-pop { 0% { transform: scale(0.8); } 50% { transform: scale(1.15); } 100% { transform: none; } }
+.me-board.hammer .me-cell { cursor: crosshair; animation: me-wobble 0.6s ease-in-out infinite; }
+@keyframes me-wobble { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-3deg); } 75% { transform: rotate(3deg); } }
+.me-cur { border-radius: 6px; }
+.me-mini { opacity: 0.95; }
+.me-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.me-actions .btn { min-height: 52px; }
+.me-credit { margin: 0; font-size: 0.75rem; color: #fff; text-shadow: 0 1px 0 #1c245c; }
+body.calm-games .me-cell, body.calm-games .me-bump { animation: none !important; transition: none !important; }
+@media (prefers-reduced-motion: reduce) { .me-cell, .me-bump { animation: none !important; transition: none !important; } }

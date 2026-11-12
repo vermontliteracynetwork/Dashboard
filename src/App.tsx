@@ -74,6 +74,7 @@ const FarmGrow = lazyFresh(() => import('./routes/student/FarmGrow'));
 const LighthouseSignal = lazyFresh(() => import('./routes/student/LighthouseSignal'));
 const GemMine = lazyFresh(() => import('./routes/student/GemMine'));
 const MemoryMatch = lazyFresh(() => import('./routes/student/MemoryMatch'));
+const MergeEm = lazyFresh(() => import('./routes/student/MergeEm'));
 const WordSearch = lazyFresh(() => import('./routes/student/WordSearch'));
 const PlinkoDrop = lazyFresh(() => import('./routes/student/PlinkoDrop'));
 const CrossyHopper = lazyFresh(() => import('./routes/student/CrossyHopper'));
@@ -251,6 +252,7 @@ export default function App() {
           <Route path="/student/crossy" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><CrossyHopper /></Suspense>} />
           <Route path="/student/plinko" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><PlinkoDrop /></Suspense>} />
           <Route path="/student/word-search" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><WordSearch /></Suspense>} />
+          <Route path="/student/merge-em" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><MergeEm /></Suspense>} />
           <Route path="/student/memory-match" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><MemoryMatch /></Suspense>} />
           <Route path="/student/gem-mine" element={<Suspense fallback={<div className="app-shell center-screen"><p>Loading the game…</p></div>}><GemMine /></Suspense>} />
           <Route path="/student/kitchen" element={<Navigate to="/student/games" replace />} />

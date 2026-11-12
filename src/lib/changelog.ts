@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-12-merge-em",
+    date: "2026-11-12",
+    icon: "🔢",
+    title: "New game: Merge 'Em",
+    body: "You asked for it! Tap a column to drop a number tile. Two tiles with the same number squish into a bigger one: 8 + 8 = 16. Make chains, swap your next tile, and answer questions to earn hammers that smash any tile. How big can you go? Find it in the Arcade.",
+  },
+  {
     id: "2026-11-11-picture-pages",
     date: "2026-11-11",
     icon: "🖼️",
