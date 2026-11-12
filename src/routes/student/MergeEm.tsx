@@ -60,6 +60,12 @@ const MERGE_SOUNDS: Record<number, string> = {
   9: '/games/merge-em/sounds/merge-512s.mp3', // "yay"
   10: '/games/merge-em/sounds/merge-1024s.mp3', // synth wobble
   11: '/games/merge-em/sounds/merge-2048s.mp3', // cartoon laughter
+  // 630: manuelgraf, dersuperanton, jofae, jofae, qubodup (freesound)
+  12: '/games/merge-em/sounds/merge-4096s.mp3', // "yahoo"
+  13: '/games/merge-em/sounds/merge-8192s.mp3', // laughing cartoon mouse
+  14: '/games/merge-em/sounds/merge-16384s.mp3', // comical sprout
+  15: '/games/merge-em/sounds/merge-32768s.mp3', // crow caw
+  16: '/games/merge-em/sounds/merge-65536s.mp3', // jump
 };
 const playMerge = (fromE: number) => { const f = MERGE_SOUNDS[fromE]; if (f) playClip(f, 0.8); else pitchPop(fromE); };
 
