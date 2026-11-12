@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-12-alchemy-feelings",
+    date: "2026-11-12",
+    icon: "😠",
+    title: "Feelings in Alchemy",
+    body: "The pictures from the feelings wheel are in Alchemy now. Make a feeling (try human + sun), learn what it means, then mix it with things: Angry + Robot = Evil Robot, Scared + Cat = Scaredy Cat, Proud + Peacock = Proud as a Peacock.",
+  },
+  {
     id: "2026-11-12-merge-em-slide",
     date: "2026-11-12",
     icon: "🔢",
