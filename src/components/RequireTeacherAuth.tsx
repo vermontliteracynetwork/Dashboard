@@ -1,8 +1,9 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useTeacherSession } from '../lib/teacherAuth';
 
 export default function RequireTeacherAuth() {
   const { session, loading } = useTeacherSession();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -12,7 +13,7 @@ export default function RequireTeacherAuth() {
     );
   }
 
-  if (!session) return <Navigate to="/teacher/login" replace />;
+  if (!session) return <Navigate to="/teacher/login" replace state={{ from: location.pathname }} />;
 
   return <Outlet />;
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { signInTeacher } from '../../lib/teacherAuth';
 import { TEACHER_INTERNAL_PASSWORD } from '../../lib/supabaseClient';
 
@@ -8,6 +8,9 @@ import { TEACHER_INTERNAL_PASSWORD } from '../../lib/supabaseClient';
 // why that still matters), it's just never typed by anyone.
 export default function TeacherLogin() {
   const navigate = useNavigate();
+  // Build Queue 625: the Service Provider View uses this same sign in, then goes back where it came from.
+  const from = (useLocation().state as { from?: string } | null)?.from;
+  const provider = from === '/provider';
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -21,13 +24,13 @@ export default function TeacherLogin() {
       setError("Couldn't sign in. Ask whoever set this up to check SETUP.md.");
       return;
     }
-    navigate('/teacher');
+    navigate(from && from.startsWith('/') ? from : '/teacher');
   };
 
   return (
     <div className="center-screen">
       <div className="chrome-frame stack" style={{ padding: 32, minWidth: 340, alignItems: 'center', textAlign: 'center' }}>
-        <h1 style={{ margin: 0, color: 'var(--purple)' }}>🍎 Teacher Area</h1>
+        <h1 style={{ margin: 0, color: 'var(--purple)' }}>{provider ? 'Service Provider View' : '🍎 Teacher Area'}</h1>
         {!TEACHER_INTERNAL_PASSWORD && (
           <p style={{ color: 'var(--danger)', margin: 0, fontSize: '0.85rem' }}>
             Not set up yet. VITE_TEACHER_INTERNAL_PASSWORD is missing. See SETUP.md.

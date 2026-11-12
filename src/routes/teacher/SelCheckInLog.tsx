@@ -7,6 +7,7 @@ import { QUEST1_NEIGHBORS } from '../../lib/worldQuest1';
 import type { SelCheckIn, SelZone } from '../../types';
 import SelTeamReport from './SelTeamReport';
 import DiaryLibraryManager from '../../components/DiaryLibraryManager';
+import DiaryTeacherTools from '../../components/DiaryTeacherTools';
 import type { DiaryPageData } from '../../lib/diaryBook';
 import { SEL_ZONES } from '../../lib/selZones';
 
@@ -180,6 +181,7 @@ export default function SelCheckInLog() {
             ))}
           </div>
         )}
+        <DiaryTeacherTools />
         <DiaryLibraryManager />
       </div>
     </div>

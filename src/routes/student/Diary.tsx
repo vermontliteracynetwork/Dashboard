@@ -23,6 +23,8 @@ import { readStreak } from '../../lib/streak';
 import { sayInPetVoice } from '../../lib/petSpeak';
 import { PetPortrait } from './PetFinder';
 import type { SelZone } from '../../types';
+import { isLocked, setDiaryCode, setPageLocked, useDiaryLock } from '../../lib/diaryLock';
+import DiaryCodePad from '../../components/DiaryCodePad';
 
 export { diaryOwner };
 export type { DiaryEntry };
@@ -78,6 +80,11 @@ export default function Diary() {
   const carePet = useStore((s) => s.carePet);
   const [view, setView] = useState<View>({ k: 'home' });
   const [petSay, setPetSay] = useState('');
+  // Build Queue 624: locked pages and the code pad. Pages opened with the code stay open until the Diary is closed.
+  const lock = useDiaryLock(student?.id ?? '');
+  const [unlocked, setUnlocked] = useState<string[]>([]);
+  const [pad, setPad] = useState<{ mode: 'set' | 'open'; then: (code: string) => void; cancel?: () => void } | null>(null);
+  const [lockMsg, setLockMsg] = useState('');
   const [making, setMaking] = useState('');
   const [hop, setHop] = useState(0);
   const [music, setMusic] = useState<HTMLAudioElement | null>(null);
@@ -89,7 +96,17 @@ export default function Diary() {
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
   const thisWeek = entries.filter(([, e]) => e.at >= weekAgo).length;
   const petMap = Object.fromEntries(pets.filter((p) => p.studentId === student.id).map((p) => [p.id, { defId: p.petDefId, name: p.customName }]));
-  const reelOf = (list: [string, DiaryEntry][]): ReelPage[] => list.map(([, e]) => ({ page: asPage(e), title: dayLabel(e.at), stat: statFor(student.id, new Date(e.at).toLocaleDateString('en-CA')), pets: petMap, studentId: student.id }));
+  const hidden = (id: string) => isLocked(lock, id) && !unlocked.includes(id);
+  const flash = (m: string) => { setLockMsg(m); window.setTimeout(() => setLockMsg(''), 3500); };
+  const padEl = pad && <DiaryCodePad mode={pad.mode} code={lock.code} tts={student.ttsSettings} onDone={(c) => { const t = pad.then; setPad(null); t(c); }} onCancel={() => { const c = pad.cancel; setPad(null); c?.(); }} />;
+  const lockPage = (id: string) => {
+    const done = () => { setPageLocked(student.id, useStore.getState().styleLooks.find((r) => r.ownerId === `diarylock:${student.id}`)?.look ?? {}, id, true); setUnlocked((u) => [...u, id]); flash('Locked. This page is just for you now. Your teacher can still read it.'); };
+    if (lock.code) { done(); return; }
+    setPad({ mode: 'set', then: (code) => { setDiaryCode(student.id, code); done(); } });
+  };
+  const unlockPage = (id: string) => { setPageLocked(student.id, lock, id, false); flash('Unlocked. Anyone using your diary can see this page.'); };
+  const openPage = (id: string) => { if (!hidden(id)) { setView({ k: 'view', id }); return; } setPad({ mode: 'open', then: () => { setUnlocked((u) => [...u, id]); setView({ k: 'view', id }); } }); };
+  const reelOf = (list: [string, DiaryEntry][]): ReelPage[] => list.filter(([id]) => !hidden(id)).map(([, e]) => ({ page: asPage(e), title: dayLabel(e.at), stat: statFor(student.id, new Date(e.at).toLocaleDateString('en-CA')), pets: petMap, studentId: student.id }));
   // Build Queue 578 and 579: save a page, or the whole week (the highlight reel), as a video.
   const makeVideo = async (list: [string, DiaryEntry][], title: string) => {
     if (!list.length) return;
@@ -135,6 +152,7 @@ export default function Diary() {
   if (view.k === 'view') {
     const i = entries.findIndex(([id]) => id === view.id), e = entries[i]?.[1];
     if (!e) { setView({ k: 'home' }); return null; }
+    if (hidden(view.id)) { setView({ k: 'home' }); return null; }
     return (
       <div className="diary">
         <header className="diary-head">
@@ -142,13 +160,18 @@ export default function Diary() {
           <h1>{dayLabel(e.at)}</h1>
           {e.page?.music && <button type="button" className="btn" onClick={() => { if (music) { music.pause(); setMusic(null); } else { const a = new Audio(e.page!.music); a.loop = true; void a.play().catch(() => {}); setMusic(a); } }}>{music ? 'Stop music' : 'Play my soundtrack'}</button>}
           <button type="button" className="btn" disabled={!!making} onClick={() => void makeVideo([entries[i]], `My diary ${new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`)}>Save as video</button>
+          {isLocked(lock, view.id)
+            ? <button type="button" className="btn" onClick={() => unlockPage(view.id)}>Unlock this page</button>
+            : <button type="button" className="btn" onClick={() => lockPage(view.id)}>Lock this page</button>}
           <button type="button" className="btn btn-primary" onClick={() => setView({ k: 'edit', id: view.id })}>Add more</button>
         </header>
         {making && <p className="diary-making" role="status">{making}</p>}
+        {lockMsg && <p className="diary-making" role="status">{lockMsg}</p>}
+        {padEl}
         <div className="dp-viewer">
-          <button type="button" className="dp-turn" disabled={i >= entries.length - 1} onClick={() => setView({ k: 'view', id: entries[i + 1][0] })} aria-label="Older page">‹</button>
+          <button type="button" className="dp-turn" disabled={i >= entries.length - 1} onClick={() => openPage(entries[i + 1][0])} aria-label="Older page">‹</button>
           <DiaryPage page={asPage(e)} className="dp-big" studentId={student.id} day={new Date(e.at).toLocaleDateString('en-CA')} />
-          <button type="button" className="dp-turn" disabled={i <= 0} onClick={() => setView({ k: 'view', id: entries[i - 1][0] })} aria-label="Newer page">›</button>
+          <button type="button" className="dp-turn" disabled={i <= 0} onClick={() => openPage(entries[i - 1][0])} aria-label="Newer page">›</button>
         </div>
       </div>
     );
@@ -165,6 +188,8 @@ export default function Diary() {
         <button type="button" className="btn" onClick={() => setView({ k: 'charts' })}>My feelings charts</button>
       </header>
       {making && <p className="diary-making" role="status">{making}</p>}
+      {lockMsg && <p className="diary-making" role="status">{lockMsg}</p>}
+      {padEl}
       <section className="diary-hero">
         <div className="diary-buddy" key={hop} data-hop={hop > 0 ? 'y' : undefined}>
           {pet ? <img src={(() => { const d = petDefById(pet.petDefId); return d ? thumbnailFor(d) : '/sel/feelings/happy.jpg'; })()} alt="" onError={(e) => { e.currentTarget.src = '/sel/feelings/happy.jpg'; }} /> : <img src="/sel/feelings/happy.jpg" alt="" />}
@@ -183,8 +208,13 @@ export default function Diary() {
         <div className="diary-empty"><p>Your diary is empty. Tap <b>New page</b> and drag on pictures, drawings, stickers, your voice and notes.</p></div>
       ) : (
         <div className="diary-shelf">
-          {entries.map(([id, e]) => (
-            <button key={id} type="button" className="diary-thumb" onClick={() => setView({ k: 'view', id })}>
+          {entries.map(([id, e]) => hidden(id) ? (
+            <button key={id} type="button" className="diary-thumb diary-locked" onClick={() => openPage(id)} aria-label={`Locked page from ${new Date(e.at).toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}. Tap to type your code.`}>
+              <span className="diary-lockcard"><svg width="46" height="46" viewBox="0 0 24 24" aria-hidden><rect x="4" y="10" width="16" height="11" rx="2.5" fill="currentColor" /><path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="2.4" fill="none" /></svg><b>Locked page</b><small>Just for you</small></span>
+              <span>{new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+            </button>
+          ) : (
+            <button key={id} type="button" className="diary-thumb" onClick={() => openPage(id)}>
               <DiaryPage page={asPage(e)} className="dp-mini" lite studentId={student.id} day={new Date(e.at).toLocaleDateString('en-CA')} />
               <span>{new Date(e.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}{e.feeling ? ` · ${e.feeling}` : ''}</span>
             </button>

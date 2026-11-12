@@ -49,6 +49,7 @@ import SupernatureLocks from './routes/teacher/SupernatureLocks';
 import PlinkoThemeBuilder from './routes/teacher/PlinkoThemeBuilder';
 import GameThemes from './routes/teacher/GameThemes';
 import SelCheckInLog from './routes/teacher/SelCheckInLog';
+import ProviderView from './routes/provider/ProviderView';
 import StudentLiveView from './routes/teacher/StudentLiveView';
 import TeacherHelpAlert from './components/TeacherHelpAlert';
 import StudentChatAlert from './components/StudentChatAlert';
@@ -264,6 +265,8 @@ export default function App() {
           <Route path="/student/cinema" element={<Cinema />} />
           <Route path="/student/arcade" element={<GamesHub />} />
           <Route path="/student/grammar" element={<LiteracyManipulativesEmbed />} />
+          {/* Build Queue 625 and 636: the Service Provider View, behind its own password ("care"). */}
+          <Route path="/provider" element={<ProviderView />} />
           <Route path="/teacher/login" element={<TeacherLogin />} />
           <Route element={<RequireTeacherAuth />}>
             <Route path="/teacher" element={<TeacherHome />} />
@@ -329,7 +332,9 @@ function TeacherGusRoute() {
 }
 // Pop-ups for students (chat, check-ins, streaks...) never show over a teacher's board page.
 function NotOnBoard({ children }: { children: React.ReactNode }) {
-  return useLocation().pathname.startsWith('/gus-board/') ? null : <>{children}</>;
+  // Build Queue 635: the Service Provider View shows none of the student overlays (no Azalea, no menus, no alerts).
+  const p = useLocation().pathname;
+  return p.startsWith('/gus-board/') || p.startsWith('/provider') ? null : <>{children}</>;
 }
 
 // Build Queue 365: a game's background music stops the moment the screen changes (leaving the game, Back, Home).

@@ -30,6 +30,16 @@ export default function RoleSelect() {
           >
             🍎 I'm the Teacher
           </button>
+          {/* Build Queue 625: SLPs, OTs and therapists get their own read only reports view. */}
+          <button
+            className="btn btn-lg"
+            onClick={() => {
+              setRole('teacher');
+              navigate('/provider');
+            }}
+          >
+            Service Provider
+          </button>
         </div>
       </div>
     </div>

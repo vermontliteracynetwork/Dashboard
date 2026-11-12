@@ -23,11 +23,11 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "Now you pick up a number block with your finger and drop it on another block with the same number to combine them: 8 + 8 = 16. A green glow means it will combine. You can also drop a block in any empty square.",
   },
   {
-    id: "2026-11-12-merge-em-slide",
+    id: "2026-11-12-diary-lock",
     date: "2026-11-12",
-    icon: "🔢",
-    title: "Merge 'Em now slides like 2048",
-    body: "Swipe the board (or tap the arrows) and every tile slides. When two tiles with the same number bump together, they combine: 8 + 8 = 16. Combine two pairs in one swipe for a combo!",
+    icon: "🔒",
+    title: "Lock a Diary page",
+    body: "Open a page in your Diary and tap Lock this page. Make a 4 number code you will remember. Locked pages are just for you, and only your code opens them. Your teacher can always read your diary and can help if you forget your code.",
   },
   {
     id: "2026-11-12-alchemy-feelings",
@@ -35,6 +35,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     icon: "😠",
     title: "Feelings in Alchemy",
     body: "The pictures from the feelings wheel are in Alchemy now. Make a feeling (try human + sun), learn what it means, then mix it with things: Angry + Robot = Evil Robot, Scared + Cat = Scaredy Cat, Proud + Peacock = Proud as a Peacock.",
+  },
+  {
+    id: "2026-11-12-merge-em-slide",
+    date: "2026-11-12",
+    icon: "🔢",
+    title: "Merge 'Em now slides like 2048",
+    body: "Swipe the board (or tap the arrows) and every tile slides. When two tiles with the same number bump together, they combine: 8 + 8 = 16. Combine two pairs in one swipe for a combo!",
   },
   {
     id: "2026-11-12-alchemy-equation",
