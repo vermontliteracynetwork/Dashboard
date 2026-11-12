@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-12-alchemy-equation",
+    date: "2026-11-12",
+    icon: "🟰",
+    title: "Alchemy shows the math of every mix",
+    body: "When you drag one thing onto another, the equation at the top fills in: Water + Fire = Steam. A question mark means you are about to discover something new. An empty box means those two do not make anything.",
+  },
+  {
     id: "2026-11-12-alchemy-myths",
     date: "2026-11-12",
     icon: "⚗️",

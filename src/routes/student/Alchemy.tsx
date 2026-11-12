@@ -13,6 +13,7 @@ import { drawQuestion, hasPlayable, playableOf } from '../../lib/questionPick';
 import { formatMoney } from '../../lib/money';
 import type { MCQuestion, NativeGameId } from '../../types';
 import { noteGameStart } from '../../lib/gameReports';
+import { speak } from '../../components/ReadAloud';
 
 // Alchemy, an app on the student's computer (teacher 2026-10-08: "lets get the alchemy game
 // going. make an app in the computer"), built from her prototype. Drag one element onto another
@@ -38,6 +39,9 @@ const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 const R: Record<string, string[]> = {};
 RECIPES.forEach(([a, b, r]) => { const k = key(a, b); (R[k] ??= []).includes(r) || R[k].push(r); });
 type Tile = { uid: number; id: string; x: number; y: number; fx?: 'pop' | 'shake' };
+// The equation bar (Build Queue 618): first thing + second thing = result. r is the result id, '?' for a mix that
+// makes something not found yet, or null when the two make nothing (the result spot stays blank).
+type Eq = { a: string; b: string; r: string | null; live: boolean };
 
 let actx: AudioContext | null = null;
 function beep(freqs: number[], dur: number) {
@@ -54,6 +58,19 @@ function beep(freqs: number[], dur: number) {
       o.start(t0 + i * dur); o.stop(t0 + i * dur + dur + 0.02);
     });
   } catch { /* no sound on this device */ }
+}
+
+const eqWords = (q: Eq | null) => {
+  if (!q?.a) return 'The equation is empty.';
+  const nm = (id: string) => ELS[id]?.n ?? '';
+  if (!q.b) return `${nm(q.a)} plus`;
+  return `${nm(q.a)} plus ${nm(q.b)} equals ${q.r === '?' ? 'something new to discover' : q.r ? nm(q.r) : 'nothing'}`;
+};
+function EqSlot({ id }: { id?: string }) {
+  if (!id) return <span className="alc-eq-slot empty" />;
+  if (id === '?') return <span className="alc-eq-slot unknown"><b aria-hidden>?</b><small>Unknown</small></span>;
+  const el = ELS[id];
+  return <span className="alc-eq-slot"><b aria-hidden>{el.e}</b><small>{el.n}</small></span>;
 }
 
 export default function Alchemy() {
@@ -131,6 +148,10 @@ export default function Alchemy() {
   const [toast, setToast] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [eq, setEq] = useState<Eq | null>(null);
+  const discRef = useRef(disc); discRef.current = disc;
+  // What a pair would make, for the preview while dragging: the thing if already found, '?' if not found yet, null if nothing.
+  const preview = (a: string, b: string): string | null => { const rs = R[key(a, b)]; if (!rs) return null; return rs.every((x) => discRef.current.includes(x)) ? rs[0] : '?'; };
   const boardRef = useRef<HTMLDivElement>(null);
   const shelfRef = useRef<HTMLElement>(null);
   const tilesRef = useRef(tiles); tilesRef.current = tiles;
@@ -142,7 +163,7 @@ export default function Alchemy() {
 
 
   const boardRect = () => boardRef.current?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight);
-  const clamp = (x: number, y: number) => { const r = boardRect(); return { x: Math.min(Math.max(x, r.left + 46), r.right - 46), y: Math.min(Math.max(y, r.top + 70), r.bottom - 46) }; };
+  const clamp = (x: number, y: number) => { const r = boardRect(); return { x: Math.min(Math.max(x, r.left + 46), r.right - 46), y: Math.min(Math.max(y, r.top + 150), r.bottom - 46) }; };
   const nearest = (t: Tile) => {
     let best: Tile | null = null; let bd = 64;
     for (const o of tilesRef.current) { if (o.uid === t.uid) continue; const d = Math.hypot(o.x - t.x, o.y - t.y); if (d < bd) { bd = d; best = o; } }
@@ -164,6 +185,7 @@ export default function Alchemy() {
       // Build Queue 396 (her words: "if objects dont combine that should not count as a combination in their total moves
       // to make before a question appears"): only a real combination counts toward the next question break.
       countPlay();
+      setEq({ a: a.id, b: b.id, r, live: false });
       const p = clamp((a.x + b.x) / 2, (a.y + b.y) / 2);
       setTiles((ts) => [...ts.filter((t) => t.uid !== a.uid && t.uid !== b.uid), { uid: nextUid.current++, id: r, x: p.x, y: p.y, fx: 'pop' }]);
       discover(r);
@@ -176,6 +198,7 @@ export default function Alchemy() {
       const s = t.uid === a.uid ? -1 : 1; const p = clamp(t.x + (s * 46 * vx) / len, t.y + (s * 46 * vy) / len);
       return { ...t, ...p, fx: 'shake' };
     }));
+    setEq({ a: a.id, b: b.id, r: null, live: false });
     sound([180], 0.12);
   };
 
@@ -183,6 +206,7 @@ export default function Alchemy() {
     e.preventDefault();
     drag.current = { uid: t.uid, fromShelf, moved: false, sx: e.clientX, sy: e.clientY, dx: fromShelf ? 0 : t.x - e.clientX, dy: fromShelf ? 0 : t.y - e.clientY };
     setTiles((ts) => [...ts.filter((x) => x.uid !== t.uid), { ...t, fx: undefined }]); // dragged tile on top
+    if (!fromShelf) setEq({ a: t.id, b: '', r: null, live: true });
   };
   useEffect(() => {
     const move = (e: PointerEvent) => {
@@ -193,9 +217,12 @@ export default function Alchemy() {
       const me = tilesRef.current.find((t) => t.uid === d.uid);
       const n = me ? nearest({ ...me, x: e.clientX + d.dx, y: e.clientY + d.dy }) : null;
       setHot(n?.uid ?? null);
+      if (me && n) setEq({ a: me.id, b: n.id, r: preview(me.id, n.id), live: true });
+      else if (me) setEq((q) => (q?.live ? { a: me.id, b: '', r: null, live: true } : q));
     };
     const end = (e: PointerEvent, cancelled: boolean) => {
       const d = drag.current; if (!d) return; drag.current = null; setHot(null);
+      setEq((q) => (q?.live ? null : q)); // a drop on nothing clears the preview; a real mix sets the equation below
       const t = tilesRef.current.find((x) => x.uid === d.uid); if (!t) return;
       const sr = shelfRef.current?.getBoundingClientRect();
       const overShelf = !!sr && e.clientX >= sr.left && e.clientX <= sr.right && e.clientY >= sr.top && e.clientY <= sr.bottom;
@@ -280,6 +307,14 @@ export default function Alchemy() {
             <button type="button" className="alc-btn" onClick={() => setTiles([])}>Clear board</button>
             <button type="button" className="alc-btn" onClick={() => { setSoundOn((s) => { try { localStorage.setItem('alchemy.sound', s ? '0' : '1'); } catch { /* fine */ } return !s; }); }} aria-label={soundOn ? 'Sound on. Tap to mute' : 'Sound off. Tap to turn on'}>{soundOn ? '🔊' : '🔇'}</button>
             <button type="button" className="alc-btn" onClick={() => setConfirmReset(true)}>Start over</button>
+            <div className="alc-eq" aria-live="polite" aria-label={eqWords(eq)}>
+              <EqSlot id={eq?.a} />
+              <span className="alc-eq-sign" aria-hidden>+</span>
+              <EqSlot id={eq?.b} />
+              <span className="alc-eq-sign" aria-hidden>=</span>
+              <EqSlot id={eq?.r ?? undefined} />
+              <button type="button" className="alc-btn alc-eq-say" onClick={() => speak(eq ? eqWords(eq) : 'Drag one thing onto another. The equation shows what they make.', student?.ttsSettings)} aria-label="Read the equation aloud">🔊</button>
+            </div>
           </div>
           {tiles.length === 0 && <div className="alc-empty">Drag an element onto another to combine them.<br />Tap an element to drop it on the board.</div>}
           {toast && <div className="alc-toast" role="status">{toast}</div>}
