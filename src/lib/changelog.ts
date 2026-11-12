@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-11-mcyoga-v2",
+    date: "2026-11-11",
+    icon: "🍔",
+    title: "McYoga grows: one bank, two windows, a giant fridge",
+    body: "Both restaurants now share one bank, so everything you earn adds up together. McYoga can buy a second drive through window to serve two cars at once, and at level 5 a giant walk-in fridge with shelves all around that holds as much food as you want. You can also choose how much to pay your workers.",
+  },
+  {
     id: "2026-11-11-mcyoga",
     date: "2026-11-11",
     icon: "🍔",
