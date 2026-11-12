@@ -66,6 +66,11 @@ const MERGE_SOUNDS: Record<number, string> = {
   14: '/games/merge-em/sounds/merge-16384s.mp3', // comical sprout
   15: '/games/merge-em/sounds/merge-32768s.mp3', // crow caw
   16: '/games/merge-em/sounds/merge-65536s.mp3', // jump
+  // 631: alienxxx, bradduhig, alixtwix6, raaghav81 (freesound)
+  17: '/games/merge-em/sounds/merge-131072s.mp3', // retro synth
+  18: '/games/merge-em/sounds/merge-262144s.mp3', // shape change
+  19: '/games/merge-em/sounds/merge-524288s.mp3', // "8"
+  20: '/games/merge-em/sounds/merge-1048576s.mp3', // sweep
 };
 const playMerge = (fromE: number) => { const f = MERGE_SOUNDS[fromE]; if (f) playClip(f, 0.8); else pitchPop(fromE); };
 
