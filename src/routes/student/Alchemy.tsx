@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WebpageFrame from '../../components/WebpageFrame';
-import { ELEMENTS, RECIPES, START } from '../../games/alchemy/data';
+import { ELEMENTS, RECIPES, START, FEELING_MEANINGS } from '../../games/alchemy/data';
 import { setLeaveGuard, useBack } from '../../lib/navTrail';
 import { useLocation } from 'react-router-dom';
 import { useStore } from '../../store/store';
@@ -34,6 +34,10 @@ type El = { id: string; e: string; n: string };
 const ELS: Record<string, El> = Object.fromEntries(ELEMENTS.map(([id, e, n]) => [id, { id, e, n }]));
 // Two-picture elements (🔥🐦 Phoenix) draw a little smaller so they fit the tile.
 const TWO = /\p{Extended_Pictographic}.*\p{Extended_Pictographic}/u;
+// Feelings (Build Queue 627) use her feelings wheel pictures: a picture path instead of emoji.
+const isPic = (e: string) => e.startsWith('/');
+const Icon = ({ e }: { e: string }) => (isPic(e) ? <img className="alc-pic" src={e} alt="" draggable={false} /> : <>{e}</>);
+const emo = (id: string) => (isPic(ELS[id].e) ? '' : `${ELS[id].e} `);
 const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 // A pair can make more than one thing (Build Queue 237); the first one not found yet comes out.
 const R: Record<string, string[]> = {};
@@ -64,13 +68,13 @@ const eqWords = (q: Eq | null) => {
   if (!q?.a) return 'The equation is empty.';
   const nm = (id: string) => ELS[id]?.n ?? '';
   if (!q.b) return `${nm(q.a)} plus`;
-  return `${nm(q.a)} plus ${nm(q.b)} equals ${q.r === '?' ? 'something new to discover' : q.r ? nm(q.r) : 'nothing'}`;
+  return `${nm(q.a)} plus ${nm(q.b)} equals ${q.r === '?' ? 'something new to discover' : q.r ? nm(q.r) : 'nothing'}.${q.r && FEELING_MEANINGS[q.r] ? ` ${FEELING_MEANINGS[q.r]}` : ''}`;
 };
 function EqSlot({ id }: { id?: string }) {
   if (!id) return <span className="alc-eq-slot empty" />;
   if (id === '?') return <span className="alc-eq-slot unknown"><b aria-hidden>?</b><small>Unknown</small></span>;
   const el = ELS[id];
-  return <span className="alc-eq-slot"><b aria-hidden>{el.e}</b><small>{el.n}</small></span>;
+  return <span className="alc-eq-slot"><b aria-hidden><Icon e={el.e} /></b><small>{el.n}</small></span>;
 }
 
 export default function Alchemy() {
@@ -159,7 +163,7 @@ export default function Alchemy() {
   const drag = useRef<{ uid: number; fromShelf: boolean; moved: boolean; sx: number; sy: number; dx: number; dy: number } | null>(null);
   const toastT = useRef<number>(0);
   const sound = (f: number[], d: number) => { if (soundOn) beep(f, d); };
-  const say = (m: string) => { setToast(m); window.clearTimeout(toastT.current); toastT.current = window.setTimeout(() => setToast(null), 2400); };
+  const say = (m: string) => { setToast(m); window.clearTimeout(toastT.current); toastT.current = window.setTimeout(() => setToast(null), Math.max(2400, m.length * 70)); };
 
 
   const boardRect = () => boardRef.current?.getBoundingClientRect() ?? new DOMRect(0, 0, window.innerWidth, window.innerHeight);
@@ -175,7 +179,7 @@ export default function Alchemy() {
     if (disc.includes(id)) { sound([520], 0.1); return; }
     const d = [...disc, id]; setDisc(d); setFresh((f) => [...f, id]);
     sound([523, 659, 784], 0.1);
-    say(`New discovery: ${ELS[id].e} ${ELS[id].n}!`);
+    say(FEELING_MEANINGS[id] ? `New feeling: ${ELS[id].n}! ${FEELING_MEANINGS[id]}` : `New discovery: ${emo(id)}${ELS[id].n}!`);
     if (d.length === ELEMENTS.length) window.setTimeout(() => say('🎉 You discovered everything!'), 2600);
   };
   const combine = (a: Tile, b: Tile) => {
@@ -250,7 +254,7 @@ export default function Alchemy() {
     const opts = RECIPES.filter(([a, b, r]) => !disc.includes(r) && disc.includes(a) && disc.includes(b));
     if (!opts.length) { say('No hints right now. Keep experimenting!'); return; }
     const [a, b] = opts[Math.floor(Math.random() * opts.length)];
-    say(`Try: ${ELS[a].e} ${ELS[a].n} + ${ELS[b].e} ${ELS[b].n}`);
+    say(`Try: ${emo(a)}${ELS[a].n} + ${emo(b)}${ELS[b].n}`);
   };
   // Leaving clears everything, so ask first (teacher 2026-10-08: "make sure there is a confirmation
   // menu that appears before they leave to confirm delete"). Back, the breadcrumbs and closing the tab all ask.
@@ -326,7 +330,7 @@ export default function Alchemy() {
               <button key={id} type="button" className={`alc-chip${fresh.includes(id) ? ' new' : ''}`}
                 onPointerDown={(e) => { if (e.button > 0) return; setFresh((f) => f.filter((x) => x !== id)); startDrag(e, addTile(id, e.clientX, e.clientY), true); }}
                 aria-label={`${ELS[id].n}. Drag onto the board, or tap to drop it there.`}>
-                <span className="alc-e" aria-hidden>{ELS[id].e}</span><span>{ELS[id].n}</span>
+                <span className="alc-e" aria-hidden><Icon e={ELS[id].e} /></span><span>{ELS[id].n}</span>
               </button>
             ))}
           </div>
@@ -339,7 +343,7 @@ export default function Alchemy() {
             onDoubleClick={() => { const p = clamp(t.x + 40, t.y + 40); addTile(t.id, p.x, p.y, 'pop'); }}
             onAnimationEnd={() => setTiles((ts) => ts.map((x) => (x.uid === t.uid ? { ...x, fx: undefined } : x)))}
             role="img" aria-label={ELS[t.id].n}>
-            <div className="alc-in"><div className={`alc-em${TWO.test(ELS[t.id].e) ? ' two' : ''}`}>{ELS[t.id].e}</div><div className="alc-nm">{ELS[t.id].n}</div></div>
+            <div className="alc-in"><div className={`alc-em${TWO.test(ELS[t.id].e) ? ' two' : ''}`}><Icon e={ELS[t.id].e} /></div><div className="alc-nm">{ELS[t.id].n}</div></div>
           </div>
         ))}
       </div>
