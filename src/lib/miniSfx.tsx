@@ -53,6 +53,10 @@ export const sfx = {
   creak: () => tone(110, 0.4, 'sawtooth', 0.03, 180),
 };
 
+// Merge 'Em (Build Queue 620): a short pop whose pitch climbs with the number made, so every merge sounds different
+// until the teacher's own sound file for that number is added.
+export const pitchPop = (step: number) => { const f = 260 * Math.pow(2, Math.min(step, 30) / 7); tone(f, 0.11, 'sine', 0.09, f * 1.7); tone(f * 2, 0.06, 'triangle', 0.03, undefined, 0.03); };
+
 // Build Queue 299: silly sounds a Plinko theme gives its colored pegs (her examples: a pink peg barks, an orange peg
 // farts). All short, so a ball bouncing peg to peg never piles them up. A peg sound can also be her own uploaded file.
 function bark(delay = 0) { tone(520, 0.11, 'sawtooth', 0.07, 260, delay); noise(0.08, 0.05, 'bandpass', 900, delay); }

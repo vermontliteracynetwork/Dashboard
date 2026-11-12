@@ -63,7 +63,7 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'dinerDash', added: '2026-10-29', title: 'Restaurant', route: '/student/diner', cover: '/games/covers/restaurant.jpg', blurb: 'Run your own pizza place: take orders, cook, serve, ring up and clean, then level up to new restaurants.', versus: false, cabinet: { marquee: '#e2479a', panel: '#ffd3bd', trim: '#ffd23f', icon: '🍕' } },
   { id: 'yogasRevenge', added: '2026-11-10', title: "Yoga's Revenge", route: '/student/yogas-revenge', cover: '/games/covers/yogas-revenge.svg', blurb: 'Help Yoga the dog beat the trash can monsters on trash day!', versus: false, cabinet: { marquee: '#2d2350', panel: '#e8873a', trim: '#ffd23f', icon: '🐕' } },
   // Build Queue 615 (2026-11-12): the students' number-merge drop game, with the tile set she found (Zro Dfects).
-  { id: 'mergeEm', added: '2026-11-12', title: "Merge 'Em", route: '/student/merge-em', cover: '/games/covers/merge-em.png', blurb: 'Drop number tiles. Two the same squish into a bigger one!', versus: false, cabinet: { marquee: '#3a4fb0', panel: '#5b7fe0', trim: '#ffd23f', icon: '🔢' } },
+  { id: 'mergeEm', added: '2026-11-12', title: "Merge 'Em", route: '/student/merge-em', cover: '/games/covers/merge-em.png', blurb: 'Drop number tiles. Two tiles with the same number merge into a bigger one. Chain merges and use power ups!', versus: false, cabinet: { marquee: '#3a4fb0', panel: '#5b7fe0', trim: '#ffd23f', icon: '🔢' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

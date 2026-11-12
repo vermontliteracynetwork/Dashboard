@@ -20,7 +20,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: "2026-11-12",
     icon: "🔢",
     title: "New game: Merge 'Em",
-    body: "You asked for it! Tap a column to drop a number tile. Two tiles with the same number squish into a bigger one: 8 + 8 = 16. Make chains, swap your next tile, and answer questions to earn hammers that smash any tile. How big can you go? Find it in the Arcade.",
+    body: "You asked for it! Tap a column to drop a number tile. Two tiles with the same number merge into a bigger one: 8 + 8 = 16. Every number makes its own silly sound when it merges: a bubble pop, a quack, a frog, a dog bark and more. Fill the Power Meter for power ups: Auto Merge, Double Points, a Hammer and a Bomb. You choose how many questions come in each question break and how often. How big can you go? Find it in the Arcade.",
   },
   {
     id: "2026-11-11-picture-pages",
