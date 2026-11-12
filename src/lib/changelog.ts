@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-12-merge-em-drag",
+    date: "2026-11-12",
+    icon: "✋",
+    title: "Merge 'Em: drag the blocks",
+    body: "Now you pick up a number block with your finger and drop it on another block with the same number to combine them: 8 + 8 = 16. A green glow means it will combine. You can also drop a block in any empty square.",
+  },
+  {
     id: "2026-11-12-diary-lock",
     date: "2026-11-12",
     icon: "🔒",

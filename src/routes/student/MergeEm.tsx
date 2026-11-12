@@ -13,10 +13,11 @@ import GameStartCard from '../../components/GameStartCard';
 
 // Merge 'Em (Build Queue 615, 616, 619 to 622, 626; 2026-11-12): the students' number-merge game, with the tile
 // set she found (Zro Dfects "2048 Number Merge Style Tileset", credit on screen).
-// 626, her rule: "adjust the merge em game so that the logic behind it is not like tetris but more like 2048,
-// combining numbers, not dropping numbers". So it is a 4 x 4 slide board: swipe (or the arrow pad, or the
-// keyboard arrows) and every tile slides that way; two tiles with the same number that bump together combine
-// into the next number up, once per move, and a new 2 (sometimes a 4) appears in an empty square.
+// 626, her rule: "not like tetris but more like 2048, combining numbers, not dropping numbers", then 633: "instead of
+// the whole screen moving directions, make it so the student must drag the individual number blocks to one another
+// freely to combine". So it is a 4 x 4 board where the student drags one block onto another block with the same
+// number (anywhere on the board) and they combine into the next number up; a block can also be dragged to any empty
+// square. After every drag a new 2 (sometimes a 4) appears in an empty square.
 //
 // Power ups (616, her words: "ensure there are power ups and fun things like auto merge and double points"):
 // Auto Merge, Double Points, Hammer and Bomb. The Power Meter fills with merges and gives a free power up;
@@ -32,7 +33,6 @@ const METER_FULL = 10;
 const POWER_CAP = 3;
 
 type PowerId = 'auto' | 'double' | 'hammer' | 'bomb';
-type Dir = 'up' | 'down' | 'left' | 'right';
 interface Tile { id: number; e: number; fresh?: boolean; born?: boolean }
 type Grid = (Tile | null)[][]; // grid[row][col], row 0 is the top
 type Pos = [number, number];
@@ -76,7 +76,7 @@ const playMerge = (fromE: number) => { const f = MERGE_SOUNDS[fromE]; if (f) pla
 
 const POWERS: { id: PowerId; name: string; how: string }[] = [
   { id: 'auto', name: 'Auto Merge', how: 'Joins every touching pair that matches. If none touch, it joins two matching tiles for you.' },
-  { id: 'double', name: 'Double Points', how: 'Your next 5 moves score double points.' },
+  { id: 'double', name: 'Double Points', how: 'Your next 5 drags score double points.' },
   { id: 'hammer', name: 'Hammer', how: 'Tap any tile to smash it.' },
   { id: 'bomb', name: 'Bomb', how: 'Tap a tile to blast it and every tile around it.' },
 ];
@@ -114,51 +114,12 @@ const sayable = (text: string) => text
 const shuffle = <T,>(a: T[]) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 const inside = ([r, c]: Pos) => r >= 0 && r < N && c >= 0 && c < N;
 const empties = (g: Grid): Pos[] => g.flatMap((row, r) => row.map((t, c) => (t ? null : [r, c] as Pos))).filter(Boolean) as Pos[];
-const canMove = (g: Grid) => empties(g).length > 0 || g.some((row, r) => row.some((t, c) => !!t && ((c + 1 < N && row[c + 1]?.e === t.e) || (r + 1 < N && g[r + 1][c]?.e === t.e))));
+// A drag is possible while there is an empty square to move to, or two blocks anywhere with the same number.
+const canMove = (g: Grid) => empties(g).length > 0 || hasMatch(g);
 const hasMatch = (g: Grid) => { const seen = new Set<number>(); for (const t of g.flat()) { if (!t) continue; if (seen.has(t.e)) return true; seen.add(t.e); } return false; };
 const strip = (g: Grid): Grid => g.map((row) => row.map((t) => (t && (t.fresh || t.born) ? { id: t.id, e: t.e } : t)));
 const maxId = (g: Grid) => Math.max(0, ...g.flat().map((t) => t?.id ?? 0));
 
-// One move: every line slides toward the edge; two equal tiles that meet combine once. Returns the new grid,
-// the merges (new number and where), the tiles swallowed (they slide into their partner, then vanish), and
-// whether anything changed at all.
-function slide(g: Grid, dir: Dir) {
-  const next = emptyGrid();
-  const merges: { e: number; at: Pos }[] = [];
-  const gone: { id: number; e: number; at: Pos }[] = [];
-  let changed = false;
-  for (let i = 0; i < N; i++) {
-    // Positions in this line, starting from the edge the tiles move toward.
-    const line: Pos[] = Array.from({ length: N }, (_, k) => {
-      if (dir === 'left') return [i, k];
-      if (dir === 'right') return [i, N - 1 - k];
-      if (dir === 'up') return [k, i];
-      return [N - 1 - k, i];
-    });
-    const out: { t: Tile; merged: boolean }[] = [];
-    for (const [r, c] of line) {
-      const t = g[r][c];
-      if (!t) continue;
-      const last = out[out.length - 1];
-      if (last && !last.merged && last.t.e === t.e && last.t.e < MAX_E) {
-        last.t = { id: last.t.id, e: t.e + 1, fresh: true };
-        last.merged = true;
-        const at = line[out.length - 1];
-        merges.push({ e: t.e + 1, at });
-        gone.push({ id: t.id, e: t.e, at });
-        changed = true;
-      } else {
-        out.push({ t: { id: t.id, e: t.e }, merged: false });
-      }
-    }
-    out.forEach((o, k) => {
-      const [r, c] = line[k];
-      next[r][c] = o.t;
-      if (g[r][c]?.id !== o.t.id) changed = true;
-    });
-  }
-  return { next, merges, gone, changed };
-}
 
 const newGame = (powers?: Record<PowerId, number>): Game => {
   const g = emptyGrid();
@@ -175,7 +136,6 @@ function PowerIcon({ id }: { id: PowerId | 'undo' }) {
   if (id === 'bomb') return <svg {...s}><circle cx="14" cy="19" r="10" fill="#2e3440" /><circle cx="10.5" cy="15.5" r="2.5" fill="#6b7385" /><path d="M20 11 C22 7 25 6 27 7" stroke="#c98a3c" strokeWidth="2.5" fill="none" strokeLinecap="round" /><circle cx="28" cy="6" r="2.5" fill="#ff8a1f" /></svg>;
   return <svg {...s}><path d="M10 9 L4 15 L10 21" stroke="currentColor" strokeWidth="3.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 15 H19 a8 8 0 0 1 0 16 H14" stroke="currentColor" strokeWidth="3.5" fill="none" strokeLinecap="round" transform="translate(0 -6)" /></svg>;
 }
-const ARROW: Record<Dir, string> = { up: 'M12 5 L5 13 H10 V19 H14 V13 H19 Z', down: 'M12 19 L5 11 H10 V5 H14 V11 H19 Z', left: 'M5 12 L13 5 V10 H19 V14 H13 V19 Z', right: 'M19 12 L11 5 V10 H5 V14 H11 V19 Z' };
 
 export default function MergeEm() {
   const back = useBack();
@@ -223,7 +183,10 @@ export default function MergeEm() {
   const timers = useRef<number[]>([]);
   const savedScore = useRef(0);
   const earnedAt = useRef(-3);
-  const swipe = useRef<{ x: number; y: number } | null>(null);
+  // The block being dragged: its id, where it started, the pointer now, and where on the block it was grabbed.
+  const [drag, setDrag] = useState<{ id: number; from: Pos; x: number; y: number; gx: number; gy: number } | null>(null);
+  const [noAnim, setNoAnim] = useState<number | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
   const later = (fn: () => void, ms = SLIDE_MS) => { timers.current.push(window.setTimeout(fn, ms)); };
 
   // Board size: portrait stacks everything under the board; landscape puts the controls beside it.
@@ -271,18 +234,17 @@ export default function MergeEm() {
     return () => window.clearInterval(t);
   }, [paused, qset.secs]);
 
-  // Keyboard arrows (and WASD) for a keyboard case or a laptop.
-  const moveRef = useRef<(d: Dir) => void>(() => {});
+  // While a block is held, follow the finger anywhere on the screen; letting go drops it.
+  const dragEnd = useRef<(x: number, y: number, cancel: boolean) => void>(() => {});
+  const holding = drag !== null;
   useEffect(() => {
-    const key = (e: KeyboardEvent) => {
-      const d: Dir | undefined = ({ ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right' } as Record<string, Dir>)[e.key];
-      if (!d || (e.target as HTMLElement)?.tagName === 'INPUT') return;
-      e.preventDefault();
-      moveRef.current(d);
-    };
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
-  }, []);
+    if (!holding) return;
+    const mv = (e: PointerEvent) => setDrag((d) => (d ? { ...d, x: e.clientX, y: e.clientY } : d));
+    const up = (e: PointerEvent) => dragEnd.current(e.clientX, e.clientY, false);
+    const cancel = () => dragEnd.current(0, 0, true);
+    window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', cancel);
+    return () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', cancel); };
+  }, [holding]);
 
   const menu = useMemo(() => [{ id: 'mergeem-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
 
@@ -346,35 +308,67 @@ export default function MergeEm() {
     return maybePredict(prevBig, big);
   };
 
-  const move = (dir: Dir) => {
-    if (busy || G.over || asking || mode || !started || picker || help || predict || gear) return;
+  // One drag: onto a block with the same number (combine), onto an empty square (move), or back where it was.
+  const act = (from: Pos, to: Pos) => {
+    if (busy || G.over || asking || mode || !started) return;
     const st = gRef.current;
-    const { next, merges, gone, changed } = slide(st.grid, dir);
-    if (!changed) { sfx.tick(); return; }
+    const a = st.grid[from[0]][from[1]];
+    if (!a || (from[0] === to[0] && from[1] === to[1])) return;
+    const b = st.grid[to[0]][to[1]];
+    if (b && b.e !== a.e) { sfx.bonk(); setNote(`Only the same numbers combine. Put a ${full(a.e)} on a ${full(a.e)}.`); return; }
     setUndo(snapshot());
+    const next = clone(st.grid);
+    next[from[0]][from[1]] = null;
     const mult = st.dbl > 0 ? 2 : 1;
-    setGhosts(gone);
-    put({ grid: next, dbl: Math.max(0, st.dbl - 1), moves: st.moves + 1 });
-    setBusy(true);
-    sfx.whoosh();
     let predicting = false;
-    if (merges.length) predicting = scoreMerges(merges, mult, st.biggest, next);
-    else setNote(null);
+    setNoAnim(a.id); window.setTimeout(() => setNoAnim(null), 80);
+    if (b) {
+      next[to[0]][to[1]] = { id: b.id, e: Math.min(MAX_E, b.e + 1), fresh: true };
+      put({ grid: next, dbl: Math.max(0, st.dbl - 1), moves: st.moves + 1 });
+      predicting = scoreMerges([{ e: b.e + 1 }], mult, st.biggest, next);
+    } else {
+      next[to[0]][to[1]] = { id: a.id, e: a.e };
+      put({ grid: next, dbl: Math.max(0, st.dbl - 1), moves: st.moves + 1 });
+      sfx.whoosh();
+      setNote(null);
+    }
+    setBusy(true);
     later(() => {
       const grid = strip(gRef.current.grid);
       spawnInto(grid);
       put({ grid });
-      setGhosts([]);
       setBusy(false);
       if (!predicting) endCheck(grid);
     });
   };
-  moveRef.current = move;
+  const cellAt = (x: number, y: number): Pos | null => {
+    const r = boardRef.current?.getBoundingClientRect();
+    if (!r) return null;
+    const c = Math.floor((x - r.left - 6 - GAP / 2) / (S + GAP)), row = Math.floor((y - r.top - 6 - GAP / 2) / (S + GAP));
+    return inside([row, c]) ? [row, c] : null;
+  };
+  const grab = (e: React.PointerEvent, t: Tile, at: Pos) => {
+    if (mode || busy || G.over || !started || e.button > 0) return;
+    e.preventDefault();
+    const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    setDrag({ id: t.id, from: at, x: e.clientX, y: e.clientY, gx: e.clientX - box.left, gy: e.clientY - box.top });
+    sfx.tick();
+  };
+  dragEnd.current = (x: number, y: number, cancel: boolean) => {
+    const d = drag; setDrag(null);
+    if (!d || cancel) return;
+    const to = cellAt(x, y);
+    if (to) act(d.from, to);
+  };
+  const target = drag ? cellAt(drag.x, drag.y) : null;
+  const dragTile = drag ? g[drag.from[0]][drag.from[1]] : null;
+  const targetKind = target && dragTile && !(target[0] === drag!.from[0] && target[1] === drag!.from[1])
+    ? (g[target[0]][target[1]] ? (g[target[0]][target[1]]!.e === dragTile.e ? 'ok' : 'no') : 'move') : null;
 
   const takeBack = () => {
     if (!undo || busy) return;
     put({ ...undo, grid: strip(undo.grid) });
-    setUndo(null); setNote('Took back your last move.'); sfx.whoosh();
+    setUndo(null); setNote('Took back your last drag.'); sfx.whoosh();
   };
 
   const activate = (id: PowerId) => {
@@ -387,7 +381,7 @@ export default function MergeEm() {
     }
     if (id === 'double') {
       put({ dbl: G.dbl + 5, powers: { ...G.powers, double: G.powers.double - 1 } });
-      setUndo(null); sfx.coin(); setNote('Double Points! Your next 5 moves score double.');
+      setUndo(null); sfx.coin(); setNote('Double Points! Your next 5 drags score double.');
       return;
     }
     // Auto Merge: every touching pair at once; if none touch, the two smallest matching tiles join.
@@ -436,7 +430,7 @@ export default function MergeEm() {
     const open = POWERS.some((p) => G.powers[p.id] < POWER_CAP);
     if (!open) { setNote('Your power ups are full (3 of each). Use some, then answer for more.'); return; }
     const wait = earnedAt.current + 3 - G.moves;
-    if (wait > 0) { setNote(`Make ${wait} more move${wait === 1 ? '' : 's'}, then you can answer for another power up.`); sfx.bonk(); return; }
+    if (wait > 0) { setNote(`Make ${wait} more drag${wait === 1 ? '' : 's'}, then you can answer for another power up.`); sfx.bonk(); return; }
     ask('Answer to pick a power up', () => { earnedAt.current = gRef.current.moves; recordStreakCorrect(student.id); setPicker(true); sfx.coin(); });
   };
   breakRef.current = () => {
@@ -502,7 +496,7 @@ export default function MergeEm() {
   const tileBg = (e: number, s: number) => ({ width: s, height: s, backgroundSize: `${59 * s}px ${4 * s}px`, backgroundPositionX: `${-(Math.min(MAX_E, e) - 1) * s}px`, ['--s' as string]: `${s}px` });
   const at = ([r, c]: Pos) => ({ left: GAP + c * (S + GAP), top: GAP + r * (S + GAP) });
   const tiles = g.flatMap((row, r) => row.map((t, c) => (t ? { t, r, c } : null)).filter(Boolean)) as { t: Tile; r: number; c: number }[];
-  const showNote = note ?? (G.score === 0 ? 'Swipe the board (or tap the arrows) to slide every tile. Two tiles with the same number that bump together combine!' : mode ? null : 'Swipe to slide the tiles. Line up two of the same number to combine them.');
+  const showNote = note ?? (G.score === 0 ? 'Drag a block onto another block with the same number to combine them. You can also drag a block to an empty square.' : mode ? null : 'Drag a block onto a block with the same number to combine them.');
   const meterPct = Math.round((G.meter / METER_FULL) * 100);
   const boardPx = N * S + (N + 1) * GAP;
 
@@ -514,15 +508,6 @@ export default function MergeEm() {
         <small>Next question</small>
         <svg width="44" height="44" viewBox="0 0 44 44" aria-hidden><circle cx="22" cy="22" r="18" fill="none" stroke="#3d2408" strokeWidth="6" /><circle cx="22" cy="22" r="18" fill="none" stroke="#ffd23f" strokeWidth="6" strokeLinecap="round" strokeDasharray={`${(left / qset.secs) * 113.1} 113.1`} transform="rotate(-90 22 22)" /><text x="22" y="27" textAnchor="middle" fontSize="14" fontWeight="900" fill="#fff" fontFamily="system-ui, sans-serif">{left}</text></svg>
       </div>
-    </div>
-  );
-  const pad = (
-    <div className="me-pad" role="group" aria-label="Slide the tiles">
-      {(['up', 'left', 'right', 'down'] as Dir[]).map((d) => (
-        <button key={d} type="button" className={`me-arrow ${d}`} onClick={() => move(d)} disabled={busy || G.over || !!mode} aria-label={`Slide ${d}`}>
-          <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden><path d={ARROW[d]} fill="currentColor" /></svg>
-        </button>
-      ))}
     </div>
   );
   const powerBar = (
@@ -546,7 +531,7 @@ export default function MergeEm() {
   );
   const actions = (
     <div className="me-actions">
-      <button type="button" className="btn me-btn" onClick={takeBack} disabled={!undo || busy} aria-label="Undo your last move"><PowerIcon id="undo" /> Undo</button>
+      <button type="button" className="btn me-btn" onClick={takeBack} disabled={!undo || busy} aria-label="Undo your last drag"><PowerIcon id="undo" /> Undo</button>
       <button type="button" className="btn me-btn" onClick={listen}>🔊 Listen</button>
       <button type="button" className="btn me-btn me-earn" onClick={earnPower} disabled={busy}>Answer for a power up</button>
       <button type="button" className="btn me-btn" onClick={restart}>New game</button>
@@ -556,26 +541,20 @@ export default function MergeEm() {
     <div
       className={`me-board me-2048${mode ? ` aim ${mode}` : ''}`}
       style={{ width: boardPx + 12, height: boardPx + 12 }}
-      onPointerDown={(e) => { if (!mode) swipe.current = { x: e.clientX, y: e.clientY }; }}
-      onPointerUp={(e) => {
-        const s0 = swipe.current; swipe.current = null;
-        if (!s0) return;
-        const dx = e.clientX - s0.x, dy = e.clientY - s0.y;
-        if (Math.max(Math.abs(dx), Math.abs(dy)) < 28) return;
-        move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
-      }}
-      onPointerCancel={() => { swipe.current = null; }}
+      ref={boardRef}
     >
-      {Array.from({ length: N * N }, (_, i) => <span key={`s${i}`} className="me-slot" style={{ width: S, height: S, ...at([Math.floor(i / N), i % N]) }} />)}
+      {Array.from({ length: N * N }, (_, i) => { const p: Pos = [Math.floor(i / N), i % N]; const hit = target && targetKind && target[0] === p[0] && target[1] === p[1]; return <span key={`s${i}`} className={`me-slot${hit ? ` hit ${targetKind}` : ''}`} style={{ width: S, height: S, ...at(p) }} />; })}
       {[...ghosts.map((x) => ({ key: x.id, e: x.e, r: x.at[0], c: x.at[1], t: null as Tile | null, ghost: true })), ...tiles.map(({ t, r, c }) => ({ key: t.id, e: t.e, r, c, t, ghost: false }))].map((x) => (
         <button
           key={`t${x.key}`}
           type="button"
-          tabIndex={mode && !x.ghost ? 0 : -1}
-          className={`me-cell${x.ghost ? ' ghost' : ''}`}
-          style={{ width: S, height: S, ...at([x.r, x.c]), pointerEvents: mode && !x.ghost ? 'auto' : 'none', ['--s' as string]: `${S}px` }}
+          tabIndex={x.ghost ? -1 : 0}
+          className={`me-cell${x.ghost ? ' ghost' : ''}${drag?.id === x.key && !x.ghost ? ' held' : ''}${noAnim === x.key ? ' still' : ''}${targetKind && target && !x.ghost && target[0] === x.r && target[1] === x.c ? ` hit ${targetKind}` : ''}`}
+          style={{ width: S, height: S, ...at([x.r, x.c]), pointerEvents: x.ghost ? 'none' : 'auto', ['--s' as string]: `${S}px`,
+            ...(drag?.id === x.key && !x.ghost && boardRef.current ? (() => { const b = boardRef.current!.getBoundingClientRect(); return { left: drag.x - b.left - 6 - drag.gx, top: drag.y - b.top - 6 - drag.gy }; })() : {}) }}
+          onPointerDown={(e) => { if (!x.ghost && x.t) grab(e, x.t, [x.r, x.c]); }}
           onClick={() => tapTile(x.r, x.c)}
-          aria-label={mode ? `${mode === 'hammer' ? 'Smash' : 'Blast'} the ${full(x.e)}` : full(x.e)}
+          aria-label={mode ? `${mode === 'hammer' ? 'Smash' : 'Blast'} the ${full(x.e)}` : `${full(x.e)}. Drag it onto another ${full(x.e)}.`}
         >
           <span key={x.e} className={`me-tile${x.t?.fresh ? ' fresh' : x.t?.born ? ' spawn' : ''}`} style={tileBg(x.e, S)} />
           {x.t?.fresh && <i key={`b${x.e}`} className="me-burst" aria-hidden><b /><b /><b /><b /><b /><b /></i>}
@@ -603,7 +582,6 @@ export default function MergeEm() {
             <div className="me-side">
               {hud}
               <p className="fd-msg me-msg" aria-live="polite">{showNote ?? ' '}</p>
-              {pad}
               {powerBar}
               {actions}
               <p className="me-credit">Tile art by Zro Dfects</p>
@@ -614,7 +592,7 @@ export default function MergeEm() {
             {hud}
             <p className="fd-msg me-msg" aria-live="polite">{showNote ?? ' '}</p>
             {board}
-            <div className="me-under">{pad}{powerBar}</div>
+            {powerBar}
             {actions}
             <p className="me-credit">Tile art by Zro Dfects</p>
           </>
@@ -692,10 +670,9 @@ export default function MergeEm() {
           <div className="pf-panel me-panel me-help" onClick={(e) => e.stopPropagation()}>
             <h2>How to play</h2>
             <ol>
-              <li><b>Swipe the board</b> up, down, left or right (or tap the arrows). Every tile slides that way.</li>
-              <li><b>Two tiles with the same number that bump together combine</b> into the next number up: 8 + 8 = 16.</li>
-              <li>After each move, a new <b>2</b> (sometimes a 4) appears.</li>
-              <li><b>Combos</b> score extra: combine two or more pairs in one move.</li>
+              <li><b>Drag a block</b> with your finger onto another block <b>with the same number</b>. They combine into the next number up: 8 + 8 = 16.</li>
+              <li>You can also drag a block to any <b>empty square</b>.</li>
+              <li>After each drag, a new <b>2</b> (sometimes a 4) appears.</li>
               <li><b>Undo</b> takes back your last move.</li>
               <li><b>Merges fill the Power Meter.</b> When it is full you get a free power up. You can also answer a question to pick one.</li>
               <li><b>Question breaks</b> come after some seconds of play (choose how many and how often in Game settings). Right answers add 3 to your Power Meter.</li>
@@ -705,7 +682,7 @@ export default function MergeEm() {
               {POWERS.map((p) => <div key={p.id}><PowerIcon id={p.id} /><span><b>{p.name}</b> {p.how}</span></div>)}
             </div>
             <div className="pf-detail-actions">
-              <button type="button" className="btn btn-lg" onClick={() => speak('How to play. Swipe the board up, down, left or right, or tap the arrows. Every tile slides that way. Two tiles with the same number that bump together combine into the next number up, like 8 plus 8 equals 16. After each move a new 2 appears. Combine two or more pairs in one move for a combo. Undo takes back your last move. Merges fill the Power Meter; when it is full you get a free power up, or answer a question to pick one. Question breaks come after some seconds of play; right answers add 3 to your Power Meter. When you make a new biggest tile, guess what two of them make for a boost. ' + POWERS.map((p) => `${p.name}: ${p.how}`).join(' '), student.ttsSettings)}>🔊 Listen</button>
+              <button type="button" className="btn btn-lg" onClick={() => speak('How to play. Drag a block with your finger onto another block with the same number. They combine into the next number up, like 8 plus 8 equals 16. You can also drag a block to any empty square. After each drag a new 2 appears. Undo takes back your last move. Merges fill the Power Meter; when it is full you get a free power up, or answer a question to pick one. Question breaks come after some seconds of play; right answers add 3 to your Power Meter. When you make a new biggest tile, guess what two of them make for a boost. ' + POWERS.map((p) => `${p.name}: ${p.how}`).join(' '), student.ttsSettings)}>🔊 Listen</button>
               <button type="button" className="btn btn-primary btn-lg" onClick={() => setHelp(false)}>Got it</button>
             </div>
           </div>
@@ -724,7 +701,7 @@ export default function MergeEm() {
         </div>
       )}
       {!started && (
-        <GameStartCard title="Merge 'Em" intro="Swipe to slide the number tiles. Two tiles with the same number combine into a bigger one. Every so often a question break pops up: answer to fill your Power Meter." ttsSettings={student.ttsSettings} onStart={() => {
+        <GameStartCard title="Merge 'Em" intro="Drag a number block onto another block with the same number to combine them into a bigger one. Every so often a question break pops up: answer to fill your Power Meter." ttsSettings={student.ttsSettings} onStart={() => {
           setStarted(true); resetClock(); preloadClips(Object.values(MERGE_SOUNDS));
           if (!canMove(gRef.current.grid) && !gRef.current.over) endCheck(gRef.current.grid);
         }}>

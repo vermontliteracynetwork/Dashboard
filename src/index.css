@@ -12714,3 +12714,10 @@ body.calm-games .me-burst { display: none; }
   .pv-card { border: 1px solid #ccd; box-shadow: none; margin: 0 0 14px !important; break-inside: avoid; }
   .pv-cols { overflow: visible; }
 }
+/* Merge 'Em drag to combine (Build Queue 633) */
+.me-2048 .me-cell { touch-action: none; cursor: grab; }
+.me-2048 .me-cell.held { transition: none; z-index: 20; cursor: grabbing; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.45)); transform: scale(1.08); }
+.me-2048 .me-cell.still { transition: none; }
+.me-slot.hit.ok, .me-cell.hit.ok { box-shadow: 0 0 0 5px #5ad06a, 0 0 18px #5ad06a; border-radius: 10px; }
+.me-slot.hit.move { box-shadow: inset 0 0 0 4px #ffd23f; }
+.me-cell.hit.no { box-shadow: 0 0 0 5px #b3361f; border-radius: 10px; }
