@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-12-merge-em-slide",
+    date: "2026-11-12",
+    icon: "🔢",
+    title: "Merge 'Em now slides like 2048",
+    body: "Swipe the board (or tap the arrows) and every tile slides. When two tiles with the same number bump together, they combine: 8 + 8 = 16. Combine two pairs in one swipe for a combo!",
+  },
+  {
     id: "2026-11-12-alchemy-equation",
     date: "2026-11-12",
     icon: "🟰",
