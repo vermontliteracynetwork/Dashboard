@@ -369,7 +369,7 @@ const FIXED: Placed[] = [
   { model: `${RM}crate_cheese.glb`, x: 13, y: 1, fit: 0.75 },
 ];
 const lsGet = (k: string, d: number) => { try { const v = localStorage.getItem(k); return v === null ? d : Number(v); } catch { return d; } };
-const fmt = (n: number) => `$${Math.floor(n).toLocaleString()}`;
+const fmt = (n: number) => `${n < 0 ? '-' : ''}$${Math.floor(Math.abs(n)).toLocaleString()}`;
 let uid = 1;
 const mover = (p: P): Mover => ({ x: p.x, y: p.y, path: [], face: 1, hands: [], job: null });
 // Walking (Build Queue 467, her words: "make sure assets are not walk through able"): everyone walks tile to tile and
