@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-12-alchemy-myths",
+    date: "2026-11-12",
+    icon: "⚗️",
+    title: "Alchemy: 151 new things to discover",
+    body: "You asked, so here they are! Gods and creatures from Egyptian, Greek, Roman, Norse and African myths, more mythical creatures, unique plants and animals, tools, pet care supplies, machines (try toast + electricity) and internet memes (try computer + dog).",
+  },
+  {
     id: "2026-11-12-merge-em",
     date: "2026-11-12",
     icon: "🔢",

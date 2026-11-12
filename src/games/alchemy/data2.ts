@@ -147,7 +147,7 @@ export const LA2_ELEMENTS: [string, string, string][] = [
   ["diver","🤿","Diver"],
   ["doctor","🧑‍⚕️","Doctor"],
   ["dog","🐕","Dog"],
-  ["doge","🐕✨","Doge"],
+  ["doge","🐕💻","Dog Meme"],
   ["doghouse","🐕🏠","Doghouse"],
   ["domestication","🐕🧑","Domestication"],
   ["don-quixote","🛡️🌬️","Don Quixote"],

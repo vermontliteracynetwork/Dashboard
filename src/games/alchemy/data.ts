@@ -1,4 +1,5 @@
 import { LA2_ELEMENTS, LA2_RECIPES } from './data2';
+import { STUDENT_ELEMENTS, STUDENT_RECIPES } from './data3';
 // Alchemy (teacher 2026-10-08: "lets get the alchemy game going. make an app in the computer").
 // Elements and recipes from her prototype, docs/games/alchemy-prototype.html: [id, emoji, name]
 // and [a, b, result]. Start with fire, water, earth and air.
@@ -84,5 +85,5 @@ const BASE_RECIPES: [string, string, string][] = [
 // Build Queue 249 (2026-10-20, "Wizard + time = worlock. Book + time = ancient scroll").
 const REQUESTED_ELEMENTS: [string, string, string][] = [["merdog","🐕🧜","Merdog"],["warlock","🧙‍♂️🌑","Warlock"],["ancient-scroll","📜⏳","Ancient Scroll"]];
 const REQUESTED_RECIPES: [string, string, string][] = [["dog","mermaid","merdog"],["wizard","time","warlock"],["book","time","ancient-scroll"]];
-export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS];
-export const RECIPES: [string, string, string][] = [...REQUESTED_RECIPES, ...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];
+export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS, ...STUDENT_ELEMENTS];
+export const RECIPES: [string, string, string][] = [...REQUESTED_RECIPES, ...STUDENT_RECIPES, ...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];
