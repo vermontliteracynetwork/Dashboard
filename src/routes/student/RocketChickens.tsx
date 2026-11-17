@@ -174,7 +174,7 @@ export default function RocketChickens() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const W = useRef({
-    firing: false, pitch: 0, blocks: [] as Block[], gems: [] as Gem[], gemCoins: 0, gemN: 0, stick: 0, bits: [] as Bit[], x: 0, y: 4, vx: 0, vy: 0, aim: 0.75, aimed: false, flying: false, rest: 0,
+    firing: false, jetHold: false, pitch: 0, blocks: [] as Block[], gems: [] as Gem[], gemCoins: 0, gemN: 0, stick: 0, bits: [] as Bit[], x: 0, y: 4, vx: 0, vy: 0, aim: 0.75, aimed: false, flying: false, rest: 0,
     fuel: 0, boost: 0, boostDir: 1, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, scale: 8, camX: -20, groundY: 0, shake: 0, landed: false, t: 0,
   });
 
@@ -206,6 +206,7 @@ export default function RocketChickens() {
   // A tap gives a short burst; the joystick holds the jetpack on (w.stick: -1 dive to 1 up).
   const boost = (up: boolean) => {
     const w = W.current; if ((sRef.current.gear !== 'glider' && w.fuel <= 0) || w.landed) { sfx.click(); return; }
+    // with a glider a tap swoops (no fuel); without one it is a jetpack burst
     w.boost = 0.4; w.boostDir = up ? 1 : -1; sfx.whoosh();
   };
 
@@ -257,21 +258,28 @@ export default function RocketChickens() {
       // jetpack on: a tap burst or the joystick held; fuel is seconds of thrust
       const dir = w.boost > 0 ? w.boostDir : Math.abs(w.stick) > 0.25 ? Math.sign(w.stick) : 0;
       if (w.boost > 0) w.boost -= dt;
+      // Build Queue 652: a glider is worn WITH the jetpack. With a glider the blue stick (or a tap above or below the
+      // chicken) swoops: it turns the flight path up or down while keeping the speed, so a dive builds speed and pulling
+      // up turns that speed back into height, with no fuel. The jetpack then fires from the Jetpack button.
       const glide = gearRef === 'glider';
-      w.firing = !glide && dir !== 0 && w.fuel > 0 && !w.landed;
-      if (glide && !w.landed && w.y > R + 0.3) {
-        // glider: lift from forward speed; the stick (or a tap) tips the nose up or down
+      const jetDir = glide ? (w.jetHold ? 1 : 0) : dir;
+      w.firing = jetDir !== 0 && w.fuel > 0 && !w.landed;
+      if (glide && !w.landed && w.y > R + 0.3 && w.vx > 0) {
         const st = w.boost > 0 ? w.boostDir : Math.max(-1, Math.min(1, w.stick));
-        const vxp = Math.max(0, w.vx);
-        ay += Math.min(G * 1.2, glider.lift * 0.0032 * vxp * vxp * (1 + 0.55 * st));
-        if (st < 0) { ax += -st * 10; ay += st * 15; } else if (st > 0) ax -= st * 6;
-        ax -= glider.drag * 0.00025 * w.vx * Math.abs(w.vx);
+        const sp0 = Math.hypot(w.vx, w.vy);
+        let ang = Math.atan2(w.vy, w.vx);
+        ang = Math.max(-1.3, Math.min(1.3, ang + st * 1.5 * Math.min(1.5, Math.max(0.35, sp0 / 60)) * dt));
+        const sp1 = sp0 * (1 - 0.03 * Math.abs(st) * dt);
+        w.vx = Math.cos(ang) * sp1; w.vy = Math.sin(ang) * sp1;
+        ay += Math.min(G * 1.15, glider.lift * 0.0055 * sp1 * sp1 * Math.max(0, Math.cos(ang)));
+        ax -= glider.drag * 0.00018 * w.vx * Math.abs(w.vx);
         w.pitch = st;
       }
       if (w.firing) {
-        w.fuel = Math.max(0, w.fuel - dt); const k = w.boost > 0 ? 1 : Math.min(1, Math.abs(w.stick));
-        ax += thrust * 0.45 * k; ay += thrust * dir * k * (dir > 0 ? 1.3 : 1);
-        if (gfx !== 'low' && Math.random() < 0.6) w.bits.push({ x: w.x - 1.8, y: w.y - (dir > 0 ? 2 : -2), vx: w.vx * 0.3 - 10, vy: dir > 0 ? -30 : 30, life: 0.35, color: Math.random() < 0.5 ? '#ffb22e' : '#ff6a1f', s: 0.9 });
+        w.fuel = Math.max(0, w.fuel - dt); const k = glide || w.boost > 0 ? 1 : Math.min(1, Math.abs(w.stick));
+        if (glide) { const sp = Math.hypot(w.vx, w.vy) || 1; ax += thrust * 0.9 * (w.vx / sp); ay += thrust * 0.9 * (w.vy / sp) + thrust * 0.3; }
+        else { ax += thrust * 0.45 * k; ay += thrust * jetDir * k * (jetDir > 0 ? 1.3 : 1); }
+        if (gfx !== 'low' && Math.random() < 0.6) w.bits.push({ x: w.x - 1.8, y: w.y - (jetDir > 0 ? 2 : -2), vx: w.vx * 0.3 - 10, vy: jetDir > 0 ? -30 : 30, life: 0.35, color: Math.random() < 0.5 ? '#ffb22e' : '#ff6a1f', s: 0.9 });
       }
       const sp = Math.hypot(w.vx, w.vy);
       ax -= DRAG * sp * w.vx; ay -= DRAG * sp * w.vy;
@@ -390,15 +398,15 @@ export default function RocketChickens() {
         const ch = img(sRef.current.chicken); const hs = R * 2.6 * sc;
         ctx.save(); ctx.translate(X(w.x), Y(w.y));
         const ang = w.landed ? 0 : Math.atan2(w.vy, Math.max(1, w.vx)) * 0.5; ctx.rotate(-ang);
+        drawJetpack(ctx, hs, w.firing ? (gearRef === 'glider' ? 1 : w.boost > 0 ? w.boostDir : Math.sign(w.stick)) : 0, dpr);
         if (gearRef === 'glider') { ctx.save(); ctx.rotate(-w.pitch * 0.25); drawGlider(ctx, hs, glider.id, dpr); ctx.restore(); }
-        else drawJetpack(ctx, hs, w.firing ? (w.boost > 0 ? w.boostDir : Math.sign(w.stick)) : 0, dpr);
         if (ready(ch)) { const ar = ch.naturalWidth / ch.naturalHeight; ctx.drawImage(ch, -hs * ar / 2, -hs / 2, hs * ar, hs); } else { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, R * sc, 0, Math.PI * 2); ctx.fill(); }
         // harness straps over the chest
         ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = Math.max(2, hs * 0.05); ctx.beginPath(); ctx.moveTo(-hs * 0.28, -hs * 0.05); ctx.lineTo(hs * 0.12, hs * 0.18); ctx.moveTo(-hs * 0.28, hs * 0.22); ctx.lineTo(hs * 0.1, hs * 0.02); ctx.stroke();
         ctx.restore();
       } else {
         const ch = img(sRef.current.chicken); const hs = R * 2.2 * sc;
-        ctx.save(); ctx.translate(X(-6), Y(0) - hs / 2); if (gearRef === 'glider') drawGlider(ctx, hs, glider.id, dpr); else drawJetpack(ctx, hs, 0, dpr); ctx.restore();
+        ctx.save(); ctx.translate(X(-6), Y(0) - hs / 2); drawJetpack(ctx, hs, 0, dpr); if (gearRef === 'glider') drawGlider(ctx, hs, glider.id, dpr); ctx.restore();
         if (ready(ch)) { const ar = ch.naturalWidth / ch.naturalHeight; ctx.drawImage(ch, X(-6) - hs * ar / 2, Y(0) - hs, hs * ar, hs); }
       }
     };
@@ -454,7 +462,7 @@ export default function RocketChickens() {
   const buy = (kind: 'up' | 'cannon' | 'chicken' | 'jet' | 'paint' | 'glider', id: string) => {
     const s = sRef.current;
     if (kind === 'paint') { put({ paint: id }); sfx.click(); return; }
-    if (kind === 'jet') { if (s.jets.includes(id)) { put({ jet: id, gear: 'jet' }); sfx.click(); return; } const j = JETPACKS.find((x) => x.id === id)!; if (s.coins < j.cost) return; put({ coins: s.coins - j.cost, jets: [...s.jets, id], jet: id, gear: 'jet' }); sfx.coin(); return; }
+    if (kind === 'jet') { if (s.jets.includes(id)) { put({ jet: id }); sfx.click(); return; } const j = JETPACKS.find((x) => x.id === id)!; if (s.coins < j.cost) return; put({ coins: s.coins - j.cost, jets: [...s.jets, id], jet: id }); sfx.coin(); return; }
     if (kind === 'glider') { if (s.gliders.includes(id)) { put({ glider: id, gear: 'glider' }); sfx.click(); return; } const g = GLIDERS.find((x) => x.id === id)!; if (s.coins < g.cost) return; put({ coins: s.coins - g.cost, gliders: [...s.gliders, id], glider: id, gear: 'glider' }); sfx.coin(); return; }
     if (kind === 'up') { const u = id as UpId; const lvl = s.up[u]; const c = upCost(u, lvl); if (lvl >= UPS.find((x) => x.id === u)!.max || s.coins < c) return; put({ coins: s.coins - c, up: { ...s.up, [u]: lvl + 1 } }); sfx.coin(); return; }
     if (kind === 'cannon') { if (s.cannons.includes(id)) { put({ cannon: id }); sfx.click(); return; } const c = CANNONS.find((x) => x.id === id)!; if (s.coins < c.cost) return; put({ coins: s.coins - c.cost, cannons: [...s.cannons, id], cannon: id }); sfx.coin(); return; }
@@ -465,7 +473,7 @@ export default function RocketChickens() {
 
   const reportWords = (r: Report) => `${r.dayEnd ? `End of day ${r.day}.` : `Round ${r.round} report.`} Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
   const menu = useMemo(() => [{ id: 'rc-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
-  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack (or lift the nose of a glider, which needs no fuel), or down to dive (or tap above or below the chicken). The jetpack uses fuel. Catch gems for bonus coins. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
+  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack (with a glider on too, the stick swoops with no fuel: dive for speed, pull up to climb, and hold the Jetpack button for a push), or down to dive (or tap above or below the chicken). The jetpack uses fuel. Catch gems for bonus coins. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
 
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
@@ -477,7 +485,7 @@ export default function RocketChickens() {
         <LeaveButton onLeave={leave} note="Your coins and upgrades are kept on this iPad (tap Save to keep them everywhere), and your right answers are paid." />
         <strong className="rc-title">Rocket Chickens</strong>
         <span className="rc-pill">Day {S.day} · Round {S.round} of {rounds}</span>
-        <button type="button" className="btn" disabled={phase === 'fly'} onClick={() => put({ gear: S.gear === 'glider' ? 'jet' : 'glider' })} aria-label={`Flying with ${S.gear === 'glider' ? 'a glider' : 'a jetpack'}. Tap to switch.`}>{S.gear === 'glider' ? (GLIDERS.find((g) => g.id === S.glider) ?? GLIDERS[0]).name : 'Jetpack'}</button>
+        <button type="button" className="btn" disabled={phase === 'fly'} onClick={() => put({ gear: S.gear === 'glider' ? 'jet' : 'glider' })} aria-label={S.gear === 'glider' ? 'Glider on with the jetpack. Tap to take the glider off.' : 'Jetpack only. Tap to add your glider.'}>{S.gear === 'glider' ? `Jetpack + ${(GLIDERS.find((g) => g.id === S.glider) ?? GLIDERS[0]).name}` : 'Jetpack only'}</button>
         <span className={`rc-pill${learn ? ' rc-learn' : ''}`}>{learn ? 'Learn mode' : 'Play mode'}</span>
         <span className="rc-pill rc-coins"><i className="rc-coin" aria-hidden />{S.coins.toLocaleString()} coins</span>
         <SfxToggle />
@@ -492,18 +500,23 @@ export default function RocketChickens() {
           aria-label="Rocket Chickens launch field" />
         {phase === 'aim' && aimed && <button type="button" className="rc-ctl fire" onClick={() => { aimAt.current = null; setAimed(false); fire(); }}>FIRE</button>}
         {phase === 'aim' && <Joystick kind="aim" label="Aim the cannon" onMove={(dx, dy) => { const a = Math.atan2(-dy, Math.max(0.05, dx)); W.current.aim = Math.max(0.08, Math.min(1.45, a)); if (!W.current.aimed) { W.current.aimed = true; setAimed(true); } }} />}
-        {phase === 'fly' && <Joystick kind="move" label={S.gear === 'glider' ? 'Glider: push up to tip the nose up, down to dive' : 'Jetpack: push up to fly up, down to dive'} onMove={(_dx, dy) => { W.current.stick = -dy; }} onEnd={() => { W.current.stick = 0; }} />}
+        {phase === 'fly' && <Joystick kind="move" label={S.gear === 'glider' ? 'Glider: push up to swoop up, down to swoop down' : 'Jetpack: push up to fly up, down to dive'} onMove={(_dx, dy) => { W.current.stick = -dy; }} onEnd={() => { W.current.stick = 0; }} />}
+        {phase === 'fly' && S.gear === 'glider' && <button type="button" className="rc-ctl up" disabled={hud.fuel <= 0}
+          onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); W.current.jetHold = true; sfx.whoosh(); }}
+          onPointerUp={() => { W.current.jetHold = false; }} onPointerCancel={() => { W.current.jetHold = false; }} onContextMenu={(e) => e.preventDefault()}
+          aria-label="Hold for jetpack thrust">Jetpack<small>hold</small></button>}
         {phase === 'fly' && (
           <div className="rc-hud" aria-live="off">
             <span><small>Speed</small><b>{hud.mph}</b> MPH</span>
             <span><small>Distance</small><b>{hud.dist.toLocaleString()}</b> ft</span>
             <span><small>Altitude</small><b>{hud.alt.toLocaleString()}</b> ft</span>
-            {S.gear === 'glider' ? <span><small>Glider</small><b>No fuel</b></span> : <span><small>Fuel</small><b className="rc-fuel"><i style={{ width: `${Math.round((hud.fuel / fuelMax) * 100)}%` }} /></b></span>}
+            {S.gear === 'glider' && <span><small>Glider</small><b>No fuel</b></span>}
+            {<span><small>Jetpack fuel</small><b className="rc-fuel"><i style={{ width: `${Math.round((hud.fuel / fuelMax) * 100)}%` }} /></b></span>}
           </div>
         )}
         {launchMsg && <div className="rc-launch" role="status">{launchMsg}</div>}
         {phase === 'aim' && <div className="rc-tip">{aimed ? 'Change the aim with the red stick or by sliding on the sky. Tap FIRE to launch.' : 'Aim with the red stick, or touch the sky and slide.'}</div>}
-        {phase === 'fly' && (S.gear === 'glider' ? <div className="rc-tip small">Gliding! Push the blue stick up to lift the nose, down to dive for speed.</div> : hud.fuel > 0 && <div className="rc-tip small">Push the blue stick up to fly up, down to dive. Catch the gems!</div>)}
+        {phase === 'fly' && (S.gear === 'glider' ? <div className="rc-tip small">Swoop with the blue stick: dive for speed, then pull up to climb. Hold Jetpack for a push.</div> : hud.fuel > 0 && <div className="rc-tip small">Push the blue stick up to fly up, down to dive. Catch the gems!</div>)}
         {phase === 'ready' && started && !asking && (
           <div className="rc-center"><button type="button" className="btn btn-primary btn-lg" onClick={loadCannon}>Load the cannon</button></div>
         )}
@@ -549,10 +562,10 @@ export default function RocketChickens() {
             <h3>Jetpacks</h3>
             <div className="rc-shop-grid">
               {JETPACKS.map((j) => { const own = S.jets.includes(j.id); return (
-                <button key={j.id} type="button" className={`rc-item${S.gear === 'jet' && S.jet === j.id ? ' sel' : ''}`} disabled={!own && S.coins < j.cost} onClick={() => buy('jet', j.id)}>
+                <button key={j.id} type="button" className={`rc-item${S.jet === j.id ? ' sel' : ''}`} disabled={!own && S.coins < j.cost} onClick={() => buy('jet', j.id)}>
                   <span className="rc-jet-pic" aria-hidden><img src={`${A}${jetImg(j.id, S.paint)}.webp`} alt="" /><img src={`${A}${jetImg(j.id, S.paint)}.webp`} alt="" /></span>
                   <b>{j.name}</b><small>{j.fuel} seconds of fuel, {Math.round(j.push * 100)}% push</small>
-                  <span className="rc-cost">{S.gear === 'jet' && S.jet === j.id ? 'Wearing' : own ? 'Wear' : <><i className="rc-coin" aria-hidden />{j.cost}</>}</span>
+                  <span className="rc-cost">{S.jet === j.id ? 'Wearing' : own ? 'Wear' : <><i className="rc-coin" aria-hidden />{j.cost}</>}</span>
                 </button>
               ); })}
             </div>
@@ -560,7 +573,7 @@ export default function RocketChickens() {
               <b>Paint:</b>
               {PAINTS.map((p) => <button key={p} type="button" role="radio" aria-checked={S.paint === p} aria-label={p} className={`rc-paint${S.paint === p ? ' sel' : ''}`} style={{ background: PAINT_HEX[p] }} onClick={() => buy('paint', p)} />)}
             </div>
-            <h3>Gliders <small className="rc-sub">No fuel needed</small></h3>
+            <h3>Gliders <small className="rc-sub">Worn with your jetpack, no fuel needed</small></h3>
             <div className="rc-shop-grid">
               {GLIDERS.map((g) => { const own = S.gliders.includes(g.id); const on = S.gear === 'glider' && S.glider === g.id; return (
                 <button key={g.id} type="button" className={`rc-item${on ? ' sel' : ''}`} disabled={!own && S.coins < g.cost} onClick={() => buy('glider', g.id)}>

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-rocket-chickens-swoop",
+    date: "2026-11-17",
+    icon: "🐔",
+    title: "Rocket Chickens: glider and jetpack together",
+    body: "Wear a glider and a jetpack at the same time! With a glider on, the blue stick swoops: dive down to go faster, then pull up to climb, and you stay in the air much longer without using fuel. Hold the Jetpack button for an extra push.",
+  },
+  {
     id: "2026-11-17-learn-play-all",
     date: "2026-11-17",
     icon: "🎮",
