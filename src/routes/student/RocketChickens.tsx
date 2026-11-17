@@ -82,7 +82,7 @@ const LAYERS: { n: string; f: number }[] = [{ n: 'sky', f: 0.01 }, { n: 'clouds'
 
 export default function RocketChickens() {
   const back = useBack();
-  const { ask, element, pay, student, asking, settingsPanel, rounds } = useAsk('Rocket Chickens', '🐔', 'rocketChickens', { startCard: false, rounds: { min: 1, max: 10, def: 5 }, roundsLabel: 'Rounds each day', perLabel: 'Questions each round' });
+  const { ask, element, pay, student, asking, settingsPanel, rounds, learn } = useAsk('Rocket Chickens', '🐔', 'rocketChickens', { startCard: false, rounds: { min: 1, max: 10, def: 5 }, roundsLabel: 'Rounds each day', perLabel: 'Questions each round' });
   const studentId = student?.id ?? '';
   const owner = studentId ? `rocketchickens:${studentId}` : '';
   const localKey = `rocketchickens:${studentId}`;
@@ -368,7 +368,7 @@ export default function RocketChickens() {
 
   const reportWords = (r: Report) => `${r.dayEnd ? `End of day ${r.day}.` : `Round ${r.round} report.`} Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins. Total ${r.total} coins.`;
   const menu = useMemo(() => [{ id: 'rc-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
-  const howTo = 'Answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, tap Boost to rocket up or Dive to swoop down (or tap above or below the chicken). Boosts use fuel. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
+  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, tap Boost to rocket up or Dive to swoop down (or tap above or below the chicken). Boosts use fuel. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
 
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
@@ -380,6 +380,7 @@ export default function RocketChickens() {
         <LeaveButton onLeave={leave} note="Your coins and upgrades are kept on this iPad (tap Save to keep them everywhere), and your right answers are paid." />
         <strong className="rc-title">Rocket Chickens</strong>
         <span className="rc-pill">Day {S.day} · Round {S.round} of {rounds}</span>
+        <span className={`rc-pill${learn ? ' rc-learn' : ''}`}>{learn ? 'Learn mode' : 'Play mode'}</span>
         <span className="rc-pill rc-coins"><i className="rc-coin" aria-hidden />{S.coins.toLocaleString()} coins</span>
         <SfxToggle />
         <button type="button" className="btn" onClick={() => setShop(true)}>Shop{canAfford ? <span className="rc-bang" aria-label="You can buy something">!</span> : null}</button>

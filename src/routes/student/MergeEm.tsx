@@ -139,7 +139,7 @@ function PowerIcon({ id }: { id: PowerId | 'undo' }) {
 
 export default function MergeEm() {
   const back = useBack();
-  const { ask, element, pay, student, asking } = useAsk("Merge 'Em", '🔢', 'mergeEm', { startCard: false });
+  const { ask, element, pay, student, asking, learn, learnToggle } = useAsk("Merge 'Em", '🔢', 'mergeEm', { startCard: false });
   const studentId = student?.id ?? '';
   const storeKey = `mergeem2048:${studentId}`;
   const best = useBestGames(studentId, 'mergeEm')[0]?.score ?? 0;
@@ -705,7 +705,8 @@ export default function MergeEm() {
           setStarted(true); resetClock(); preloadClips(Object.values(MERGE_SOUNDS));
           if (!canMove(gRef.current.grid) && !gRef.current.over) endCheck(gRef.current.grid);
         }}>
-          {sliders}
+          {learnToggle}
+          {learn && sliders}
         </GameStartCard>
       )}
       {element}

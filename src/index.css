@@ -12883,3 +12883,13 @@ body.calm-games .me-burst { display: none; }
 .rc-gfx-btn.sel { background: #f07a14; color: #fff; }
 @media (prefers-reduced-motion: reduce) { .rc-launch { animation: none; } }
 @media (max-width: 760px) { .rc-report-btns { gap: 20px; } .rc-big { width: 120px; height: 84px; } }
+
+/* Learn mode and Play mode (Build Queue 645), on every game's start card and settings. */
+.lp-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
+.lp-btn { display: grid; gap: 2px; text-align: left; min-height: 64px; padding: 10px 12px; border: 3px solid #c9cfdb; border-radius: 14px; background: #fff; color: #1f2430; font: inherit; cursor: pointer; }
+.lp-btn b { font-size: 1.1rem; }
+.lp-btn small { color: #4a5263; }
+.lp-btn.on { border-color: #3a4fb0; background: #eef1ff; box-shadow: 0 0 0 2px #3a4fb0 inset; }
+.lp-btn:disabled { cursor: default; }
+.lp-note { grid-column: 1 / -1; margin: 0; font-weight: 700; }
+.rc-learn { background: #eef1ff; border-color: #3a4fb0; }

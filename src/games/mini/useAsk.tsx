@@ -11,6 +11,7 @@ import RoundSettings from '../../components/RoundSettings';
 import GameStartCard from '../../components/GameStartCard';
 import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
 import { useRoundSettings, type RoundRange } from '../../lib/gameRounds';
+import { learnByDefault, LearnPlayToggle } from '../../lib/learnPlay';
 
 // Where a native game's questions come from, shared by every game built from her 2026-09-30 lists.
 // If the teacher has an open gameplay assignment for this game (a "specific game" task) or for any
@@ -76,8 +77,13 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
   // Every game opens on its settings screen (teacher 2026-10-12); a game with its own start screen
   // passes startCard: false and shows `settingsPanel` there instead.
   const [started, setStarted] = useState(opts?.startCard === false);
+  // Learn mode or Play mode (Build Queue 645): Play mode skips every question; an assignment keeps Learn on.
+  const [learnPick, setLearn] = useState(learnByDefault);
+  const learn = !!assignment || learnPick;
+  const learnToggle = <LearnPlayToggle learn={learn} onChange={setLearn} locked={!!assignment} />;
   const settingsPanel = (
     <>
+      {learnToggle}
       <RoundSettings ranges={ranges} rounds={rs.rounds} perRound={rs.perRound} onRounds={rs.setRounds} onPerRound={rs.setPerRound} locked={rs.locked}
         roundsLabel={opts?.roundsLabel} perLabel={opts?.perLabel ?? 'Questions each time'} />
       {rs.locked && <p className="game-start-note">Your teacher set these numbers for your assignment.</p>}
@@ -86,7 +92,7 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
   const right = useRef(0);
   // `count` lets a game ask a set number of questions for one action (Restaurant, Build Queue 468); otherwise it is the
   // student's "questions each time" setting.
-  const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void, count?: number) => { const n = Math.max(1, count ?? rs.perRound); setOpen({ q: next(), label, onRight, onCancel, left: n, total: n }); }, [next, rs.perRound]);
+  const ask = useCallback((label: string, onRight: () => void, onCancel?: () => void, count?: number) => { if (!learn) { onRight(); return; } const n = Math.max(1, count ?? rs.perRound); setOpen({ q: next(), label, onRight, onCancel, left: n, total: n }); }, [next, rs.perRound, learn]);
   const pay = useCallback(() => {
     if (student && right.current > 0) payForAnswers(student.id, right.current, game, icon);
     right.current = 0;
@@ -136,5 +142,5 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
     </>
   );
   const settings = <button type="button" className="btn game-settings-btn" onClick={() => setShowSettings(true)} aria-label="Game settings">⚙️</button>;
-  return { ask, element, pay, settings, settingsPanel, started, rounds: rs.rounds, rightSoFar: () => right.current, asking: !!open, student };
+  return { ask, element, pay, settings, settingsPanel, started, rounds: rs.rounds, rightSoFar: () => right.current, asking: !!open, student, learn, learnToggle };
 }
