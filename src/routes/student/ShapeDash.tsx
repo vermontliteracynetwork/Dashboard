@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useLearnPlay } from '../../lib/learnPlay';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -82,6 +83,8 @@ export default function ShapeDash() {
       'shapeDash',
     );
   }, [student, rotations, progress]);
+  // Learn mode or Play mode (Build Queue 645); an assignment keeps Learn on.
+  useLearnPlay(!!activeGameplayTask);
   const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter(hasPlayable), [questionSets]);
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
   const pickQuestion = (avoidId?: string): MCQuestion => {

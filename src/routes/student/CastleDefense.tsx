@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useLearnPlay, playModeOn } from '../../lib/learnPlay';
 import { speak } from '../../components/ReadAloud';
 import CheeringBuddy from '../../components/CheeringBuddy';
 import { getEconomy } from '../../lib/economy';
@@ -290,6 +291,8 @@ export default function CastleDefense() {
       'castleDefense',
     );
   }, [student, rotations, progress]);
+  // Learn mode or Play mode (Build Queue 645); an assignment keeps Learn on.
+  useLearnPlay(!!activeGameplayTask);
 
   // Waves and questions per gate: the student's choice, or the assignment's (locked).
   const roundSet = useRoundSettings('castleDefense', CD_RANGES, activeGameplayTask?.task);
@@ -648,7 +651,7 @@ export default function CastleDefense() {
 
       const totalEarnedCents = sessionQuestionsRef.current * rewardPerQuestionCents() + milestoneCents;
       if (totalEarnedCents > 0) {
-        recordTransaction(student.id, totalEarnedCents, '🏰 Castle Defense: game earnings', '💰', 'castle-defense');
+        if (!playModeOn()) recordTransaction(student.id, totalEarnedCents, '🏰 Castle Defense: game earnings', '💰', 'castle-defense');
         reportPayout(student.id, 'Castle Defense', '🏰', sessionQuestionsRef.current, totalEarnedCents, 'Defended the castle to the end.');
         setSessionEarningsCents(totalEarnedCents);
       }

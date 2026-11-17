@@ -1,3 +1,4 @@
+import { playModeOn } from './learnPlay';
 import { useStore } from '../store/store';
 import { todayISO } from './dates';
 import { getEconomy } from './economy';
@@ -119,7 +120,7 @@ export function chestAmounts(day: number, rand = Math.random): number[] {
 export function recordStreakCorrect(studentIdArg?: string) {
   const st = useStore.getState();
   const studentId = studentIdArg ?? st.currentStudentId;
-  if (!studentId || st.role !== 'student') return;
+  if (!studentId || st.role !== 'student' || playModeOn()) return; // Play mode answers nothing (Build Queue 645)
   // Right answers elsewhere no longer train pets (her rule 2026-10-12: pets gain only from their own questions).
   const today = todayISO();
   const r = reconcileStreak(studentId);

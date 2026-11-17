@@ -1,3 +1,4 @@
+import { playModeOn } from './learnPlay';
 import { useStore } from '../store/store';
 import { formatMoney } from './money';
 
@@ -16,7 +17,7 @@ import { reportPayout } from './gameReports';
 
 // perCents: a game with its own rate (Alchemy pays $0.50 a right answer, teacher 2026-10-08).
 export function payForAnswers(studentId: string, correct: number, game: string, icon: string, perCents?: number) {
-  if (!studentId || correct <= 0) return;
+  if (!studentId || correct <= 0 || playModeOn()) return; // Play mode pays nothing (Build Queue 645)
   const cents = correct * (perCents ?? getEconomy().perCorrectCents);
   const st = useStore.getState();
   st.recordTransaction(studentId, cents, `${icon} ${game}: ${correct} right answer${correct === 1 ? '' : 's'}`, icon, 'game-answers');

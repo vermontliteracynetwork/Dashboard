@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLearnPlay } from '../../lib/learnPlay';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -125,6 +126,8 @@ export default function BubbleShooter() {
       'bubbleShooter',
     );
   }, [student, rotations, progress]);
+  // Learn mode or Play mode (Build Queue 645); an assignment keeps Learn on.
+  useLearnPlay(!!activeGameplayTask);
   const roundSet = useRoundSettings('bubbleShooter', BS_RANGES, activeGameplayTask?.task);
   const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter(hasPlayable), [questionSets]);
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });

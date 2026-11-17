@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLearnPlay, LearnPlayAuto } from '../../lib/learnPlay';
 import WebpageFrame from '../../components/WebpageFrame';
 import { ELEMENTS, RECIPES, START, FEELING_MEANINGS, CHEM_FACTS, PERIODIC, PERIODIC_BY_ID, PERIODIC_ELEMENTS, FAMILY_NAMES, FAMILY_ORDER, type PeriodicEl } from '../../games/alchemy/data';
 import { setLeaveGuard, useBack } from '../../lib/navTrail';
@@ -112,6 +113,8 @@ export default function Alchemy() {
       '__any__' as NativeGameId,
     );
   }, [student, rotations, progress]);
+  // Learn mode or Play mode (Build Queue 645): Play is Alchemy's question-free exploring; an assignment keeps Learn on.
+  const { learn } = useLearnPlay(!!active);
   // An assignment's questions-per-round setting wins and locks the slider (teacher 2026-10-08).
   const qCount = active ? Math.min(10, Math.max(1, active.task.gameQuestionsPerRound ?? count)) : count;
   const [sinceQ, setSinceQ] = useState(0);
@@ -411,7 +414,8 @@ export default function Alchemy() {
                 <button type="button" role="radio" aria-checked={!resume} className={`btn${!resume ? ' btn-primary' : ''}`} style={{ minHeight: 44 }} onClick={() => setResume(false)}>Start fresh</button>
               </div>
             ) : null}
-            <label className="alc-slider">
+            <LearnPlayAuto />
+            {learn && <><label className="alc-slider">
               <span>Combinations between question breaks: <b>{every}</b></span>
               <input type="range" min={1} max={10} step={1} value={every} onChange={(e) => { const n = Number(e.target.value); setEvery(n); saveNum('alchemy.every', n); }} aria-label="Combinations between question breaks" />
             </label>
@@ -424,10 +428,10 @@ export default function Alchemy() {
             ) : (
               <QuestionSourcePicker questionSets={usableSets} value={source} onChange={setSource} />
             )}
-            <p style={{ margin: 0, textAlign: 'center', fontWeight: 700 }}>💵 {formatMoney(PER_RIGHT_CENTS)} for every right answer</p>
+            <p style={{ margin: 0, textAlign: 'center', fontWeight: 700 }}>💵 {formatMoney(PER_RIGHT_CENTS)} for every right answer</p></>}
             <div className="row-wrap" style={{ gap: 10, justifyContent: 'center' }}>
-              <button type="button" className="btn btn-primary btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('play')}>▶ Play with questions</button>
-              {!fromGames && <button type="button" className="btn btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('explore')}>Just explore</button>}
+              <button type="button" className="btn btn-primary btn-lg" style={{ minHeight: 52 }} onClick={() => startMode(learn ? 'play' : 'explore')}>{learn ? '▶ Play with questions' : '▶ Play'}</button>
+              {!fromGames && learn && <button type="button" className="btn btn-lg" style={{ minHeight: 52 }} onClick={() => startMode('explore')}>Just explore</button>}
             </div>
           </div>
         </div>

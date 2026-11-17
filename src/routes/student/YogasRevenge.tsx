@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { learnByDefault } from '../../lib/learnPlay';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -270,7 +271,8 @@ export default function YogasRevenge() {
   // Play mode (her rule): open once today's streak questions and assignments are done; a new assignment closes it again.
   // The no-login test page (mockup.html) can always use Play mode, for screenshots.
   // Build Queue 593: when the teacher pauses assignments, Play mode is open.
-  const playOpen = assignmentsPaused || (streakDone && due.length === 0) || window.location.pathname.endsWith('mockup.html');
+  // Build Queue 645: outside Monday to Friday 7am to 3pm, Play mode is open and on by default.
+  const playOpen = assignmentsPaused || (streakDone && due.length === 0) || !learnByDefault() || window.location.pathname.endsWith('mockup.html');
 
   const [save, setSaveState] = useState<Save>(() => readSave(studentId));
   const saveRef = useRef(save);
@@ -279,7 +281,7 @@ export default function YogasRevenge() {
   const [screen, setScreen] = useState<Screen>('title');
   const [pickFor, setPickFor] = useState(0); // the level the dog picker starts
   const [dog, setDog] = useState<DogId>(save.levelDog ?? 'yoga');
-  const [playMode, setPlayMode] = useState(false);
+  const [playMode, setPlayMode] = useState(() => !learnByDefault());
   const [gate, setGate] = useState<Gate>(null);
   const [q, setQ] = useState<MCQuestion | null>(null);
   const [talk, setTalk] = useState<{ who: string; lines: string[]; i: number; portrait?: string; quest?: boolean; then?: () => void } | null>(null);

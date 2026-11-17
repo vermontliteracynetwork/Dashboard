@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useLearnPlay, playModeOn } from '../../lib/learnPlay';
 import CheeringBuddy from '../../components/CheeringBuddy';
 import { getEconomy } from '../../lib/economy';
 const rewardPerQuestionCents = () => getEconomy().perCorrectCents;
@@ -189,6 +190,8 @@ export default function BakeryMatch3() {
       'bakery',
     );
   }, [student, rotations, progress]);
+  // Learn mode or Play mode (Build Queue 645); an assignment keeps Learn on.
+  useLearnPlay(!!activeGameplayTask);
   // Rounds and questions per round: the student's choice, or the assignment's (locked).
   const roundSet = useRoundSettings('bakery', BK_RANGES, activeGameplayTask?.task);
   const totalRounds = roundSet.rounds;
@@ -469,7 +472,7 @@ export default function BakeryMatch3() {
           // a student's balance — this single call gets the real bank
           // register row AND the app-wide falling-coins animation
           // (CoinDropOverlay) for free, no extra UI to build.
-          recordTransaction(student.id, totalEarnedCents, '🥐 Bakery Match: game earnings', '🥐', 'bakery-match');
+          if (!playModeOn()) recordTransaction(student.id, totalEarnedCents, '🥐 Bakery Match: game earnings', '🥐', 'bakery-match');
           reportPayout(student.id, 'Bakery Match', '🥐', sessionQuestionsRef.current, totalEarnedCents, 'Finished the game.');
           setSessionEarningsCents(totalEarnedCents);
         }

@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useLearnPlay } from '../../lib/learnPlay';
 import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { useLocation } from 'react-router-dom';
 import { Canvas } from '@react-three/fiber';
@@ -97,6 +98,8 @@ export default function SpaceBowling() {
       'spaceBowling',
     );
   }, [student, rotations, progress]);
+  // Learn mode or Play mode (Build Queue 645); an assignment keeps Learn on.
+  useLearnPlay(!!activeGameplayTask);
   const usableSets = useMemo<QuestionSet[]>(() => questionSets.filter(hasPlayable), [questionSets]);
   const [questionMode, setQuestionMode] = useState<QuestionSourceMode>({ mode: 'random' });
   const pickQuestion = (avoidId?: string): MCQuestion => {

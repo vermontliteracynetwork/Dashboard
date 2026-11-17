@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-learn-play-all",
+    date: "2026-11-17",
+    icon: "🎮",
+    title: "Learn mode and Play mode in every game",
+    body: "Every arcade game now has Learn mode and Play mode on its settings. Learn mode has questions and earns money for right answers. Play mode is just for fun: no questions and no money. On school days from 7am to 3pm, games start in Learn mode.",
+  },
+  {
     id: "2026-11-17-rocket-chickens-gliders",
     date: "2026-11-17",
     icon: "🐔",

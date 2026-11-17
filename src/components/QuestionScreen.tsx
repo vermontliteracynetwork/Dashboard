@@ -1,3 +1,4 @@
+import { playModeOn } from '../lib/learnPlay';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { playAnswer } from '../lib/miniSfx';
 import { useStore } from '../store/store';
@@ -147,7 +148,7 @@ const TOOL_ICON = {
   rest: tIco(<><path d="M5 11h12a3 3 0 0 1 0 6h-1a5 5 0 0 1-5 3H9a4 4 0 0 1-4-4z" /><path d="M17 12.5h1a1.5 1.5 0 0 1 0 3" /><path d="M9 4c0 1.5 1.5 1.5 1.5 3M12.5 4c0 1.5 1.5 1.5 1.5 3" /></>),
 };
 
-export default function QuestionScreen({
+function QuestionScreenInner({
   prompt,
   choices,
   correctIndex,
@@ -759,4 +760,14 @@ export default function QuestionScreen({
       )}
     </div>
   );
+}
+
+// Play mode (Build Queue 645): while a game is open in Play mode, its question breaks do not ask anything; the game
+// carries on as if the break were done (and payForAnswers pays nothing, see src/lib/learnPlay.tsx).
+export default function QuestionScreen(props: QuestionScreenProps) {
+  const [skip] = useState(playModeOn);
+  const go = useRef(props.onCorrectAnswer); go.current = props.onCorrectAnswer;
+  useEffect(() => { if (!skip) return; const t = window.setTimeout(() => go.current?.(), 300); return () => window.clearTimeout(t); }, [skip]);
+  if (skip) return null;
+  return <QuestionScreenInner {...props} />;
 }

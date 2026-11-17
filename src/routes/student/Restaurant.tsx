@@ -424,7 +424,7 @@ export default function Restaurant() {
 function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Which) => void }) {
   MC = which === 'mcyoga'; OFF = MC ? MCYOGA_OFFSET : 0; setTableLayout(MC);
   const back = useBack();
-  const { ask, element, pay, student } = useAsk(MC ? 'McYoga' : 'Restaurant', MC ? '🍔' : '🍕', 'dinerDash', { startCard: false });
+  const { ask, element, pay, student, learn } = useAsk(MC ? 'McYoga' : 'Restaurant', MC ? '🍔' : '🍕', 'dinerDash', { startCard: false });
   const styleLooks = useStore((s) => s.styleLooks);
   const mergeStyleRow = useStore((s) => s.mergeStyleRow);
   const owner = student ? `${MC ? 'mcyoga' : 'diner'}:${student.id}` : '';
@@ -997,7 +997,7 @@ function RestaurantGame({ which, onSwitch }: { which: Which; onSwitch: (to: Whic
   if (s.stock.length) stations.push({ key: 'tower', at: TOWER_AT, label: `${PZC} tower: tap to pick ${PZS} up`, onTap: () => go(use.tower, atTower), hit: [1, 1.2 + Math.min(17, s.stock.length) * 0.085, 1] });
   stations.push({ key: 'trash', at: TRASH, label: 'Trash can', onTap: () => go(use.trash, atTrash), children: <ModelAt url={TRASH_MODEL} fit={0.55} /> });
   stations.push({ key: 'counter', at: COUNTER, label: `Counter: stack ${PZS} and hand them over`, tag: `${s.stock.length} ${s.stock.length === 1 ? PZ : PZS} on the counter`, onTap: () => go(use.counter, atCounter) });
-  if (!G.open) stations.push({ key: 'register', at: { x: 7, y: COUNTER.y }, label: 'Cash register: answer questions for money', tag: 'Cash register questions', onTap: () => go({ x: 7, y: 2 }, () => { clip('cash', true); setRegQuiz(true); }) });
+  if (!G.open && learn) stations.push({ key: 'register', at: { x: 7, y: COUNTER.y }, label: 'Cash register: answer questions for money', tag: 'Cash register questions', onTap: () => go({ x: 7, y: 2 }, () => { clip('cash', true); setRegQuiz(true); }) });
   if (lvOk(6)) stations.push({ key: 'window', at: WINDOW, label: 'Drive through window', tag: 'Drive through', hit: [1, 1.6, 1], onTap: () => go(use.window, () => atWindow(0)) });
   if (MC && s.dtWin2 && lvOk(6)) stations.push({ key: 'window2', at: WINDOW2, label: 'Second drive through window', tag: 'Window 2', hit: [1, 1.6, 1], onTap: () => go(use.window2, () => atWindow(1)) });
   const tableCap = s.annex ? TABLES.length : lvOk(8) ? MAIN_TABLES : lvOk(2) ? 3 : 1;

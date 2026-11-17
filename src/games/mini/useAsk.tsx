@@ -11,7 +11,7 @@ import RoundSettings from '../../components/RoundSettings';
 import GameStartCard from '../../components/GameStartCard';
 import { NATIVE_GAME_CARDS } from '../../lib/nativeGames';
 import { useRoundSettings, type RoundRange } from '../../lib/gameRounds';
-import { learnByDefault, LearnPlayToggle } from '../../lib/learnPlay';
+import { useLearnPlay, LearnPlayAuto } from '../../lib/learnPlay';
 
 // Where a native game's questions come from, shared by every game built from her 2026-09-30 lists.
 // If the teacher has an open gameplay assignment for this game (a "specific game" task) or for any
@@ -33,6 +33,8 @@ export function useGameQuestions(gameId: NativeGameId) {
     );
   }, [student, rotations, progress, gameId]);
   const [finished, setFinished] = useState<string | null>(null);
+  // Learn mode or Play mode for this game (Build Queue 645); an assignment keeps Learn on.
+  const lp = useLearnPlay(!!assignment);
   // The student's own Reduce motion setting (the same one Shape Dash and Bubble Shooter use) stills
   // these games' decorative animations; see body.calm-games in index.css.
   const calm = !!student?.worldReduceMotion;
@@ -59,7 +61,7 @@ export function useGameQuestions(gameId: NativeGameId) {
       </div>
     </div>
   ) : null;
-  return { next, right, notice, assignment, student };
+  return { next, right, notice, assignment, student, lp };
 }
 
 // Shared question plumbing for the native mini games built from her 2026-09-30 game list
@@ -69,7 +71,7 @@ export function useGameQuestions(gameId: NativeGameId) {
 // the questions per round, and an assignment's own numbers lock them. Here "questions per round" is
 // how many questions each action asks (1 to 5); `settings` is the ⚙️ button for the game's header.
 export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: { rounds?: RoundRange; roundsLabel?: string; perLabel?: string; compact?: boolean; autoRead?: boolean; voice?: NpcVoiceProfile; startCard?: boolean }) {
-  const { next, right: countRight, notice, assignment, student } = useGameQuestions(gameId);
+  const { next, right: countRight, notice, assignment, student, lp } = useGameQuestions(gameId);
   const ranges = { rounds: opts?.rounds, per: { min: 1, max: 5, def: 1 } };
   const rs = useRoundSettings(gameId, ranges, assignment?.task);
   const [open, setOpen] = useState<{ q: MCQuestion; label: string; onRight: () => void; onCancel?: () => void; left: number; total: number } | null>(null);
@@ -78,12 +80,11 @@ export function useAsk(game: string, icon: string, gameId: NativeGameId, opts?: 
   // passes startCard: false and shows `settingsPanel` there instead.
   const [started, setStarted] = useState(opts?.startCard === false);
   // Learn mode or Play mode (Build Queue 645): Play mode skips every question; an assignment keeps Learn on.
-  const [learnPick, setLearn] = useState(learnByDefault);
-  const learn = !!assignment || learnPick;
-  const learnToggle = <LearnPlayToggle learn={learn} onChange={setLearn} locked={!!assignment} />;
+  // Learn/Play (Build Queue 645) comes from useGameQuestions; the switch shows inside RoundSettings.
+  const learn = lp.learn;
+  const learnToggle = <LearnPlayAuto />;
   const settingsPanel = (
     <>
-      {learnToggle}
       <RoundSettings ranges={ranges} rounds={rs.rounds} perRound={rs.perRound} onRounds={rs.setRounds} onPerRound={rs.setPerRound} locked={rs.locked}
         roundsLabel={opts?.roundsLabel} perLabel={opts?.perLabel ?? 'Questions each time'} />
       {rs.locked && <p className="game-start-note">Your teacher set these numbers for your assignment.</p>}

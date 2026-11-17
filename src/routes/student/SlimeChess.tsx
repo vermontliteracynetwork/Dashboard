@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useLearnPlay } from '../../lib/learnPlay';
 import NeighborGameWrapUp from '../../components/NeighborGameWrapUp';
 import { lazyFresh } from '../../lib/freshBuild';
 import { useLocation } from 'react-router-dom';
@@ -141,6 +142,8 @@ export default function SlimeChess() {
       'chess',
     );
   }, [student, rotations, progress]);
+  // Learn mode or Play mode (Build Queue 645); an assignment keeps Learn on.
+  useLearnPlay(!!activeGameplayTask);
   // Questions before each turn: the student's choice, or the assignment's (locked). No rounds in chess.
   const roundSet = useRoundSettings('chess', SC_RANGES, activeGameplayTask?.task);
   const [qDone, setQDone] = useState(0);
