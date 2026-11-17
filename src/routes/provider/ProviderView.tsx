@@ -23,16 +23,23 @@ import type { SelCheckIn, SelZone } from '../../types';
 // each section prints its chart AND its full log table (date, time and every field), every table can also be saved as
 // a spreadsheet (CSV), and the Overview PDF holds every section. Azalea (the students' talk-it-out cat) never appears:
 // her lines are taken out of the notes and she is left out of the tools.
+// Build Queue 643 (her words: "streamline the reports for the provider portal so that they are less pages and more
+// helpful"): the PDF preview opens on a Short report (Key findings written out in plain sentences, a comparison with the
+// period before, when the hard moments happen, which calming tools helped, questions by game, the student's own words),
+// laid out two charts to a row with no forced page breaks, so it fits on about two pages. Full data report adds every
+// log table back for data analysis; each part can still be ticked on or off.
 // Read only. Behind the same sign in as the Teacher Area.
 
 type Range = { from: string; to: string };
-type SectionId = 'summary' | 'zones' | 'feelings' | 'days' | 'energy' | 'tools' | 'notes' | 'checkins' | 'questions' | 'diary' | 'diarypics';
+type SectionId = 'findings' | 'patterns' | 'summary' | 'zones' | 'feelings' | 'days' | 'energy' | 'tools' | 'notes' | 'checkins' | 'questions' | 'diary' | 'diarypics';
 const SECTIONS: { id: SectionId; name: string }[] = [
+  { id: 'findings', name: 'Key findings' },
   { id: 'summary', name: 'Overview' },
   { id: 'zones', name: 'Zones of Regulation' },
   { id: 'feelings', name: 'Feeling words chosen' },
   { id: 'days', name: 'Check-ins by day' },
   { id: 'energy', name: 'Energy level' },
+  { id: 'patterns', name: 'When hard moments happen' },
   { id: 'tools', name: 'Calming tools used' },
   { id: 'notes', name: 'Notes the student wrote' },
   { id: 'checkins', name: 'Every check-in (full log)' },
@@ -41,6 +48,11 @@ const SECTIONS: { id: SectionId; name: string }[] = [
   { id: 'diarypics', name: 'Diary pages with pictures' },
 ];
 const ALL_IDS = SECTIONS.map((s) => s.id);
+// The short report: the helpful parts only, no full logs (Build Queue 643).
+const SHORT_IDS: SectionId[] = ['findings', 'summary', 'zones', 'feelings', 'energy', 'patterns', 'tools', 'questions', 'notes', 'diary'];
+// Small charts sit two to a row in the short report.
+const HALF: SectionId[] = ['zones', 'feelings', 'energy', 'tools'];
+const LOGS: SectionId[] = ['checkins', 'diarypics'];
 
 const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const fmt = (d: string | Date) => new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
@@ -175,6 +187,8 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
   const [sid, setSid] = useState('');
   const [range, setRange] = useState<Range>(() => { const f = new Date(); f.setDate(f.getDate() - 29); return { from: iso(f), to: iso(new Date()) }; });
   const [preview, setPreview] = useState<SectionId[] | null>(null);
+  const [full, setFull] = useState(false);
+  const openPreview = (ids: SectionId[] | 'short' | 'full') => { if (ids === 'full') { setFull(true); setPreview([...ALL_IDS]); } else if (ids === 'short') { setFull(false); setPreview([...SHORT_IDS]); } else { setFull(false); setPreview(ids); } };
   const [diaryPdf, setDiaryPdf] = useState(false);
   const lock = useDiaryLock(sid);
 
@@ -260,6 +274,53 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
   const qRight = questions.filter((q) => q.outcome === 'right').length;
   const firstTry = questions.filter((q) => q.outcome === 'right' && q.tries.length <= 1).length;
   const byGame = count(questions, (q) => q.game);
+  // Patterns (Build Queue 643): time of day and weekday for the hard zones, and which tools were followed by Green.
+  const hard = (c: SelCheckIn) => c.zone === 'red' || c.zone === 'yellow';
+  const part = (t: string) => { const h = new Date(t).getHours(); return h < 11 ? 'Morning (before 11)' : h < 13 ? 'Midday (11 to 1)' : 'Afternoon (after 1)'; };
+  const PARTS = ['Morning (before 11)', 'Midday (11 to 1)', 'Afternoon (after 1)'];
+  const WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const wd = (t: string) => WEEK[(new Date(t).getDay() + 6) % 7];
+  const patRow = (label: string, list: SelCheckIn[]) => [label, list.length, ...SEL_ZONES.map((z) => list.filter((c) => c.zone === z).length), list.length ? pct(list.filter(hard).length, list.length) : ''] as (string | number)[];
+  const byPart = PARTS.map((p2) => patRow(p2, rows.filter((c) => part(c.timestamp) === p2))).filter((x) => x[1]);
+  const byWeek = WEEK.map((w2) => patRow(w2, rows.filter((c) => wd(c.timestamp) === w2))).filter((x) => x[1]);
+  const worst = (list: (string | number)[][]) => { const ok = list.filter((x) => (x[1] as number) >= 3); if (!ok.length) return null; return [...ok].sort((a, b) => parseInt(String(b[6])) - parseInt(String(a[6])))[0]; };
+  const toolHelp = tools.map(([t, k]) => {
+    const after = rows.filter((c) => c.recheckCompleted && (toolsOf(c).includes(t) || c.recheckToolUsedLabel === t));
+    return { t, k, after: after.length, green: after.filter((c) => c.recheckZone === 'green').length };
+  });
+  const bestTool = toolHelp.filter((x) => x.after >= 2).sort((a, b) => b.green / b.after - a.green / a.after || b.after - a.after)[0];
+  // The period just before, the same length, for a comparison.
+  const prevRows = (() => {
+    if (!range.from || !range.to) return null;
+    const f = new Date(`${range.from}T00:00`), t = new Date(`${range.to}T23:59:59.999`); const len = +t - +f;
+    const pf = new Date(+f - len - 1), pt = new Date(+f - 1);
+    return selCheckIns.filter((c) => c.studentId === sid && new Date(c.timestamp) >= pf && new Date(c.timestamp) <= pt);
+  })();
+  const findings: string[] = [];
+  if (n) {
+    findings.push(`${student.name} checked in ${n} time${n === 1 ? '' : 's'} on ${days} day${days === 1 ? '' : 's'}.`);
+    const zs = [...zones].sort((a, b) => b[1] - a[1]).filter((z) => z[1]);
+    findings.push(`Zones: ${zs.map(([z, k]) => `${z} ${pct(k, n)}`).join(', ')}.`);
+    if (feelings[0]) findings.push(`Most chosen feelings: ${feelings.slice(0, 3).map(([f, k]) => `${f} (${k})`).join(', ')}.`);
+    const hardN = rows.filter(hard).length;
+    const wp = worst(byPart), ww = worst(byWeek);
+    if (hardN && wp) findings.push(`Yellow and Red zone check-ins happened most in the ${String(wp[0]).split(' (')[0].toLowerCase()} (${wp[6]} of check-ins then)${ww ? ` and on ${ww[0]}s (${ww[6]})` : ''}.`);
+    if (rechecks.length) findings.push(`Re-checks: ${rechecksDone.length} of ${rechecks.length} finished, and ${rechecksDone.filter((c) => c.recheckZone === 'green').length} ended in the Green zone.`);
+    if (bestTool) findings.push(`The calming tool followed most often by a Green re-check: ${bestTool.t} (${bestTool.green} of ${bestTool.after} times).`);
+    else if (tools[0]) findings.push(`Most used calming tool: ${tools[0][0]} (${tools[0][1]} times).`);
+    if (prevRows && prevRows.length) {
+      const ph = prevRows.filter(hard).length;
+      findings.push(`Compared with the ${Math.round((+new Date(`${range.to}T12:00`) - +new Date(`${range.from}T12:00`)) / 86400000) + 1} days before: ${prevRows.length} check-ins then, ${n} now; Yellow and Red were ${pct(ph, prevRows.length)} then and ${pct(hardN, n)} now.`);
+    }
+    const safety = notes.filter((x) => x.safety).length;
+    if (safety) findings.push(`Safety words were flagged ${safety} time${safety === 1 ? '' : 's'} (see Notes the student wrote).`);
+  } else findings.push('No feelings check-ins in these dates.');
+  if (questions.length) {
+    const g = byGame.map(([gm, k]) => { const l = questions.filter((q) => q.game === gm); return { gm, k, r: l.filter((q) => q.outcome === 'right' && q.tries.length <= 1).length / l.length }; }).filter((x) => x.k >= 5);
+    const hi = [...g].sort((a, b) => b.r - a.r)[0], lo = [...g].sort((a, b) => a.r - b.r)[0];
+    findings.push(`Questions: ${questions.length} answered, ${pct(qRight, questions.length)} right, ${pct(firstTry, questions.length)} right on the first try.${hi && lo && hi.gm !== lo.gm ? ` Strongest in ${hi.gm} (${Math.round(hi.r * 100)}% first try), most support needed in ${lo.gm} (${Math.round(lo.r * 100)}%).` : ''}`);
+  }
+  if (pages.length) findings.push(`${pages.length} Diary page${pages.length === 1 ? '' : 's'}${pages.filter(([pid]) => isLocked(lock, pid)).length ? `, ${pages.filter(([pid]) => isLocked(lock, pid)).length} locked by the student` : ''}.`);
   const file = (what: string) => `${student.name} ${what} ${range.from || 'start'} to ${range.to || 'today'}`;
 
   const chartDays = shownDays.length ? (
@@ -295,7 +356,12 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
   // Each section: what shows on screen, and (in the PDF preview) its full log tables too.
   const body = (id: SectionId, full: boolean): React.ReactNode => {
     switch (id) {
-      case 'summary': return <>{stats}{full && (
+      case 'findings': return <ul className="pv-findings">{findings.map((f) => <li key={f}>{f}</li>)}</ul>;
+      case 'patterns': return <>
+        <LogTable title="By time of day" file={file('time-of-day')} head={['Time of day', 'Check-ins', 'Blue', 'Green', 'Yellow', 'Red', 'Yellow or Red']} rows={byPart} empty="No check-ins in these dates." />
+        <LogTable title="By day of the week" file={file('weekday')} head={['Day', 'Check-ins', 'Blue', 'Green', 'Yellow', 'Red', 'Yellow or Red']} rows={byWeek} empty="No check-ins in these dates." />
+      </>;
+      case 'summary': return <>{stats}{full && preview && fullReport && (
         <LogTable title="Summary numbers" file={file('summary')} head={['Measure', 'Value']} rows={[
           ['Student', student.name], ['Dates', rangeText], ['Feelings check-ins', n], ['Days with a check-in', days],
           ...zones.map(([z, k]) => [`${z} zone check-ins`, `${k} (${pct(k, n)})`] as [string, string]),
@@ -326,7 +392,9 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
       case 'energy': return <><Bars rows={energy} color={() => '#2f8f8a'} total={n} />{full && (
         <LogTable title="Energy log" file={file('energy')} head={['Date', 'Time', 'Energy', 'Zone', 'Feeling']} rows={rows.filter((c) => energyOf(c)).map((c) => [dateOf(c.timestamp), timeOf(c.timestamp), energyOf(c), SEL_ZONE_LABELS[c.zone], feelOf(c)])} />
       )}</>;
-      case 'tools': return <><Bars rows={tools.slice(0, full ? 999 : 12)} color={() => '#b26a1f'} total={toolUses.length} unit="times" />{full && (
+      case 'tools': return <><Bars rows={tools.slice(0, full ? 999 : 8)} color={() => '#b26a1f'} total={toolUses.length} unit="times" />
+        {preview && toolHelp.some((x) => x.after) && <LogTable title="Did it help? Re-checks after each tool" file={file('tool-help')} head={['Tool', 'Times used', 'Re-checks after', 'Ended in Green']} rows={toolHelp.filter((x) => x.after).map((x) => [x.t, x.k, x.after, `${x.green} (${pct(x.green, x.after)})`])} />}
+        {full && (
         <LogTable title="Tool log" file={file('tools')} head={['Date', 'Time', 'Tool', 'Used at', 'Zone', 'Feeling']} rows={toolUses.map((u) => [dateOf(u.c.timestamp), timeOf(u.c.timestamp), u.t, u.when, SEL_ZONE_LABELS[u.c.zone], feelOf(u.c)])} />
       )}</>;
       case 'notes': return (
@@ -345,7 +413,11 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
           ])} />
       );
       case 'questions': return <>
-        <Bars rows={byGame.slice(0, full ? 999 : 10)} color={() => '#3f6fb5'} total={questions.length} unit="questions" />
+        {!preview && <Bars rows={byGame.slice(0, 10)} color={() => '#3f6fb5'} total={questions.length} unit="questions" />}
+        {preview && !full && <LogTable title="By game" file={file('questions-by-game')} head={['Game', 'Questions', 'Right', 'Right on first try', 'Average seconds']} rows={byGame.map(([gm, k]) => {
+          const list = questions.filter((q) => q.game === gm);
+          return [gm, k, pct(list.filter((q) => q.outcome === 'right').length, k), pct(list.filter((q) => q.outcome === 'right' && q.tries.length <= 1).length, k), Math.round(list.reduce((a, q) => a + q.ms, 0) / k / 100) / 10];
+        })} empty="No questions in these dates." />}
         {full && <>
           <LogTable title="By game" file={file('questions-by-game')} head={['Game', 'Questions', 'Right', 'Right on first try', 'Skipped', 'Left', 'Average seconds']} rows={byGame.map(([gm, k]) => {
             const list = questions.filter((q) => q.game === gm);
@@ -358,8 +430,9 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
       case 'diary': return (
         <>
           {!full && <div className="pv-row-btns"><button type="button" className="pv-btn pv-primary" disabled={!pages.length} onClick={() => setDiaryPdf(true)}>Download the Diary pages with pictures (PDF)</button></div>}
-          <LogTable file={file('diary')} head={['Date', 'Time', 'Feeling', 'Locked by student', 'Words on the page']} empty="No Diary pages in these dates."
+          {full || !preview ? <LogTable file={file('diary')} head={['Date', 'Time', 'Feeling', 'Locked by student', 'Words on the page']} empty="No Diary pages in these dates."
             rows={pages.map(([pid, e]) => [dateOf(e.at), timeOf(e.at), e.feeling ?? '', isLocked(lock, pid) ? 'Yes' : 'No', textOfHtml(e.page?.html) || e.caption || ''])} />
+            : <p>{pages.length ? `${pages.length} Diary page${pages.length === 1 ? '' : 's'} in these dates. Feelings on the pages: ${count(pages.map(([, e]) => e), (e) => e.feeling ?? '').map(([f, k]) => `${f} (${k})`).join(', ') || 'none chosen'}. Tick Diary pages (log) or Diary pages with pictures for the pages themselves.` : 'No Diary pages in these dates.'}</p>}
         </>
       );
       case 'diarypics': return pages.length ? (
@@ -376,6 +449,7 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
   };
 
   // ---------- the PDF preview: pick dates and sections, then print or save as PDF ----------
+  const fullReport = full;
   if (preview) {
     const on = (id: SectionId) => preview.includes(id);
     const toggle = (id: SectionId) => setPreview(on(id) ? preview.filter((x) => x !== id) : ALL_IDS.filter((x) => x === id || preview.includes(x)));
@@ -391,24 +465,29 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
           </div>
           <RangePicker range={range} setRange={setRange} />
           <div className="pv-checks">
-            <button type="button" className="pv-btn pv-small" onClick={() => setPreview([...ALL_IDS])}>Include everything</button>
+            <span className="pv-seg" role="radiogroup" aria-label="Report length">
+              <button type="button" role="radio" aria-checked={!full} className={`pv-btn pv-small${!full ? ' on' : ''}`} onClick={() => openPreview('short')} title="Key findings, patterns and charts. About two pages.">Short report</button>
+              <button type="button" role="radio" aria-checked={full} className={`pv-btn pv-small${full ? ' on' : ''}`} onClick={() => openPreview('full')} title="Everything, with every log table, for data analysis. Many pages.">Full data report</button>
+            </span>
             <button type="button" className="pv-btn pv-small" onClick={() => setPreview([])}>Clear</button>
             {SECTIONS.map((s) => <label key={s.id}><input type="checkbox" checked={on(s.id)} onChange={() => toggle(s.id)} /> {s.name}</label>)}
           </div>
         </div>
-        <article className="pv-doc">
+        <article className={`pv-doc${full ? '' : ' short'}`}>
           <header className="pv-doc-head">
             <h1>Service Provider Report</h1>
             <p><b>{student.name}</b>. {rangeText}. Printed {fmt(new Date())} at {timeOf(new Date().toISOString())}.</p>
             <p className="pv-sub">From the Independent Work Dashboard. Feelings come from the student's Zones of Regulation check-ins; times are the student's local time.</p>
           </header>
           {!preview.length && <p className="pv-empty">Pick at least one part above.</p>}
-          {SECTIONS.filter((s) => on(s.id)).map((s) => (
-            <section key={s.id} className="pv-doc-sec">
-              <h2>{s.name}</h2>
-              {body(s.id, true)}
-            </section>
-          ))}
+          <div className="pv-doc-flow">
+            {SECTIONS.filter((s) => on(s.id)).map((s) => (
+              <section key={s.id} className={`pv-doc-sec${!full && HALF.includes(s.id) ? ' half' : ''}${LOGS.includes(s.id) || (full && !['findings', 'summary'].includes(s.id)) ? ' newpage' : ''}`}>
+                <h2>{s.name}</h2>
+                {body(s.id, full)}
+              </section>
+            ))}
+          </div>
         </article>
       </div>
     );
@@ -418,7 +497,7 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
     <section className={`pv-card${wide ? ' wide' : ''}`}>
       <div className="pv-card-head">
         <h2>{title}</h2>
-        <button type="button" className="pv-btn pv-small" onClick={() => setPreview(pdfIds)}>Download PDF</button>
+        <button type="button" className="pv-btn pv-small" onClick={() => openPreview(pdfIds)}>Download PDF</button>
       </div>
       {body(id, false)}
     </section>
@@ -433,16 +512,19 @@ function ProviderReports({ onLock }: { onLock: () => void }) {
           <div><h2>{student.name}</h2><p className="pv-sub">{rangeText}</p></div>
         </div>
         <RangePicker range={range} setRange={setRange} />
-        <button type="button" className="pv-btn pv-primary" onClick={() => setPreview([...ALL_IDS])}>Download the full report (PDF)</button>
+        <button type="button" className="pv-btn pv-primary" onClick={() => openPreview('short')} title="Key findings, patterns and charts on about two pages">Download the report (PDF)</button>
+        <button type="button" className="pv-btn" onClick={() => openPreview('full')} title="Everything, with every log table, for data analysis">Full data report (PDF)</button>
       </section>
 
       <div className="pv-grid">
-        {card('summary', 'Overview', true, [...ALL_IDS])}
+        {card('findings', 'Key findings', true, [...SHORT_IDS])}
+        {card('summary', 'Overview', true, [...SHORT_IDS])}
         {card('zones', 'Zones of Regulation')}
         {card('feelings', 'Feeling words chosen')}
         {card('days', 'Check-ins by day', true)}
         {card('energy', 'Energy level')}
         {card('tools', 'Calming tools used')}
+        {card('patterns', 'When hard moments happen', true)}
         {card('notes', 'Notes the student wrote', true)}
         {card('checkins', 'Every check-in', true)}
         {card('questions', 'Questions answered', true)}

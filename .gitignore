@@ -28,3 +28,6 @@ dist-ssr
 src/devPetMeasure.ts
 dev-pet-measure.html
 .claude/worktrees/
+
+# Copied from the Symbolic Grammar Engine before dev and build (npm run engine:assets); the engine is the source.
+public/writer/

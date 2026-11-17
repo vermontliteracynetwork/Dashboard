@@ -5,13 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/check-weapon-assets.mjs && node scripts/generate-asset-manifest.mjs && node scripts/generate-master-asset-chart.mjs && tsc -b && vite build",
+    "build": "npm run engine:assets && npm run test:engine && node scripts/check-weapon-assets.mjs && node scripts/generate-asset-manifest.mjs && node scripts/generate-master-asset-chart.mjs && tsc -b && vite build",
     "lint": "oxlint",
     "check-weapons": "node scripts/check-weapon-assets.mjs",
     "gen-asset-manifest": "node scripts/generate-asset-manifest.mjs",
     "gen-master-chart": "node scripts/generate-master-asset-chart.mjs",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "engine:assets": "node node_modules/symbolic-grammar-engine/scripts/copy-assets.mjs public --no-symbols",
+    "test:engine": "node scripts/engine-check.mjs",
+    "predev": "npm run engine:assets"
   },
   "dependencies": {
     "@fontsource/opendyslexic": "^5.3.0",
@@ -30,6 +33,7 @@
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
     "spin-wheel": "^5.0.2",
+    "symbolic-grammar-engine": "https://codeload.github.com/vermontliteracynetwork/symbolic-grammar-engine/tar.gz/7d591394cb8f27a81a9320d37246e56a77217420",
     "three": "^0.186.0",
     "topojson-client": "^3.1.0",
     "zustand": "^5.0.15"
