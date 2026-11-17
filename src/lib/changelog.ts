@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-rocket-chickens-gliders",
+    date: "2026-11-17",
+    icon: "🐔",
+    title: "Rocket Chickens: gliders",
+    body: "Fly without fuel! Your chicken can now use a paper airplane, and you can buy more gliders: an umbrella, a balsa glider, a box kite, a hang glider, a sailplane and a dragon kite. Push the blue stick up to lift the nose and down to dive. Switch between your jetpack and glider with the button at the top.",
+  },
+  {
     id: "2026-11-17-alchemy-pictures",
     date: "2026-11-17",
     icon: "⚗️",

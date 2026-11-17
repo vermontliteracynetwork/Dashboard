@@ -12908,3 +12908,7 @@ body.calm-games .me-burst { display: none; }
 .lp-btn:disabled { cursor: default; }
 .lp-note { grid-column: 1 / -1; margin: 0; font-weight: 700; }
 .rc-learn { background: #eef1ff; border-color: #3a4fb0; }
+
+/* Rocket Chickens gliders (Build Queue 650) */
+.rc-glider-pic { width: 100px; height: 60px; }
+.rc-sub { font-weight: 600; color: #566175; font-size: 0.85rem; margin-left: 6px; }
