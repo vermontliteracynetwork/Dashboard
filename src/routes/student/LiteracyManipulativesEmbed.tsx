@@ -11,6 +11,12 @@
 // wire up yet — every visitor, embedded or not, already gets full access.
 // GrammarSandbox.tsx (the previous native version) is left in place,
 // unrouted, until this embed is confirmed working live.
+//
+// Build Queue 654 (her words 2026-11-17: "they should be able to click on their literacy manipulatives app and see
+// all that we have going on on this site"): the app opens the site's home page, its tools dashboard (Whiteboard,
+// Word Processor, Word Explorer, Word List Maker, Formula Search, Daily Procedure, Assessment Scoring, Story Maker),
+// and each tool's Home button comes back to it. The frame allows what the tools use: read aloud (autoplay), the
+// microphone, copying, full screen and saving a Story Maker video to the iPad.
 const LITERACY_MANIPULATIVES_URL = 'https://literacy-manipulatives.vercel.app/';
 
 export default function LiteracyManipulativesEmbed() {
@@ -21,6 +27,8 @@ export default function LiteracyManipulativesEmbed() {
       <iframe
         src={LITERACY_MANIPULATIVES_URL}
         title="Literacy Manipulatives"
+        allow="autoplay; microphone; clipboard-read; clipboard-write; fullscreen"
+        allowFullScreen
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none' }}
       />
     </div>
