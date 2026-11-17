@@ -88,7 +88,9 @@ const BASE_RECIPES: [string, string, string][] = [
 // elements and 3,000 combinations on top of the originals above (src/games/alchemy/data2.ts).
 // Student requests she passes on (Build Queue 248, 2026-10-20: "if you combine dog and mermaid, make it a merdog").
 // Build Queue 249 (2026-10-20, "Wizard + time = worlock. Book + time = ancient scroll").
-const REQUESTED_ELEMENTS: [string, string, string][] = [["merdog","🐕🧜","Merdog"],["warlock","🧙‍♂️🌑","Warlock"],["ancient-scroll","📜⏳","Ancient Scroll"]];
-const REQUESTED_RECIPES: [string, string, string][] = [["dog","mermaid","merdog"],["wizard","time","warlock"],["book","time","ancient-scroll"]];
+const REQUESTED_ELEMENTS: [string, string, string][] = [["merdog","🐕🧜","Merdog"],["warlock","🧙‍♂️🌑","Warlock"],["ancient-scroll","📜⏳","Ancient Scroll"],
+  // Build Queue 641 (2026-11-17, "energy + plan = coffee bean; coffee bean + water = coffee").
+  ["coffee-bean","🫘☕","Coffee Bean"],["coffee","☕","Coffee"]];
+const REQUESTED_RECIPES: [string, string, string][] = [["dog","mermaid","merdog"],["wizard","time","warlock"],["book","time","ancient-scroll"],["energy","plant","coffee-bean"],["coffee-bean","water","coffee"]];
 export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS, ...STUDENT_ELEMENTS, ...FEELING_ELEMENTS, ...CHEM_ELEMENTS];
 export const RECIPES: [string, string, string][] = [...REQUESTED_RECIPES, ...STUDENT_RECIPES, ...FEELING_RECIPES, ...CHEM_RECIPES, ...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];

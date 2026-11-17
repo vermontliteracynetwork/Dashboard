@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-alchemy-coffee",
+    date: "2026-11-17",
+    icon: "⚗️",
+    title: "Alchemy: coffee",
+    body: "Energy + Plant makes a Coffee Bean, and Coffee Bean + Water makes Coffee.",
+  },
+  {
     id: "2026-11-17-rocket-chickens",
     date: "2026-11-17",
     icon: "🐔",
