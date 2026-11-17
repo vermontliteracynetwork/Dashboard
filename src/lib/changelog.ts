@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-literacy-manipulatives-story-book",
+    date: "2026-11-17",
+    icon: "📖",
+    title: "Story Maker: a word book, word search and pasted pictures",
+    body: "In Literacy Manipulatives on the Computer, Story Maker has a word book: tap any word to see every word that fits, in ABC order. Type a word to find its grammar symbol, even if you are not sure what kind of word it is. Write sentences like The dog runs from the cat, or use names like Dr. Lee. On the Whiteboard, copy a picture and paste it right onto the board.",
+  },
+  {
     id: "2026-11-17-literacy-manipulatives-tools",
     date: "2026-11-17",
     icon: "🧩",
