@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dinerDash' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'gemMine' | 'lighthouse' | 'farmGrow' | 'fishingDock' | 'rescueShelter' | 'yogasRevenge' | 'mergeEm';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dinerDash' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'gemMine' | 'lighthouse' | 'farmGrow' | 'fishingDock' | 'rescueShelter' | 'yogasRevenge' | 'mergeEm' | 'rocketChickens';
   title: string;
   route: string;
   cover: string;
@@ -64,6 +64,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'yogasRevenge', added: '2026-11-10', title: "Yoga's Revenge", route: '/student/yogas-revenge', cover: '/games/covers/yogas-revenge.svg', blurb: 'Help Yoga the dog beat the trash can monsters on trash day!', versus: false, cabinet: { marquee: '#2d2350', panel: '#e8873a', trim: '#ffd23f', icon: '🐕' } },
   // Build Queue 615 (2026-11-12): the students' number-merge drop game, with the tile set she found (Zro Dfects).
   { id: 'mergeEm', added: '2026-11-12', title: "Merge 'Em", route: '/student/merge-em', cover: '/games/covers/merge-em.png', blurb: 'Drop number tiles. Two tiles with the same number merge into a bigger one. Chain merges and use power ups!', versus: false, cabinet: { marquee: '#3a4fb0', panel: '#5b7fe0', trim: '#ffd23f', icon: '🔢' } },
+  // Build Queue 642 (2026-11-17): launch a rocket chicken from a farm cannon, with her Chicken Game Assets.
+  { id: 'rocketChickens', added: '2026-11-17', title: 'Rocket Chickens', route: '/student/rocket-chickens', cover: '/games/covers/rocket-chickens.webp', blurb: 'Aim the farm cannon and launch a chicken with a rocket pack! Fly far, fly high and smash crates to earn coins for bigger cannons and more fuel.', versus: false, cabinet: { marquee: '#b0322a', panel: '#e0603a', trim: '#ffd23f', icon: '🐔' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 

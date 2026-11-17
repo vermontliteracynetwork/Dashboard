@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-rocket-chickens",
+    date: "2026-11-17",
+    icon: "🐔",
+    title: "New game: Rocket Chickens",
+    body: "Load the farm cannon, aim, and launch a chicken with a rocket pack! Tap above the chicken to boost up and below it to dive. Fly far, fly high, go fast and smash crates and stones to earn coins. Spend them on bigger cannons, more fuel and new chickens. Find it in the Arcade.",
+  },
+  {
     id: "2026-11-17-alchemy-periodic-table",
     date: "2026-11-17",
     icon: "⚗️",
