@@ -32,8 +32,8 @@ type Gfx = 'low' | 'medium' | 'high';
 type UpId = 'power' | 'fuel' | 'rocket' | 'helmet';
 const UPS: { id: UpId; name: string; how: string; base: number; max: number }[] = [
   { id: 'power', name: 'Launch Power', how: 'Every level fires the chicken 6% faster.', base: 40, max: 10 },
-  { id: 'fuel', name: 'Fuel Tank', how: 'Every level adds one more rocket boost.', base: 50, max: 10 },
-  { id: 'rocket', name: 'Rocket Power', how: 'Every level makes each boost 12% stronger.', base: 60, max: 10 },
+  { id: 'fuel', name: 'Fuel Tank', how: 'Every level adds half a second of jetpack fuel.', base: 50, max: 10 },
+  { id: 'rocket', name: 'Jetpack Power', how: 'Every level makes the jetpack push 12% harder.', base: 60, max: 10 },
   { id: 'helmet', name: 'Crash Helmet', how: 'Every level breaks through blocks 15% easier.', base: 50, max: 8 },
 ];
 const CANNONS: { id: string; name: string; mult: number; cost: number; color: string }[] = [
@@ -47,16 +47,42 @@ const CHICKENS: { id: string; name: string; cost: number }[] = [
   { id: 'rooster', name: 'Rooster', cost: 0 }, { id: 'brown-hen', name: 'Brown Hen', cost: 100 },
   { id: 'hen', name: 'Big Hen', cost: 150 }, { id: 'chick', name: 'Chick', cost: 200 }, { id: 'chick2', name: 'Baby Chick', cost: 250 },
 ];
+// Build Queue 647/648 (her words: "use the actual rockets i uploaded so students can upgrade them" and "make the rockets
+// look like jetpacks"): her AurynSky rockets (3D models, rendered to pictures in all five of her paint colors) are worn
+// as a twin jetpack on the chicken's back. Nine to collect, each with more fuel (seconds of thrust) and more push;
+// paint colors are free once a jetpack is owned.
+const JETPACKS: { id: string; name: string; fuel: number; push: number; cost: number }[] = [
+  { id: 'rocket3', name: 'Starter Pack', fuel: 2.5, push: 1, cost: 0 },
+  { id: 'rocket7', name: 'Puffer Pack', fuel: 3, push: 1.1, cost: 200 },
+  { id: 'rocket1', name: 'Barn Burner', fuel: 3.5, push: 1.2, cost: 450 },
+  { id: 'rocket8', name: 'Big Barrel', fuel: 4.5, push: 1.25, cost: 800 },
+  { id: 'rocket2', name: 'Twin Fin', fuel: 4.5, push: 1.4, cost: 1300 },
+  { id: 'rocket9', name: 'Sky Spear', fuel: 5, push: 1.55, cost: 2000 },
+  { id: 'rocket6', name: 'Comet Pack', fuel: 5.5, push: 1.7, cost: 3000 },
+  { id: 'rocket4', name: 'Star Dart', fuel: 6, push: 1.85, cost: 4500 },
+  { id: 'rocket5', name: 'Space Arrow', fuel: 7, push: 2.05, cost: 7000 },
+];
+const PAINTS = ['red', 'blue', 'green', 'pink', 'grey'] as const;
+const PAINT_HEX: Record<string, string> = { red: '#d93a3a', blue: '#3a6fd0', green: '#3aa04a', pink: '#e06aa8', grey: '#8a8f98' };
+const jetImg = (id: string, paint: string) => `rockets/${id}-${paint}`;
+// Gems to catch in the sky (her Mobile Casual Game Kit): steering with the jetpack has a reason.
+const GEMS: { c: string; coins: number }[] = [{ c: 'green', coins: 10 }, { c: 'blue', coins: 15 }, { c: 'purple', coins: 25 }, { c: 'orange', coins: 40 }];
 const upCost = (id: UpId, lvl: number) => Math.round(UPS.find((u) => u.id === id)!.base * 1.55 ** lvl);
 
-interface Save { coins: number; day: number; round: number; up: Record<UpId, number>; cannons: string[]; cannon: string; chickens: string[]; chicken: string; best: number; gfx: Gfx; at: string }
-const fresh = (): Save => ({ coins: 0, day: 1, round: 1, up: { power: 0, fuel: 0, rocket: 0, helmet: 0 }, cannons: ['farm'], cannon: 'farm', chickens: ['rooster'], chicken: 'rooster', best: 0, gfx: 'medium', at: '' });
+interface Save { coins: number; day: number; round: number; up: Record<UpId, number>; cannons: string[]; cannon: string; chickens: string[]; chicken: string; jets: string[]; jet: string; paint: string; best: number; gfx: Gfx; at: string }
+const fresh = (): Save => ({ coins: 0, day: 1, round: 1, up: { power: 0, fuel: 0, rocket: 0, helmet: 0 }, cannons: ['farm'], cannon: 'farm', chickens: ['rooster'], chicken: 'rooster', jets: ['rocket3'], jet: 'rocket3', paint: 'red', best: 0, gfx: 'medium', at: '' });
 
 interface Block { x: number; col: number; row: number; y: number; mat: 'crate' | 'stone' | 'target'; hp: number; alive: boolean }
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; color: string; s: number }
-interface Report { round: number; day: number; dist: number; alt: number; mph: number; broke: number; targets: number; coins: { dist: number; alt: number; mph: number; broke: number }; total: number; dayEnd: boolean }
+interface Gem { x: number; y: number; c: string; coins: number; got: boolean }
+interface Report { round: number; day: number; dist: number; alt: number; mph: number; broke: number; targets: number; gems: number; coins: { dist: number; alt: number; mph: number; broke: number; gems: number }; total: number; dayEnd: boolean }
 
 function rng(seed: number) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; }
+function makeGems(seed: number): Gem[] {
+  const r = rng(seed * 7 + 3); const out: Gem[] = [];
+  for (let x = 160 + r() * 80; x < 6000; x += 60 + r() * 140) { const g = GEMS[Math.min(3, Math.floor(r() * r() * 4 + x / 3000))]; out.push({ x, y: 25 + r() * Math.min(420, 60 + x / 6), c: g.c, coins: g.coins, got: false }); }
+  return out;
+}
 function makeWorld(seed: number): Block[] {
   const r = rng(seed); const out: Block[] = [];
   let x = 110 + r() * 60;
@@ -121,18 +147,20 @@ export default function RocketChickens() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const W = useRef({
-    blocks: [] as Block[], bits: [] as Bit[], x: 0, y: 4, vx: 0, vy: 0, aim: 0.75, aimed: false, flying: false, rest: 0,
+    firing: false, blocks: [] as Block[], gems: [] as Gem[], gemCoins: 0, gemN: 0, stick: 0, bits: [] as Bit[], x: 0, y: 4, vx: 0, vy: 0, aim: 0.75, aimed: false, flying: false, rest: 0,
     fuel: 0, boost: 0, boostDir: 1, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, scale: 8, camX: -20, groundY: 0, shake: 0, landed: false, t: 0,
   });
 
   const cannon = CANNONS.find((c) => c.id === S.cannon) ?? CANNONS[0];
   const launchSpeed = () => 95 * cannon.mult * (1 + 0.06 * S.up.power);
-  const fuelMax = 3 + S.up.fuel;
+  const jet = JETPACKS.find((j) => j.id === S.jet) ?? JETPACKS[0];
+  const fuelMax = Math.round((jet.fuel + 0.5 * S.up.fuel) * 10) / 10;
 
   const newRound = () => {
     const w = W.current;
-    w.blocks = makeWorld((sRef.current.day * 97 + sRef.current.round * 13 + 7) | 0); w.bits = [];
-    Object.assign(w, { x: 0, y: 4, vx: 0, vy: 0, aimed: false, flying: false, rest: 0, fuel: fuelMax, boost: 0, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, landed: false });
+    const seed = (sRef.current.day * 97 + sRef.current.round * 13 + 7) | 0;
+    w.blocks = makeWorld(seed); w.gems = makeGems(seed); w.bits = [];
+    Object.assign(w, { x: 0, y: 4, vx: 0, vy: 0, aimed: false, flying: false, rest: 0, fuel: fuelMax, boost: 0, stick: 0, gemCoins: 0, gemN: 0, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, landed: false });
     setHud({ mph: 0, dist: 0, alt: 0, fuel: fuelMax }); setLaunchMsg('');
   };
   const loadCannon = () => {
@@ -148,21 +176,21 @@ export default function RocketChickens() {
     setLaunchMsg(`Launched at ${Math.round(v * MPH)} MPH!`); window.setTimeout(() => setLaunchMsg(''), 2600);
     setPhase('fly');
   };
+  // A tap gives a short burst; the joystick holds the jetpack on (w.stick: -1 dive to 1 up).
   const boost = (up: boolean) => {
     const w = W.current; if (w.fuel <= 0 || w.landed) { sfx.click(); return; }
-    w.fuel -= 1; w.boost = 0.45; w.boostDir = up ? 1 : -1; sfx.whoosh();
-    setHud((h) => ({ ...h, fuel: w.fuel }));
+    w.boost = 0.4; w.boostDir = up ? 1 : -1; sfx.whoosh();
   };
 
   const endRound = () => {
     const w = W.current; const s = sRef.current;
     const dist = Math.max(0, Math.round(w.x)), alt = Math.round(w.maxAlt), mph = Math.round(w.maxMph * MPH);
-    const coins = { dist: Math.round(dist / 8), alt: Math.round(alt / 6), mph: Math.round(mph / 3), broke: w.broke * 4 + w.targets * 15 };
-    const total = coins.dist + coins.alt + coins.mph + coins.broke;
+    const coins = { dist: Math.round(dist / 8), alt: Math.round(alt / 6), mph: Math.round(mph / 3), broke: w.broke * 4 + w.targets * 15, gems: w.gemCoins };
+    const total = coins.dist + coins.alt + coins.mph + coins.broke + coins.gems;
     const dayEnd = s.round >= rounds;
     if (dist > s.best && studentId) recordBestGame(studentId, 'rocketChickens', dist, `${alt} ft high, ${mph} MPH`);
     put({ coins: s.coins + total, best: Math.max(s.best, dist), round: dayEnd ? 1 : s.round + 1, day: dayEnd ? s.day + 1 : s.day });
-    setReport({ round: s.round, day: s.day, dist, alt, mph, broke: w.broke + w.targets, targets: w.targets, coins, total, dayEnd });
+    setReport({ round: s.round, day: s.day, dist, alt, mph, broke: w.broke + w.targets, targets: w.targets, gems: w.gemN, coins, total, dayEnd });
     setPhase('report'); sfx.coin();
   };
   const endRef = useRef(endRound); endRef.current = endRound;
@@ -173,18 +201,40 @@ export default function RocketChickens() {
     if (!started) return;
     const cv = canvasRef.current; if (!cv) return;
     const ctx = cv.getContext('2d'); if (!ctx) return;
-    LAYERS.forEach((l) => img(l.n)); CHICKENS.forEach((c) => img(c.id)); ['crate', 'stone', 'target', 'earth'].forEach(img);
+    LAYERS.forEach((l) => img(l.n)); CHICKENS.forEach((c) => img(c.id)); ['crate', 'stone', 'target', 'earth', ...GEMS.map((g) => `gem-${g.c}`)].forEach(img);
+    img(jetImg(sRef.current.jet, sRef.current.paint));
     let raf = 0; let last = performance.now(); let hudT = 0;
     const dpr = gfx === 'low' ? 1 : gfx === 'medium' ? Math.min(1.5, window.devicePixelRatio || 1) : Math.min(2, window.devicePixelRatio || 1);
     const size = () => { const r = cv.getBoundingClientRect(); cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); };
     size(); window.addEventListener('resize', size);
-    const helmet = 1 + 0.15 * sRef.current.up.helmet; const thrust = 70 * (1 + 0.12 * sRef.current.up.rocket);
+    const helmet = 1 + 0.15 * sRef.current.up.helmet; const thrust = 70 * (JETPACKS.find((j) => j.id === sRef.current.jet) ?? JETPACKS[0]).push * (1 + 0.12 * sRef.current.up.rocket);
 
+    // Her rocket worn as a twin jetpack: two tanks upright on the chicken's back, flames out the bottom going up, out
+    // the top for a dive.
+    const drawJetpack = (c: CanvasRenderingContext2D, hs: number, dir: number, d: number) => {
+      const im = img(jetImg(sRef.current.jet, sRef.current.paint)); const len = hs * 0.78; const wid = ready(im) ? len * (im.naturalHeight / im.naturalWidth) : len * 0.3;
+      for (const [ox, k] of [[-0.5, 0.92], [-0.36, 1]] as [number, number][]) {
+        c.save(); c.translate(hs * ox, hs * 0.02); c.scale(k, k);
+        if (dir !== 0) { c.fillStyle = Math.random() < 0.5 ? '#ffb22e' : '#ff6a1f'; const fl = len * (0.35 + Math.random() * 0.25); const y0 = dir > 0 ? len / 2 : -len / 2; c.beginPath(); c.moveTo(-wid * 0.22, y0); c.lineTo(0, y0 + (dir > 0 ? fl : -fl)); c.lineTo(wid * 0.22, y0); c.fill(); }
+        c.rotate(-Math.PI / 2);
+        if (ready(im)) c.drawImage(im, -len / 2, -wid / 2, len, wid); else { c.fillStyle = '#c0c6cf'; c.fillRect(-len / 2, -wid / 2, len, wid); }
+        c.restore();
+      }
+      c.fillStyle = '#5a3a1e'; c.fillRect(-hs * 0.56, -hs * 0.06, hs * 0.26, Math.max(2 * d, hs * 0.07));
+    };
     const step = (dt: number) => {
       const w = W.current; if (!w.flying) return;
       w.t += dt;
       let ax = 0, ay = -G;
-      if (w.boost > 0) { w.boost -= dt; ax += thrust * 0.45; ay += thrust * w.boostDir * (w.boostDir > 0 ? 1.3 : 1); if (gfx !== 'low' && Math.random() < 0.6) w.bits.push({ x: w.x - 1.5, y: w.y, vx: w.vx * 0.3 - 20, vy: (Math.random() - 0.5) * 10, life: 0.4, color: Math.random() < 0.5 ? '#ffb22e' : '#ff6a1f', s: 0.9 }); }
+      // jetpack on: a tap burst or the joystick held; fuel is seconds of thrust
+      const dir = w.boost > 0 ? w.boostDir : Math.abs(w.stick) > 0.25 ? Math.sign(w.stick) : 0;
+      if (w.boost > 0) w.boost -= dt;
+      w.firing = dir !== 0 && w.fuel > 0 && !w.landed;
+      if (w.firing) {
+        w.fuel = Math.max(0, w.fuel - dt); const k = w.boost > 0 ? 1 : Math.min(1, Math.abs(w.stick));
+        ax += thrust * 0.45 * k; ay += thrust * dir * k * (dir > 0 ? 1.3 : 1);
+        if (gfx !== 'low' && Math.random() < 0.6) w.bits.push({ x: w.x - 1.8, y: w.y - (dir > 0 ? 2 : -2), vx: w.vx * 0.3 - 10, vy: dir > 0 ? -30 : 30, life: 0.35, color: Math.random() < 0.5 ? '#ffb22e' : '#ff6a1f', s: 0.9 });
+      }
       const sp = Math.hypot(w.vx, w.vy);
       ax -= DRAG * sp * w.vx; ay -= DRAG * sp * w.vy;
       w.vx += ax * dt; w.vy += ay * dt; w.x += w.vx * dt; w.y += w.vy * dt;
@@ -207,6 +257,8 @@ export default function RocketChickens() {
           if (vn < 0) { w.vx -= 1.4 * vn * nx; w.vy -= 1.4 * vn * ny; w.vx *= 0.7; w.vy *= 0.7; sfx.thud(); }
         }
       }
+      // gems
+      for (const g of w.gems) { if (!g.got && Math.abs(g.x - w.x) < R + 2 && Math.abs(g.y - w.y) < R + 2) { g.got = true; w.gemCoins += g.coins; w.gemN += 1; sfx.coin(); if (gfx !== 'low') for (let i = 0; i < 8; i++) w.bits.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 30, vy: Math.random() * 30, life: 0.6, color: '#fff3a8', s: 0.6 }); } }
       // blocks above a broken one drop down
       for (const b of w.blocks) {
         if (!b.alive) continue;
@@ -290,6 +342,8 @@ export default function RocketChickens() {
         ctx.fillStyle = 'rgba(255,255,255,0.9)';
         for (let i = 0; i < 60 && py > 0; i++) { for (let k = 0; k < 4; k++) { const sp = Math.hypot(vx, vy); vx -= DRAG * sp * vx * 0.02; vy += (-G - DRAG * sp * vy) * 0.02; px += vx * 0.02; py += vy * 0.02; } if (i % 2 === 0) { ctx.beginPath(); ctx.arc(X(px), Y(py), 3 * dpr, 0, Math.PI * 2); ctx.fill(); } }
       }
+      // gems
+      for (const g of w.gems) { if (g.got || X(g.x) < -40 || X(g.x) > Wd + 40) continue; const im = img(`gem-${g.c}`); const gs = 3.2 * sc * (1 + 0.08 * Math.sin(w.t * 4 + g.x)); if (ready(im)) ctx.drawImage(im, X(g.x) - gs / 2, Y(g.y) - gs / 2, gs, gs); }
       // particles
       for (const p of w.bits) { ctx.globalAlpha = Math.min(1, p.life * 2); ctx.fillStyle = p.color; ctx.fillRect(X(p.x), Y(p.y), p.s * sc, p.s * sc); }
       ctx.globalAlpha = 1;
@@ -298,13 +352,14 @@ export default function RocketChickens() {
         const ch = img(sRef.current.chicken); const hs = R * 2.6 * sc;
         ctx.save(); ctx.translate(X(w.x), Y(w.y));
         const ang = w.landed ? 0 : Math.atan2(w.vy, Math.max(1, w.vx)) * 0.5; ctx.rotate(-ang);
-        ctx.fillStyle = '#c0c6cf'; ctx.strokeStyle = '#3a3f48'; ctx.lineWidth = 1.5 * dpr;
-        ctx.beginPath(); ctx.roundRect(-hs * 0.62, -hs * 0.18, hs * 0.3, hs * 0.5, hs * 0.08); ctx.fill(); ctx.stroke();
-        if (w.boost > 0) { ctx.fillStyle = Math.random() < 0.5 ? '#ffb22e' : '#ff6a1f'; ctx.beginPath(); ctx.moveTo(-hs * 0.6, hs * 0.32); ctx.lineTo(-hs * 0.47, hs * (0.32 + 0.35 + Math.random() * 0.2)); ctx.lineTo(-hs * 0.34, hs * 0.32); ctx.fill(); }
+        drawJetpack(ctx, hs, w.firing ? (w.boost > 0 ? w.boostDir : Math.sign(w.stick)) : 0, dpr);
         if (ready(ch)) { const ar = ch.naturalWidth / ch.naturalHeight; ctx.drawImage(ch, -hs * ar / 2, -hs / 2, hs * ar, hs); } else { ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(0, 0, R * sc, 0, Math.PI * 2); ctx.fill(); }
+        // harness straps over the chest
+        ctx.strokeStyle = '#5a3a1e'; ctx.lineWidth = Math.max(2, hs * 0.05); ctx.beginPath(); ctx.moveTo(-hs * 0.28, -hs * 0.05); ctx.lineTo(hs * 0.12, hs * 0.18); ctx.moveTo(-hs * 0.28, hs * 0.22); ctx.lineTo(hs * 0.1, hs * 0.02); ctx.stroke();
         ctx.restore();
       } else {
         const ch = img(sRef.current.chicken); const hs = R * 2.2 * sc;
+        ctx.save(); ctx.translate(X(-6), Y(0) - hs / 2); drawJetpack(ctx, hs, 0, dpr); ctx.restore();
         if (ready(ch)) { const ar = ch.naturalWidth / ch.naturalHeight; ctx.drawImage(ch, X(-6) - hs * ar / 2, Y(0) - hs, hs * ar, hs); }
       }
     };
@@ -319,7 +374,7 @@ export default function RocketChickens() {
     };
     raf = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', size); };
-  }, [started, gfx, calm, cannon.color]);
+  }, [started, gfx, calm, cannon.color, S.jet, S.paint]);
 
   const phaseRef = useRef(phase); phaseRef.current = phase;
   const launchSpeedRef = useRef(launchSpeed); launchSpeedRef.current = launchSpeed;
@@ -357,18 +412,20 @@ export default function RocketChickens() {
     }
   };
 
-  const buy = (kind: 'up' | 'cannon' | 'chicken', id: string) => {
+  const buy = (kind: 'up' | 'cannon' | 'chicken' | 'jet' | 'paint', id: string) => {
     const s = sRef.current;
+    if (kind === 'paint') { put({ paint: id }); sfx.click(); return; }
+    if (kind === 'jet') { if (s.jets.includes(id)) { put({ jet: id }); sfx.click(); return; } const j = JETPACKS.find((x) => x.id === id)!; if (s.coins < j.cost) return; put({ coins: s.coins - j.cost, jets: [...s.jets, id], jet: id }); sfx.coin(); return; }
     if (kind === 'up') { const u = id as UpId; const lvl = s.up[u]; const c = upCost(u, lvl); if (lvl >= UPS.find((x) => x.id === u)!.max || s.coins < c) return; put({ coins: s.coins - c, up: { ...s.up, [u]: lvl + 1 } }); sfx.coin(); return; }
     if (kind === 'cannon') { if (s.cannons.includes(id)) { put({ cannon: id }); sfx.click(); return; } const c = CANNONS.find((x) => x.id === id)!; if (s.coins < c.cost) return; put({ coins: s.coins - c.cost, cannons: [...s.cannons, id], cannon: id }); sfx.coin(); return; }
     if (s.chickens.includes(id)) { put({ chicken: id }); sfx.click(); return; }
     const c = CHICKENS.find((x) => x.id === id)!; if (s.coins < c.cost) return; put({ coins: s.coins - c.cost, chickens: [...s.chickens, id], chicken: id }); sfx.coin();
   };
-  const canAfford = useMemo(() => UPS.some((u) => S.up[u.id] < u.max && S.coins >= upCost(u.id, S.up[u.id])) || CANNONS.some((c) => !S.cannons.includes(c.id) && S.coins >= c.cost), [S]);
+  const canAfford = useMemo(() => UPS.some((u) => S.up[u.id] < u.max && S.coins >= upCost(u.id, S.up[u.id])) || CANNONS.some((c) => !S.cannons.includes(c.id) && S.coins >= c.cost) || JETPACKS.some((j) => !S.jets.includes(j.id) && S.coins >= j.cost), [S]);
 
-  const reportWords = (r: Report) => `${r.dayEnd ? `End of day ${r.day}.` : `Round ${r.round} report.`} Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins. Total ${r.total} coins.`;
+  const reportWords = (r: Report) => `${r.dayEnd ? `End of day ${r.day}.` : `Round ${r.round} report.`} Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
   const menu = useMemo(() => [{ id: 'rc-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
-  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, tap Boost to rocket up or Dive to swoop down (or tap above or below the chicken). Boosts use fuel. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
+  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack, or down to dive (or tap above or below the chicken). The jetpack uses fuel. Catch gems for bonus coins. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
 
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
@@ -393,21 +450,19 @@ export default function RocketChickens() {
           onPointerUp={() => { aiming.current = false; }} onPointerCancel={() => { aiming.current = false; }}
           aria-label="Rocket Chickens launch field" />
         {phase === 'aim' && aimed && <button type="button" className="rc-ctl fire" onClick={() => { aimAt.current = null; setAimed(false); fire(); }}>FIRE</button>}
-        {phase === 'fly' && <>
-          <button type="button" className="rc-ctl dive" disabled={hud.fuel <= 0} onPointerDown={(e) => { e.preventDefault(); boost(false); }} aria-label="Rocket dive">Dive<small>▼</small></button>
-          <button type="button" className="rc-ctl up" disabled={hud.fuel <= 0} onPointerDown={(e) => { e.preventDefault(); boost(true); }} aria-label="Rocket boost up">Boost<small>▲</small></button>
-        </>}
+        {phase === 'aim' && <Joystick kind="aim" label="Aim the cannon" onMove={(dx, dy) => { const a = Math.atan2(-dy, Math.max(0.05, dx)); W.current.aim = Math.max(0.08, Math.min(1.45, a)); if (!W.current.aimed) { W.current.aimed = true; setAimed(true); } }} />}
+        {phase === 'fly' && <Joystick kind="move" label="Jetpack: push up to fly up, down to dive" onMove={(_dx, dy) => { W.current.stick = -dy; }} onEnd={() => { W.current.stick = 0; }} />}
         {phase === 'fly' && (
           <div className="rc-hud" aria-live="off">
             <span><small>Speed</small><b>{hud.mph}</b> MPH</span>
             <span><small>Distance</small><b>{hud.dist.toLocaleString()}</b> ft</span>
             <span><small>Altitude</small><b>{hud.alt.toLocaleString()}</b> ft</span>
-            <span><small>Fuel</small><b className="rc-fuel">{Array.from({ length: fuelMax }, (_, i) => <i key={i} className={i < hud.fuel ? 'on' : ''} />)}</b></span>
+            <span><small>Fuel</small><b className="rc-fuel"><i style={{ width: `${Math.round((hud.fuel / fuelMax) * 100)}%` }} /></b></span>
           </div>
         )}
         {launchMsg && <div className="rc-launch" role="status">{launchMsg}</div>}
-        {phase === 'aim' && <div className="rc-tip">{aimed ? 'Slide to change the aim. Tap FIRE (or tap the same spot again) to launch.' : 'Touch the sky and slide to aim the cannon.'}</div>}
-        {phase === 'fly' && hud.fuel > 0 && <div className="rc-tip small">Boost and Dive use fuel. You can also tap above or below the chicken.</div>}
+        {phase === 'aim' && <div className="rc-tip">{aimed ? 'Change the aim with the red stick or by sliding on the sky. Tap FIRE to launch.' : 'Aim with the red stick, or touch the sky and slide.'}</div>}
+        {phase === 'fly' && hud.fuel > 0 && <div className="rc-tip small">Push the blue stick up to fly up, down to dive. Catch the gems!</div>}
         {phase === 'ready' && started && !asking && (
           <div className="rc-center"><button type="button" className="btn btn-primary btn-lg" onClick={loadCannon}>Load the cannon</button></div>
         )}
@@ -418,6 +473,7 @@ export default function RocketChickens() {
             <div className="rc-row alt"><span>Altitude</span><b>{report.alt.toLocaleString()} ft</b><em>{report.coins.alt}</em></div>
             <div className="rc-row spd"><span>Speed</span><b>{report.mph} MPH</b><em>{report.coins.mph}</em></div>
             <div className="rc-row dst"><span>Destruction</span><b>{report.broke}</b><em>{report.coins.broke}</em></div>
+            {report.gems > 0 && <div className="rc-row gem"><span>Gems</span><b>{report.gems}</b><em>{report.coins.gems}</em></div>}
             <div className="rc-row last"><span className="rc-day">{report.dayEnd ? `End of Day ${report.day}` : `Round ${report.round} of ${rounds}`}</span><span className="rc-total">Total <i className="rc-coin" aria-hidden />{report.total}</span></div>
             <button type="button" className="btn rc-say" onClick={() => speak(reportWords(report), student.ttsSettings)} aria-label="Read the report aloud">🔊</button>
           </div>
@@ -448,6 +504,20 @@ export default function RocketChickens() {
                   <span className="rc-cost">{maxed ? 'Maxed out' : <><i className="rc-coin" aria-hidden />{c}</>}</span>
                 </button>
               ); })}
+            </div>
+            <h3>Jetpacks</h3>
+            <div className="rc-shop-grid">
+              {JETPACKS.map((j) => { const own = S.jets.includes(j.id); return (
+                <button key={j.id} type="button" className={`rc-item${S.jet === j.id ? ' sel' : ''}`} disabled={!own && S.coins < j.cost} onClick={() => buy('jet', j.id)}>
+                  <span className="rc-jet-pic" aria-hidden><img src={`${A}${jetImg(j.id, S.paint)}.webp`} alt="" /><img src={`${A}${jetImg(j.id, S.paint)}.webp`} alt="" /></span>
+                  <b>{j.name}</b><small>{j.fuel} seconds of fuel, {Math.round(j.push * 100)}% push</small>
+                  <span className="rc-cost">{S.jet === j.id ? 'Wearing' : own ? 'Wear' : <><i className="rc-coin" aria-hidden />{j.cost}</>}</span>
+                </button>
+              ); })}
+            </div>
+            <div className="rc-paints" role="radiogroup" aria-label="Jetpack paint">
+              <b>Paint:</b>
+              {PAINTS.map((p) => <button key={p} type="button" role="radio" aria-checked={S.paint === p} aria-label={p} className={`rc-paint${S.paint === p ? ' sel' : ''}`} style={{ background: PAINT_HEX[p] }} onClick={() => buy('paint', p)} />)}
             </div>
             <h3>Cannons</h3>
             <div className="rc-shop-grid">
@@ -523,6 +593,27 @@ function GraphicsMeter({ value, onChange }: { value: Gfx; onChange: (g: Gfx) => 
         ))}
       </div>
       <small>{opts.find((o) => o.id === value)?.how}</small>
+    </div>
+  );
+}
+
+// Her Simple Mobile Joystick art: the red Aim stick before launch, the blue Move stick for the jetpack in the air.
+function Joystick({ kind, label, onMove, onEnd }: { kind: 'aim' | 'move'; label: string; onMove: (dx: number, dy: number) => void; onEnd?: () => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [k, setK] = useState({ x: 0, y: 0 });
+  const go = (e: React.PointerEvent) => {
+    const r = ref.current?.getBoundingClientRect(); if (!r) return;
+    let dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2), dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    const m = Math.hypot(dx, dy); if (m > 1) { dx /= m; dy /= m; }
+    setK({ x: dx, y: dy }); onMove(dx, dy);
+  };
+  return (
+    <div ref={ref} className={`rc-stick ${kind}`} role="slider" aria-label={label} aria-valuenow={Math.round(-k.y * 100)}
+      onPointerDown={(e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); go(e); }}
+      onPointerMove={(e) => { if (e.buttons || e.pointerType === 'touch') { if ((e.currentTarget as HTMLElement).hasPointerCapture(e.pointerId)) go(e); } }}
+      onPointerUp={() => { setK({ x: 0, y: 0 }); onEnd?.(); }} onPointerCancel={() => { setK({ x: 0, y: 0 }); onEnd?.(); }}>
+      <img src={`${A}${kind}-bg.webp`} alt="" draggable={false} />
+      <img className="knob" src={`${A}${kind}-knob.webp`} alt="" draggable={false} style={{ transform: `translate(${k.x * 34}%, ${k.y * 34}%)` }} />
     </div>
   );
 }

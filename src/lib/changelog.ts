@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-rocket-chickens-jetpacks",
+    date: "2026-11-17",
+    icon: "🐔",
+    title: "Rocket Chickens: jetpacks and joysticks",
+    body: "Your chicken now wears a real jetpack! Collect nine jetpacks and paint them five colors. Aim the cannon with the red stick, then steer your jetpack with the blue stick: push up to fly higher, down to dive. Catch the gems in the sky for bonus coins. You can also pick Learn mode (questions and money) or Play mode (just play) before you start.",
+  },
+  {
     id: "2026-11-17-alchemy-coffee",
     date: "2026-11-17",
     icon: "⚗️",
