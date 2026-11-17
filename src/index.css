@@ -12752,7 +12752,15 @@ body.calm-games .me-burst { display: none; }
 .me-slot.hit.move { box-shadow: inset 0 0 0 4px #ffd23f; }
 .me-cell.hit.no { box-shadow: 0 0 0 5px #b3361f; border-radius: 10px; }
 
-/* Service Provider View PDF preview (Build Queue 635) */
+/* Service Provider View PDF preview (Build Queue 635); short report (643): two charts to a row, findings list. */
+.pv-doc-flow { display: flex; flex-wrap: wrap; column-gap: 28px; }
+.pv-doc-flow > .pv-doc-sec { flex: 1 1 100%; min-width: 0; }
+.pv-doc-flow > .pv-doc-sec.half { flex: 1 1 calc(50% - 14px); }
+.pv-findings { margin: 0; padding-left: 22px; display: grid; gap: 6px; font-size: 1.05rem; line-height: 1.45; }
+.pv-seg { display: inline-flex; gap: 0; }
+.pv-seg .pv-btn:first-child { border-radius: 10px 0 0 10px; }
+.pv-seg .pv-btn:last-child { border-radius: 0 10px 10px 0; }
+.pv-btn.on { background: #ffd23f; color: #1f2430; border-color: #ffd23f; }
 .pv-preview-bar { position: sticky; top: 0; z-index: 5; max-width: 1500px; margin: 0 auto 22px; display: grid; gap: 12px; padding: 16px 22px; border-radius: 14px; background: #1f3a5f; color: #fff; box-shadow: 0 6px 16px rgba(16,24,40,0.18); }
 .pv-preview-bar h2 { margin: 0; }
 .pv-preview-bar .pv-sub { color: #dbe6f5; margin: 0; }
@@ -12777,8 +12785,15 @@ body.calm-games .me-burst { display: none; }
 @media print {
   .pv-preview-bar, .pv-log-head .pv-btn { display: none !important; }
   .pv-doc { border: 0; padding: 0; max-width: none; }
-  .pv-doc-sec { break-before: page; page-break-before: always; border-top: 0; margin-top: 0; }
+  .pv-doc-sec { margin-top: 10px; padding-top: 8px; break-inside: avoid; }
+  .pv-doc-sec.newpage { break-before: page; page-break-before: always; border-top: 0; margin-top: 0; break-inside: auto; }
   .pv-doc-sec:first-of-type { break-before: auto; page-break-before: auto; }
+  .pv-doc.short { font-size: 10pt; }
+  .pv-doc.short .pv-stats > div { padding: 6px 8px; }
+  .pv-doc.short .pv-stats b { font-size: 1.15rem; }
+  .pv-doc.short .pv-doc-sec h2 { font-size: 1.05rem; margin-bottom: 6px; }
+  .pv-doc.short .pv-log { margin-top: 6px; }
+  .pv-doc.short .pv-table th, .pv-doc.short .pv-table td { padding: 3px 6px; }
   .pv-table { font-size: 9pt; }
   .pv-table thead { display: table-header-group; }
   .pv-table tr { break-inside: avoid; }
