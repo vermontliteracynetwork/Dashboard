@@ -325,18 +325,30 @@ export default function RocketChickens() {
   const launchSpeedRef = useRef(launchSpeed); launchSpeedRef.current = launchSpeed;
   const aimAt = useRef<{ x: number; y: number } | null>(null);
 
+  // Build Queue 646 (her words: "make the rocket chicken game easier to click to direct/aim/move. right now it selects
+  // the whole screen"): no text selection or callouts anywhere in the game; aiming is press and slide (the dots follow the
+  // finger), then tap anywhere near the aim or the big FIRE button; in the air, big Boost up and Dive buttons as well as
+  // tapping above or below the chicken.
+  const aiming = useRef(false);
+  const [aimed, setAimed] = useState(false);
+  const aimTo = (clientX: number, clientY: number) => {
+    const cv = canvasRef.current; if (!cv) return;
+    const r = cv.getBoundingClientRect(); const k = cv.width / r.width; const w = W.current;
+    const wx = ((clientX - r.left) * k) / w.scale + w.camX, wy = (w.groundY - (clientY - r.top) * k) / w.scale;
+    w.aim = Math.max(0.08, Math.min(1.45, Math.atan2(wy - 4, Math.max(0.5, wx))));
+  };
   const onTap = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
     const cv = canvasRef.current; if (!cv) return;
     const r = cv.getBoundingClientRect(); const k = cv.width / r.width;
-    const px = (e.clientX - r.left) * k, py = (e.clientY - r.top) * k;
+    const py = (e.clientY - r.top) * k;
     const w = W.current;
     if (phase === 'aim') {
-      // Tap to aim; tap again near the same spot to fire.
-      const near = aimAt.current && Math.hypot(e.clientX - aimAt.current.x, e.clientY - aimAt.current.y) < 70;
-      if (near && w.aimed) { aimAt.current = null; fire(); return; }
-      const wx = px / w.scale + w.camX, wy = (w.groundY - py) / w.scale;
-      w.aim = Math.max(0.08, Math.min(1.45, Math.atan2(wy - 4, Math.max(0.5, wx))));
-      w.aimed = true; aimAt.current = { x: e.clientX, y: e.clientY }; sfx.tick();
+      const near = aimAt.current && Math.hypot(e.clientX - aimAt.current.x, e.clientY - aimAt.current.y) < 140;
+      if (near && w.aimed) { aimAt.current = null; setAimed(false); fire(); return; }
+      try { cv.setPointerCapture(e.pointerId); } catch { /* fine */ }
+      aiming.current = true; aimTo(e.clientX, e.clientY);
+      w.aimed = true; setAimed(true); aimAt.current = { x: e.clientX, y: e.clientY }; sfx.tick();
       return;
     }
     if (phase === 'fly') {
@@ -356,7 +368,7 @@ export default function RocketChickens() {
 
   const reportWords = (r: Report) => `${r.dayEnd ? `End of day ${r.day}.` : `Round ${r.round} report.`} Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins. Total ${r.total} coins.`;
   const menu = useMemo(() => [{ id: 'rc-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
-  const howTo = 'Answer a question to load the cannon. Tap the sky to aim: the white dots show where the chicken will fly. Tap the same spot again to fire. In the air, tap above the chicken for a rocket boost up, or below it to dive. Boosts use fuel. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
+  const howTo = 'Answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, tap Boost to rocket up or Dive to swoop down (or tap above or below the chicken). Boosts use fuel. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
 
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
@@ -375,7 +387,15 @@ export default function RocketChickens() {
         <MyBest game="rocketChickens" unit="feet" />
       </header>
       <div className="rc-stage">
-        <canvas ref={canvasRef} className="rc-canvas" onPointerDown={onTap} aria-label="Rocket Chickens launch field" />
+        <canvas ref={canvasRef} className="rc-canvas" onPointerDown={onTap} onContextMenu={(e) => e.preventDefault()}
+          onPointerMove={(e) => { if (!aiming.current || phase !== 'aim') return; aimTo(e.clientX, e.clientY); aimAt.current = { x: e.clientX, y: e.clientY }; }}
+          onPointerUp={() => { aiming.current = false; }} onPointerCancel={() => { aiming.current = false; }}
+          aria-label="Rocket Chickens launch field" />
+        {phase === 'aim' && aimed && <button type="button" className="rc-ctl fire" onClick={() => { aimAt.current = null; setAimed(false); fire(); }}>FIRE</button>}
+        {phase === 'fly' && <>
+          <button type="button" className="rc-ctl dive" disabled={hud.fuel <= 0} onPointerDown={(e) => { e.preventDefault(); boost(false); }} aria-label="Rocket dive">Dive<small>▼</small></button>
+          <button type="button" className="rc-ctl up" disabled={hud.fuel <= 0} onPointerDown={(e) => { e.preventDefault(); boost(true); }} aria-label="Rocket boost up">Boost<small>▲</small></button>
+        </>}
         {phase === 'fly' && (
           <div className="rc-hud" aria-live="off">
             <span><small>Speed</small><b>{hud.mph}</b> MPH</span>
@@ -385,13 +405,11 @@ export default function RocketChickens() {
           </div>
         )}
         {launchMsg && <div className="rc-launch" role="status">{launchMsg}</div>}
-        {phase === 'aim' && <div className="rc-tip">{W.current.aimed ? 'Tap the same spot again to FIRE, or tap somewhere else to aim again.' : 'Tap the sky to aim the cannon.'}</div>}
-        {phase === 'fly' && hud.fuel > 0 && <div className="rc-tip small">Tap above the chicken to boost up, below to dive.</div>}
+        {phase === 'aim' && <div className="rc-tip">{aimed ? 'Slide to change the aim. Tap FIRE (or tap the same spot again) to launch.' : 'Touch the sky and slide to aim the cannon.'}</div>}
+        {phase === 'fly' && hud.fuel > 0 && <div className="rc-tip small">Boost and Dive use fuel. You can also tap above or below the chicken.</div>}
         {phase === 'ready' && started && !asking && (
           <div className="rc-center"><button type="button" className="btn btn-primary btn-lg" onClick={loadCannon}>Load the cannon</button></div>
         )}
-      </div>
-
       {report && phase === 'report' && (
         <div className="rc-report-wrap">
           <div className="rc-report" role="dialog" aria-label="Round report">
@@ -413,6 +431,8 @@ export default function RocketChickens() {
           </div>
         </div>
       )}
+
+      </div>
 
       {shop && (
         <div className="pf-overlay" onClick={() => setShop(false)}>
