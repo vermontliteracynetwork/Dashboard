@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-literacy-manipulatives-story-book",
+    date: "2026-11-17",
+    icon: "📖",
+    title: "Story Maker: a word book, word search and pasted pictures",
+    body: "In Literacy Manipulatives on the Computer, Story Maker has a word book: tap any word to see every word that fits, in ABC order. Type a word to find its grammar symbol, even if you are not sure what kind of word it is. Write sentences like The dog runs from the cat, or use names like Dr. Lee. On the Whiteboard, copy a picture and paste it right onto the board.",
+  },
+  {
+    id: "2026-11-17-literacy-manipulatives-tools",
+    date: "2026-11-17",
+    icon: "🧩",
+    title: "Literacy Manipulatives: all the tools in one place",
+    body: "Open Literacy Manipulatives on the Computer to find every tool: the Whiteboard, the Word Processor, Word Explorer, the Word List Maker, Formula Search and the new Story Maker. In Story Maker, pick a sentence formula, change the words, and watch a pixel video act out what your sentence means. Tap Home in any tool to come back.",
+  },
+  {
     id: "2026-11-17-rocket-chickens-swoop",
     date: "2026-11-17",
     icon: "🐔",
