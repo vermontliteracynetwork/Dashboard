@@ -1,6 +1,9 @@
 import { LA2_ELEMENTS, LA2_RECIPES } from './data2';
 import { STUDENT_ELEMENTS, STUDENT_RECIPES } from './data3';
 import { FEELING_ELEMENTS, FEELING_RECIPES } from './data4';
+import { CHEM_ELEMENTS, CHEM_RECIPES } from './data5';
+export { CHEM_FACTS, PERIODIC, PERIODIC_BY_ID, PERIODIC_ELEMENTS, FAMILY_NAMES, FAMILY_ORDER } from './data5';
+export type { Family, PeriodicEl } from './data5';
 export { FEELING_MEANINGS } from './data4';
 // Alchemy (teacher 2026-10-08: "lets get the alchemy game going. make an app in the computer").
 // Elements and recipes from her prototype, docs/games/alchemy-prototype.html: [id, emoji, name]
@@ -87,5 +90,5 @@ const BASE_RECIPES: [string, string, string][] = [
 // Build Queue 249 (2026-10-20, "Wizard + time = worlock. Book + time = ancient scroll").
 const REQUESTED_ELEMENTS: [string, string, string][] = [["merdog","🐕🧜","Merdog"],["warlock","🧙‍♂️🌑","Warlock"],["ancient-scroll","📜⏳","Ancient Scroll"]];
 const REQUESTED_RECIPES: [string, string, string][] = [["dog","mermaid","merdog"],["wizard","time","warlock"],["book","time","ancient-scroll"]];
-export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS, ...STUDENT_ELEMENTS, ...FEELING_ELEMENTS];
-export const RECIPES: [string, string, string][] = [...REQUESTED_RECIPES, ...STUDENT_RECIPES, ...FEELING_RECIPES, ...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];
+export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS, ...STUDENT_ELEMENTS, ...FEELING_ELEMENTS, ...CHEM_ELEMENTS];
+export const RECIPES: [string, string, string][] = [...REQUESTED_RECIPES, ...STUDENT_RECIPES, ...FEELING_RECIPES, ...CHEM_RECIPES, ...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];

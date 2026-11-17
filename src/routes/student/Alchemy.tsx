@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import WebpageFrame from '../../components/WebpageFrame';
-import { ELEMENTS, RECIPES, START, FEELING_MEANINGS } from '../../games/alchemy/data';
+import { ELEMENTS, RECIPES, START, FEELING_MEANINGS, CHEM_FACTS, PERIODIC, PERIODIC_BY_ID, PERIODIC_ELEMENTS, FAMILY_NAMES, FAMILY_ORDER, type PeriodicEl } from '../../games/alchemy/data';
 import { setLeaveGuard, useBack } from '../../lib/navTrail';
 import { useLocation } from 'react-router-dom';
 import { useStore } from '../../store/store';
@@ -31,13 +31,25 @@ const readNum = (k: string, d: number) => { try { const n = Number(localStorage.
 const saveNum = (k: string, n: number) => { try { localStorage.setItem(k, String(n)); } catch { /* fine */ } };
 
 type El = { id: string; e: string; n: string };
-const ELS: Record<string, El> = Object.fromEntries(ELEMENTS.map(([id, e, n]) => [id, { id, e, n }]));
+const ELS: Record<string, El> = Object.fromEntries([...ELEMENTS, ...PERIODIC_ELEMENTS].map(([id, e, n]) => [id, { id, e, n }]));
+// Periodic table elements (Build Queue 639): always there to drag, never locked, drawn as a periodic tile colored by group.
+const isPt = (e: string) => e.startsWith('pt:');
+const ptOf = (e: string) => PERIODIC_BY_ID[e.slice(3)];
+const have = (id: string, disc: string[]) => !!PERIODIC_BY_ID[id] || disc.includes(id);
+const meaning = (id: string) => {
+  const p = PERIODIC_BY_ID[id];
+  if (p) return `${p.name} is element number ${p.z}, ${/^[AEIOU]/.test(FAMILY_NAMES[p.fam]) ? 'an' : 'a'} ${FAMILY_NAMES[p.fam].toLowerCase()}.`;
+  return FEELING_MEANINGS[id] ?? CHEM_FACTS[id];
+};
+function PtTile({ p, small }: { p: PeriodicEl; small?: boolean }) {
+  return <span className={`alc-pt f-${p.fam}${small ? ' sm' : ''}`}><span className="alc-pt-z">{p.z}</span><b>{p.sym}</b>{!small && <small>{p.name}</small>}</span>;
+}
 // Two-picture elements (🔥🐦 Phoenix) draw a little smaller so they fit the tile.
 const TWO = /\p{Extended_Pictographic}.*\p{Extended_Pictographic}/u;
 // Feelings (Build Queue 627) use her feelings wheel pictures: a picture path instead of emoji.
 const isPic = (e: string) => e.startsWith('/');
-const Icon = ({ e }: { e: string }) => (isPic(e) ? <img className="alc-pic" src={e} alt="" draggable={false} /> : <>{e}</>);
-const emo = (id: string) => (isPic(ELS[id].e) ? '' : `${ELS[id].e} `);
+const Icon = ({ e }: { e: string }) => (isPt(e) ? <PtTile p={ptOf(e)} small /> : isPic(e) ? <img className="alc-pic" src={e} alt="" draggable={false} /> : <>{e}</>);
+const emo = (id: string) => (isPic(ELS[id].e) || isPt(ELS[id].e) ? '' : `${ELS[id].e} `);
 const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 // A pair can make more than one thing (Build Queue 237); the first one not found yet comes out.
 const R: Record<string, string[]> = {};
@@ -68,7 +80,7 @@ const eqWords = (q: Eq | null) => {
   if (!q?.a) return 'The equation is empty.';
   const nm = (id: string) => ELS[id]?.n ?? '';
   if (!q.b) return `${nm(q.a)} plus`;
-  return `${nm(q.a)} plus ${nm(q.b)} equals ${q.r === '?' ? 'something new to discover' : q.r ? nm(q.r) : 'nothing'}.${q.r && FEELING_MEANINGS[q.r] ? ` ${FEELING_MEANINGS[q.r]}` : ''}`;
+  return `${nm(q.a)} plus ${nm(q.b)} equals ${q.r === '?' ? 'something new to discover' : q.r ? nm(q.r) : 'nothing'}.${q.r && q.r !== '?' && meaning(q.r) ? ` ${meaning(q.r)}` : ''}`;
 };
 function EqSlot({ id }: { id?: string }) {
   if (!id) return <span className="alc-eq-slot empty" />;
@@ -153,6 +165,13 @@ export default function Alchemy() {
   const [q, setQ] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
   const [eq, setEq] = useState<Eq | null>(null);
+  // The Periodic Table window (Build Queue 639): opens from the board, collapses to its title bar, and moves by its title bar.
+  const [ptOpen, setPtOpen] = useState(false);
+  const [ptMin, setPtMin] = useState(false);
+  const [ptPos, setPtPos] = useState<{ x: number; y: number }>(() => { try { const v = JSON.parse(localStorage.getItem('alchemy.pt') ?? ''); if (typeof v?.x === 'number') return v; } catch { /* fine */ } return { x: 12, y: 150 }; });
+  const ptRef = useRef<HTMLDivElement>(null);
+  const ptDrag = useRef<{ dx: number; dy: number } | null>(null);
+  const fitPt = (x: number, y: number) => { const w = ptRef.current?.offsetWidth ?? 300; return { x: Math.min(Math.max(x, 60 - w), window.innerWidth - 60), y: Math.min(Math.max(y, 0), window.innerHeight - 50) }; };
   const discRef = useRef(disc); discRef.current = disc;
   // What a pair would make, for the preview while dragging: the thing if already found, '?' if not found yet, null if nothing.
   const preview = (a: string, b: string): string | null => { const rs = R[key(a, b)]; if (!rs) return null; return rs.every((x) => discRef.current.includes(x)) ? rs[0] : '?'; };
@@ -179,7 +198,7 @@ export default function Alchemy() {
     if (disc.includes(id)) { sound([520], 0.1); return; }
     const d = [...disc, id]; setDisc(d); setFresh((f) => [...f, id]);
     sound([523, 659, 784], 0.1);
-    say(FEELING_MEANINGS[id] ? `New feeling: ${ELS[id].n}! ${FEELING_MEANINGS[id]}` : `New discovery: ${emo(id)}${ELS[id].n}!`);
+    say(FEELING_MEANINGS[id] ? `New feeling: ${ELS[id].n}! ${FEELING_MEANINGS[id]}` : CHEM_FACTS[id] ? `New discovery: ${emo(id)}${ELS[id].n}! ${CHEM_FACTS[id]}` : `New discovery: ${emo(id)}${ELS[id].n}!`);
     if (d.length === ELEMENTS.length) window.setTimeout(() => say('🎉 You discovered everything!'), 2600);
   };
   const combine = (a: Tile, b: Tile) => {
@@ -229,7 +248,9 @@ export default function Alchemy() {
       setEq((q) => (q?.live ? null : q)); // a drop on nothing clears the preview; a real mix sets the equation below
       const t = tilesRef.current.find((x) => x.uid === d.uid); if (!t) return;
       const sr = shelfRef.current?.getBoundingClientRect();
-      const overShelf = !!sr && e.clientX >= sr.left && e.clientX <= sr.right && e.clientY >= sr.top && e.clientY <= sr.bottom;
+      const pr = ptOpen ? ptRef.current?.getBoundingClientRect() : undefined;
+      const inR = (b?: DOMRect) => !!b && e.clientX >= b.left && e.clientX <= b.right && e.clientY >= b.top && e.clientY <= b.bottom;
+      const overShelf = inR(sr) || inR(pr);
       if (cancelled || (overShelf && d.moved)) { setTiles((ts) => ts.filter((x) => x.uid !== t.uid)); return; }
       if (d.fromShelf && !d.moved) {
         // A tap on the shelf drops the element somewhere on the board.
@@ -251,7 +272,7 @@ export default function Alchemy() {
   });
 
   const hint = () => {
-    const opts = RECIPES.filter(([a, b, r]) => !disc.includes(r) && disc.includes(a) && disc.includes(b));
+    const opts = RECIPES.filter(([a, b, r]) => !disc.includes(r) && have(a, disc) && have(b, disc));
     if (!opts.length) { say('No hints right now. Keep experimenting!'); return; }
     const [a, b] = opts[Math.floor(Math.random() * opts.length)];
     say(`Try: ${emo(a)}${ELS[a].n} + ${emo(b)}${ELS[b].n}`);
@@ -307,6 +328,7 @@ export default function Alchemy() {
             )}
             {mode === 'explore' && <button type="button" className="alc-btn" onClick={() => setMode('ask')}>Exploring</button>}
             <button type="button" className="alc-btn" onClick={saveGame} aria-label="Save my progress">{!played && savedSig ? 'Saved' : 'Save'}</button>
+            <button type="button" className={`alc-btn${ptOpen ? ' on' : ''}`} onClick={() => { setPtOpen((o) => !o); setPtMin(false); }} aria-pressed={ptOpen}>Periodic Table</button>
             <button type="button" className="alc-btn" onClick={hint}>Hint</button>
             <button type="button" className="alc-btn" onClick={() => setTiles([])}>Clear board</button>
             <button type="button" className="alc-btn" onClick={() => { setSoundOn((s) => { try { localStorage.setItem('alchemy.sound', s ? '0' : '1'); } catch { /* fine */ } return !s; }); }} aria-label={soundOn ? 'Sound on. Tap to mute' : 'Sound off. Tap to turn on'}>{soundOn ? '🔊' : '🔇'}</button>
@@ -336,6 +358,35 @@ export default function Alchemy() {
           </div>
         </aside>
       </div>
+      {ptOpen && (
+        <div className={`alc-ptwin${ptMin ? ' min' : ''}`} ref={ptRef} style={{ left: ptPos.x, top: ptPos.y }} role="dialog" aria-label="Periodic Table of Elements">
+          <div className="alc-ptbar"
+            onPointerDown={(e) => { if ((e.target as HTMLElement).closest('button')) return; e.preventDefault(); (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); ptDrag.current = { dx: ptPos.x - e.clientX, dy: ptPos.y - e.clientY }; }}
+            onPointerMove={(e) => { const d = ptDrag.current; if (d) setPtPos(fitPt(e.clientX + d.dx, e.clientY + d.dy)); }}
+            onPointerUp={() => { if (!ptDrag.current) return; ptDrag.current = null; try { localStorage.setItem('alchemy.pt', JSON.stringify(ptPos)); } catch { /* fine */ } }}
+            onPointerCancel={() => { ptDrag.current = null; }}>
+            <span className="alc-ptgrip" aria-hidden>⠿</span>
+            <strong>Periodic Table of Elements</strong>
+            <button type="button" className="alc-ptctl" onClick={() => speak('The periodic table. Drag any element onto the board, or tap it to drop it there. Mix it with your things to make something new. The colors show each chemical group.', student?.ttsSettings)} aria-label="Read aloud">🔊</button>
+            <button type="button" className="alc-ptctl" onClick={() => setPtMin((m) => !m)} aria-label={ptMin ? 'Open the table' : 'Fold the table up'}>{ptMin ? '▸' : '▾'}</button>
+            <button type="button" className="alc-ptctl" onClick={() => setPtOpen(false)} aria-label="Close the periodic table">✕</button>
+          </div>
+          {!ptMin && (
+            <div className="alc-ptgrid">
+              <div className="alc-ptkey" style={{ gridRow: '1 / 4', gridColumn: '3 / 13' }}>
+                {FAMILY_ORDER.map((f) => <span key={f} className={`alc-ptkey-i f-${f}`}>{FAMILY_NAMES[f]}</span>)}
+              </div>
+              {PERIODIC.map((p) => (
+                <button key={p.id} type="button" className={`alc-ptcell f-${p.fam}`} style={{ gridRow: p.row, gridColumn: p.col }}
+                  onPointerDown={(e) => { if (e.button > 0) return; startDrag(e, addTile(p.id, e.clientX, e.clientY), true); }}
+                  aria-label={`${p.name}, number ${p.z}, ${FAMILY_NAMES[p.fam]}. Drag onto the board, or tap to drop it there.`}>
+                  <span className="alc-pt-z">{p.z}</span><b>{p.sym}</b><small>{p.name}</small>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <div className="alc-layer">
         {tiles.map((t) => (
           <div key={t.uid} className={`alc-tile${hot === t.uid ? ' hot' : ''}${t.fx ? ` ${t.fx}` : ''}${drag.current?.uid === t.uid ? ' drag' : ''}`} style={{ left: t.x, top: t.y }}
@@ -343,7 +394,8 @@ export default function Alchemy() {
             onDoubleClick={() => { const p = clamp(t.x + 40, t.y + 40); addTile(t.id, p.x, p.y, 'pop'); }}
             onAnimationEnd={() => setTiles((ts) => ts.map((x) => (x.uid === t.uid ? { ...x, fx: undefined } : x)))}
             role="img" aria-label={ELS[t.id].n}>
-            <div className="alc-in"><div className={`alc-em${TWO.test(ELS[t.id].e) ? ' two' : ''}`}><Icon e={ELS[t.id].e} /></div><div className="alc-nm">{ELS[t.id].n}</div></div>
+            {PERIODIC_BY_ID[t.id] ? <div className="alc-in"><PtTile p={PERIODIC_BY_ID[t.id]} /></div>
+              : <div className="alc-in"><div className={`alc-em${TWO.test(ELS[t.id].e) ? ' two' : ''}`}><Icon e={ELS[t.id].e} /></div><div className="alc-nm">{ELS[t.id].n}</div></div>}
           </div>
         ))}
       </div>

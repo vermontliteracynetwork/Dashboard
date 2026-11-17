@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-alchemy-periodic-table",
+    date: "2026-11-17",
+    icon: "⚗️",
+    title: "Alchemy: the Periodic Table",
+    body: "You asked for it! Tap Periodic Table in Alchemy to open all 118 elements. Every element is ready to use, no unlocking. Drag one onto your things to mix: Hydrogen + Oxygen = Water, Sodium + Chlorine = Salt, Phosphorus + Wood = Safety Match, Calcium + Ocean = Sea Shell. Each new thing tells you a real science fact. Move the table by its top bar, or fold it up with the arrow.",
+  },
+  {
     id: "2026-11-12-merge-em-drag",
     date: "2026-11-12",
     icon: "✋",

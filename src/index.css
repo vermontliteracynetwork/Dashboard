@@ -5854,13 +5854,13 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 .alc-chip { position: relative; display: flex; align-items: center; gap: 6px; min-height: 48px; padding: 6px 12px; border: 1px solid var(--alc-line); border-radius: 12px; background: #fbfaf6; font: inherit; font-size: 1rem; color: var(--alc-ink); cursor: grab; touch-action: none; }
 .alc-chip .alc-e { font-size: 1.5rem; line-height: 1; }
 .alc-chip.new::after { content: 'NEW'; position: absolute; top: -8px; right: -4px; background: var(--alc-accent); color: #fff; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
-.alc-layer { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
-.alc-tile { position: fixed; width: 92px; transform: translate(-50%, -50%); cursor: grab; touch-action: none; pointer-events: auto; text-align: center; }
+.alc-layer { position: absolute; inset: 0; pointer-events: none; }
+.alc-tile { position: fixed; z-index: 30; width: 92px; transform: translate(-50%, -50%); cursor: grab; touch-action: none; pointer-events: auto; text-align: center; }
 .alc-in { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 16px; border: 2px solid transparent; transition: background 0.12s, border-color 0.12s, transform 0.12s; }
 .alc-em { font-size: 44px; line-height: 1.1; }
 .alc-nm { font-size: 0.85rem; font-weight: 700; color: #55535f; white-space: nowrap; }
 .alc-tile.hot .alc-in { background: var(--alc-hot); border-color: #f0c85a; transform: scale(1.08); }
-.alc-tile.drag { cursor: grabbing; z-index: 2; }
+.alc-tile.drag { cursor: grabbing; z-index: 40; }
 .alc-tile.drag .alc-in { transform: scale(1.1); filter: drop-shadow(0 8px 10px rgba(0,0,0,0.18)); }
 .alc-tile.pop .alc-in { animation: alc-pop 0.35s ease-out; }
 .alc-tile.shake .alc-in { animation: alc-shake 0.35s ease-in-out; }
@@ -5874,6 +5874,36 @@ body:has(.quiz-fullview) .streak-pill { display: none; }
 
 .alc-em.two { font-size: 30px; line-height: 1.45; letter-spacing: -2px; }
 .alc-nm { white-space: normal; line-height: 1.15; max-width: 92px; }
+
+/* Alchemy periodic table (Build Queue 639): PubChem group colors, no atomic weight. The window sits above the board
+   tiles (30) and below the tile being dragged (40). */
+.alc .f-am { --pt: #ffc4cc; } .alc .f-ae { --pt: #d8d4fd; } .alc .f-tm { --pt: #c7dcfb; } .alc .f-pt { --pt: #c6f5bd; }
+.alc .f-md { --pt: #dfe8c6; } .alc .f-nm { --pt: #fffbb3; } .alc .f-hg { --pt: #fff08a; } .alc .f-ng { --pt: #ffdcb8; }
+.alc .f-la { --pt: #b8f7fb; } .alc .f-ac { --pt: #c2f7df; }
+.alc-pt { position: relative; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; width: 78px; height: 78px; box-sizing: border-box; background: var(--pt); border: 1.5px solid rgba(0,0,0,0.18); border-radius: 8px; color: #1f2430; line-height: 1; }
+.alc-pt b { font-size: 2rem; font-weight: 800; }
+.alc-pt small { font-size: 0.68rem; font-weight: 700; margin-top: 4px; max-width: 74px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.alc-pt-z { position: absolute; top: 4px; left: 5px; font-size: 0.7rem; font-weight: 700; }
+.alc-pt.sm { width: 1.5em; height: 1.5em; border-radius: 4px; vertical-align: middle; }
+.alc-pt.sm b { font-size: 0.75em; }
+.alc-pt.sm .alc-pt-z { display: none; }
+.alc-btn.on { background: var(--alc-accent); color: #fff; border-color: var(--alc-accent); }
+.alc-ptwin { position: fixed; z-index: 35; width: min(860px, calc(100vw - 16px)); background: var(--alc-panel); border: 1px solid var(--alc-line); border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.18); overflow: hidden; }
+.alc-ptwin.min { width: min(360px, calc(100vw - 16px)); }
+.alc-ptbar { display: flex; align-items: center; gap: 8px; padding: 4px 6px 4px 12px; background: #efece3; cursor: grab; touch-action: none; border-bottom: 1px solid var(--alc-line); }
+.alc-ptbar:active { cursor: grabbing; }
+.alc-ptbar strong { flex: 1; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alc-ptgrip { color: #9a968a; font-size: 1.1rem; }
+.alc-ptctl { min-width: 44px; min-height: 44px; border: 0; background: transparent; font: inherit; font-size: 1.15rem; color: var(--alc-ink); cursor: pointer; border-radius: 10px; }
+.alc-ptctl:active { background: #e2dfd4; }
+.alc-ptgrid { display: grid; grid-template-columns: repeat(18, 1fr); grid-template-rows: repeat(7, auto) 8px repeat(2, auto); gap: 2px; padding: 8px; }
+.alc-ptcell { position: relative; aspect-ratio: 1; min-width: 0; padding: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--pt); border: 1px solid rgba(0,0,0,0.14); border-radius: 4px; color: #1f2430; font: inherit; cursor: grab; touch-action: none; line-height: 1; overflow: hidden; }
+.alc-ptcell:active { transform: scale(0.94); }
+.alc-ptcell b { font-size: clamp(0.8rem, 1.9vw, 1.15rem); font-weight: 800; margin-top: 4px; }
+.alc-ptcell small { font-size: clamp(0.4rem, 0.85vw, 0.5rem); font-weight: 600; margin-top: 2px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 1px; }
+.alc-ptcell .alc-pt-z { top: 2px; left: 3px; font-size: clamp(0.4rem, 0.85vw, 0.55rem); }
+.alc-ptkey { display: flex; flex-wrap: wrap; align-content: center; justify-content: center; gap: 4px; padding: 4px; }
+.alc-ptkey-i { background: var(--pt); border: 1px solid rgba(0,0,0,0.12); border-radius: 6px; padding: 3px 7px; font-size: clamp(0.55rem, 1.05vw, 0.72rem); font-weight: 700; color: #1f2430; }
 
 /* Rounds and questions-per-round sliders, every native game (teacher 2026-10-08). */
 .round-settings { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 520px; margin: 0 auto; text-align: left; }
