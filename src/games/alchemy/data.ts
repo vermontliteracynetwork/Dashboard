@@ -2,6 +2,7 @@ import { LA2_ELEMENTS, LA2_RECIPES } from './data2';
 import { STUDENT_ELEMENTS, STUDENT_RECIPES } from './data3';
 import { FEELING_ELEMENTS, FEELING_RECIPES } from './data4';
 import { CHEM_ELEMENTS, CHEM_RECIPES } from './data5';
+import { ALCHEMY_PICTURES } from './pictures';
 export { CHEM_FACTS, PERIODIC, PERIODIC_BY_ID, PERIODIC_ELEMENTS, FAMILY_NAMES, FAMILY_ORDER } from './data5';
 export type { Family, PeriodicEl } from './data5';
 export { FEELING_MEANINGS } from './data4';
@@ -92,5 +93,6 @@ const REQUESTED_ELEMENTS: [string, string, string][] = [["merdog","🐕🧜","Me
   // Build Queue 641 (2026-11-17, "energy + plan = coffee bean; coffee bean + water = coffee").
   ["coffee-bean","🫘☕","Coffee Bean"],["coffee","☕","Coffee"]];
 const REQUESTED_RECIPES: [string, string, string][] = [["dog","mermaid","merdog"],["wizard","time","warlock"],["book","time","ancient-scroll"],["energy","plant","coffee-bean"],["coffee-bean","water","coffee"]];
-export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS, ...STUDENT_ELEMENTS, ...FEELING_ELEMENTS, ...CHEM_ELEMENTS];
+export const ELEMENTS: [string, string, string][] = [...BASE_ELEMENTS, ...LA2_ELEMENTS, ...REQUESTED_ELEMENTS, ...STUDENT_ELEMENTS, ...FEELING_ELEMENTS, ...CHEM_ELEMENTS]
+  .map(([id, e, n]) => [id, ALCHEMY_PICTURES.has(id) ? `/alchemy/${id}.webp` : e, n]);
 export const RECIPES: [string, string, string][] = [...REQUESTED_RECIPES, ...STUDENT_RECIPES, ...FEELING_RECIPES, ...CHEM_RECIPES, ...LA2_RECIPES.filter((r) => r[2] === 'fisherman'), ...BASE_RECIPES, ...LA2_RECIPES.filter((r) => r[2] !== 'fisherman')];

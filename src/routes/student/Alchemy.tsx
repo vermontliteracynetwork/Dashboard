@@ -48,7 +48,7 @@ function PtTile({ p, small }: { p: PeriodicEl; small?: boolean }) {
 const TWO = /\p{Extended_Pictographic}.*\p{Extended_Pictographic}/u;
 // Feelings (Build Queue 627) use her feelings wheel pictures: a picture path instead of emoji.
 const isPic = (e: string) => e.startsWith('/');
-const Icon = ({ e }: { e: string }) => (isPt(e) ? <PtTile p={ptOf(e)} small /> : isPic(e) ? <img className="alc-pic" src={e} alt="" draggable={false} /> : <>{e}</>);
+const Icon = ({ e }: { e: string }) => (isPt(e) ? <PtTile p={ptOf(e)} small /> : isPic(e) ? <img className={`alc-pic${e.startsWith('/alchemy/') ? ' clip' : ''}`} src={e} alt="" draggable={false} /> : <>{e}</>);
 const emo = (id: string) => (isPic(ELS[id].e) || isPt(ELS[id].e) ? '' : `${ELS[id].e} `);
 const key = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
 // A pair can make more than one thing (Build Queue 237); the first one not found yet comes out.
@@ -164,6 +164,7 @@ export default function Alchemy() {
   const [toast, setToast] = useState<string | null>(null);
   const [q, setQ] = useState('');
   const [confirmReset, setConfirmReset] = useState(false);
+  const [credits, setCredits] = useState<{ name: string; file: string; by: string; license: string; source: string }[] | null>(null);
   const [eq, setEq] = useState<Eq | null>(null);
   // The Periodic Table window (Build Queue 639): opens from the board, collapses to its title bar, and moves by its title bar.
   const [ptOpen, setPtOpen] = useState(false);
@@ -356,6 +357,7 @@ export default function Alchemy() {
               </button>
             ))}
           </div>
+          <button type="button" className="alc-credits-btn" onClick={() => { fetch('/alchemy/credits.json').then((r) => r.json()).then(setCredits).catch(() => setCredits([])); }}>Picture credits</button>
         </aside>
       </div>
       {ptOpen && (
@@ -457,6 +459,16 @@ export default function Alchemy() {
               <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => { saveGame(); const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>Save and leave</button>
               <button type="button" className="btn btn-danger" style={{ minHeight: 44 }} onClick={() => { const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>Leave and delete</button>
             </div>
+          </div>
+        </div>
+      )}
+      {credits && (
+        <div className="overlay-backdrop" onClick={() => setCredits(null)}>
+          <div className="overlay-panel chrome-frame stack alc-credits" onClick={(e) => e.stopPropagation()} role="dialog" aria-label="Picture credits">
+            <strong>Picture credits</strong>
+            <p style={{ margin: 0 }}>These pictures are free to use, from Wikimedia Commons. Thank you to the people who made them.</p>
+            <ul>{credits.map((c) => <li key={c.name}><b>{c.name}</b>: {c.by}, {c.license}. <a href={c.source} target="_blank" rel="noreferrer">Source</a></li>)}</ul>
+            <button type="button" className="btn btn-primary" style={{ minHeight: 44 }} onClick={() => setCredits(null)}>Close</button>
           </div>
         </div>
       )}

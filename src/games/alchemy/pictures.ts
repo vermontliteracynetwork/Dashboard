@@ -1,0 +1,5 @@
+// Build Queue 640 (her words: "can you find me more free clipart and then just do emojis for whats not there? then
+// push to main"): free pictures from Wikimedia Commons (public domain, CC0, CC BY or CC BY-SA only), cut out on a clear
+// background and checked one by one; everything else keeps its emoji. Pictures are public/alchemy/<id>.webp and the
+// credit for each (author, license, source page) is public/alchemy/credits.json, shown in Alchemy's Picture credits.
+export const ALCHEMY_PICTURES = new Set<string>(["balloon", "bandage", "battery", "binoculars", "box", "brass", "bread", "bucket", "cake", "candle", "candy-cane", "cheese", "coffee", "coffee-bean", "compass", "cookie", "coral", "cup", "diamond", "flute", "fork", "fruit", "gold", "hammer", "harp", "juice", "leather", "lens", "lightbulb", "magnet", "mailbox", "marshmallows", "mirror", "nuts", "ore", "penny", "pizza", "popsicle", "pottery", "silver-coin", "smoothie", "starfish", "sunflower", "sunglasses", "sushi", "toolbox", "trumpet", "umbrella", "wood"]);

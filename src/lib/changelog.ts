@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-17-alchemy-pictures",
+    date: "2026-11-17",
+    icon: "⚗️",
+    title: "Alchemy: real pictures",
+    body: "49 Alchemy things now have real pictures, like gold, diamond, coral, starfish, pizza, sushi, juice and coffee. Tap Picture credits under your elements to see who made them.",
+  },
+  {
     id: "2026-11-17-rocket-chickens-jetpacks",
     date: "2026-11-17",
     icon: "🐔",

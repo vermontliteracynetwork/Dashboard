@@ -1,0 +1,394 @@
+[
+ {
+  "id": "fruit",
+  "name": "Apple",
+  "file": "Apple cartoon with transparent background.png",
+  "by": "Toby8991",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Apple_cartoon_with_transparent_background.png"
+ },
+ {
+  "id": "wood",
+  "name": "Wood",
+  "file": "Brettschichtholz uddddd.png",
+  "by": "Brettschichtholz_dddddu.jpg: Sascha Pöschl\nderivative work: Saibo (Δ)",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Brettschichtholz_uddddd.png"
+ },
+ {
+  "id": "bread",
+  "name": "Bread",
+  "file": "Crisp bread.png",
+  "by": "Tiia Monto",
+  "license": "CC BY 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Crisp_bread.png"
+ },
+ {
+  "id": "hammer",
+  "name": "Hammer",
+  "file": "Hammer tapissier(transparent).png",
+  "by": "Hammer_tapissier.jpg: User:Za\nderivative work: NativeForeigner (talk)",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Hammer_tapissier(transparent).png"
+ },
+ {
+  "id": "gold",
+  "name": "Gold",
+  "file": "Gold-49956.jpg",
+  "by": "Robert M. Lavinsky",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Gold-49956.jpg"
+ },
+ {
+  "id": "diamond",
+  "name": "Diamond",
+  "file": "Diamond Icon Transparent.png",
+  "by": "Kurt Kaiser",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Diamond_Icon_Transparent.png"
+ },
+ {
+  "id": "cheese",
+  "name": "Cheese",
+  "file": "Cheese Danish.png",
+  "by": "That Northern Irish Historian",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Cheese_Danish.png"
+ },
+ {
+  "id": "pizza",
+  "name": "Pizza",
+  "file": "Pizza Quattro Stagioni transparent.png",
+  "by": "Florian838",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Pizza_Quattro_Stagioni_transparent.png"
+ },
+ {
+  "id": "bandage",
+  "name": "Bandage",
+  "file": "BandageWhiteBackground.jpg",
+  "by": "Raysonho @ Open Grid Scheduler / Grid Engine",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:BandageWhiteBackground.jpg"
+ },
+ {
+  "id": "battery",
+  "name": "Battery",
+  "file": "A battery (Eveready -742) (transparent background).png",
+  "by": "https://commons.wikimedia.org/wiki/User:Julo",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:A_battery_(Eveready_-742)_(transparent_background).png"
+ },
+ {
+  "id": "binoculars",
+  "name": "Binoculars",
+  "file": "Leica Trinovid 8x20 BC.jpg",
+  "by": "Martin Möller",
+  "license": "CC BY-SA 2.0 de",
+  "source": "https://commons.wikimedia.org/wiki/File:Leica_Trinovid_8x20_BC.jpg"
+ },
+ {
+  "id": "bucket",
+  "name": "Bucket",
+  "file": "Pail (PSF).png",
+  "by": "Pearson Scott Foresman",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Pail_(PSF).png"
+ },
+ {
+  "id": "cake",
+  "name": "Cake",
+  "file": "Cake 2.png",
+  "by": "Tiia Monto",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Cake_2.png"
+ },
+ {
+  "id": "candle",
+  "name": "Candle",
+  "file": "Candle Heater.jpg",
+  "by": "Doyle Doss",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Candle_Heater.jpg"
+ },
+ {
+  "id": "cup",
+  "name": "Cup",
+  "file": "GLAM coffee cup transparent.png",
+  "by": "Staff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:GLAM_coffee_cup_transparent.png"
+ },
+ {
+  "id": "fork",
+  "name": "Fork",
+  "file": "Plasticware - isolated.png",
+  "by": "Alanthebox",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Plasticware_-_isolated.png"
+ },
+ {
+  "id": "leather",
+  "name": "Leather",
+  "file": "Doctors 1460 Black Worn.png",
+  "by": "Doctors_1460_Black_Worn.jpg: IlPasseggero\nderivative work:  Il Passeggero - I love to love you",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Doctors_1460_Black_Worn.png"
+ },
+ {
+  "id": "lens",
+  "name": "Lens",
+  "file": "Magnifying glass on earth.png",
+  "by": "Tore Danielsson (WMSE)",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Magnifying_glass_on_earth.png"
+ },
+ {
+  "id": "marshmallows",
+  "name": "Marshmallows",
+  "file": "Marshmallow.png",
+  "by": "Tiia Monto",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Marshmallow.png"
+ },
+ {
+  "id": "mirror",
+  "name": "Mirror",
+  "file": "Oval Photo-Mirror Frame with Transparent Background 780×1040.png",
+  "by": "DuckPlant67",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Oval_Photo-Mirror_Frame_with_Transparent_Background_780%C3%971040.png"
+ },
+ {
+  "id": "nuts",
+  "name": "Nuts",
+  "file": "Spiced nuts.jpg",
+  "by": "Tiia Monto",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Spiced_nuts.jpg"
+ },
+ {
+  "id": "ore",
+  "name": "Ore",
+  "file": "Banded iron formation.png",
+  "by": "Unknown",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Banded_iron_formation.png"
+ },
+ {
+  "id": "coral",
+  "name": "Coral",
+  "file": "Corals.png",
+  "by": "99of9",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Corals.png"
+ },
+ {
+  "id": "pottery",
+  "name": "Pottery",
+  "file": "Flowerpot 2.jpg",
+  "by": "Lombroso",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Flowerpot_2.jpg"
+ },
+ {
+  "id": "sunflower",
+  "name": "Sunflower",
+  "file": "SunflowerIMG 2257 WP2.png",
+  "by": "Atsme (Betty Wills)",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:SunflowerIMG_2257_WP2.png"
+ },
+ {
+  "id": "sushi",
+  "name": "Sushi",
+  "file": "Sushi roll.png",
+  "by": "Tiia Monto",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Sushi_roll.png"
+ },
+ {
+  "id": "toolbox",
+  "name": "Toolbox",
+  "file": "Toolbox icon transparent background.png",
+  "by": "Toolbox_icon.jpg: Tanemori\nderivative work: ויקיג'אנקי",
+  "license": "CC BY 2.1 jp",
+  "source": "https://commons.wikimedia.org/wiki/File:Toolbox_icon_transparent_background.png"
+ },
+ {
+  "id": "magnet",
+  "name": "Magnet",
+  "file": "Openstax college-physics 22.3 various-magnets.jpg",
+  "by": "OpenStax",
+  "license": "CC BY 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Openstax_college-physics_22.3_various-magnets.jpg"
+ },
+ {
+  "id": "compass",
+  "name": "Compass",
+  "file": "2016 Busola.JPG",
+  "by": "Jacek Halicki",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:2016_Busola.JPG"
+ },
+ {
+  "id": "lightbulb",
+  "name": "Lightbulb",
+  "file": "01 Spiral CFL Bulb 2010-03-08 (transparent back).png",
+  "by": "Sun Ladder",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:01_Spiral_CFL_Bulb_2010-03-08_(transparent_back).png"
+ },
+ {
+  "id": "box",
+  "name": "Box",
+  "file": "Simple cardboard box.svg",
+  "by": "Bogdan Costea",
+  "license": "CC0",
+  "source": "https://commons.wikimedia.org/wiki/File:Simple_cardboard_box.svg"
+ },
+ {
+  "id": "balloon",
+  "name": "Balloon",
+  "file": "Balloons cutout (10464445726).png",
+  "by": "liz west from Boxborough, MA, USA",
+  "license": "CC BY 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Balloons_cutout_(10464445726).png"
+ },
+ {
+  "id": "penny",
+  "name": "Penny",
+  "file": "2010 cent obverse.png",
+  "by": "Designer: Victor David Brenner",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:2010_cent_obverse.png"
+ },
+ {
+  "id": "trumpet",
+  "name": "Trumpet",
+  "file": "Trumpet 1.png",
+  "by": "PJ, background cropped by EWikist",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Trumpet_1.png"
+ },
+ {
+  "id": "coffee-bean",
+  "name": "Coffee Bean",
+  "file": "Coffee bean transparent.png",
+  "by": "Chiccodoro",
+  "license": "CC BY-SA 2.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Coffee_bean_transparent.png"
+ },
+ {
+  "id": "coffee",
+  "name": "Coffee",
+  "file": "GLAM coffee cup transparent.png",
+  "by": "Staff",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:GLAM_coffee_cup_transparent.png"
+ },
+ {
+  "id": "silver-coin",
+  "name": "Silver Coin",
+  "file": "Coins of the Italian Republic (500 Lire) silver (Caravels).png",
+  "by": "Livioandronico2013",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Coins_of_the_Italian_Republic_(500_Lire)_silver_(Caravels).png"
+ },
+ {
+  "id": "starfish",
+  "name": "Starfish",
+  "file": "Horned Starfish Macro.JPG",
+  "by": "“Jon Zander (Digon3)\"",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Horned_Starfish_Macro.JPG"
+ },
+ {
+  "id": "umbrella",
+  "name": "Umbrella",
+  "file": "Umbrella.png",
+  "by": "Unknown",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Umbrella.png"
+ },
+ {
+  "id": "popsicle",
+  "name": "Popsicle",
+  "file": "Tyrkisk Peber ice cream 2.png",
+  "by": "Tiia Monto",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Tyrkisk_Peber_ice_cream_2.png"
+ },
+ {
+  "id": "cookie",
+  "name": "Cookie",
+  "file": "Oreo biscuits (transparent background).png",
+  "by": "Bruce The Deus at Italian Wikipedia",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Oreo_biscuits_(transparent_background).png"
+ },
+ {
+  "id": "smoothie",
+  "name": "Smoothie",
+  "file": "Strawberry smoothie.png",
+  "by": "Tiia Monto",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Strawberry_smoothie.png"
+ },
+ {
+  "id": "candy-cane",
+  "name": "Candy Cane",
+  "file": "Candy-Cane-Classic.jpg",
+  "by": "Evan-Amos",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Candy-Cane-Classic.jpg"
+ },
+ {
+  "id": "harp",
+  "name": "Harp",
+  "file": "Celtic Harp transparent background.png",
+  "by": "See https://commons.wikimedia.org/wiki/File:Celtic_harp.svg",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Celtic_Harp_transparent_background.png"
+ },
+ {
+  "id": "sunglasses",
+  "name": "Sunglasses",
+  "file": "Sunglasses-1 retouch.png",
+  "by": "LotusHead from Johannesburg, Gauteng, South Africa",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Sunglasses-1_retouch.png"
+ },
+ {
+  "id": "brass",
+  "name": "Brass",
+  "file": "Akan MHNT.ETH.2010.25.191.jpg",
+  "by": "Roger Culos",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Akan_MHNT.ETH.2010.25.191.jpg"
+ },
+ {
+  "id": "mailbox",
+  "name": "Mailbox",
+  "file": "Boîte aux lettres, Postes Canada, fond blanc.jpg",
+  "by": "Aquastephie",
+  "license": "CC BY-SA 3.0",
+  "source": "https://commons.wikimedia.org/wiki/File:Bo%C3%AEte_aux_lettres,_Postes_Canada,_fond_blanc.jpg"
+ },
+ {
+  "id": "flute",
+  "name": "Flute",
+  "file": "Hotteterre flute-a-bec trans.png",
+  "by": "Jacques-Martin Hotteterre (* 1674-09-29,  † 1763-07-16)",
+  "license": "Public domain",
+  "source": "https://commons.wikimedia.org/wiki/File:Hotteterre_flute-a-bec_trans.png"
+ },
+ {
+  "id": "juice",
+  "name": "Juice",
+  "file": "A Glass Jar with Threaded Rim On a Clear Transparent Background.png",
+  "by": "Muldoonsamuel55",
+  "license": "CC BY-SA 4.0",
+  "source": "https://commons.wikimedia.org/wiki/File:A_Glass_Jar_with_Threaded_Rim_On_a_Clear_Transparent_Background.png"
+ }
+]
