@@ -294,3 +294,29 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
 .gbx .gb-primary { background: var(--accent); border-color: var(--accent); }
 .gbx .gb-design h3 { color: var(--ink); }
 .gbx .gba-preview { border: 1px solid var(--line); }
+/* 678: Azalea in the bottom right corner, beside the chat bar. */
+.gbx-bottom { display: flex; align-items: flex-end; gap: 4px; padding-right: 12px; }
+.gbx-bottom .gbx-chat { flex: 1; min-width: 0; margin-right: 0; }
+.gbx-az-corner { width: 120px; height: 120px; object-fit: contain; flex: none; margin-bottom: 8px; }
+.gbx-who { display: block; font-size: 0.9rem; color: var(--accent); margin-bottom: 4px; }
+@media (orientation: portrait) { .gbx-az-corner { width: 96px; height: 96px; } .gbx-azalea { min-width: 280px; } }
+/* 677: picture and sound library */
+.gbl-modal { position: fixed; inset: 0; z-index: 60; background: rgba(20, 20, 40, 0.45); display: grid; place-items: center; padding: 16px; }
+.gbl-modal-box { width: min(900px, 100%); max-height: 90vh; display: flex; flex-direction: column; gap: 8px; background: #fff; color: #23233a; border-radius: 16px; padding: 16px; }
+.gbl-modal-head { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.gbl-modal-head h2 { margin: 0; flex: 1; font-size: 1.3rem; }
+.gbl-modal-head label { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.gbl-modal-head select { min-height: 48px; font: inherit; padding: 4px 8px; border-radius: 10px; border: 1px solid #c9c9d8; max-width: 320px; }
+.gbl-pics { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.gbl-pics button { aspect-ratio: 1; border-radius: 10px; border: 1px solid #e2e2ec; background: #f6f6fa; display: grid; place-items: center; padding: 6px; cursor: pointer; }
+.gbl-pics img { max-width: 100%; max-height: 100%; image-rendering: pixelated; }
+.gbl-sounds { overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.gbl-sound { display: flex; align-items: center; gap: 8px; }
+.gbl-sound span { flex: 1; font-weight: 600; text-transform: capitalize; }
+.gba-libpic { width: 44px; height: 44px; object-fit: contain; image-rendering: pixelated; border: 1px solid #e2e2ec; border-radius: 8px; }
+/* 679: dev log */
+.gbd-list { overflow-y: auto; display: flex; flex-direction: column; }
+.gbd-row { display: grid; grid-template-columns: 130px 150px 1fr; gap: 10px; padding: 8px 4px; border-bottom: 1px solid #eee; align-items: baseline; }
+.gbd-row small { color: #5f5f78; }
+.gbd-row.by-azalea b { color: #4f46b8; }
+@media (max-width: 700px) { .gbd-row { grid-template-columns: 1fr; gap: 2px; } }

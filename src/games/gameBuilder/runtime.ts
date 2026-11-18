@@ -14,7 +14,7 @@ export interface RunHandle { stop: () => void; press: (key: string, down: boolea
 let ac: AudioContext | null = null;
 const files = new Map<string, HTMLAudioElement>();
 export function tone(kind: string) {
-  const file = SOUND_FILES[kind];
+  const file = kind.startsWith('lib:') ? kind.slice(4) : SOUND_FILES[kind];
   if (file) { try { const a = files.get(file) ?? new Audio(file); files.set(file, a); a.currentTime = 0; a.volume = 0.6; void a.play().catch(() => {}); } catch { /* no sound */ } return; }
   try {
     ac = ac ?? new AudioContext();

@@ -26,6 +26,8 @@ export interface Design {
   style?: string;     // art style: classic, pixel, lowpoly (Build Queue 664)
   colors?: { sky?: string; ground?: string; ink?: string; accent?: string }; // the student's own colors
   sprites?: Record<string, string[]>; // sprites they drew: 'hero' or a thing id -> 16 rows of palette digits
+  pictures?: Record<string, string>; // a picture from the library for a sprite (Build Queue 677)
+  mySounds?: string[];               // sounds picked from the library for the play sound block
   anim?: Record<string, string>;      // a preset move for a sprite: bounce, spin, pulse, wiggle, float
   paths?: Record<string, { pts: number[][]; secs: number }>; // a path they drew for a thing to follow (Canva style)
   music?: { kind: 'none' | 'tune' | 'song'; notes?: string[]; tempo?: number; wave?: string; songUrl?: string; songTitle?: string };
@@ -46,6 +48,7 @@ export interface GameProject {
   code?: string;          // custom games: the game Azalea wrote
   chat: ChatMsg[];
   plays: number;          // how many times it was play tested
+  devlog?: { at: string; kind: 'request' | 'change' | 'rule' | 'design' | 'art' | 'sound' | 'step' | 'test'; by: 'student' | 'azalea'; text: string }[]; // Build Queue 679
   doneTasks?: string[];
   taskReplies?: Record<string, number>; // messages the student sent while each task was on screen   // checklist tasks the student finished (Build Queue 673)
   moreBlocks?: boolean;   // the full block shelf is open (Build Queue 670)
@@ -200,7 +203,7 @@ export function actionText(kind: GameKind, a: Action): string {
   if (d.arg === 'thing') s += ` ${lbl(THINGS[kind], a.arg)}`;
   if (d.arg === 'setting') s += ` ${SETTING_INFO[a.arg as keyof Settings]?.label ?? a.arg}`;
   if (d.arg === 'power') s += ` ${lbl(POWERS, a.arg)}`;
-  if (d.arg === 'sound') s += ` ${lbl(SOUNDS, a.arg)}`;
+  if (d.arg === 'sound') s += a.arg.startsWith('lib:') ? ` ${decodeURIComponent(a.arg.split('/').pop() ?? '').replace(/\.\w+$/, '').replace(/[-_]+/g, ' ')}` : ` ${lbl(SOUNDS, a.arg)}`;
   if (d.arg === 'text') s += ` "${a.arg}"`;
   if (d.num) s += d.id === 'power' ? ` for ${a.num} seconds` : d.id === 'spawn' ? ` (${a.num})` : ` ${a.num}`;
   return s;

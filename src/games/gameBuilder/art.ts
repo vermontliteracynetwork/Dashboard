@@ -67,6 +67,13 @@ export function spriteCanvas(s: Sprite): HTMLCanvasElement {
   return c;
 }
 
+// Library pictures (677), loaded once and drawn when ready.
+const imgs = new Map<string, HTMLImageElement>();
+export function picture(url: string): HTMLImageElement | null {
+  let im = imgs.get(url); if (!im) { im = new Image(); im.src = url; imgs.set(url, im); }
+  return im.complete && im.naturalWidth ? im : null;
+}
+
 export interface Colors { sky: string; ground: string; ink: string; accent: string }
 export function colorsOf(p: GameProject): Colors {
   const t = theme(p.design.theme);
@@ -110,6 +117,8 @@ export function makeArtist(p: GameProject): Artist {
     draw(g, key, emoji, cx, cy, size, moving);
   };
   function draw(g: CanvasRenderingContext2D, key: string, emoji: string, cx: number, cy: number, size: number, moving: boolean) {
+    const lib = p.design.pictures?.[key];
+    if (lib && !costumesOf(own, key).length) { const im = picture(lib); if (im) { const k = Math.min(size / im.naturalWidth, size / im.naturalHeight); const w = im.naturalWidth * k, h = im.naturalHeight * k; g.imageSmoothingEnabled = im.naturalWidth > 64; g.drawImage(im, cx - w / 2, cy - h / 2, w, h); return; } }
     const s = spriteFor(key, emoji, moving);
     if (s) { g.imageSmoothingEnabled = false; g.drawImage(spriteCanvas(s), Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size)); return; }
     if (style === 'lowpoly') { g.save(); g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(cx, cy + size * 0.45, size * 0.4, size * 0.12, 0, 0, 7); g.fill(); g.restore(); }

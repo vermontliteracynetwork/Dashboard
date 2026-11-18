@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useAllBuildRequests, useAllProjects, type Specificity } from '../lib/gameBuilder/store';
 import { Player } from '../routes/student/GameBuilderPlayer';
+import DevLogView from '../routes/student/GameBuilderDevLog';
 import type { GameProject } from '../lib/gameBuilder/model';
 import { KIND_INFO, STEPS } from '../lib/gameBuilder/model';
 
@@ -19,6 +20,7 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
   const projects = useAllProjects();
   const [view, setView] = useState<'requests' | 'projects'>('requests');
   const [playing, setPlaying] = useState<GameProject | null>(null);
+  const [logOf, setLogOf] = useState<(GameProject & { studentId: string }) | null>(null);
   const [who, setWho] = useState('');
   const [spec, setSpec] = useState<'' | Specificity>('');
   const [from, setFrom] = useState('');
@@ -64,12 +66,13 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
               <td>{Object.keys(p.design.sprites ?? {}).length}</td>
               <td>{p.plays}</td>
               <td><small>{new Date(p.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</small></td>
-              <td><button type="button" className="btn btn-sm" onClick={() => setPlaying(p)}>Play</button></td>
+              <td><button type="button" className="btn btn-sm" onClick={() => setPlaying(p)}>Play</button> <button type="button" className="btn btn-sm" onClick={() => setLogOf(p)}>Dev log ({(p.devlog ?? []).length})</button></td>
             </tr>
           ))}</tbody>
         </table>
       )}
       {playing && <Player p={playing} onClose={() => setPlaying(null)} />}
+      {logOf && <DevLogView p={logOf} who={nameFor(logOf.studentId)} onClose={() => setLogOf(null)} />}
     </section>
   );
 

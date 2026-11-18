@@ -12,7 +12,10 @@ import {
 import { deleteProject, logRequest, markUndone, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
 import { applyAnswer, askAzalea } from '../../lib/gameBuilder/azalea';
 import { STAGES, STAGE_NAMES, currentTask, tasksFor, type Task } from '../../lib/gameBuilder/checklist';
-import { createWorkspace, loadRules, readRules, SB, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
+import { createWorkspace, loadRules, readRules, SB, setExtraSounds, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
+import { PictureLibrary } from './GameBuilderLibrary';
+import DevLogView from './GameBuilderDevLog';
+import { diffLog, withLog } from '../../lib/gameBuilder/devlog';
 import { ART_STYLES, costumesOf, isSprite, type Sprite } from '../../games/gameBuilder/art';
 import { PRESET_TUNES, startMusic } from '../../games/gameBuilder/music';
 import ArtPanel, { HeroPicker, Preview, SpriteEditor } from './GameBuilderArt';
@@ -163,6 +166,18 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   useEffect(() => { const t = window.setTimeout(() => saveProject(studentId, latest.current), 600); return () => window.clearTimeout(t); }, [p, studentId]);
   useEffect(() => () => saveProject(studentId, latest.current), [studentId]);
   const update = (f: (q: GameProject) => GameProject) => setP((q) => f(q));
+  // The dev log (679): changes are written down a moment after they happen, as the student's or Azalea's.
+  const logged = useRef(initial);
+  const azaleaUntil = useRef(0);
+  const [showLog, setShowLog] = useState(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const entries = diffLog(logged.current, latest.current, Date.now() < azaleaUntil.current ? 'azalea' : 'student');
+      logged.current = latest.current;
+      if (entries.length) setP((q) => { const n = withLog(q, entries); logged.current = n; return n; });
+    }, 1200);
+    return () => window.clearTimeout(t);
+  }, [p.design, p.rules, p.settings, p.code]);
 
   const tasks = tasksFor(p);
   const task = currentTask(p);
@@ -183,7 +198,7 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
     const last = p.chat[p.chat.length - 1];
     if (voiceOn && last?.from === 'azalea' && !said.current.has(last.id)) { said.current.add(last.id); speak(last.text, tts, undefined, VOICE); }
   }, [p.chat, voiceOn, tts]);
-  const finishTask = () => { if (task) update((q) => ({ ...q, doneTasks: [...new Set([...(q.doneTasks ?? []), task.id])] })); };
+  const finishTask = () => { if (task) update((q) => withLog({ ...q, doneTasks: [...new Set([...(q.doneTasks ?? []), task.id])] }, [{ kind: 'step', by: 'student', text: `${task.ready(q) ? 'Finished' : 'Skipped'}: ${task.label}` }])); };
   const nowText = task ? task.say : 'Your game is finished. You can keep changing it with all the tools, and play test it again.';
   useMenuItems([{ id: 'gb-now', icon: '?', label: 'What do I do now?', bg: '#5b4fc7', order: 5, onSelect: () => speak(nowText, tts, undefined, VOICE) }]);
   const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
@@ -214,21 +229,25 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
         </section>
         <aside className="gbx-side" aria-label="Azalea and your checklist">
           <div className="gbx-azalea">
-            <img src={AZ_IMG} alt="Azalea the cat" />
-            <div className="gbx-bubble">
+            <div className="gbx-bubble"><b className="gbx-who">Azalea says</b>
               <p>{lastAz?.text}</p>
               <div className="gbx-row">{lastAz && <Listen text={lastAz.text} tts={tts} />}<button type="button" className="gbx-link" onClick={() => setVoiceOn((v) => !v)}>{voiceOn ? 'Voice on' : 'Voice off'}</button></div>
             </div>
           </div>
-          <Checklist p={p} tasks={tasks} current={task} toolsLink={!showTools && <button type="button" className="gbx-link" onClick={() => setTools('blocks')}>Open all tools</button>} />
+          <Checklist p={p} tasks={tasks} current={task} toolsLink={<div className="gbx-row">{!showTools && <button type="button" className="gbx-link" onClick={() => setTools('blocks')}>Open all tools</button>}<button type="button" className="gbx-link" onClick={() => setShowLog(true)}>My dev log</button></div>} />
         </aside>
       </div>
-      <ChatBar p={p} setP={setP} studentId={studentId} task={task} loose={loose} lastReq={lastReq} setLastReq={setLastReq} />
+      {/* Her rule (678): Azalea's picture sits in the bottom right corner, to the right of the chat bar. */}
+      <div className="gbx-bottom">
+        <ChatBar p={p} setP={setP} studentId={studentId} task={task} loose={loose} lastReq={lastReq} setLastReq={setLastReq} onAzalea={() => { azaleaUntil.current = Date.now() + 2500; }} />
+        <img className="gbx-az-corner" src={AZ_IMG} alt="Azalea the cat" />
+      </div>
       {playing && <Player p={p} onClose={(result) => {
         setPlaying(false);
-        update((q) => ({ ...q, plays: q.plays + 1,
-          chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! Was it too easy, too hard, or just right?' : result === 'lose' ? 'Game over. What felt unfair or too hard?' : 'Thanks for testing. What did you notice?' }] }));
+        update((q) => withLog({ ...q, plays: q.plays + 1,
+          chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! Was it too easy, too hard, or just right?' : result === 'lose' ? 'Game over. What felt unfair or too hard?' : 'Thanks for testing. What did you notice?' }] }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1}: ${result === 'win' ? 'won' : result === 'lose' ? 'game over' : 'stopped before the end'}` }]));
       }} />}
+      {showLog && <DevLogView p={p} onClose={() => setShowLog(false)} />}
     </div>
   );
 }
@@ -271,7 +290,7 @@ function TaskWork({ p, task, update, setLoose, onPlay }: { p: GameProject; task:
     const saved = task.id === 'idea' ? p.design.idea : task.id === 'goal' ? p.design.goal : '';
     return <div className="gbx-center-box">{saved ? <><p className="gbx-muted">Saved:</p><p className="gbx-saved">{saved}</p></> : <p className="gbx-say">Type or talk to Azalea in the chat box at the bottom.</p>}</div>;
   }
-  if (task.tool === 'hero') return <div className="gbx-stack"><Preview p={p} /><HeroPicker p={p} update={update} /></div>;
+  if (task.tool === 'hero') return <HeroTask p={p} update={update} />;
   if (task.tool === 'world') return (
     <div className="gbx-stack"><Preview p={p} />
       <div className="gbx-pick">{THEMES.map((t) => <button key={t.id} type="button" className={p.design.theme === t.id ? 'on' : ''} onClick={() => setD({ theme: t.id, colors: undefined })}><i className="gbx-swatch" style={{ background: `linear-gradient(${t.sky} 55%, ${t.ground} 55%)` }} /><span>{t.label}</span></button>)}</div>
@@ -289,6 +308,22 @@ function TaskWork({ p, task, update, setLoose, onPlay }: { p: GameProject; task:
   return <MusicPick p={p} update={update} />;
 }
 const heroEmojiOf = (p: GameProject) => heroEmoji(p.design.hero);
+
+function HeroTask({ p, update }: { p: GameProject; update: (f: (q: GameProject) => GameProject) => void }) {
+  const [lib, setLib] = useState(false);
+  const pics = p.design.pictures ?? {};
+  const setPic = (u: string | null) => update((q) => { const pictures = { ...(q.design.pictures ?? {}) }; if (u) pictures.hero = u; else delete pictures.hero; return { ...q, design: { ...q.design, pictures } }; });
+  return (
+    <div className="gbx-stack"><Preview p={p} />
+      <HeroPicker p={{ ...p, design: { ...p.design, pictures: {} } }} update={(f) => { setPic(null); update(f); }} />
+      <div className="gbx-row">
+        <button type="button" className="gbx-btn" onClick={() => setLib(true)}>Pick from the picture library</button>
+        {pics.hero && <button type="button" className="gbx-link" onClick={() => setPic(null)}>Stop using the library picture</button>}
+      </div>
+      {lib && <PictureLibrary onClose={() => setLib(false)} onPick={(u) => { setPic(u); setLib(false); }} />}
+    </div>
+  );
+}
 
 function MusicPick({ p, update }: { p: GameProject; update: (f: (q: GameProject) => GameProject) => void }) {
   const [hearing, setHearing] = useState(false);
@@ -327,9 +362,9 @@ function ToolsView({ p, update, tab, setTab, setLoose, onChecklist }: { p: GameP
 }
 
 // ---------- Azalea's chat, across the bottom ----------
-function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq }: {
+function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzalea }: {
   p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; task: Task | null; loose: number;
-  lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void;
+  lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void; onAzalea: () => void;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -353,13 +388,14 @@ function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq }: {
     const prompt = lastAz?.text ?? '';
     const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: voiced };
     const tid = task?.id ?? 'free';
-    setP((q) => ({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }));
+    setP((q) => withLog({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }, [{ kind: 'request', by: 'student', text: `${voiced ? 'Said' : 'Typed'}: "${text}"` }]));
     setDraft(''); setBusy(true);
     const ans = await askAzalea(p, text, loose);
     const changes = ans.changes.length ? ans.changes : ans.ops.length || ans.code ? ['Changed the game'] : [];
     const prevId = lastReq?.projectId === p.id ? lastReq.id : p.lastReqId;
     const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame, prompt: prompt.slice(0, 300) });
     setLastReq(req);
+    onAzalea();
     if (changes.length) setUndo((u) => [...u.slice(-9), { reqId: req.id, snap: { rules: p.rules, settings: p.settings, design: p.design, code: p.code } }]);
     setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay.', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
     setBusy(false); setVoiced(false); setUsedFrame(false);
@@ -409,6 +445,7 @@ function Blocks({ p, onRules, onMore }: { p: GameProject; onRules: (rules: Rule[
   const full = !!p.moreBlocks || !usesOnlyStarter(p.rules);
   useEffect(() => {
     if (!el.current) return;
+    setExtraSounds(p.design.mySounds);
     const w = createWorkspace(el.current, p.kind, full); ws.current = w;
     lastJson.current = JSON.stringify(p.rules); loadRules(w, p.kind, p.rules);
     let t = 0;

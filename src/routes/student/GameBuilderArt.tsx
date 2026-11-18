@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ANIMS, HERO_LOOKS, THEMES, THINGS, heroEmoji, type GameProject } from '../../lib/gameBuilder/model';
 import { pathAt } from '../../games/gameBuilder/runtime';
+import { PictureLibrary } from './GameBuilderLibrary';
 import { ART_STYLES, PALETTE, PALETTE_NAMES, colorsOf, costumeKey, emojiToSprite, emptySprite, isSprite, makeArtist, resizeSprite, spriteHasInk, type Sprite } from '../../games/gameBuilder/art';
 
 // The Art tab in Game Builder (Build Queue 664, her words 2026-11-18: "preset design themes (pixel, 3d low poly)
@@ -69,6 +70,8 @@ export default function ArtPanel({ p, update }: { p: GameProject; update: Update
   const setDesign = (patch: Partial<GameProject['design']>) => update((q) => ({ ...q, design: { ...q.design, ...patch } }));
   const setColor = (k: 'sky' | 'ground' | 'ink' | 'accent', v: string) => update((q) => ({ ...q, design: { ...q.design, colors: { ...q.design.colors, [k]: v } } }));
   const [costume, setCostume] = useState(0);
+  const [lib, setLib] = useState(false);
+  const setPic = (u: string | null) => update((q) => { const pictures = { ...(q.design.pictures ?? {}) }; if (u) pictures[cur.key] = u; else delete pictures[cur.key]; return { ...q, design: { ...q.design, pictures } }; });
   const allSprites = p.design.sprites ?? {};
   const costumeCount = cur ? Math.max(1, ...[0, 1, 2, 3].filter((i) => isSprite(allSprites[costumeKey(cur.key, i)])).map((i) => i + 1)) : 1;
   const ck = cur ? costumeKey(cur.key, Math.min(costume, costumeCount)) : '';
@@ -112,6 +115,14 @@ export default function ArtPanel({ p, update }: { p: GameProject; update: Update
             );
           })}
         </div>
+        {cur && (
+          <div className="gba-row">
+            <button type="button" className="gb-btn" onClick={() => setLib(true)}>Use a picture from the library</button>
+            {p.design.pictures?.[cur.key] && <><img src={p.design.pictures[cur.key]} alt="" className="gba-libpic" /><button type="button" className="gb-btn" onClick={() => setPic(null)}>Stop using it</button></>}
+            <span className="gb-muted">A drawing you make below is used instead of a library picture.</span>
+          </div>
+        )}
+        {lib && cur && <PictureLibrary onClose={() => setLib(false)} onPick={(u) => { setPic(u); setLib(false); }} />}
         {cur && (
           <div className="gba-costumes">
             <span>Costumes:</span>

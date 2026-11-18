@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run engine:assets && npm run test:engine && node scripts/check-weapon-assets.mjs && node scripts/generate-asset-manifest.mjs && node scripts/generate-master-asset-chart.mjs && tsc -b && vite build",
+    "build": "npm run engine:assets && npm run test:engine && node scripts/check-weapon-assets.mjs && node scripts/generate-asset-manifest.mjs && node scripts/generate-master-asset-chart.mjs && node scripts/generate-game-builder-library.mjs && tsc -b && vite build",
     "lint": "oxlint",
     "check-weapons": "node scripts/check-weapon-assets.mjs",
     "gen-asset-manifest": "node scripts/generate-asset-manifest.mjs",

@@ -7,6 +7,9 @@ import { ACTIONS, KEYS, POWERS, SETTING_INFO, SOUNDS, THINGS, TRIGGERS, newId, t
 // chat always show the same game.
 
 let kind: GameKind = 'platformer';
+// The student's own sounds from the library (677), added to the play sound menu.
+let extraSounds: [string, string][] = [];
+export const setExtraSounds = (urls: string[] = []) => { extraSounds = urls.map((u, i) => [`my sound ${i + 1}: ${decodeURIComponent(u.split('/').pop() ?? '').replace(/\.\w+$/, '').replace(/[-_]+/g, ' ')}`, `lib:${u}`]); };
 let defined = false;
 
 const ACTION_COLOUR: Record<string, string> = {
@@ -40,7 +43,7 @@ function define() {
         if (a.arg === 'thing') { msg += ' %1'; args.push({ type: 'field_dropdown', name: 'ARG', options: opts(THINGS[kind]) }); }
         if (a.arg === 'setting') { msg += ' %1'; args.push({ type: 'field_dropdown', name: 'ARG', options: settingOpts }); }
         if (a.arg === 'power') { msg += ' %1'; args.push({ type: 'field_dropdown', name: 'ARG', options: opts(POWERS) }); }
-        if (a.arg === 'sound') { msg += ' %1'; args.push({ type: 'field_dropdown', name: 'ARG', options: opts(SOUNDS) }); }
+        if (a.arg === 'sound') { msg += ' %1'; args.push({ type: 'field_dropdown', name: 'ARG', options: () => [...opts(SOUNDS)(), ...extraSounds.map(([l, v]) => [l, v] as [string, string])] }); }
         if (a.arg === 'text') { msg += ' %1'; args.push({ type: 'input_value', name: 'TEXT' }); }
         if (a.num) {
           const n = args.length + 1;

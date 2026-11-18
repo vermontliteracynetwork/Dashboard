@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder-library",
+    date: "2026-11-18",
+    icon: "🖼️",
+    title: "Game Builder: thousands of pictures and sounds",
+    body: "In Game Builder you can pick a hero or any thing in your game from the picture library: knights, wizards, fish, plants, potions, tiles and more from the games on the dashboard. Add your own sounds from the sound library too. Tap My dev log to see everything you added to your game.",
+  },
+  {
     id: "2026-11-18-game-builder-checklist",
     date: "2026-11-18",
     icon: "🕹️",
