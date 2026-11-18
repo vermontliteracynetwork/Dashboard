@@ -20,7 +20,7 @@ import type { MCQuestion } from '../../types';
 // gets Yoga lost off the trail, then trash can monsters, then the angry Tire Stack. Level 2, the Whispering Woods (Build Queue 554): three Mushroom mini battles,
 // then the main battle (to be decided). Each level earns a new dog; the dog is picked at the start of a level and stays
 // for it; every dog levels up from play time to Master at level 10. Learn mode asks a question before each fight; Play
-// mode (open once today's streak and assignments are done, or outside school hours) skips the questions (Build Queue 658: the tap tap
+// mode (open once today's streak and assignments are done, or outside school hours) skips the questions (Build Queue 659: the tap tap
 // clicker mini game is gone, as are the mini challenges; Yoga stays on one path and only moves left and right). No blood: beaten
 // monsters poof into smoke and sparkles.
 
@@ -369,7 +369,7 @@ export default function YogasRevenge() {
   const playRef = useRef(playMode);
   playRef.current = playMode;
   const ask = useCallback((why: NonNullable<Gate>['why'], then: () => void) => {
-    // Build Queue 658 (her words: "remove mini game"): Play mode has no tap tap clicker any more; the fight just starts.
+    // Build Queue 659 (her words: "remove mini game"): Play mode has no tap tap clicker any more; the fight just starts.
     if (playRef.current) { then(); return; }
     paused.current = true;
     setQ(drawQuestion(questionSets) ?? generateAutoQuestion());
@@ -510,7 +510,7 @@ export default function YogasRevenge() {
       else if (st.kind === 'wave') ask('wave', startFight);
       else if (st.kind === 'mid') { g.active = true; paused.current = true; setTalk({ who: st.label, lines: st.intro, i: 0, then: () => ask('mid', startFight) }); }
       else if (st.kind === 'boss') { checkpoint('Boss ahead!'); ask('boss', startFight); }
-      // Build Queue 658: no mini challenges (the squirrel chase pulled Yoga up and down the road); the stage is skipped so
+      // Build Queue 659: no mini challenges (the squirrel chase pulled Yoga up and down the road); the stage is skipped so
       // saved games keep their place.
       else if (st.kind === 'mini') { void startMini; nextStage(); }
       else if (st.kind === 'dash') { g.active = true; paused.current = true; setOffer(true); }
@@ -578,7 +578,7 @@ export default function YogasRevenge() {
       let md = (keys.current.arrowdown || keys.current.s ? 1 : 0) - (keys.current.arrowup || keys.current.w ? 1 : 0);
       if (stick.current.on) { mx = stick.current.x; md = stick.current.y; }
       md = 0; // Build Queue 551 (her words: "dog character should ONLY go right and left"): one lane, no up and down.
-      p.d = PATH_D; // Build Queue 658 (her words: "one row/path horizontal game with no aility to move up/down"): always the one path
+      p.d = PATH_D; // Build Queue 659 (her words: "one row/path horizontal game with no aility to move up/down"): always the one path
       if (p.ko || p.chase > 0) { mx = 0; md = 0; }
       const slow = p.atk > 0 && p.z === 0 ? 0.25 : 1;
       // Build Queue 553 (her words: "if walk is 1x, creep would be .5, run would be 1.5 and zoomies would be sprinting at 2x speed"): how far the knob is pushed picks the gait.
@@ -651,7 +651,7 @@ export default function YogasRevenge() {
       });
       // Build Queue 567: everything is reachable: monsters walk on the dog's one path (the separation below only nudges them along it).
       g.foes.forEach((e) => { e.d = p.d; });
-      g.shots.forEach((s) => { s.d = p.d; }); g.picks.forEach((k) => { k.d = p.d; }); // 658: shots and pick ups stay on the path too
+      g.shots.forEach((s) => { s.d = p.d; }); g.picks.forEach((k) => { k.d = p.d; }); // 659: shots and pick ups stay on the path too
       for (let i = 0; i < g.foes.length; i++) for (let j = i + 1; j < g.foes.length; j++) {
         const a = g.foes[i], b = g.foes[j]; if (a.hp <= 0 || b.hp <= 0) continue;
         if (Math.abs(a.x - b.x) < 22) { const push = (22 - Math.abs(a.x - b.x)) / 2 * (a.x < b.x ? 1 : -1); a.x -= push; b.x += push; }
@@ -1101,7 +1101,7 @@ export default function YogasRevenge() {
   const stickMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const st = stick.current; if (!st.on || e.pointerId !== st.id) return;
     const dx = (e.clientX - st.ox) / 50, dy = (e.clientY - st.oy) / 50, len = Math.hypot(dx, dy);
-    st.x = Math.max(-1, Math.min(1, dx)); st.y = 0; void len; setHud((n) => n + 1); // 658: the knob only slides left and right
+    st.x = Math.max(-1, Math.min(1, dx)); st.y = 0; void len; setHud((n) => n + 1); // 659: the knob only slides left and right
   };
   const stickUp = () => { stick.current = { ...stick.current, on: false, x: 0, y: 0 }; setHud((n) => n + 1); };
   const unlocked = (id: DogId) => save.cleared >= DOGS[id].from;
