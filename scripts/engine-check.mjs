@@ -1,5 +1,6 @@
-// Runs the Symbolic Grammar Engine's checks against the engine version this project installs (package.json pins the
-// same commit of github.com/vermontliteracynetwork/symbolic-grammar-engine as Literacy Manipulatives). Runs before
+// Runs the Symbolic Grammar Engine's checks against the engine version this project installs (package.json pins a
+// commit of github.com/vermontliteracynetwork/symbolic-grammar-engine, her curriculum, the only thing shared with
+// Literacy Manipulatives). Runs before
 // every build: if any check fails, the dashboard is not built or published.
 import { execSync } from 'node:child_process';
 import path from 'node:path';

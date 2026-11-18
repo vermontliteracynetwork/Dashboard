@@ -1,9 +1,12 @@
 // The Symbolic Grammar Engine (her request 2026-11-13: "use the same grammar engine for all my ongoing projects for
 // symbolic grammar and literacy manipulatives"). This file used to hold the dashboard's own copy of the word type
 // engine (Build Queue 597). Now every word's type comes from the one shared engine,
-// github.com/vermontliteracynetwork/symbolic-grammar-engine (pinned in package.json, the same commit as Literacy
-// Manipulatives), so a word gets the same symbol in every project. Its rules are in the engine's RULES.md, and its
-// checks run before every build here (scripts/engine-check.mjs).
+// github.com/vermontliteracynetwork/symbolic-grammar-engine (pinned in package.json), so a word gets the same symbol in
+// every project. Its rules are in the engine's RULES.md, and its checks run before every build here
+// (scripts/engine-check.mjs).
+// Her rule (2026-11-18): the dashboard's own engine is completely different from Literacy Manipulatives; the only thing
+// they share is the Symbolic Grammar Engine (her curriculum). Games, the Dictionary and Thesaurus, pictures and every
+// other part of the dashboard are the dashboard's own; never copy code from Literacy Manipulatives.
 //
 // The names below stay the same, so the screens that use them (symbol sentences, Word Tools, the Symbol Set editor)
 // did not change:

@@ -60,7 +60,7 @@ Students open both tools from the main menu's tools. Both now open big, like the
 
 ## Part 2. Notes for Literacy Manipulatives (her site)
 
-- **Same engine already.** Literacy Manipulatives runs the same `wordTypes.ts`, with WordNet as `public/writer/pos.json`. The symbol bubbles and Write mode already check words with it (Build Queue 597, branch `claude/word-types-597`).
+- **Only the curriculum is shared (her rule, 2026-11-18).** The dashboard and Literacy Manipulatives share only the Symbolic Grammar Engine: her symbols, formulas and the rules for a word's job. This silly dashboard Dictionary and Thesaurus, its easter eggs and pictures stay the dashboard's own; Literacy Manipulatives builds its own professional dictionary tools on the same engine.
 - **Look it up panel.**
   - A side panel in her board style, with no mascots, or with an optional "friendly mode".
   - The part of speech drop downs use her real symbol shapes, not just colors.
@@ -106,7 +106,7 @@ Each source's license needs a final check before any public launch.
 
 | Piece | What we use now | Commercial status (verify before launch) | Plan for the public version |
 |---|---|---|---|
-| Word type engine | The Symbolic Grammar Engine (its own repository, github.com/vermontliteracynetwork/symbolic-grammar-engine), installed at the same pinned version in the dashboard and Literacy Manipulatives; `wordTypes.ts` here is a thin layer over it | Ours | Keep. It is the core of every app. Its rules are in its `RULES.md`; its checks run before every build. |
+| Word type engine | The Symbolic Grammar Engine (its own repository, github.com/vermontliteracynetwork/symbolic-grammar-engine), her curriculum, the only thing the dashboard and Literacy Manipulatives share; `wordTypes.ts` here is a thin layer over it | Ours | Keep. It is the core of every app. Its rules are in its `RULES.md`; its checks run before every build. |
 | Part of speech dictionary | WordNet 3.0 (Princeton), about 42,000 everyday words, `pos.json` | WordNet's license allows commercial use with its copyright notice kept (`WORDNET-LICENSE.txt`) | Keep, and ship the notice. |
 | Spelling word list | SCOWL-based list (Literacy Manipulatives) and `public/words/english.txt` (dashboard) | Permissive licenses kept beside each file | Keep, with the notices. |
 | Definitions | dictionaryapi.dev (free, no key; its text comes from Wiktionary) | Wiktionary text is CC BY-SA (needs attribution and share-alike). The API is a free hobby service with no uptime promise. | Self-host a Wiktionary extract with attribution, or license a dictionary (Merriam-Webster or Oxford APIs are paid). Kid-safe definitions may need our own edited set. |
@@ -150,6 +150,7 @@ Gilbert the Fish, Thesaurus Rex and the chicken riding the pig are original draw
 ## Change log of this doc
 
 - **2026-11-13:** The word type engine moved into its own repository, the Symbolic Grammar Engine, shared by the dashboard and Literacy Manipulatives at one pinned version (638). The dashboard's `wordTypes.ts` keeps its names but now asks the shared engine, so a word gets the same symbol in every project; the engine's checks run before every build.
+- **2026-11-18:** Her rule: only the Symbolic Grammar Engine (the curriculum) is shared with Literacy Manipulatives (657). The engine became curriculum only (1.4.0); the dashboard's Dictionary and Thesaurus stay its own, and the symbol sentence deck now comes from the engine instead of a copy of Literacy Manipulatives' file.
 
 - **2026-11-11:** Gilbert's Picture Dictionary (608): six picture pages with 108 pictures shipped to preview, with next ideas, notes for Literacy Manipulatives and the curriculum, and where the pictures come from.
 - **2026-11-11:** The Oxford Picture Dictionary repo was checked and is not usable. Added a picture dictionary idea (599) and a list of commercial-friendly picture sources.
