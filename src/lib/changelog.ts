@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-yoga-one-path",
+    date: "2026-11-18",
+    icon: "🐕",
+    title: "Yoga's Revenge: one path",
+    body: "Yoga's Revenge is now one straight path: Yoga runs left and right only, and everything stays on the same path. The squirrel chase and the tap the bone game are gone, so you get right to the fights.",
+  },
+  {
     id: "2026-11-17-literacy-manipulatives-story-book",
     date: "2026-11-17",
     icon: "📖",
