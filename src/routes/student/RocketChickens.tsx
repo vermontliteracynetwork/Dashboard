@@ -15,7 +15,7 @@ import { useStore } from '../../store/store';
 // higher and faster flights and broken crates and stone towers earn coins for upgrades (cannons, launch power, fuel
 // tank, rocket power, helmet, chickens). Launch shows the speed in MPH; the flight shows distance in feet and
 // altitude. Each round ends when the chicken stops, with a round report (Distance, Altitude, Speed, Destruction, each
-// with its coins, and a Total) and a shop button. A day is the number of rounds the student picks (default 5), with
+// with its coins, and a Total) and a shop button. (660: no days now; each round is a new world from her backgrounds.) With
 // questions before each launch (default 1). Settings: a Graphics meter (Low, Medium, High) and a Save button.
 // Inspired lightly by gamedev-ariel/angrybirds (aim, launch, break the towers). Art: her Chicken Game Assets,
 // the Breakable Physics Wall blocks and the rural parallax layers (public/games/rocket-chickens/).
@@ -131,11 +131,30 @@ function makeWorld(seed: number): Block[] {
 const imgs: Record<string, HTMLImageElement> = {};
 const img = (n: string) => { if (!imgs[n]) { const i = new Image(); i.src = `${A}${n}.webp`; imgs[n] = i; } return imgs[n]; };
 const ready = (i: HTMLImageElement) => i.complete && i.naturalWidth > 0;
-const LAYERS: { n: string; f: number }[] = [{ n: 'sky', f: 0.01 }, { n: 'clouds', f: 0.04 }, { n: 'hills-far', f: 0.08 }, { n: 'mountain', f: 0.16 }, { n: 'village', f: 0.32 }];
+// Build Queue 660 (her words: "instead of new days, it just shows the other backgrounds for each round"): no days; every
+// round flies over the next world, made from her parallax packs (rural farm, desert, forest, ocean, iceberg, winter
+// night, above the clouds, city at night, the moon, the paper hills), back to the farm after the last.
+// layers: back to front; anchor: how far down the scene the ground line sits (1 = the bottom of the picture).
+type World = { id: string; name: string; layers: string[]; anchor: number; sky: [string, string]; ground: [string, string] };
+const lay = (id: string, n: number) => Array.from({ length: n }, (_, i) => `worlds/${id}/${i}`);
+const WORLDS: World[] = [
+  { id: 'farm', name: 'The Farm', layers: ['sky', 'clouds', 'hills-far', 'mountain', 'village'], anchor: 0.73, sky: ['#5b8fe0', '#bfe3ff'], ground: ['#7cc04a', '#9b6a3a'] },
+  { id: 'desert', name: 'The Desert', layers: lay('desert', 6), anchor: 1, sky: ['#5b8fe0', '#f6d6a8'], ground: ['#e9b27a', '#c98a52'] },
+  { id: 'forest', name: 'The Forest', layers: lay('forest', 7), anchor: 1, sky: ['#3a8fc0', '#bfe8ff'], ground: ['#3f8a3a', '#6b4a2b'] },
+  { id: 'ocean', name: 'The Beach', layers: lay('ocean', 7), anchor: 1, sky: ['#3b4f9a', '#f2a7b8'], ground: ['#e8c99a', '#c9a46e'] },
+  { id: 'iceberg', name: 'Iceberg Bay', layers: lay('iceberg', 8), anchor: 1, sky: ['#1f5f8a', '#7fc4e8'], ground: ['#e8f4fb', '#a8cfe3'] },
+  { id: 'winter', name: 'Winter Night', layers: lay('winter', 5), anchor: 1, sky: ['#0f1a3a', '#3a5a9a'], ground: ['#eef5fb', '#b9cce0'] },
+  { id: 'skies', name: 'Above the Clouds', layers: lay('skies', 9), anchor: 1, sky: ['#3a6fd0', '#bcd6ff'], ground: ['#f6f2ff', '#d9d2f2'] },
+  { id: 'citynight', name: 'City at Night', layers: lay('citynight', 7), anchor: 1, sky: ['#0d1b33', '#1f3557'], ground: ['#4a5160', '#2e333d'] },
+  { id: 'moon', name: 'The Moon', layers: lay('moon', 6), anchor: 1, sky: ['#05060a', '#1a1a22'], ground: ['#8a8a92', '#5a5a62'] },
+  { id: 'paper', name: 'Paper Hills', layers: lay('paper', 5), anchor: 1, sky: ['#f6c4a8', '#fde3d2'], ground: ['#e0705a', '#b8483a'] },
+];
+const worldOf = (round: number) => WORLDS[(Math.max(1, round) - 1) % WORLDS.length];
+const LAYER_F = (i: number, n: number) => 0.01 + (0.4 * i) / Math.max(1, n - 1);
 
 export default function RocketChickens() {
   const back = useBack();
-  const { ask, element, pay, student, asking, settingsPanel, rounds, learn } = useAsk('Rocket Chickens', '🐔', 'rocketChickens', { startCard: false, rounds: { min: 1, max: 10, def: 5 }, roundsLabel: 'Rounds each day', perLabel: 'Questions each round' });
+  const { ask, element, pay, student, asking, settingsPanel, learn } = useAsk('Rocket Chickens', '🐔', 'rocketChickens', { startCard: false, perLabel: 'Questions each round' });
   const studentId = student?.id ?? '';
   const owner = studentId ? `rocketchickens:${studentId}` : '';
   const localKey = `rocketchickens:${studentId}`;
@@ -192,7 +211,7 @@ export default function RocketChickens() {
   };
   const loadCannon = () => {
     newRound(); setPhase('ready'); setReport(null);
-    ask(`Rocket Chickens: answer to load the cannon (round ${sRef.current.round} of ${rounds})`, () => { setPhase('aim'); sfx.pop(); }, () => setPhase('ready'));
+    ask(`Rocket Chickens: answer to load the cannon (round ${sRef.current.round}, ${worldOf(sRef.current.round).name})`, () => { setPhase('aim'); sfx.pop(); }, () => setPhase('ready'));
   };
 
   const fire = () => {
@@ -215,9 +234,9 @@ export default function RocketChickens() {
     const dist = Math.max(0, Math.round(w.x)), alt = Math.round(w.maxAlt), mph = Math.round(w.maxMph * MPH);
     const coins = { dist: Math.round(dist / 8), alt: Math.round(alt / 6), mph: Math.round(mph / 3), broke: w.broke * 4 + w.targets * 15, gems: w.gemCoins };
     const total = coins.dist + coins.alt + coins.mph + coins.broke + coins.gems;
-    const dayEnd = s.round >= rounds;
+    const dayEnd = false; // 660: no days any more, every round is the next world
     if (dist > s.best && studentId) recordBestGame(studentId, 'rocketChickens', dist, `${alt} ft high, ${mph} MPH`);
-    put({ coins: s.coins + total, best: Math.max(s.best, dist), round: dayEnd ? 1 : s.round + 1, day: dayEnd ? s.day + 1 : s.day });
+    put({ coins: s.coins + total, best: Math.max(s.best, dist), round: s.round + 1 });
     setReport({ round: s.round, day: s.day, dist, alt, mph, broke: w.broke + w.targets, targets: w.targets, gems: w.gemN, coins, total, dayEnd });
     setPhase('report'); sfx.coin();
   };
@@ -229,7 +248,7 @@ export default function RocketChickens() {
     if (!started) return;
     const cv = canvasRef.current; if (!cv) return;
     const ctx = cv.getContext('2d'); if (!ctx) return;
-    LAYERS.forEach((l) => img(l.n)); CHICKENS.forEach((c) => img(c.id)); ['crate', 'stone', 'target', 'earth', ...GEMS.map((g) => `gem-${g.c}`)].forEach(img);
+    WORLDS.forEach((wd) => { if (wd.id === worldOf(sRef.current.round).id) wd.layers.forEach((l) => img(l)); }); CHICKENS.forEach((c) => img(c.id)); ['crate', 'stone', 'target', 'earth', ...GEMS.map((g) => `gem-${g.c}`)].forEach(img);
     img(jetImg(sRef.current.jet, sRef.current.paint));
     let raf = 0; let last = performance.now(); let hudT = 0;
     const dpr = gfx === 'low' ? 1 : gfx === 'medium' ? Math.min(1.5, window.devicePixelRatio || 1) : Math.min(2, window.devicePixelRatio || 1);
@@ -337,24 +356,26 @@ export default function RocketChickens() {
       const gy = Hd * 0.86 + shake; w.groundY = gy;
       const X = (x: number) => (x - camX) * sc, Y = (y: number) => gy - y * sc;
       // sky
+      const wld = worldOf(roundRef.current);
       const g = ctx.createLinearGradient(0, 0, 0, gy);
-      g.addColorStop(0, w.y > 400 ? '#1d2a6b' : '#5b8fe0'); g.addColorStop(1, '#bfe3ff');
+      g.addColorStop(0, w.y > 400 && wld.id !== 'moon' ? '#1d2a6b' : wld.sky[0]); g.addColorStop(1, wld.sky[1]);
       ctx.fillStyle = g; ctx.fillRect(0, 0, Wd, Hd);
       if (gfx !== 'low') {
-        const lh = Hd * 1.05; const lw = lh * (1900 / 600);
+        const lh = Hd * 1.05;
         const zoom = sc / base;
-        for (const l of LAYERS) {
-          const im = img(l.n); if (!ready(im)) continue;
-          const off = ((camX * base * l.f) % lw + lw) % lw;
-          const top = gy - lh * 0.73 + (1 - zoom) * lh * 0.25 * l.f * 3;
+        wld.layers.forEach((n, i) => {
+          const im = img(n); if (!ready(im)) return;
+          const f = LAYER_F(i, wld.layers.length); const lw = lh * (im.naturalWidth / im.naturalHeight);
+          const off = ((camX * base * f) % lw + lw) % lw;
+          const top = gy - lh * wld.anchor + (1 - zoom) * lh * 0.25 * f * 3;
           for (let x = -off; x < Wd; x += lw) ctx.drawImage(im, x, top, lw, lh);
-        }
+        });
       }
-      // ground
-      ctx.fillStyle = '#7cc04a'; ctx.fillRect(0, gy, Wd, Hd - gy);
-      ctx.fillStyle = '#9b6a3a'; ctx.fillRect(0, gy + 10 * dpr, Wd, Hd - gy);
+      // ground, in the world's colors
+      ctx.fillStyle = wld.ground[0]; ctx.fillRect(0, gy, Wd, Hd - gy);
+      ctx.fillStyle = wld.ground[1]; ctx.fillRect(0, gy + 10 * dpr, Wd, Hd - gy);
       const earth = img('earth');
-      if (gfx === 'high' && ready(earth)) { const t = 40 * dpr; const o = ((camX * sc) % t + t) % t; for (let x = -o; x < Wd; x += t) for (let y = gy + 10 * dpr; y < Hd; y += t) ctx.drawImage(earth, 0, 40, 128, 88, x, y, t, t); }
+      if (gfx === 'high' && wld.id === 'farm' && ready(earth)) { const t = 40 * dpr; const o = ((camX * sc) % t + t) % t; for (let x = -o; x < Wd; x += t) for (let y = gy + 10 * dpr; y < Hd; y += t) ctx.drawImage(earth, 0, 40, 128, 88, x, y, t, t); }
       // distance signs every 100 feet
       ctx.font = `${Math.round(13 * dpr)}px system-ui, sans-serif`; ctx.textAlign = 'center';
       const step100 = sc * 100 < 60 * dpr ? 500 : 100;
@@ -424,6 +445,8 @@ export default function RocketChickens() {
   }, [started, gfx, calm, cannon.color, S.jet, S.paint, S.gear, S.glider]);
 
   const phaseRef = useRef(phase); phaseRef.current = phase;
+  // The world shown this round (660): read by the drawing loop, so a new round changes the scenery straight away.
+  const roundRef = useRef(S.round); if (phase !== 'report') roundRef.current = S.round;
   const launchSpeedRef = useRef(launchSpeed); launchSpeedRef.current = launchSpeed;
   const aimAt = useRef<{ x: number; y: number } | null>(null);
 
@@ -471,7 +494,7 @@ export default function RocketChickens() {
   };
   const canAfford = useMemo(() => UPS.some((u) => S.up[u.id] < u.max && S.coins >= upCost(u.id, S.up[u.id])) || CANNONS.some((c) => !S.cannons.includes(c.id) && S.coins >= c.cost) || JETPACKS.some((j) => !S.jets.includes(j.id) && S.coins >= j.cost) || GLIDERS.some((g) => !S.gliders.includes(g.id) && S.coins >= g.cost), [S]);
 
-  const reportWords = (r: Report) => `${r.dayEnd ? `End of day ${r.day}.` : `Round ${r.round} report.`} Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
+  const reportWords = (r: Report) => `Round ${r.round}, ${worldOf(r.round).name}. Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
   const menu = useMemo(() => [{ id: 'rc-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
   const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack (with a glider on too, the stick swoops with no fuel: dive for speed, pull up to climb, and hold the Jetpack button for a push), or down to dive (or tap above or below the chicken). The jetpack uses fuel. Catch gems for bonus coins. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
 
@@ -484,7 +507,7 @@ export default function RocketChickens() {
       <header className="fd-head rc-head">
         <LeaveButton onLeave={leave} note="Your coins and upgrades are kept on this iPad (tap Save to keep them everywhere), and your right answers are paid." />
         <strong className="rc-title">Rocket Chickens</strong>
-        <span className="rc-pill">Day {S.day} · Round {S.round} of {rounds}</span>
+        <span className="rc-pill">Round {S.round} · {worldOf(phase === 'report' && report ? report.round : S.round).name}</span>
         <button type="button" className="btn" disabled={phase === 'fly'} onClick={() => put({ gear: S.gear === 'glider' ? 'jet' : 'glider' })} aria-label={S.gear === 'glider' ? 'Glider on with the jetpack. Tap to take the glider off.' : 'Jetpack only. Tap to add your glider.'}>{S.gear === 'glider' ? `Jetpack + ${(GLIDERS.find((g) => g.id === S.glider) ?? GLIDERS[0]).name}` : 'Jetpack only'}</button>
         <span className={`rc-pill${learn ? ' rc-learn' : ''}`}>{learn ? 'Learn mode' : 'Play mode'}</span>
         <span className="rc-pill rc-coins"><i className="rc-coin" aria-hidden />{S.coins.toLocaleString()} coins</span>
@@ -528,7 +551,7 @@ export default function RocketChickens() {
             <div className="rc-row spd"><span>Speed</span><b>{report.mph} MPH</b><em>{report.coins.mph}</em></div>
             <div className="rc-row dst"><span>Destruction</span><b>{report.broke}</b><em>{report.coins.broke}</em></div>
             {report.gems > 0 && <div className="rc-row gem"><span>Gems</span><b>{report.gems}</b><em>{report.coins.gems}</em></div>}
-            <div className="rc-row last"><span className="rc-day">{report.dayEnd ? `End of Day ${report.day}` : `Round ${report.round} of ${rounds}`}</span><span className="rc-total">Total <i className="rc-coin" aria-hidden />{report.total}</span></div>
+            <div className="rc-row last"><span className="rc-day">{`Round ${report.round}`}<small className="rc-world">{worldOf(report.round).name}{` · next: ${worldOf(report.round + 1).name}`}</small></span><span className="rc-total">Total <i className="rc-coin" aria-hidden />{report.total}</span></div>
             <button type="button" className="btn rc-say" onClick={() => speak(reportWords(report), student.ttsSettings)} aria-label="Read the report aloud">🔊</button>
           </div>
           <div className="rc-report-btns">

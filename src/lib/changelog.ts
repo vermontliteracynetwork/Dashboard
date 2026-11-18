@@ -23,6 +23,27 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "Open Game Builder on the Computer to make your own game projects. Pick a Platformer, Match Three, Clicker, Maze Chase, or Custom, then name it and save it. Azalea helps you build it step by step: your idea, the design, the game logic and play testing. Snap Scratch blocks together, or tell Azalea what you want by typing or talking. Be specific! The specific meter shows when you said what to change and how much. Tap Play to test your game any time.",
   },
   {
+    id: "2026-11-18-learn-school-time",
+    date: "2026-11-18",
+    icon: "🎮",
+    title: "Learn mode in school time",
+    body: "Games start in Learn mode. On school days from 7am to 3pm, Learn mode stays on. After 3pm and on weekends, you can switch to Play mode in the game's settings.",
+  },
+  {
+    id: "2026-11-18-rocket-chickens-worlds",
+    date: "2026-11-18",
+    icon: "🐔",
+    title: "Rocket Chickens: a new world every round",
+    body: "Every round of Rocket Chickens flies over a new place: the farm, a desert, a forest, a beach, an iceberg bay, a winter night, above the clouds, a city at night, the moon and paper hills. The round report tells you where you are going next.",
+  },
+  {
+    id: "2026-11-18-yoga-one-path",
+    date: "2026-11-18",
+    icon: "🐕",
+    title: "Yoga's Revenge: one path",
+    body: "Yoga's Revenge is now one straight path: Yoga runs left and right only, and everything stays on the same path. The squirrel chase and the tap the bone game are gone, so you get right to the fights.",
+  },
+  {
     id: "2026-11-17-literacy-manipulatives-story-book",
     date: "2026-11-17",
     icon: "📖",

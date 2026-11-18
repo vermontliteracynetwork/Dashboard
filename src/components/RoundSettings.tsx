@@ -9,7 +9,7 @@ export default function RoundSettings({ roundsLabel = 'Rounds', perLabel = 'Ques
 }) {
   // Learn mode / Play mode (Build Queue 645) sits on top; in Play mode the question sliders do not apply.
   const lp = useLearnPlayState();
-  const play = lp.active > 0 && !lp.locked && !lp.learn;
+  const play = lp.active > 0 && !lp.locked && !lp.school && !lp.learn;
   return (
     <div className={`round-settings${locked ? ' locked' : ''}`}>
       <LearnPlayAuto />
