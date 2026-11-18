@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-literacy-manipulatives-lessons",
+    date: "2026-11-18",
+    icon: "🧩",
+    title: "Literacy Manipulatives: join your teacher's lesson",
+    body: "When your teacher shares a lesson, open Literacy Manipulatives on the Computer, go to Join and type the code (or open the link your teacher sends, then just type your name). Your screen follows your teacher. When it says Your turn, do the activity yourself: type your sentence or build it with word tiles, then add the capital letter and the punctuation. Tap I need help or I need a break any time. Word Explorer now has Word Jobs: words that can be more than one part of speech, and how to tell which one it is.",
+  },
+  {
     id: "2026-11-18-game-builder-library",
     date: "2026-11-18",
     icon: "🖼️",
