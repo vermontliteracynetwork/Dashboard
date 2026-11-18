@@ -320,3 +320,58 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
 .gbd-row small { color: #5f5f78; }
 .gbd-row.by-azalea b { color: #4f46b8; }
 @media (max-width: 700px) { .gbd-row { grid-template-columns: 1fr; gap: 2px; } }
+
+/* ===== 681 to 683 ===== */
+.gbx-top-slim { padding: 6px 12px; }
+.gbx-top-slim h1 { font-size: 1.2rem; }
+.gbx-top-slim .gbx-btn { min-height: 44px; padding: 6px 14px; }
+.gbx-topright { gap: 8px; flex-wrap: nowrap; }
+.gbx-menuwrap { position: relative; }
+.gbx-menubtn { display: inline-flex; align-items: center; gap: 6px; }
+.gbx-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 40; min-width: 230px; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); padding: 6px; }
+.gbx-menu button { min-height: 48px; text-align: left; padding: 8px 12px; border: 0; border-radius: 8px; background: none; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; }
+.gbx-menu button:active { background: var(--accent-soft); }
+.gbx-main { gap: 0; padding: 8px 8px 0; }
+.gbx-resize-v { cursor: col-resize; touch-action: none; position: relative; }
+.gbx-resize-v::after { content: ''; position: absolute; left: 3px; right: 3px; top: 40%; height: 48px; border-radius: 3px; background: #d6d6e2; }
+.gbx-fold-tab { height: 100%; width: 52px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 12px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; }
+.gbx-fold-tab span { writing-mode: vertical-rl; }
+.gbx-iconbtn { display: inline-grid; place-items: center; min-width: 44px; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink); cursor: pointer; padding: 0; }
+.gbx-iconbtn:disabled { opacity: 0.4; cursor: default; }
+.gbx-round { border-radius: 50%; width: 52px; height: 52px; }
+.gbx-send { background: var(--accent); border-color: var(--accent); color: #fff; }
+.gbx-off { opacity: 0.35; }
+.gbx-then { display: block; margin-top: 2px; }
+.gbx-dots { display: inline-flex; gap: 6px; }
+.gbx-dots i { width: 12px; height: 12px; border-radius: 50%; background: #e2e2ec; }
+.gbx-dots i.on { background: var(--accent); }
+.gbx-stage > b { display: flex; align-items: center; gap: 8px; color: var(--soft); padding: 6px 0; }
+.gbx-stage.open > b { color: var(--ink); }
+.gbx-stage > b .gbx-mark { color: var(--soft); font-size: 0.8rem; }
+.gbx-stage > b .gbx-mark.all { background: #3b7a57; border-color: #3b7a57; color: #fff; }
+.gbx-stage li.gbx-small { font-size: 0.85rem; padding: 2px 8px; }
+.gbx-iconbtn svg { pointer-events: none; }
+.gbx-chat { position: relative; gap: 6px; padding: 8px 10px; margin: 8px; }
+.gbx-chat.folded { padding: 6px 10px; }
+.gbx-resize-h { position: absolute; left: 40%; right: 40%; top: -6px; height: 12px; cursor: row-resize; touch-action: none; }
+.gbx-resize-h::after { content: ''; position: absolute; left: 0; right: 0; top: 4px; height: 4px; border-radius: 3px; background: #d6d6e2; }
+.gbx-azline { display: flex; align-items: flex-start; gap: 8px; }
+.gbx-azmsg { flex: 1; overflow-y: auto; font-size: 1.08rem; line-height: 1.4; font-weight: 600; padding: 8px 10px; background: var(--accent-soft); border-radius: 12px; }
+.gbx-chat.folded .gbx-azmsg { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gbx-azmsg b { color: var(--accent); }
+.gbx-compose { align-items: center; }
+.gbx-compose textarea { min-height: 52px; }
+.gbx-allmsgs { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.gbx-allmsgs-list { flex: 1; overflow-y: auto; padding: 12px 18px; }
+.gbx-allmsgs-list p { margin: 6px 0; line-height: 1.4; }
+.gbx-allmsgs-list p.azalea b { color: var(--accent); }
+.gbx-sliders label { display: flex; flex-direction: column; gap: 6px; font-weight: 700; font-size: 1.1rem; width: min(520px, 100%); }
+.gbx-sliders input[type=range] { width: 100%; min-height: 44px; accent-color: var(--accent); }
+.gbx-az-corner { width: 104px; height: 104px; }
+@media (orientation: portrait) {
+  .gbx-main { grid-template-columns: 1fr !important; grid-template-rows: 1fr auto; }
+  .gbx-resize-v { display: none; }
+  .gbx-side { max-height: 200px; }
+  .gbx-fold-tab { height: auto; width: 100%; flex-direction: row; padding: 8px 12px; }
+  .gbx-fold-tab span { writing-mode: horizontal-tb; }
+}

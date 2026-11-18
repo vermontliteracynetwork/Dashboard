@@ -11,7 +11,7 @@ import {
 } from '../../lib/gameBuilder/model';
 import { deleteProject, logRequest, markUndone, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
 import { applyAnswer, askAzalea } from '../../lib/gameBuilder/azalea';
-import { STAGES, STAGE_NAMES, currentTask, tasksFor, type Task } from '../../lib/gameBuilder/checklist';
+import { STAGES, STAGE_NAMES, anotherRound, buildRequest, currentTask, tasksFor, type Task } from '../../lib/gameBuilder/checklist';
 import { createWorkspace, loadRules, readRules, SB, setExtraSounds, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
 import { PictureLibrary } from './GameBuilderLibrary';
 import DevLogView from './GameBuilderDevLog';
@@ -97,7 +97,7 @@ function ProjectList({ projects, onOpen, onBack, backLabel, onNew, studentId }: 
                   <b>{p.name}</b>
                   <small>{KIND_INFO[p.kind].label}</small>
                 </button>
-                <button type="button" className="gbx-link" onClick={() => { setOptions(p.id); setRenaming(p.name); }}>Rename or delete</button>
+                <button type="button" className="gbx-link" onClick={() => { setOptions(p.id); setRenaming(p.name); }}>Edit</button>
               </>}
             </div>
           ))}
@@ -154,18 +154,28 @@ function NewProject({ studentId, onCancel, onMade }: { studentId: string; onCanc
 }
 
 // ---------- Editor ----------
+// Build Queue 681: Azalea walks the student through each step (one instruction at a time, "I did it", then Next);
+// the checklist and the chat can be folded away and resized; the top bar is slim; all messages open in the work area.
 type ToolTab = 'blocks' | 'look' | 'sound' | 'settings';
+const LS = { get: (k: string, d: number) => { try { const v = Number(localStorage.getItem(k)); return v > 0 ? v : d; } catch { return d; } }, set: (k: string, v: number) => { try { localStorage.setItem(k, String(v)); } catch { /* fine */ } } };
+
 function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
   const [p, setP] = useState<GameProject>(initial);
   const [playing, setPlaying] = useState(false);
   const [loose, setLoose] = useState(0);
   const [lastReq, setLastReq] = useState<BuildRequest | null>(null);
   const [tools, setTools] = useState<ToolTab | null>(null);
+  const [history, setHistory] = useState(false);
   const [voiceOn, setVoiceOn] = useState(true);
+  const [sideOpen, setSideOpen] = useState(true);
+  const [menu, setMenu] = useState(false);
+  const [sideW, setSideW] = useState(() => LS.get('gbx-side-w', 300));
   const latest = useRef(p); latest.current = p;
   useEffect(() => { const t = window.setTimeout(() => saveProject(studentId, latest.current), 600); return () => window.clearTimeout(t); }, [p, studentId]);
   useEffect(() => () => saveProject(studentId, latest.current), [studentId]);
   const update = (f: (q: GameProject) => GameProject) => setP((q) => f(q));
+  const sendRef = useRef<(text: string) => void>(() => {});
+
   // The dev log (679): changes are written down a moment after they happen, as the student's or Azalea's.
   const logged = useRef(initial);
   const azaleaUntil = useRef(0);
@@ -182,70 +192,115 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   const tasks = tasksFor(p);
   const task = currentTask(p);
   const idx = task ? tasks.findIndex((t) => t.id === task.id) : tasks.length;
-  // Azalea says each task once, when it comes up.
+  const nextTask = task ? tasks.slice(idx + 1).find((t) => !(p.doneTasks ?? []).includes(t.id)) : null;
+  // Azalea's walk through this step: one instruction at a time (task analysis).
+  const [walk, setWalk] = useState(0);
+  const praise = useRef('');
+  useEffect(() => { setWalk(0); }, [task?.id]);
   useEffect(() => {
     if (!task) return;
+    const line = task.walk[Math.min(walk, task.walk.length - 1)];
+    const text = walk === 0 && praise.current ? `${praise.current} ${line}` : line;
+    if (walk === 0) praise.current = '';
     setP((q) => {
       const last = [...q.chat].reverse().find((m) => m.from === 'azalea');
       const step = STEP_OF[task.stage];
-      if (last?.text === task.say) return q.step === step ? q : { ...q, step };
-      return { ...q, step, chat: [...q.chat, { id: newId(), from: 'azalea', text: task.say, at: new Date().toISOString() }] };
+      if (last?.text === text) return q.step === step ? q : { ...q, step };
+      return { ...q, step, chat: [...q.chat, { id: newId(), from: 'azalea', text, at: new Date().toISOString() }] };
     });
-  }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [task?.id, walk]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Least-to-most prompting: if nothing happens for 20 seconds, Azalea offers tap-in answers.
+  const [help, setHelp] = useState(false);
+  useEffect(() => { setHelp(false); const t = window.setTimeout(() => setHelp(true), 20000); return () => window.clearTimeout(t); }, [task?.id, walk, p.chat.length]);
   // Read Azalea's newest message aloud (not old ones on opening).
   const said = useRef(new Set<string>(initial.chat.map((m) => m.id)));
   useEffect(() => {
     const last = p.chat[p.chat.length - 1];
     if (voiceOn && last?.from === 'azalea' && !said.current.has(last.id)) { said.current.add(last.id); speak(last.text, tts, undefined, VOICE); }
   }, [p.chat, voiceOn, tts]);
-  const finishTask = () => { if (task) update((q) => withLog({ ...q, doneTasks: [...new Set([...(q.doneTasks ?? []), task.id])] }, [{ kind: 'step', by: 'student', text: `${task.ready(q) ? 'Finished' : 'Skipped'}: ${task.label}` }])); };
-  const nowText = task ? task.say : 'Your game is finished. You can keep changing it with all the tools, and play test it again.';
+
+  const finishTask = () => {
+    if (!task) return;
+    praise.current = task.ready(p) ? task.praise : 'Okay, we can come back to that.';
+    update((q) => withLog({ ...q, doneTasks: [...new Set([...(q.doneTasks ?? []), task.id])] }, [{ kind: 'step', by: 'student', text: `${task.ready(q) ? 'Finished' : 'Skipped'}: ${task.label}` }]));
+  };
+  const lastStep = task ? walk >= task.walk.length - 1 : true;
+  const nowText = task ? task.walk[Math.min(walk, task.walk.length - 1)] : 'Your game is finished. You can keep changing it with all the tools, and play test it again.';
   useMenuItems([{ id: 'gb-now', icon: '?', label: 'What do I do now?', bg: '#5b4fc7', order: 5, onSelect: () => speak(nowText, tts, undefined, VOICE) }]);
-  const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
   const showTools = tools ?? (task ? null : 'blocks');
+
+  // Drag the line between the work and the checklist to resize the checklist.
+  const dragSide = (e: React.PointerEvent) => {
+    e.preventDefault(); const move = (ev: PointerEvent) => { const w = Math.max(200, Math.min(520, window.innerWidth - ev.clientX - 12)); setSideW(w); LS.set('gbx-side-w', w); };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  };
 
   return (
     <div className="gbx gbx-editor">
-      <header className="gbx-top">
+      <header className="gbx-top gbx-top-slim">
         <button type="button" className="gbx-btn" onClick={() => { saveProject(studentId, latest.current); onClose(); }}>My games</button>
         <h1 className="gbx-name-title">{p.name}</h1>
-        <button type="button" className="gbx-btn gbx-primary" onClick={() => setPlaying(true)}>Play</button>
+        <div className="gbx-row gbx-topright">
+          <div className="gbx-menuwrap">
+            <button type="button" className="gbx-btn gbx-menubtn" onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-label="Menu"><MenuIcon /> Menu</button>
+            {menu && (
+              <div className="gbx-menu" role="menu">
+                {showTools
+                  ? (task && <button type="button" role="menuitem" onClick={() => { setTools(null); setMenu(false); }}>Back to the checklist</button>)
+                  : <button type="button" role="menuitem" onClick={() => { setTools('blocks'); setMenu(false); }}>All tools</button>}
+                <button type="button" role="menuitem" onClick={() => { setShowLog(true); setMenu(false); }}>My dev log</button>
+                <button type="button" role="menuitem" onClick={() => { setHistory((h) => !h); setMenu(false); }}>{history ? 'Hide all messages' : 'All messages'}</button>
+                <button type="button" role="menuitem" onClick={() => { speak(nowText, tts, undefined, VOICE); setMenu(false); }}>What do I do now?</button>
+                <button type="button" role="menuitem" onClick={() => { setSideOpen((o) => !o); setMenu(false); }}>{sideOpen ? 'Hide the checklist' : 'Show the checklist'}</button>
+              </div>
+            )}
+          </div>
+          <button type="button" className="gbx-btn gbx-primary" onClick={() => setPlaying(true)}>Play</button>
+        </div>
       </header>
-      <div className="gbx-main">
+      <div className="gbx-main" style={{ gridTemplateColumns: sideOpen ? `1fr 10px ${sideW}px` : '1fr 10px 52px' }}>
         <section className="gbx-work" aria-label="Work area">
-          {showTools ? (
+          {history ? (
+            <div className="gbx-allmsgs">
+              <div className="gbx-taskhead gbx-row"><h2 className="gbx-grow">All messages</h2><button type="button" className="gbx-btn" onClick={() => setHistory(false)}>Back to my game</button></div>
+              <div className="gbx-allmsgs-list">{p.chat.map((m) => <p key={m.id} className={m.from}><b>{m.from === 'azalea' ? 'Azalea' : 'You'}:</b> {m.text}</p>)}</div>
+            </div>
+          ) : showTools ? (
             <ToolsView p={p} update={update} tab={showTools} setTab={setTools} setLoose={setLoose} onChecklist={task ? () => setTools(null) : undefined} />
           ) : task && <>
             <div className="gbx-taskhead">
               <small>{STAGE_NAMES[task.stage]} · step {idx + 1} of {tasks.length}</small>
-              <h2>{task.label}</h2>
+              <h2>Now: {task.label}{task.optional ? ' (if you want)' : ''}</h2>
+              {nextTask && <small className="gbx-then">Then: {nextTask.label}</small>}
             </div>
-            <div className="gbx-taskbody"><TaskWork p={p} task={task} update={update} setLoose={setLoose} onPlay={() => setPlaying(true)} /></div>
+            <div className="gbx-taskbody"><TaskWork p={p} task={task} update={update} setLoose={setLoose} onPlay={() => setPlaying(true)} onBuild={() => sendRef.current(buildRequest(p))} /></div>
             <div className="gbx-taskfoot">
+              <span className="gbx-dots" aria-label={`Instruction ${walk + 1} of ${task.walk.length}`}>{task.walk.map((_, i) => <i key={i} className={i <= walk ? 'on' : ''} />)}</span>
+              <span className="gbx-grow" />
               {task.optional && <button type="button" className="gbx-link" onClick={finishTask}>Skip this step</button>}
-              <button type="button" className="gbx-btn gbx-primary gbx-big" disabled={!task.ready(p)} onClick={finishTask}>{task.ready(p) ? 'Next' : task.tool === 'play' ? 'Play first, then Next' : task.tool === 'chat' ? 'Answer Azalea first' : 'Next'}</button>
+              {!lastStep && !task.ready(p)
+                ? <button type="button" className="gbx-btn gbx-primary gbx-big" onClick={() => setWalk((w) => w + 1)}>I did it</button>
+                : <button type="button" className="gbx-btn gbx-primary gbx-big" disabled={!task.ready(p)} onClick={finishTask}>{task.ready(p) ? 'Next' : task.tool === 'play' ? 'Play first' : task.tool === 'chat' ? 'Answer Azalea first' : task.tool === 'build' ? 'Build it first' : task.tool === 'ready' ? 'Pick one above' : 'Next'}</button>}
             </div>
           </>}
         </section>
-        <aside className="gbx-side" aria-label="Azalea and your checklist">
-          <div className="gbx-azalea">
-            <div className="gbx-bubble"><b className="gbx-who">Azalea says</b>
-              <p>{lastAz?.text}</p>
-              <div className="gbx-row">{lastAz && <Listen text={lastAz.text} tts={tts} />}<button type="button" className="gbx-link" onClick={() => setVoiceOn((v) => !v)}>{voiceOn ? 'Voice on' : 'Voice off'}</button></div>
-            </div>
-          </div>
-          <Checklist p={p} tasks={tasks} current={task} toolsLink={<div className="gbx-row">{!showTools && <button type="button" className="gbx-link" onClick={() => setTools('blocks')}>Open all tools</button>}<button type="button" className="gbx-link" onClick={() => setShowLog(true)}>My dev log</button></div>} />
+        <div className="gbx-resize-v" onPointerDown={dragSide} role="separator" aria-orientation="vertical" aria-label="Drag to resize the checklist" />
+        <aside className="gbx-side" aria-label="Your checklist">
+          {sideOpen
+            ? <Checklist p={p} tasks={tasks} current={task} onFold={() => setSideOpen(false)} />
+            : <button type="button" className="gbx-fold-tab" onClick={() => setSideOpen(true)} aria-label="Open the checklist"><Chevron dir="left" /><span>Checklist</span></button>}
         </aside>
       </div>
-      {/* Her rule (678): Azalea's picture sits in the bottom right corner, to the right of the chat bar. */}
       <div className="gbx-bottom">
-        <ChatBar p={p} setP={setP} studentId={studentId} task={task} loose={loose} lastReq={lastReq} setLastReq={setLastReq} onAzalea={() => { azaleaUntil.current = Date.now() + 2500; }} />
+        <ChatBar p={p} setP={setP} studentId={studentId} task={task} loose={loose} lastReq={lastReq} setLastReq={setLastReq} help={help} tts={tts}
+          voiceOn={voiceOn} setVoiceOn={setVoiceOn} history={history} setHistory={setHistory} sendRef={sendRef} onAzalea={() => { azaleaUntil.current = Date.now() + 2500; }} />
         <img className="gbx-az-corner" src={AZ_IMG} alt="Azalea the cat" />
       </div>
       {playing && <Player p={p} onClose={(result) => {
         setPlaying(false);
         update((q) => withLog({ ...q, plays: q.plays + 1,
-          chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! Was it too easy, too hard, or just right?' : result === 'lose' ? 'Game over. What felt unfair or too hard?' : 'Thanks for testing. What did you notice?' }] }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1}: ${result === 'win' ? 'won' : result === 'lose' ? 'game over' : 'stopped before the end'}` }]));
+          chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! Great testing. Was it too easy, too hard, or just right?' : result === 'lose' ? 'Game over. Good testing. What felt too hard?' : 'Thanks for testing. What did you notice?' }] }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1}: ${result === 'win' ? 'won' : result === 'lose' ? 'game over' : 'stopped before the end'}` }]));
       }} />}
       {showLog && <DevLogView p={p} onClose={() => setShowLog(false)} />}
     </div>
@@ -253,42 +308,77 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
 }
 
 function Check() { return <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
+function Chevron({ dir }: { dir: 'up' | 'down' | 'left' | 'right' }) {
+  const r = { up: 180, down: 0, left: 90, right: -90 }[dir];
+  return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden style={{ transform: `rotate(${r}deg)` }}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
+}
+function MenuIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>; }
+function PlayIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l11-7z" fill="currentColor" /></svg>; }
+function MuteIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>; }
+function MicIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>; }
+function SendIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden><path d="M4 12l16-8-6 16-2.5-6.5L4 12z" fill="currentColor" /></svg>; }
 
-// The game building checklist: read only, so there is nothing extra to tap. Done steps have a check, the step to do
-// now is the only one marked.
-function Checklist({ p, tasks, current, toolsLink }: { p: GameProject; tasks: Task[]; current: Task | null; toolsLink: React.ReactNode }) {
+// The checklist, in chunks (681): every stage's name, but only the current stage open, showing at most 3 steps.
+function Checklist({ p, tasks, current, onFold }: { p: GameProject; tasks: Task[]; current: Task | null; onFold: () => void }) {
   const done = new Set(p.doneTasks ?? []);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { const box = ref.current; const li = box?.querySelector<HTMLElement>('li.now'); if (box && li) box.scrollTop = Math.max(0, li.offsetTop - 60); }, [current?.id]);
   return (
-    <div className="gbx-check" ref={ref} aria-label="Game building checklist">
-      <h3>Game building checklist</h3>
-      {STAGES.map((st) => {
+    <div className="gbx-check" aria-label="Game building checklist">
+      <div className="gbx-row"><h3 className="gbx-grow">Checklist</h3><button type="button" className="gbx-iconbtn" onClick={onFold} aria-label="Fold the checklist away"><Chevron dir="right" /></button></div>
+      {STAGES.map((st, si) => {
         const ts = tasks.filter((t) => t.stage === st); if (!ts.length) return null;
+        const n = ts.filter((t) => done.has(t.id)).length;
+        const open = current?.stage === st;
+        const at = Math.max(0, ts.findIndex((t) => t.id === current?.id));
+        const shown = open ? ts.slice(at, at + 3) : [];
         return (
-          <div key={st} className="gbx-stage">
-            <b>{STAGE_NAMES[st]}</b>
-            <ol>{ts.map((t) => (
-              <li key={t.id} className={current?.id === t.id ? 'now' : done.has(t.id) ? 'done' : ''} aria-current={current?.id === t.id ? 'step' : undefined}>
-                <span className="gbx-mark">{done.has(t.id) ? <Check /> : null}</span>{t.label}{t.optional ? ' (if you want)' : ''}
-              </li>
-            ))}</ol>
+          <div key={st} className={`gbx-stage ${open ? 'open' : ''}`}>
+            <b><span className={`gbx-mark ${n === ts.length ? 'all' : ''}`}>{n === ts.length ? <Check /> : si + 1}</span>{STAGE_NAMES[st]}</b>
+            {open && <ol>
+              {at > 0 && <li className="done gbx-small">{at} done</li>}
+              {shown.map((t) => <li key={t.id} className={current?.id === t.id ? 'now' : ''} aria-current={current?.id === t.id ? 'step' : undefined}>{t.label}{t.optional ? ' (if you want)' : ''}</li>)}
+              {ts.length - at - shown.length > 0 && <li className="gbx-small">and {ts.length - at - shown.length} more</li>}
+            </ol>}
           </div>
         );
       })}
-      {toolsLink}
     </div>
   );
 }
 
 // The work for one task: only what that task needs.
-function TaskWork({ p, task, update, setLoose, onPlay }: { p: GameProject; task: Task; update: (f: (q: GameProject) => GameProject) => void; setLoose: (n: number) => void; onPlay: () => void }) {
+function TaskWork({ p, task, update, setLoose, onPlay, onBuild }: { p: GameProject; task: Task; update: (f: (q: GameProject) => GameProject) => void; setLoose: (n: number) => void; onPlay: () => void; onBuild: () => void }) {
+  if (task.tool === 'settings') {
+    const keys = (task.id === 'danger' ? ['timer'] : ['heroSpeed', 'enemySpeed']) as (keyof Settings)[];
+    return (
+      <div className="gbx-stack gbx-sliders">
+        {keys.map((k) => (
+          <label key={k}><span>{SETTING_INFO[k].label}: <b>{p.settings[k]}</b></span>
+            <input type="range" min={k === 'timer' ? 0 : SETTING_INFO[k].min} max={SETTING_INFO[k].max} step={k === 'timer' ? 10 : 1} value={p.settings[k]} onChange={(e) => update((q) => ({ ...q, settings: { ...q.settings, [k]: Number(e.target.value) } }))} />
+          </label>
+        ))}
+      </div>
+    );
+  }
+  if (task.tool === 'ready') return (
+    <div className="gbx-center-box">
+      <button type="button" className="gbx-btn gbx-huge" onClick={onPlay}>Play it again</button>
+      <div className="gbx-row">
+        <button type="button" className="gbx-btn gbx-primary gbx-huge" onClick={() => update((q) => ({ ...q, finished: true }))}>Yes, it is ready</button>
+        <button type="button" className="gbx-btn gbx-huge" onClick={() => update((q) => withLog({ ...anotherRound(q), chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay! Let\'s test and fix one more time.' }] }, [{ kind: 'step', by: 'student', text: 'Not ready yet: another test round' }]))}>Not yet, change more</button>
+      </div>
+    </div>
+  );
+  if (task.tool === 'build') return (
+    <div className="gbx-center-box">
+      {p.code ? <p className="gbx-say">Your game is built. Tap Next.</p> : <button type="button" className="gbx-btn gbx-primary gbx-huge" onClick={onBuild}>Build my game</button>}
+    </div>
+  );
   const setD = (patch: Partial<GameProject['design']>) => update((q) => ({ ...q, design: { ...q.design, ...patch } }));
   if (task.tool === 'blocks') return <Blocks p={p} onMore={() => update((q) => ({ ...q, moreBlocks: true }))} onRules={(rules, l) => { setLoose(l); update((q) => (JSON.stringify(q.rules) === JSON.stringify(rules) ? q : { ...q, rules })); }} />;
   if (task.tool === 'play') return <div className="gbx-center-box"><p className="gbx-say">Tap the button to play your game.</p><button type="button" className="gbx-btn gbx-primary gbx-huge" onClick={onPlay}>Play your game</button><p className="gbx-muted">Played {p.plays} {p.plays === 1 ? 'time' : 'times'}.</p></div>;
   if (task.tool === 'chat') {
     const saved = task.id === 'idea' ? p.design.idea : task.id === 'goal' ? p.design.goal : '';
-    return <div className="gbx-center-box">{saved ? <><p className="gbx-muted">Saved:</p><p className="gbx-saved">{saved}</p></> : <p className="gbx-say">Type or talk to Azalea in the chat box at the bottom.</p>}</div>;
+    return <div className="gbx-center-box">{saved ? <><p className="gbx-muted">Saved:</p><p className="gbx-saved">{saved}</p></> : <p className="gbx-say">Type in the box at the bottom, or tap the microphone and talk. Then tap the send arrow.</p>}</div>;
   }
   if (task.tool === 'hero') return <HeroTask p={p} update={update} />;
   if (task.tool === 'world') return (
@@ -362,28 +452,29 @@ function ToolsView({ p, update, tab, setTab, setLoose, onChecklist }: { p: GameP
 }
 
 // ---------- Azalea's chat, across the bottom ----------
-function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzalea }: {
+// 681: one message (Azalea's newest) above the box; the arrow opens all messages in the work area; icon buttons for
+// Talk and Send; it folds down and its message area can be dragged taller.
+function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzalea, help, tts, voiceOn, setVoiceOn, history, setHistory, sendRef }: {
   p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; task: Task | null; loose: number;
-  lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void; onAzalea: () => void;
+  lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void; onAzalea: () => void; help: boolean; tts: Parameters<typeof speak>[1];
+  voiceOn: boolean; setVoiceOn: (f: (v: boolean) => boolean) => void; history: boolean; setHistory: (f: (v: boolean) => boolean) => void; sendRef: React.MutableRefObject<(text: string) => void>;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [voiced, setVoiced] = useState(false);
   const [usedFrame, setUsedFrame] = useState(false);
-  const [history, setHistory] = useState(false);
+  const [folded, setFolded] = useState(false);
+  const [msgH, setMsgH] = useState(() => LS.get('gbx-msg-h', 72));
   const [undo, setUndo] = useState<{ reqId: string; snap: Pick<GameProject, 'rules' | 'settings' | 'design' | 'code'> }[]>([]);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const listRef = useRef<HTMLDivElement>(null);
   const voice = useVoiceToText((heard) => { setVoiced(true); setDraft((d) => (d ? `${d} ${heard}` : heard)); }, { continuous: false });
-  useEffect(() => { listRef.current?.scrollTo({ top: 1e9 }); }, [history, p.chat.length]);
-  const putDraft = (t: string) => { setDraft(t); setUsedFrame(true); window.setTimeout(() => { const ta = taRef.current; if (!ta) return; ta.focus(); const i = t.indexOf('___'); if (i >= 0) ta.setSelectionRange(i, i + 3); }, 0); };
-  const stepStart = useRef<string>('');
-  useEffect(() => { stepStart.current = new Date().toISOString(); }, [task?.id]);
+  const putDraft = (t: string) => { setDraft(t); setUsedFrame(true); window.setTimeout(() => taRef.current?.focus(), 0); };
   const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
-  const choices = lastAz && lastAz === p.chat[p.chat.length - 1] ? lastAz.choices : undefined;
+  const ownChoices = lastAz && lastAz === p.chat[p.chat.length - 1] ? lastAz.choices : undefined;
+  const choices = ownChoices ?? (help && task?.help?.length && !task.ready(p) ? task.help : undefined);
 
-  const send = async () => {
-    const text = draft.trim(); if (!text || busy || text.includes('___')) return;
+  const send = async (raw?: string) => {
+    const text = (raw ?? draft).trim(); if (!text || busy) return;
     voice.stop();
     const prompt = lastAz?.text ?? '';
     const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: voiced };
@@ -393,44 +484,49 @@ function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzale
     const ans = await askAzalea(p, text, loose);
     const changes = ans.changes.length ? ans.changes : ans.ops.length || ans.code ? ['Changed the game'] : [];
     const prevId = lastReq?.projectId === p.id ? lastReq.id : p.lastReqId;
-    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame, prompt: prompt.slice(0, 300) });
+    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame: usedFrame || !!raw, prompt: prompt.slice(0, 300) });
     setLastReq(req);
     onAzalea();
     if (changes.length) setUndo((u) => [...u.slice(-9), { reqId: req.id, snap: { rules: p.rules, settings: p.settings, design: p.design, code: p.code } }]);
     setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay.', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
     setBusy(false); setVoiced(false); setUsedFrame(false);
   };
-  // The specific meter is about the student's newest message in this step only.
-  const lvl = lastReq && lastReq.at >= (stepStart.current ?? '') ? lastReq.specificity : undefined;
+  sendRef.current = (t) => { void send(t); };
+  const dragMsg = (e: React.PointerEvent) => {
+    e.preventDefault(); const y0 = e.clientY, h0 = msgH;
+    const move = (ev: PointerEvent) => { const h = Math.max(48, Math.min(320, h0 + (y0 - ev.clientY))); setMsgH(h); LS.set('gbx-msg-h', h); };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  };
   return (
-    <footer className="gbx-chat" aria-label="Chat with Azalea">
-      {history && (
-        <div className="gbx-history" ref={listRef}>
-          {p.chat.map((m) => <p key={m.id} className={m.from}><b>{m.from === 'azalea' ? 'Azalea' : 'You'}:</b> {m.text}</p>)}
+    <footer className={`gbx-chat ${folded ? 'folded' : ''}`} aria-label="Chat with Azalea">
+      {!folded && <div className="gbx-resize-h" onPointerDown={dragMsg} role="separator" aria-orientation="horizontal" aria-label="Drag to make the message bigger" />}
+      <div className="gbx-azline">
+        <button type="button" className="gbx-iconbtn" onClick={() => setHistory((h) => !h)} aria-label={history ? 'Hide all messages' : 'Show all messages'} aria-expanded={history}><Chevron dir={history ? 'down' : 'up'} /></button>
+        <div className="gbx-azmsg" style={folded ? undefined : { maxHeight: msgH }}>
+          <b>Azalea:</b> {busy ? 'Let me think...' : lastAz?.text}
         </div>
-      )}
-      <div className="gbx-chat-top">
-        {busy ? <span className="gbx-muted">Azalea is thinking...</span> : lastReq && lvl ? (
-          <span className="gbx-meter" aria-label={`Specific meter: ${lvl}`}>
-            <span className="gbx-bars">{[1, 2, 3].map((i) => <i key={i} className={i <= (lvl === 'specific' ? 3 : lvl === 'partly' ? 2 : 1) ? 'on' : ''} />)}</span>
-            {lvl === 'specific' ? 'Specific!' : lvl === 'partly' ? 'Almost specific.' : 'Add what to change and how much.'}{lastReq.missing.length ? ` Add: ${lastReq.missing.join(', ')}.` : ''}
-          </span>
-        ) : <span className="gbx-muted">Be specific: say what to change and how much.</span>}
-        <span className="gbx-grow" />
-        {undo.length > 0 && !busy && <button type="button" className="gbx-link" onClick={() => {
-          const last = undo[undo.length - 1]; setUndo((u) => u.slice(0, -1)); markUndone(studentId, last.reqId);
-          setP((q) => ({ ...q, ...last.snap, chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay, I put it back the way it was. What would you like instead?' }] }));
-        }}>Undo the last change</button>}
-        <button type="button" className="gbx-link" onClick={() => setHistory((h) => !h)}>{history ? 'Hide past messages' : 'Past messages'}</button>
+        {lastAz && <button type="button" className="gbx-iconbtn" onClick={() => speak(lastAz.text, tts, undefined, VOICE)} aria-label="Listen to Azalea again" title="Listen again"><PlayIcon /></button>}
+        <button type="button" className="gbx-iconbtn" onClick={() => setVoiceOn((v) => !v)} aria-label={voiceOn ? 'Turn Azalea\'s voice off' : 'Turn Azalea\'s voice on'} aria-pressed={voiceOn} title={voiceOn ? 'Voice on' : 'Voice off'}>{voiceOn ? <Speaker /> : <MuteIcon />}</button>
+        <button type="button" className="gbx-iconbtn" onClick={() => setFolded((f) => !f)} aria-label={folded ? 'Open the chat' : 'Fold the chat down'}><Chevron dir={folded ? 'up' : 'down'} /></button>
       </div>
-      {choices && choices.length > 0 && !busy && <div className="gbx-choices">{choices.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>}
-      <div className="gbx-compose">
-        <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} placeholder={task?.starter ? `Try: ${task.starter}` : 'Tell Azalea what you want. Be specific.'}
-          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} aria-label="Message to Azalea" />
-        {task?.starter && !draft && <button type="button" className="gbx-btn" onClick={() => putDraft(task.starter!)}>Use the starter</button>}
-        {voice.supported && <button type="button" className={`gbx-btn ${voice.listening ? 'gbx-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }}>{voice.listening ? 'Stop' : 'Talk'}</button>}
-        <button type="button" className="gbx-btn gbx-primary" disabled={!draft.trim() || busy || draft.includes('___')} onClick={() => void send()}>{draft.includes('___') ? 'Fill the blanks' : 'Send'}</button>
-      </div>
+      {!folded && <>
+        {!busy && (choices?.length || undo.length > 0) ? (
+          <div className="gbx-choices">
+            {choices?.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}
+            {undo.length > 0 && <button type="button" className="gbx-link" onClick={() => {
+              const last = undo[undo.length - 1]; setUndo((u) => u.slice(0, -1)); markUndone(studentId, last.reqId);
+              setP((q) => ({ ...q, ...last.snap, chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay, I put it back the way it was. What would you like instead?' }] }));
+            }}>Undo the last change</button>}
+          </div>
+        ) : null}
+        <div className="gbx-compose">
+          <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1} placeholder="Type to Azalea here"
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} aria-label="Message to Azalea" />
+          {voice.supported && <button type="button" className={`gbx-iconbtn gbx-round ${voice.listening ? 'gbx-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }} aria-label={voice.listening ? 'Stop talking' : 'Talk to Azalea'} aria-pressed={voice.listening}><MicIcon /></button>}
+          <button type="button" className="gbx-iconbtn gbx-round gbx-send" disabled={!draft.trim() || busy} onClick={() => void send()} aria-label="Send to Azalea"><SendIcon /></button>
+        </div>
+      </>}
     </footer>
   );
 }

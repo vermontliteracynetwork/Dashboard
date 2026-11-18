@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder-walkthrough",
+    date: "2026-11-18",
+    icon: "🐱",
+    title: "Game Builder: Azalea walks you through it",
+    body: "In Game Builder, Azalea now walks you through every step, one small instruction at a time. Tap I did it, then Next. The steps are: pick the game, rules and settings, theme and assets, then play test until your game is ready. The Menu button next to Play has your tools and your dev log. You can fold the checklist and the chat away to get more room.",
+  },
+  {
     id: "2026-11-18-game-builder-library",
     date: "2026-11-18",
     icon: "🖼️",
