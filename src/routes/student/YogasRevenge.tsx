@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { learnByDefault } from '../../lib/learnPlay';
+import { schoolHours } from '../../lib/learnPlay';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../../store/store';
 import QuestionScreen from '../../components/QuestionScreen';
@@ -272,8 +272,9 @@ export default function YogasRevenge() {
   // Play mode (her rule): open once today's streak questions and assignments are done; a new assignment closes it again.
   // The no-login test page (mockup.html) can always use Play mode, for screenshots.
   // Build Queue 593: when the teacher pauses assignments, Play mode is open.
-  // Build Queue 645: outside Monday to Friday 7am to 3pm, Play mode is open and on by default.
-  const playOpen = assignmentsPaused || (streakDone && due.length === 0) || !learnByDefault() || window.location.pathname.endsWith('mockup.html');
+  // Build Queue 661: Monday to Friday 7am to 3pm Learn is required; at other times Play can be turned on (Learn is still first).
+  const playOpen = !schoolHours() || window.location.pathname.endsWith('mockup.html');
+  void assignmentsPaused; void streakDone; void due;
 
   const [save, setSaveState] = useState<Save>(() => readSave(studentId));
   const saveRef = useRef(save);
@@ -282,7 +283,7 @@ export default function YogasRevenge() {
   const [screen, setScreen] = useState<Screen>('title');
   const [pickFor, setPickFor] = useState(0); // the level the dog picker starts
   const [dog, setDog] = useState<DogId>(save.levelDog ?? 'yoga');
-  const [playMode, setPlayMode] = useState(() => !learnByDefault());
+  const [playMode, setPlayMode] = useState(false);
   const [gate, setGate] = useState<Gate>(null);
   const [q, setQ] = useState<MCQuestion | null>(null);
   const [talk, setTalk] = useState<{ who: string; lines: string[]; i: number; portrait?: string; quest?: boolean; then?: () => void } | null>(null);
@@ -1225,7 +1226,7 @@ export default function YogasRevenge() {
                     <button type="button" role="radio" aria-checked={playMode} className={playMode ? 'on' : ''} disabled={!playOpen} onClick={() => setPlayMode(true)}>Play</button>
                   </div>
                 </div>
-                {!playOpen && <small className="yr-note">Play mode opens after today's work.</small>}
+                {!playOpen && <small className="yr-note">Learn mode is on during school time (Monday to Friday, 7am to 3pm). Play mode opens after 3pm and on weekends.</small>}
                 <div className="yr-setrow"><span>Sound effects</span><SfxToggle plain /></div>
                 {screen === 'play'
                   ? <button type="button" className="yr-small yr-quit" onClick={() => { setPanel(null); setScreen('title'); }}>Quit level</button>

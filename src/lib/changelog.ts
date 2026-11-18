@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-learn-school-time",
+    date: "2026-11-18",
+    icon: "🎮",
+    title: "Learn mode in school time",
+    body: "Games start in Learn mode. On school days from 7am to 3pm, Learn mode stays on. After 3pm and on weekends, you can switch to Play mode in the game's settings.",
+  },
+  {
     id: "2026-11-18-rocket-chickens-worlds",
     date: "2026-11-18",
     icon: "🐔",
