@@ -51,6 +51,8 @@ export interface BuildRequest {
   source?: 'ai' | 'guide';    // who scored it: the AI or the built-in guide
   usedFrame?: boolean;        // the student started from a sentence starter or a tap-in choice
   prompt?: string;            // what Azalea had just asked
+  transcript?: string;        // what the microphone heard, word for word (689)
+  afterTest?: boolean;        // sent after the game was play tested: going back to change it (689)
 }
 
 const reqItems = (sid: string): BuildRequest[] => {

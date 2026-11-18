@@ -20,7 +20,7 @@ import { ART_STYLES, costumesOf, isSprite, type Sprite } from '../../games/gameB
 import { PRESET_TUNES, startMusic } from '../../games/gameBuilder/music';
 import ArtPanel, { HeroPicker, Preview, SpriteEditor } from './GameBuilderArt';
 import SoundPanel from './GameBuilderSound';
-import { Player } from './GameBuilderPlayer';
+import { LivePreview, Player } from './GameBuilderPlayer';
 import './GameBuilder.css';
 
 // Game Builder (Build Queue 658, her words 2026-11-18): "I want to have a defined app in the kids computer that
@@ -50,7 +50,7 @@ function Listen({ text, tts, label = 'Listen' }: { text: string; tts?: Parameter
 }
 
 function greet(p: GameProject): string {
-  return `Hi, I am Azalea. We are going to build your ${KIND_INFO[p.kind].label} game together, one step at a time. Look at the checklist. We start with the plan.`;
+  return p.kind === 'custom' ? 'Hi, I am Azalea. We are going to build a brand new game together, one small step at a time.' : `Hi, I am Azalea. Your ${KIND_INFO[p.kind].label} game already works. Let's make the rules yours, then test it.`;
 }
 
 export default function GameBuilder() {
@@ -113,9 +113,10 @@ function NewProject({ studentId, onCancel, onMade }: { studentId: string; onCanc
   const [name, setName] = useState('');
   const [ai, setAi] = useState(false);
   useEffect(() => { fetch('/api/game-builder').then((r) => (r.ok ? r.json() : null)).then((j: { ai?: boolean } | null) => setAi(!!j?.ai)).catch(() => {}); }, []);
-  const make = () => {
-    if (!kind) return;
-    const p = newProject(kind, name);
+  // 689: tapping a kind of game opens Azalea's builder right away (the name can be changed later with Edit).
+  const make = (k: GameKind | null = kind) => {
+    if (!k) return;
+    const p = newProject(k, name);
     p.chat = [{ id: newId(), from: 'azalea', text: greet(p), at: new Date().toISOString() }];
     saveProject(studentId, p); onMade(p.id);
   };
@@ -134,7 +135,7 @@ function NewProject({ studentId, onCancel, onMade }: { studentId: string; onCanc
             {KINDS.map((k) => {
               const off = k === 'custom' && !ai;
               return (
-                <button key={k} type="button" className="gbx-card gbx-card-open" disabled={off} onClick={() => setKind(k)}>
+                <button key={k} type="button" className="gbx-card gbx-card-open" disabled={off} onClick={() => make(k)}>
                   {k === 'custom' ? <div className="gbx-blank">Blank</div> : <Preview p={newProject(k, KIND_INFO[k].label)} />}
                   <b>{KIND_INFO[k].label}</b>
                   <small>{off ? 'Coming soon. Your teacher turns this on.' : KIND_INFO[k].blurb}</small>
@@ -145,7 +146,7 @@ function NewProject({ studentId, onCancel, onMade }: { studentId: string; onCanc
         ) : (
           <div className="gbx-name">
             <input autoFocus value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder={`My ${KIND_INFO[kind].label}`} onKeyDown={(e) => { if (e.key === 'Enter') make(); }} aria-label="Game name" />
-            <button type="button" className="gbx-btn gbx-primary gbx-big" onClick={make}>Start building</button>
+            <button type="button" className="gbx-btn gbx-primary gbx-big" onClick={() => make()}>Start building</button>
           </div>
         )}
       </main>
@@ -169,12 +170,37 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   const [voiceOn, setVoiceOn] = useState(true);
   const [sideOpen, setSideOpen] = useState(true);
   const [menu, setMenu] = useState(false);
-  const [sideW, setSideW] = useState(() => LS.get('gbx-side-w', 300));
+  const [sideW, setSideW] = useState(() => LS.get('gbx-side-w', 240));
   const latest = useRef(p); latest.current = p;
   useEffect(() => { const t = window.setTimeout(() => saveProject(studentId, latest.current), 600); return () => window.clearTimeout(t); }, [p, studentId]);
   useEffect(() => () => saveProject(studentId, latest.current), [studentId]);
   const update = (f: (q: GameProject) => GameProject) => setP((q) => f(q));
   const sendRef = useRef<(text: string) => void>(() => {});
+  // Undo and Redo for every change to the game (687): blocks, design, settings and Azalea's changes.
+  type Snap = Pick<GameProject, 'rules' | 'settings' | 'design' | 'code'> & { reqId?: string };
+  const snapOf = (q: GameProject): Snap => ({ rules: q.rules, settings: q.settings, design: q.design, code: q.code });
+  const hist = useRef<{ past: Snap[]; future: Snap[]; last: Snap; skip: boolean; reqId?: string }>({ past: [], future: [], last: snapOf(initial), skip: false });
+  const [histN, setHistN] = useState({ u: 0, r: 0 });
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const h = hist.current; const now = snapOf(latest.current);
+      if (h.skip) { h.skip = false; h.last = now; return; }
+      if (JSON.stringify(now) === JSON.stringify({ rules: h.last.rules, settings: h.last.settings, design: h.last.design, code: h.last.code })) return;
+      h.past = [...h.past.slice(-29), { ...h.last, reqId: h.reqId }]; h.reqId = undefined; h.future = []; h.last = now;
+      setHistN({ u: h.past.length, r: 0 });
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [p.rules, p.settings, p.design, p.code]);
+  const undoRedo = (dir: 'undo' | 'redo') => {
+    const h = hist.current; const from = dir === 'undo' ? h.past : h.future; const to = dir === 'undo' ? h.future : h.past;
+    const target = from.pop(); if (!target) return;
+    to.push({ ...h.last, reqId: target.reqId });
+    if (dir === 'undo' && target.reqId) markUndone(studentId, target.reqId);
+    h.last = { rules: target.rules, settings: target.settings, design: target.design, code: target.code }; h.skip = true;
+    setP((q) => withLog({ ...q, ...h.last }, [{ kind: 'change', by: 'student', text: dir === 'undo' ? 'Undo' : 'Redo' }]));
+    setHistN({ u: h.past.length, r: h.future.length });
+  };
+  const [workW, setWorkW] = useState(() => LS.get('gbx-work-w', Math.round(window.innerWidth * 0.42)));
 
   // The dev log (679): changes are written down a moment after they happen, as the student's or Azalea's.
   const logged = useRef(initial);
@@ -182,7 +208,7 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   const [showLog, setShowLog] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => {
-      const entries = diffLog(logged.current, latest.current, Date.now() < azaleaUntil.current ? 'azalea' : 'student');
+      const entries = diffLog(logged.current, latest.current, Date.now() < azaleaUntil.current ? 'azalea' : 'student').map((e) => (latest.current.plays > 0 ? { ...e, text: `${e.text} (after play testing)` } : e));
       logged.current = latest.current;
       if (entries.length) setP((q) => { const n = withLog(q, entries); logged.current = n; return n; });
     }, 1200);
@@ -229,6 +255,12 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   useMenuItems([{ id: 'gb-now', icon: '?', label: 'What do I do now?', bg: '#5b4fc7', order: 5, onSelect: () => speak(nowText, tts, undefined, VOICE) }]);
   const showTools = tools ?? (task ? null : 'blocks');
 
+  const dragWork = (e: React.PointerEvent) => {
+    e.preventDefault(); const x0 = e.clientX, w0 = workW;
+    const move = (ev: PointerEvent) => { const w = Math.max(320, Math.min(window.innerWidth - 520, w0 + ev.clientX - x0)); setWorkW(w); LS.set('gbx-work-w', w); };
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  };
   // Drag the line between the work and the checklist to resize the checklist.
   const dragSide = (e: React.PointerEvent) => {
     e.preventDefault(); const move = (ev: PointerEvent) => { const w = Math.max(200, Math.min(520, window.innerWidth - ev.clientX - 12)); setSideW(w); LS.set('gbx-side-w', w); };
@@ -242,6 +274,10 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
         <button type="button" className="gbx-btn" onClick={() => { saveProject(studentId, latest.current); onClose(); }}>My games</button>
         <h1 className="gbx-name-title">{p.name}</h1>
         <div className="gbx-row gbx-topright">
+          <div className="gbx-undo" role="group" aria-label="Undo and redo">
+            <button type="button" className="gbx-iconbtn" disabled={!histN.u} onClick={() => undoRedo('undo')} aria-label="Undo" title="Undo"><ArrowIcon dir="back" /></button>
+            <button type="button" className="gbx-iconbtn" disabled={!histN.r} onClick={() => undoRedo('redo')} aria-label="Redo" title="Redo"><ArrowIcon dir="forward" /></button>
+          </div>
           <div className="gbx-menuwrap">
             <button type="button" className="gbx-btn gbx-menubtn" onClick={() => setMenu((m) => !m)} aria-expanded={menu} aria-label="Menu"><MenuIcon /> Menu</button>
             {menu && (
@@ -259,7 +295,7 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
           <button type="button" className="gbx-btn gbx-primary" onClick={() => setPlaying(true)}>Play</button>
         </div>
       </header>
-      <div className="gbx-main" style={{ gridTemplateColumns: sideOpen ? `1fr 10px ${sideW}px` : '1fr 10px 52px' }}>
+      <div className="gbx-main" style={{ gridTemplateColumns: `${workW}px 10px minmax(300px, 1fr) 10px ${sideOpen ? `${sideW}px` : '52px'}` }}>
         <section className="gbx-work" aria-label="Work area">
           {history ? (
             <div className="gbx-allmsgs">
@@ -285,6 +321,8 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
             </div>
           </>}
         </section>
+        <div className="gbx-resize-v" onPointerDown={dragWork} role="separator" aria-orientation="vertical" aria-label="Drag to resize the work area" />
+        <LivePreview p={p} />
         <div className="gbx-resize-v" onPointerDown={dragSide} role="separator" aria-orientation="vertical" aria-label="Drag to resize the checklist" />
         <aside className="gbx-side" aria-label="Your checklist">
           {sideOpen
@@ -294,7 +332,7 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
       </div>
       <div className="gbx-bottom">
         <ChatBar p={p} setP={setP} studentId={studentId} task={task} loose={loose} lastReq={lastReq} setLastReq={setLastReq} help={help} tts={tts}
-          voiceOn={voiceOn} setVoiceOn={setVoiceOn} history={history} setHistory={setHistory} sendRef={sendRef} onAzalea={() => { azaleaUntil.current = Date.now() + 2500; }} />
+          voiceOn={voiceOn} setVoiceOn={setVoiceOn} history={history} setHistory={setHistory} sendRef={sendRef} onAzalea={(reqId) => { azaleaUntil.current = Date.now() + 2500; hist.current.reqId = reqId; }} />
         <img className="gbx-az-corner" src={AZ_IMG} alt="Azalea the cat" />
       </div>
       {playing && <Player p={p} onClose={(result) => {
@@ -312,6 +350,7 @@ function Chevron({ dir }: { dir: 'up' | 'down' | 'left' | 'right' }) {
   const r = { up: 180, down: 0, left: 90, right: -90 }[dir];
   return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden style={{ transform: `rotate(${r}deg)` }}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
 }
+function ArrowIcon({ dir }: { dir: 'back' | 'forward' }) { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden style={dir === 'forward' ? { transform: 'scaleX(-1)' } : undefined}><path d="M9 7L4 12l5 5" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 12h9a6 6 0 0 1 0 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" transform="translate(0 -5)" /></svg>; }
 function MenuIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>; }
 function PlayIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l11-7z" fill="currentColor" /></svg>; }
 function MuteIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16 9l5 6M21 9l-5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>; }
@@ -324,8 +363,8 @@ function Checklist({ p, tasks, current, onFold }: { p: GameProject; tasks: Task[
   return (
     <div className="gbx-check" aria-label="Game building checklist">
       <div className="gbx-row"><h3 className="gbx-grow">Checklist</h3><button type="button" className="gbx-iconbtn" onClick={onFold} aria-label="Fold the checklist away"><Chevron dir="right" /></button></div>
-      {STAGES.map((st, si) => {
-        const ts = tasks.filter((t) => t.stage === st); if (!ts.length) return null;
+      {STAGES.filter((st) => tasks.some((t) => t.stage === st)).map((st, si) => {
+        const ts = tasks.filter((t) => t.stage === st);
         const n = ts.filter((t) => done.has(t.id)).length;
         const open = current?.stage === st;
         const at = Math.max(0, ts.findIndex((t) => t.id === current?.id));
@@ -456,7 +495,7 @@ function ToolsView({ p, update, tab, setTab, setLoose, onChecklist }: { p: GameP
 // Talk and Send; it folds down and its message area can be dragged taller.
 function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzalea, help, tts, voiceOn, setVoiceOn, history, setHistory, sendRef }: {
   p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; task: Task | null; loose: number;
-  lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void; onAzalea: () => void; help: boolean; tts: Parameters<typeof speak>[1];
+  lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void; onAzalea: (reqId: string) => void; help: boolean; tts: Parameters<typeof speak>[1];
   voiceOn: boolean; setVoiceOn: (f: (v: boolean) => boolean) => void; history: boolean; setHistory: (f: (v: boolean) => boolean) => void; sendRef: React.MutableRefObject<(text: string) => void>;
 }) {
   const [draft, setDraft] = useState('');
@@ -465,9 +504,10 @@ function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzale
   const [usedFrame, setUsedFrame] = useState(false);
   const [folded, setFolded] = useState(false);
   const [msgH, setMsgH] = useState(() => LS.get('gbx-msg-h', 72));
-  const [undo, setUndo] = useState<{ reqId: string; snap: Pick<GameProject, 'rules' | 'settings' | 'design' | 'code'> }[]>([]);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const voice = useVoiceToText((heard) => { setVoiced(true); setDraft((d) => (d ? `${d} ${heard}` : heard)); }, { continuous: false });
+  // 689: what the microphone heard is kept as the transcript, beside what was finally sent (written).
+  const heardRef = useRef('');
+  const voice = useVoiceToText((heard) => { setVoiced(true); heardRef.current = heardRef.current ? `${heardRef.current} ${heard}` : heard; setDraft((d) => (d ? `${d} ${heard}` : heard)); }, { continuous: false });
   const putDraft = (t: string) => { setDraft(t); setUsedFrame(true); window.setTimeout(() => taRef.current?.focus(), 0); };
   const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
   const ownChoices = lastAz && lastAz === p.chat[p.chat.length - 1] ? lastAz.choices : undefined;
@@ -479,15 +519,19 @@ function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzale
     const prompt = lastAz?.text ?? '';
     const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: voiced };
     const tid = task?.id ?? 'free';
-    setP((q) => withLog({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }, [{ kind: 'request', by: 'student', text: `${voiced ? 'Said' : 'Typed'}: "${text}"` }]));
+    const transcript = voiced ? heardRef.current.trim() : '';
+    heardRef.current = '';
+    const after = p.plays > 0 ? ' (after play testing)' : '';
+    setP((q) => withLog({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }, [
+      transcript ? { kind: 'request', by: 'student', text: `Said${after} (transcript): "${transcript}"${transcript !== text ? `. Sent (written): "${text}"` : ''}` } : { kind: 'request', by: 'student', text: `Wrote${after}: "${text}"` },
+    ]));
     setDraft(''); setBusy(true);
     const ans = await askAzalea(p, text, loose);
     const changes = ans.changes.length ? ans.changes : ans.ops.length || ans.code ? ['Changed the game'] : [];
     const prevId = lastReq?.projectId === p.id ? lastReq.id : p.lastReqId;
-    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame: usedFrame || !!raw, prompt: prompt.slice(0, 300) });
+    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame: usedFrame || !!raw, prompt: prompt.slice(0, 300), transcript: transcript || undefined, afterTest: p.plays > 0 });
     setLastReq(req);
-    onAzalea();
-    if (changes.length) setUndo((u) => [...u.slice(-9), { reqId: req.id, snap: { rules: p.rules, settings: p.settings, design: p.design, code: p.code } }]);
+    onAzalea(req.id);
     setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay.', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
     setBusy(false); setVoiced(false); setUsedFrame(false);
   };
@@ -511,14 +555,8 @@ function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzale
         <button type="button" className="gbx-iconbtn" onClick={() => setFolded((f) => !f)} aria-label={folded ? 'Open the chat' : 'Fold the chat down'}><Chevron dir={folded ? 'up' : 'down'} /></button>
       </div>
       {!folded && <>
-        {!busy && (choices?.length || undo.length > 0) ? (
-          <div className="gbx-choices">
-            {choices?.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}
-            {undo.length > 0 && <button type="button" className="gbx-link" onClick={() => {
-              const last = undo[undo.length - 1]; setUndo((u) => u.slice(0, -1)); markUndone(studentId, last.reqId);
-              setP((q) => ({ ...q, ...last.snap, chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay, I put it back the way it was. What would you like instead?' }] }));
-            }}>Undo the last change</button>}
-          </div>
+        {!busy && choices?.length ? (
+          <div className="gbx-choices">{choices.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>
         ) : null}
         <div className="gbx-compose">
           <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1} placeholder="Type to Azalea here"

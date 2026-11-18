@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder-live",
+    date: "2026-11-18",
+    icon: "🎮",
+    title: "Game Builder: see your game live",
+    body: "In Game Builder your game now runs right in the middle of the screen. Every change you make shows up in a moment, and you can play it there. Tap a kind of game and Azalea starts right away: first the rules, then you test it. Use the two arrows at the top to undo or redo.",
+  },
+  {
     id: "2026-11-18-game-builder-walkthrough",
     date: "2026-11-18",
     icon: "🐱",

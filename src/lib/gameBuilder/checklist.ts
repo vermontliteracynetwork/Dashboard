@@ -30,14 +30,18 @@ export interface Task {
   ready: (p: GameProject) => boolean; // the work is done, so Next can be tapped
 }
 
-export const STAGES = ['Game', 'Rules', 'Theme', 'Test'];
-export const STAGE_NAMES: Record<string, string> = { Game: 'Pick the game', Rules: 'Rules and settings', Theme: 'Theme and assets', Test: 'Play test' };
+// 689 (her words: "start with the main requirements like game rules and then students should get to a point of
+// testing the game functionally very quickly"): rules first, a quick test, then theme and assets, then make it
+// better, then play test until it is ready. Custom games start with the three answers Azalea needs to build.
+export const STAGES = ['Game', 'Rules', 'Try', 'Theme', 'Better', 'Test'];
+export const STAGE_NAMES: Record<string, string> = { Game: 'Plan the game', Rules: 'Game rules', Try: 'Test it now', Theme: 'Theme and assets', Better: 'Make it better', Test: 'Play test until ready' };
 const answered = (q: GameProject, id: string) => (q.taskReplies?.[id] ?? 0) > 0;
 const acts = (p: GameProject) => p.rules.flatMap((r) => r.actions.map((a) => a.do));
 
 function gameStage(p: GameProject): Task[] {
   const name = KIND_INFO[p.kind].label;
   const custom = p.kind === 'custom';
+  if (!custom) return [];
   return [
     { id: 'idea', stage: 'Game', label: custom ? 'Say who your hero is' : 'Say your idea', tool: 'chat',
       walk: custom
@@ -83,11 +87,11 @@ function rulesStage(p: GameProject): Task[] {
     { id: 'win', stage: 'Rules', label: 'Make a way to win', tool: 'blocks',
       walk: ['Every game needs a way to win. Find the block that says "win the game".', 'It must be snapped under a yellow "when" block, or it never happens.', 'If you see it snapped in, tap I did it.'],
       praise: 'Awesome! Now players can win.', ready: (q) => acts(q).includes('win') },
-    { id: 'power', stage: 'Rules', label: 'Add a power up', tool: 'chat',
+    { id: 'power', stage: 'Better', label: 'Add a power up', tool: 'chat',
       walk: ['Power ups help the player. Let\'s add one by telling me about it.', k === 'clicker' ? 'Pick one of the ideas below, or type your own.' : 'Pick one of the ideas below, or type your own, like: When the hero touches a star, give a shield for 6 seconds.'],
       help: k === 'clicker' ? ['Upgrade 2 gives double points for 10 seconds.', 'Make upgrade 3 cost 100 and give 1 point every second.'] : k === 'match3' ? ['At 100 points, give double points for 10 seconds.'] : k === 'maze' ? ['When the hero touches a power dot, give super speed for 5 seconds.', 'When the hero touches a power dot, give scare ghosts for 8 seconds.'] : ['When the hero touches a star, give a shield for 6 seconds.', 'When the hero touches a star, give super speed for 5 seconds.'],
       praise: 'Cool! Your game has a power up.', ready: (q) => acts(q).includes('power') || acts(q).includes('perSecond') || answered(q, 'power') },
-    ...(k === 'platformer' || k === 'maze' ? [{ id: 'speed', stage: 'Rules', label: 'Set the speeds', tool: 'settings' as TaskTool,
+    ...(k === 'platformer' || k === 'maze' ? [{ id: 'speed', stage: 'Better', label: 'Set the speeds', tool: 'settings' as TaskTool,
       walk: ['Settings change how the game feels. Slide "hero speed" to how fast your hero moves.', 'Then slide "enemy speed". Slower is easier. Faster is harder.'],
       praise: 'Great! You set the speeds.', ready: () => true }] : []),
   ];
@@ -106,13 +110,29 @@ function themeStage(p: GameProject): Task[] {
       walk: ['You can draw your own hero. This step is if you want.', 'Tap a color, then drag your finger on the grid. Or tap Skip this step.'],
       praise: 'Wow, you drew your own hero!', ready: (q) => costumesOf(q.design.sprites, 'hero').length > 0 },
     { id: 'music', stage: 'Theme', label: 'Pick music', tool: 'music', optional: true, walk: ['Pick music for your game. Tap one to hear it, or tap No music.'], praise: 'Good choice!', ready: () => true },
+    { id: 'idea', stage: 'Theme', label: 'Say what your game is about', tool: 'chat',
+      walk: ['Now your game has a hero and a world. Tell me the story in one sentence.', 'Use this pattern: My game is about a (hero) who (does something). Then tap the send arrow.'],
+      help: ['My game is about a cat who collects fish.', 'My game is about a robot who saves the town.', 'My game is about a frog who jumps over rocks.'],
+      praise: 'Great story!', ready: (q) => !!q.design.idea || answered(q, 'idea') },
+  ];
+}
+
+function tryStage(): Task[] {
+  return [
+    { id: 'try', stage: 'Try', label: 'Play your game', tool: 'play',
+      walk: ['Your rules are ready. Let\'s test them right now! Tap Play your game, or play in the live preview.', 'Try to win. Notice anything that is too hard, too easy, or broken.'],
+      praise: 'Great testing! That is what real game designers do.', ready: (q) => q.plays > 0 },
+    { id: 'tryfix', stage: 'Try', label: 'Change one thing', tool: 'chat',
+      walk: ['What was too hard, too easy, or broken?', 'Tell me one thing to change, and how much. For example: Make the enemy speed 3.'],
+      help: ['Make the enemy speed 3.', 'Make the hero speed 8.', 'Make a coin worth 5 points.'],
+      praise: 'Smart change! Going back to fix things is how games get good.', ready: (q) => answered(q, 'tryfix') },
   ];
 }
 
 function testStage(): Task[] {
   return [
     { id: 'play1', stage: 'Test', label: 'Play test your game', tool: 'play',
-      walk: ['Now you are a play tester. Tap Play your game.', 'Try to win. Notice anything that is too hard, too easy, or broken.'],
+      walk: ['Now play your whole game, with your new theme and power up.', 'Try to win. Notice anything that is too hard, too easy, or broken.'],
       praise: 'Great testing!', ready: (q) => q.plays > (q.testRound ?? 0) },
     { id: 'fix', stage: 'Test', label: 'Change one thing', tool: 'chat',
       walk: ['What was too hard, too easy, or broken?', 'Tell me one thing to change, and how much. For example: Make the enemy speed 3.'],
@@ -129,7 +149,8 @@ function testStage(): Task[] {
 }
 
 export function tasksFor(p: GameProject): Task[] {
-  return [...gameStage(p), ...rulesStage(p), ...themeStage(p), ...testStage()];
+  const rules = rulesStage(p);
+  return [...gameStage(p), ...rules.filter((t) => t.stage === 'Rules'), ...tryStage(), ...themeStage(p), ...rules.filter((t) => t.stage === 'Better'), ...testStage()];
 }
 
 // The task to work on: the first one not finished.

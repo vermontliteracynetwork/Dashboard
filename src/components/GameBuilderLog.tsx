@@ -36,13 +36,13 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
       const pct = (k: Specificity) => Math.round((rs.filter((r) => r.specificity === k).length / n) * 100);
       const week = rs.filter((r) => Date.now() - new Date(r.at).getTime() < 7 * 864e5);
       const weekSpecific = week.length ? `${Math.round((week.filter((r) => r.specificity === 'specific').length / week.length) * 100)}%` : 'none';
-      return { id, n, weekSpecific, specific: pct('specific'), partly: pct('partly'), vague: pct('vague'), words: Math.round(rs.reduce((a, r) => a + r.words, 0) / n), details: (rs.reduce((a, r) => a + r.details.length, 0) / n).toFixed(1), revised: rs.filter((r) => r.revisedLater || r.revisionOf || r.undone).length, voice: rs.filter((r) => r.voice).length, own: rs.filter((r) => !r.usedFrame).length };
+      return { id, n, weekSpecific, specific: pct('specific'), partly: pct('partly'), vague: pct('vague'), words: Math.round(rs.reduce((a, r) => a + r.words, 0) / n), details: (rs.reduce((a, r) => a + r.details.length, 0) / n).toFixed(1), revised: rs.filter((r) => r.revisedLater || r.revisionOf || r.undone).length, voice: rs.filter((r) => r.voice).length, own: rs.filter((r) => !r.usedFrame).length, after: rs.filter((r) => r.afterTest).length };
     });
   }, [rows]);
 
   const download = () => {
-    const head = ['Date', 'Time', 'Student', 'Project', 'Game kind', 'Step', 'Typed or voice', 'What they said', 'Words', 'Azalea answered', 'What was done', 'How specific', 'Details they gave', 'Azalea asked for', 'Changes an earlier request', 'Changed again later', 'Undid it', 'Used a starter or choice', 'Azalea had asked', 'Scored by'];
-    const lines = rows.map((r) => { const d = new Date(r.at); return [d.toLocaleDateString(), d.toLocaleTimeString(), nameFor(r.studentId), r.projectName, KIND_INFO[r.kind]?.label ?? r.kind, STEPS.find((s) => s.id === r.step)?.label ?? r.step, r.voice ? 'Voice' : 'Typed', r.said, String(r.words), r.reply, r.changes.join('; '), SPEC_LABEL[r.specificity], r.details.join('; '), r.missing.join('; '), r.revisionOf ? 'Yes' : 'No', r.revisedLater ? 'Yes' : 'No', r.undone ? 'Yes' : 'No', r.usedFrame ? 'Yes' : 'No', r.prompt ?? '', r.source === 'ai' ? 'AI' : 'Built-in guide'].map(csvCell).join(','); });
+    const head = ['Date', 'Time', 'Student', 'Project', 'Game kind', 'Step', 'Typed or voice', 'What they said', 'Words', 'Azalea answered', 'What was done', 'How specific', 'Details they gave', 'Azalea asked for', 'Changes an earlier request', 'Changed again later', 'Undid it', 'Used a starter or choice', 'Azalea had asked', 'Scored by', 'Microphone transcript', 'After play testing'];
+    const lines = rows.map((r) => { const d = new Date(r.at); return [d.toLocaleDateString(), d.toLocaleTimeString(), nameFor(r.studentId), r.projectName, KIND_INFO[r.kind]?.label ?? r.kind, STEPS.find((s) => s.id === r.step)?.label ?? r.step, r.voice ? 'Voice' : 'Typed', r.said, String(r.words), r.reply, r.changes.join('; '), SPEC_LABEL[r.specificity], r.details.join('; '), r.missing.join('; '), r.revisionOf ? 'Yes' : 'No', r.revisedLater ? 'Yes' : 'No', r.undone ? 'Yes' : 'No', r.usedFrame ? 'Yes' : 'No', r.prompt ?? '', r.source === 'ai' ? 'AI' : 'Built-in guide', r.transcript ?? '', r.afterTest ? 'Yes' : 'No'].map(csvCell).join(','); });
     const blob = new Blob([[head.map(csvCell).join(','), ...lines].join('\n')], { type: 'text/csv' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `game-builder-requests-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
   };
@@ -55,7 +55,7 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
       </div>
       {!projects.length ? <p className="gbl-empty">No projects yet.</p> : (
         <table className="gbl-table">
-          <thead><tr><th>Student</th><th>Project</th><th>Idea and how you win</th><th>Step</th><th title="Rules made of blocks">Rules</th><th title="Sprites the student drew">Drawn sprites</th><th>Play tests</th><th>Saved</th><th /></tr></thead>
+          <thead><tr><th>Student</th><th>Project</th><th>Idea and how you win</th><th>Step</th><th title="Rules made of blocks">Rules</th><th title="Sprites the student drew">Drawn sprites</th><th>Play tests</th><th title="Changes to rules, design or assets made after play testing (from the dev log)">Changes after testing</th><th>Saved</th><th /></tr></thead>
           <tbody>{projects.filter((p) => !who || p.studentId === who).map((p) => (
             <tr key={`${p.studentId}-${p.id}`}>
               <td><b>{nameFor(p.studentId)}</b></td>
@@ -64,7 +64,7 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
               <td>{STEPS.find((s) => s.id === p.step)?.label}</td>
               <td>{p.kind === 'custom' ? <small>{p.code ? 'Written by Azalea' : 'None yet'}</small> : p.rules.length}</td>
               <td>{Object.keys(p.design.sprites ?? {}).length}</td>
-              <td>{p.plays}</td>
+              <td>{p.plays}</td><td>{(p.devlog ?? []).filter((e) => e.text.includes('(after play testing)')).length}</td>
               <td><small>{new Date(p.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</small></td>
               <td><button type="button" className="btn btn-sm" onClick={() => setPlaying(p)}>Play</button> <button type="button" className="btn btn-sm" onClick={() => setLogOf(p)}>Dev log ({(p.devlog ?? []).length})</button></td>
             </tr>
@@ -90,8 +90,8 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
       </div>
       {!rows.length ? <p className="gbl-empty">No Game Builder requests yet. Every message a student sends Azalea in Game Builder shows up here, word for word.</p> : <>
         <table className="gbl-sum">
-          <thead><tr><th>Student</th><th title="Messages sent to Azalea">Requests</th><th title="Named what to change plus how much or when">Specific</th><th title="Percent specific in the last 7 days, to compare with the whole range">Specific, last 7 days</th><th>Partly</th><th>Not yet</th><th title="Average words per request">Avg words</th><th title="Average details per request (what, how much, when, where, looks)">Avg details</th><th title="Requests that changed an earlier request, or were changed again later">Revisions</th><th>By voice</th><th title="Requests written without a sentence starter or tap-in choice">On their own</th></tr></thead>
-          <tbody>{summary.map((s) => <tr key={s.id}><td>{nameFor(s.id)}</td><td>{s.n}</td><td>{s.specific}%</td><td>{s.weekSpecific}</td><td>{s.partly}%</td><td>{s.vague}%</td><td>{s.words}</td><td>{s.details}</td><td>{s.revised}</td><td>{s.voice}</td><td>{s.own}</td></tr>)}</tbody>
+          <thead><tr><th>Student</th><th title="Messages sent to Azalea">Requests</th><th title="Named what to change plus how much or when">Specific</th><th title="Percent specific in the last 7 days, to compare with the whole range">Specific, last 7 days</th><th>Partly</th><th>Not yet</th><th title="Average words per request">Avg words</th><th title="Average details per request (what, how much, when, where, looks)">Avg details</th><th title="Requests that changed an earlier request, or were changed again later">Revisions</th><th>By voice</th><th title="Requests written without a sentence starter or tap-in choice">On their own</th><th title="Requests made after play testing: going back to change the game">After testing</th></tr></thead>
+          <tbody>{summary.map((s) => <tr key={s.id}><td>{nameFor(s.id)}</td><td>{s.n}</td><td>{s.specific}%</td><td>{s.weekSpecific}</td><td>{s.partly}%</td><td>{s.vague}%</td><td>{s.words}</td><td>{s.details}</td><td>{s.revised}</td><td>{s.voice}</td><td>{s.own}</td><td>{s.after}</td></tr>)}</tbody>
         </table>
         <table className="gbl-table">
           <thead><tr><th>When and who</th><th>Project</th><th>What they said</th><th>Azalea answered</th><th>What was done</th><th>How specific</th><th>Revised?</th></tr></thead>
@@ -100,7 +100,7 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
               <tr key={r.id} className={`gbl-${r.specificity}`}>
                 <td><b>{nameFor(r.studentId)}</b><br /><small>{new Date(r.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</small></td>
                 <td>{r.projectName}<br /><small>{KIND_INFO[r.kind]?.label} · {STEPS.find((s) => s.id === r.step)?.label}</small></td>
-                <td>"{r.said}"<br /><small>{r.voice ? 'Voice' : 'Typed'} · {r.words} word{r.words === 1 ? '' : 's'}{r.usedFrame ? ' · used a starter' : ' · on their own'}</small>{r.prompt && <><br /><small title={r.prompt}>After Azalea asked: {r.prompt.length > 90 ? `${r.prompt.slice(0, 90)}...` : r.prompt}</small></>}</td>
+                <td>"{r.said}"<br /><small>{r.voice ? 'Voice' : 'Typed'} · {r.words} word{r.words === 1 ? '' : 's'}{r.usedFrame ? ' · used a starter' : ' · on their own'}{r.afterTest ? ' · after play testing' : ''}</small>{r.transcript && r.transcript !== r.said && <><br /><small>Microphone heard: "{r.transcript}"</small></>}{r.prompt && <><br /><small title={r.prompt}>After Azalea asked: {r.prompt.length > 90 ? `${r.prompt.slice(0, 90)}...` : r.prompt}</small></>}</td>
                 <td>{r.reply}</td>
                 <td>{r.changes.length ? r.changes.join('; ') : <small>No change (Azalea asked a question)</small>}</td>
                 <td><b>{SPEC_LABEL[r.specificity]}</b>{r.details.length > 0 && <><br /><small>Gave: {r.details.join(', ')}</small></>}{r.missing.length > 0 && <><br /><small>Asked for: {r.missing.join(', ')}</small></>}</td>
