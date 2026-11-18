@@ -16,6 +16,7 @@ export interface AzaleaAnswer {
   reply: string; specificity: Specificity; details: string[]; missing: string[]; changes: string[];
   ops: Op[]; design: Partial<Record<'title' | 'hero' | 'theme' | 'idea' | 'goal' | 'style', string>>; music?: string; revision: boolean; next_step: '' | BuildStep; code: string;
   source: 'ai' | 'guide';
+  choices?: string[]; // tap-in answers to Azalea's question (Claudia's review, Build Queue 668)
 }
 
 export function catalogText(p: GameProject): string {
@@ -77,10 +78,10 @@ export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'desig
 const an = (w: string) => `${/^[aeiou]/.test(w) ? 'an' : 'a'} ${w}`;
 const NUM_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twenty: 20, fifty: 50, hundred: 100 };
 const firstNum = (s: string) => { const m = s.match(/\b(\d+(?:\.\d+)?)\b/); if (m) return Number(m[1]); for (const [w, n] of Object.entries(NUM_WORDS)) if (new RegExp(`\\b${w}\\b`).test(s)) return n; return null; };
-const SYN: Record<string, string> = { coins: 'coin', money: 'coin', enemies: 'enemy', bad: 'enemy', monster: 'enemy', monsters: 'enemy', snail: 'enemy', spikes: 'spike', stars: 'star', flag: 'flag', finish: 'flag', end: 'flag', ghosts: 'ghost', dots: 'dot', pellets: 'dot', pellet: 'dot', fruits: 'fruit', cherry: 'fruit', button: 'big', cookie: 'big' };
+const SYN: Record<string, string> = { coins: 'coin', money: 'coin', enemies: 'enemy', monster: 'enemy', monsters: 'enemy', snail: 'enemy', spikes: 'spike', stars: 'star', flag: 'flag', ghosts: 'ghost', dots: 'dot', pellets: 'dot', pellet: 'dot', fruits: 'fruit', cherry: 'fruit', button: 'big', cookie: 'big' };
 
 function thingIn(p: GameProject, s: string): string | null {
-  for (const [id, label] of THINGS[p.kind]) if (s.includes(id) || s.includes(label)) return id;
+  for (const [id, label] of THINGS[p.kind]) if (id !== 'any' && (new RegExp(`\\b${id}\\b`).test(s) || new RegExp(`\\b${label}\\b`).test(s))) return id;
   for (const [w, id] of Object.entries(SYN)) if (new RegExp(`\\b${w}\\b`).test(s) && THINGS[p.kind].some(([t]) => t === id)) return id;
   return null;
 }
@@ -100,7 +101,7 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   // Step: idea. Their first sentences become the idea and the goal.
   if (p.step === 'idea' || !p.design.idea) {
     const goal = s.match(/\b(win|wins|winning)\b.*$/);
-    if (goal) { ans.design.goal = said1.slice(said1.toLowerCase().indexOf(goal[0])); ans.details.push('how you win'); ans.changes.push('Saved how you win'); }
+    if (goal) { const at = s.search(/\b(you |the player |i )?(win|wins|winning)\b/); ans.design.goal = said1.slice(Math.max(0, at)).replace(/^./, (c) => c.toUpperCase()); ans.details.push('how you win'); ans.changes.push('Saved how you win'); }
   }
   // Design: hero, theme, name.
   for (const [id] of HERO_LOOKS) if (new RegExp(`\\b${id}s?\\b`).test(s) && /\b(hero|player|be|character|look|main)\b/.test(s)) { ans.design.hero = id; ans.changes.push(`Your hero is now the ${id}`); ans.details.push('what the hero looks like'); break; }
@@ -109,7 +110,7 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   else if (/\b(low poly|lowpoly|3d|three d)\b/.test(s)) { ans.design.style = 'lowpoly'; ans.changes.push('The art style is now Low poly'); ans.details.push('the art style'); }
   const tuneWord = PRESET_TUNES.find((t) => s.includes(t.id) && /\b(music|song|tune)\b/.test(s));
   if (tuneWord) { ans.music = tuneWord.id; ans.changes.push(`The music is now the ${tuneWord.label} tune`); ans.details.push('the music'); }
-  const named = said1.match(/\b(?:call it|name it|called|title is)\s+["']?([^"'.!?]{2,40})/i);
+  const named = said1.match(/\b(?:call it|call the game|name it|name the game|the title is)\s+["']?([^"'.!?]{2,40})/i);
   if (named) { ans.design.title = named[1].trim(); ans.changes.push(`The game is named "${named[1].trim()}"`); ans.details.push('the name'); }
 
   // Settings.
@@ -134,7 +135,8 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
     else ans.ops.push({ op: 'add', ruleId: '', when, whenArg, whenNum, actions, key: '', value: 0 });
     ans.changes.push(text);
   };
-  const pts = s.match(/(\d+)\s*(points?|pts)/);
+  const ptsM = s.match(/(\d+|one|two|three|four|five|six|seven|eight|nine|ten|twenty|fifty|hundred)\s*(points?|pts)/);
+  const pts = ptsM ? [ptsM[0], String(firstNum(ptsM[1]) ?? ptsM[1])] : null;
   if (thing && pts && (p.kind === 'platformer' || p.kind === 'maze')) {
     const cur = p.rules.find((r) => r.when === 'touch' && r.whenArg === thing);
     const acts = (cur?.actions ?? [{ do: 'remove', arg: '', num: 0 }]).filter((a) => a.do !== 'addScore');
@@ -160,34 +162,44 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   if (p.kind === 'clicker' && /\bupgrade\b/.test(s) && /\b(per second|every second|auto)\b/.test(s)) rule('tap', 'up3', 0, [{ do: 'cost', arg: '', num: n ?? 100 }, { do: 'perSecond', arg: '', num: 1 }], `Upgrade 3 now costs ${n ?? 100} and gives 1 point every second`);
 
   if (ans.ops.length && revisedBefore) ans.revision = true;
-  // The first description (not a request to change something) becomes the idea.
+  // The idea (Claudia's review, 668): saved when the student describes the game, never from "I do not know".
+  const describes = /\b(my game is about|the game is about|it is about|it's about|my idea is|a game where|my game has)\b/.test(s);
+  const unsure = /\b(i (do not|don't|dont) know|not sure|idk|nothing)\b/.test(s);
   const command = /^(please\s+)?(make|add|change|set|give|put|remove|take|let|can you|could you|i want|turn)\b/.test(s);
-  if ((p.step === 'idea' || !p.design.idea) && !p.design.idea && words >= 3 && !command && !ans.ops.length) { ans.design.idea = said1; ans.details.push('what the game is about'); ans.changes.push('Saved your idea'); }
-  // Specificity.
+  if (!unsure && !ans.ops.length && (describes || (!p.design.idea && p.step === 'idea' && words >= 5 && !command))) { ans.design.idea = said1; ans.details.push('what the game is about'); ans.changes.push('Saved your idea'); }
+  const onlyIdea = ans.changes.length > 0 && ans.changes.every((c) => c === 'Saved your idea' || c === 'Saved how you win');
+  // Specificity: "specific" only when something really changed and the student gave how much or when.
   if (thing) ans.details.push(`what: the ${thing}`); else if (ans.ops.length) ans.details.push('what to change');
   if (n !== null) ans.details.push(`how much: ${n}`);
   if (hasWhen) ans.details.push('when it happens');
-  const what = !!thing || ans.changes.length > 0;
-  ans.specificity = what && (n !== null || hasWhen || ans.design.hero || ans.design.theme || ans.design.title || ans.design.style || ans.music) ? 'specific' : what || hasHow ? 'partly' : 'vague';
+  const did = ans.changes.length > 0;
+  const what = !!thing || did;
+  const exact = n !== null || hasWhen || !!(ans.design.hero || ans.design.theme || ans.design.title || ans.music) || (onlyIdea && words >= 6);
+  ans.specificity = did && exact ? 'specific' : what || hasHow ? 'partly' : 'vague';
   if (!what) ans.missing.push('what should change');
-  if (what && n === null && !hasWhen && ans.ops.length) ans.missing.push('how much');
-  if (ans.specificity === 'specific' && ans.details.length) ans.details = [...new Set(ans.details)];
+  if (what && n === null && !hasWhen && !onlyIdea) ans.missing.push(did ? 'how much' : 'what should happen and how much');
+  ans.details = [...new Set(ans.details)];
 
-  // Reply.
-  if (ans.changes.length) say.push(`I did it! ${ans.changes.join('. ')}.`);
-  if (ans.specificity === 'specific' && ans.changes.length) say.push(`That was specific. You told me ${[...new Set(ans.details)].slice(0, 2).join(' and ')}.`);
-  else if (ans.specificity === 'partly' && ans.changes.length) say.push(`I guessed the amount. Next time say a number, like "make the hero speed 8".`);
-  if (!ans.changes.length) {
-    if (p.step === 'idea' && ans.design.idea) {
-      say.push('I love that idea. I saved it.');
-      say.push(p.design.goal || ans.design.goal ? 'Now pick a hero and a world. Try: "My hero is a robot in space."' : 'How do you win? Try: "You win when you get 20 coins."');
+  // Reply, with tap-in choices when Azalea asks a question.
+  const ex = (t: string) => `"${t}"`;
+  const exampleFor = () => p.kind === 'clicker' ? 'Each tap gives 5 points.' : p.kind === 'match3' ? 'A match gives 20 points.' : `When the hero touches ${an(thing ?? (p.kind === 'maze' ? 'dot' : 'coin'))}, add 5 points.`;
+  if (did) say.push(`I did it! ${ans.changes.join('. ')}.`);
+  if (onlyIdea) {
+    say.push(ans.design.idea ? 'I love that idea.' : 'Great.');
+    if (!(p.design.goal || ans.design.goal)) { say.push('How do you win?'); ans.choices = p.kind === 'clicker' ? ['You win when you get 1000 points.', 'You win when you buy every upgrade.'] : p.kind === 'match3' ? ['You win when you get 300 points.', 'You win before the time runs out.'] : p.kind === 'maze' ? ['You win when you eat every dot.', 'You win when you get 500 points.'] : ['You win when you reach the flag.', 'You win when you get 20 coins.']; }
+    else { say.push('Now pick a hero and a world.'); ans.choices = ['My hero is a robot in space.', 'My hero is a cat in a candy world.', 'My hero is a frog in the snow.']; }
+  } else if (did && ans.specificity === 'specific') say.push(`That was specific. You told me ${ans.details.slice(0, 2).join(' and ')}.`);
+  else if (did) say.push(`I guessed the amount. Next time say a number, like ${ex(p.kind === 'platformer' ? 'make the hero speed 8' : exampleFor())}.`);
+  if (!did) {
+    if (unsure) {
+      say.push('That is okay. Let us pick together. What should your game be about?');
+      ans.choices = ['My game is about a cat who collects coins.', 'My game is about a robot who escapes a maze.', 'My game is about a dog who saves the town.'];
     } else if (what) {
-      say.push(`I think you mean the ${thing ?? 'game'}, but I need one more detail. What should happen, and how much?`);
-      say.push(`Try: "When the hero touches a ${thing ?? 'coin'}, add 5 points."`);
+      say.push(`I think you mean the ${thing ?? 'game'}, but I need one more detail: what should happen, and how much?`);
+      ans.choices = [exampleFor(), thing ? `Make the ${thing} faster, speed 8.` : 'Make the hero speed 8.'];
     } else {
-      say.push('I want to build exactly what you want, but I am not sure what to change yet.');
-      say.push(p.kind === 'clicker' ? 'Do you want to change the points, an upgrade, or the look?' : 'Do you want to change the hero, the danger, the points, or a power up?');
-      say.push('Try this: "When ___ happens, ___."');
+      say.push('I want to build exactly what you want, but I am not sure what to change yet. Which part?');
+      ans.choices = p.kind === 'clicker' ? ['Each tap gives 5 points.', 'Make upgrade 1 cost 20 points.', 'My hero is a pizza.'] : p.kind === 'match3' ? ['A match gives 20 points.', 'Make the timer 60 seconds.', 'Use 5 tile colors.'] : ['Make the enemy speed 7.', exampleFor(), 'When the hero touches a star, give a shield for 6 seconds.'];
     }
   }
   // Next step and the game check.
@@ -198,6 +210,7 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   if (!next && p.step !== 'playtest') { ans.next_step = 'playtest'; say.push('Your game has everything it needs. Tap Play to test it!'); }
   else if (next && ['win', 'challenge', 'score', 'power'].includes(next.id) && stepIdx < 2 && p.design.idea && p.design.goal) ans.next_step = 'logic';
   else if (next?.id === 'design' && stepIdx < 1 && (p.design.idea || ans.design.idea)) ans.next_step = 'design';
+  if (p.kind === 'custom' && !ans.changes.length) ans.choices = undefined;
   if (p.kind === 'custom' && !ans.changes.length) say.splice(0, say.length, 'For a game from blank, I need my thinking cap, and your teacher turns it on. Until then, tell me your idea, your hero and how you win, and I will save the plan.');
   ans.reply = say.slice(0, 4).join(' ');
   return ans;
@@ -207,7 +220,7 @@ export async function askAzalea(p: GameProject, said: string, loose: number): Pr
   const history = p.chat.slice(-16).map((m) => ({ from: m.from, text: m.text }));
   const slim = { ...p, chat: undefined, code: p.code ? p.code.slice(0, 40000) : '' };
   try {
-    const ctl = new AbortController(); const t = window.setTimeout(() => ctl.abort(), p.kind === 'custom' ? 110000 : 45000);
+    const ctl = new AbortController(); const t = window.setTimeout(() => ctl.abort(), p.kind === 'custom' ? 110000 : 20000);
     const r = await fetch('/api/game-builder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal,
       body: JSON.stringify({ message: said, history, project: JSON.stringify(slim), catalog: catalogText(p), problems: problems(p, loose).join('\n') }) });
     window.clearTimeout(t);

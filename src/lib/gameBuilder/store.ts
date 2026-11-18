@@ -12,7 +12,7 @@ import type { BuildStep, GameKind, GameProject } from './model';
 
 const projOwner = (sid: string, pid: string) => `gbproject:${sid}:${pid}`;
 const reqOwner = (sid: string) => `gbrequests:${sid}`;
-const KEEP_REQUESTS = 500;
+const KEEP_REQUESTS = 2000;
 
 export function useProjects(studentId: string): GameProject[] {
   const looks = useStore((s) => s.styleLooks);
@@ -46,7 +46,11 @@ export interface BuildRequest {
   missing: string[];          // what Azalea had to ask for
   revisionOf?: string;        // the earlier request this one changes again
   revisedLater?: boolean;     // the student came back and changed it again
+  undone?: boolean;           // the student tapped Undo on this change (Build Queue 667)
   words: number;
+  source?: 'ai' | 'guide';    // who scored it: the AI or the built-in guide
+  usedFrame?: boolean;        // the student started from a sentence starter or a tap-in choice
+  prompt?: string;            // what Azalea had just asked
 }
 
 const reqItems = (sid: string): BuildRequest[] => {
@@ -61,6 +65,11 @@ export function logRequest(studentId: string, r: Omit<BuildRequest, 'id' | 'at' 
   return item;
 }
 
+export function markUndone(studentId: string, id: string) {
+  if (!studentId) return;
+  useStore.getState().mergeStyleRow(reqOwner(studentId), { items: reqItems(studentId).map((x) => (x.id === id ? { ...x, undone: true } : x)) });
+}
+
 export function useAllBuildRequests(): (BuildRequest & { studentId: string })[] {
   const looks = useStore((s) => s.styleLooks);
   return looks
@@ -71,4 +80,14 @@ export function useAllBuildRequests(): (BuildRequest & { studentId: string })[] 
       return Array.isArray(items) ? items.map((i) => ({ ...i, studentId })) : [];
     })
     .sort((a, b) => (a.at < b.at ? 1 : -1));
+}
+
+// Every student's projects, for the teacher (Build Queue 666).
+export function useAllProjects(): (GameProject & { studentId: string })[] {
+  const looks = useStore((s) => s.styleLooks);
+  return looks
+    .filter((r) => r.ownerId.startsWith('gbproject:'))
+    .map((r) => ({ ...(r.look as unknown as GameProject & { deleted?: boolean }), studentId: r.ownerId.split(':')[1] }))
+    .filter((p) => p && p.id && !(p as { deleted?: boolean }).deleted)
+    .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 }

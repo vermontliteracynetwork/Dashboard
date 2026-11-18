@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder-easier",
+    date: "2026-11-18",
+    icon: "🕹️",
+    title: "Game Builder: easier steps and an Undo button",
+    body: "Game Builder now shows one step at a time, with a yellow bar that tells you what to do next. Tap 🔊 to hear it. Azalea gives you answers you can tap, and sentence starters that fit your game. Did not like a change? Tap Undo. Each game also tells you how to play it.",
+  },
+  {
     id: "2026-11-18-game-builder-moves-music",
     date: "2026-11-18",
     icon: "🎵",

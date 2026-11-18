@@ -9,7 +9,7 @@ export type BuildStep = 'idea' | 'design' | 'logic' | 'playtest';
 export const STEPS: { id: BuildStep; label: string; tip: string }[] = [
   { id: 'idea', label: 'Idea', tip: 'What is the game about? Who is the hero? How do you win?' },
   { id: 'design', label: 'Design', tip: 'Colors, the hero, the world, sounds.' },
-  { id: 'logic', label: 'Game logic', tip: 'The rules: when this happens, the game does that.' },
+  { id: 'logic', label: 'Game rules', tip: 'The rules: when this happens, the game does that.' },
   { id: 'playtest', label: 'Play test', tip: 'Play it, find what is broken or boring, then fix it.' },
 ];
 
@@ -36,7 +36,7 @@ export interface Settings {
   lives: number; timer: number; level: number; tileColors: number;
 }
 
-export interface ChatMsg { id: string; from: 'student' | 'azalea'; text: string; at: string; voice?: boolean }
+export interface ChatMsg { id: string; from: 'student' | 'azalea'; text: string; at: string; voice?: boolean; choices?: string[] }
 
 export interface GameProject {
   id: string; name: string; kind: GameKind;
@@ -46,6 +46,7 @@ export interface GameProject {
   code?: string;          // custom games: the game Azalea wrote
   chat: ChatMsg[];
   plays: number;          // how many times it was play tested
+  lastReqId?: string;     // the student's last logged request, so revisions link across visits
   bugsFixed: number;
 }
 
@@ -144,7 +145,7 @@ export function starterRules(kind: GameKind): Rule[] {
   switch (kind) {
     case 'platformer': return [
       r('touch', 'coin', 0, ['addScore', '', 1], ['remove'], ['sound', 'coin']),
-      r('touch', 'enemy', 0, ['loseLife'], ['sound', 'oops'], ['restart']),
+      r('touch', 'enemy', 0, ['loseLife'], ['sound', 'oops']),
       r('touch', 'flag', 0, ['win']),
     ];
     case 'match3': return [

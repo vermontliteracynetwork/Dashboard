@@ -1,5 +1,5 @@
 /* Game Builder (Build Queue 658). iPad first, both orientations: big touch targets, no hover-only controls. */
-.gb-shell { position: fixed; inset: 0; display: flex; flex-direction: column; background: #f4f0ff; color: #24174d; font-family: 'Nunito', system-ui, sans-serif; overflow: hidden; }
+.gb-shell { position: fixed; inset: 0; display: flex; flex-direction: column; background: #f4f0ff; color: #24174d; overflow: hidden; }
 .gb-center { align-items: center; justify-content: center; }
 .gb-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: #fff; border-bottom: 2px solid #e5dcff; }
 .gb-top h1 { margin: 0; font-family: 'Baloo 2', 'Nunito', sans-serif; font-size: 1.7rem; color: #6d28d9; }
@@ -160,3 +160,20 @@
 .gbs-row button.on { background: #7c3aed; border-color: #5b21b6; }
 .gbs-songs { display: flex; flex-wrap: wrap; gap: 8px; }
 .gb-design > *, .gb-check > * { flex-shrink: 0; }
+.gb-undo { margin: 0 10px 6px; align-self: flex-start; min-height: 44px; }
+/* Claudia's review (Build Queue 668) */
+.gb-banner { display: flex; align-items: center; gap: 10px; padding: 6px 16px; background: #fff8e1; border-bottom: 2px solid #ffe3a3; }
+.gb-banner p { margin: 0; font-weight: 700; font-size: 1.02rem; }
+.gb-more { margin-left: auto; min-height: 44px; border: 0; background: none; color: #5b21b6; font-weight: 700; font-size: 0.95rem; text-decoration: underline; cursor: pointer; }
+.gb-choices { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.gb-choices button { min-height: 48px; text-align: left; padding: 8px 12px; border-radius: 12px; border: 2px solid #7c3aed; background: #fff; color: #3b2a7a; font-weight: 700; font-size: 1rem; cursor: pointer; }
+.gb-say { width: 44px; height: 44px; }
+.gb-frames button { min-height: 44px; }
+.gbs-row button { width: 44px; height: 44px; }
+.gb-play { background: #157a40; border-color: #157a40; }
+.gb-danger, .gb-badge { background: #c8323a; border-color: #c8323a; }
+.gba-slots small { color: #157a40; }
+.lvl-vague .gb-meter-bars i.on { background: #9966ff; }
+.gb-shell, .gb-btn, .gb-step, .gb-tabs button, .gb-frames button, .gb-choices button, .gba-slots button, .gb-chat-tab { font-family: inherit; }
+.gb-how { display: flex; align-items: center; gap: 10px; padding: 0 12px 4px; color: #fff; font-weight: 700; font-size: 1.02rem; }
+.gb-kind:disabled { opacity: 0.6; cursor: default; }

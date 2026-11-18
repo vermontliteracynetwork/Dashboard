@@ -79,6 +79,8 @@ type Turn = { from: 'student' | 'azalea'; text: string };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Cache-Control', 'no-store');
+  // GET says whether full AI is on, so the app only offers Custom games (built from blank) when it can build them.
+  if (req.method === 'GET') { res.status(200).json({ ai: !!process.env.ANTHROPIC_API_KEY }); return; }
   if (req.method !== 'POST') { res.status(405).json({ error: 'POST only.' }); return; }
   if (!process.env.ANTHROPIC_API_KEY) { res.status(501).json({ error: 'Azalea AI is not set up yet.' }); return; }
   const from = String(req.headers.referer ?? req.headers.origin ?? '');

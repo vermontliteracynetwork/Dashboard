@@ -38,7 +38,7 @@ export class Rules {
   score = 0; lives = 3; time = 0; perTap = 1; perSecond = 0; over: EndResult | null = null;
   msg = ''; msgUntil = 0; powers = new Map<string, number>(); settings: Settings;
   private fired = new Set<string>(); private every = new Map<string, number>(); private now = 0;
-  costs = new Map<string, number>();
+  costs = new Map<string, number>(); endTimer = 0;
   p: GameProject; private hooks: RunHooks;
   constructor(p: GameProject, hooks: RunHooks) {
     this.p = p; this.hooks = hooks;
@@ -86,7 +86,7 @@ export class Rules {
   end(r: EndResult) {
     if (this.over) return; this.over = r;
     if (this.hooks.sound) tone(r === 'win' ? 'win' : 'oops');
-    window.setTimeout(() => this.hooks.onEnd(r, this.score), 700);
+    this.endTimer = window.setTimeout(() => this.hooks.onEnd(r, this.score), 700);
   }
   start() { this.fire('start'); }
   tick(now: number, dt: number) {
@@ -211,7 +211,7 @@ function platformer(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): Run
     g.globalAlpha = 1; g.restore();
     R.hud(g, W, th.ink);
   });
-  return { stop, press: (k, d) => { keys[k] = d; }, tap: () => {} };
+  return { stop: () => { stop(); window.clearTimeout(R.endTimer); }, press: (k, d) => { keys[k] = d; }, tap: () => {} };
 }
 
 // ---------- Maze chase ----------
@@ -287,7 +287,7 @@ function maze(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle
     R.hud(g, W, th.ink);
   });
   const dirs: Record<string, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
-  return { stop, press: (k, d) => { if (d && dirs[k]) { hero.want = dirs[k]; R.fire('key', k); } }, tap: () => {} };
+  return { stop: () => { stop(); window.clearTimeout(R.endTimer); }, press: (k, d) => { if (d && dirs[k]) { hero.want = dirs[k]; R.fire('key', k); } }, tap: () => {} };
 }
 
 // ---------- Match three ----------
@@ -303,6 +303,10 @@ function match3(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHand
     for (let c = 0; c < N; c++) for (let r = 0; r < N; ) { let e = r; while (e < N && grid[e][c] === grid[r][c]) e++; if (e - r >= 3 && grid[r][c] >= 0) { groups.push({ color: grid[r][c], n: e - r }); for (let i = r; i < e; i++) hit.add(`${i},${c}`); } r = e; }
     return { hit, groups }; };
   while (findRuns().hit.size) for (const k of findRuns().hit) { const [r, c] = k.split(',').map(Number); grid[r][c] = rand(); }
+  // No swap makes a match: reshuffle so a student is never stuck (Claudia's review, 668).
+  const hasMove = () => { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) for (const [dr, dc] of [[0, 1], [1, 0]]) { const r2 = r + dr, c2 = c + dc; if (r2 >= N || c2 >= N) continue; [grid[r][c], grid[r2][c2]] = [grid[r2][c2], grid[r][c]]; const ok = findRuns().hit.size > 0; [grid[r][c], grid[r2][c2]] = [grid[r2][c2], grid[r][c]]; if (ok) return true; } return false; };
+  const reshuffle = () => { let tries = 0; do { for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) grid[r][c] = rand(); while (findRuns().hit.size) for (const k of findRuns().hit) { const [r, c] = k.split(',').map(Number); grid[r][c] = rand(); } } while (!hasMove() && ++tries < 20); };
+  if (!hasMove()) reshuffle();
   let sel: { r: number; c: number } | null = null; let busy = 0; const pops: { r: number; c: number; t: number }[] = [];
   const resolve = (first: boolean): boolean => {
     const { hit, groups } = findRuns(); if (!hit.size) return false;
@@ -314,7 +318,7 @@ function match3(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHand
   R.start();
   const stop = loop((now, dt) => {
     R.tick(now, dt);
-    if (busy > 0) { busy -= dt; if (busy <= 0) resolve(false); }
+    if (busy > 0) { busy -= dt; if (busy <= 0 && !resolve(false) && !hasMove()) { reshuffle(); R.note('No more matches, so I mixed the tiles.'); } }
     A.sky(g, W, H);
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       const v = grid[r][c]; if (v < 0) continue; const x = ox + c * cell, y = oy + r * cell;
@@ -333,7 +337,7 @@ function match3(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHand
     const a = sel; sel = null; [grid[a.r][a.c], grid[r][c]] = [grid[r][c], grid[a.r][a.c]];
     if (!resolve(true)) { [grid[a.r][a.c], grid[r][c]] = [grid[r][c], grid[a.r][a.c]]; if (hooks.sound) tone('oops'); }
   };
-  return { stop, press: () => {}, tap };
+  return { stop: () => { stop(); window.clearTimeout(R.endTimer); }, press: () => {}, tap };
 }
 
 // ---------- Clicker ----------
@@ -371,7 +375,7 @@ function clicker(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHan
       if (R.score < cost) { R.note(`You need ${Math.ceil(cost)} points for that.`); return; }
       R.score -= cost; R.costs.set(u, Math.ceil(cost * 1.5)); if (hooks.sound) tone('buy'); R.fire('tap', u); });
   };
-  return { stop, press: () => {}, tap };
+  return { stop: () => { stop(); window.clearTimeout(R.endTimer); }, press: () => {}, tap };
 }
 
 export function runGame(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle {

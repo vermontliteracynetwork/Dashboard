@@ -1,20 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import { useVoiceToText } from '../../lib/useVoiceToText';
+import { useMenuItems } from '../../lib/mainMenu';
 import {
   KIND_INFO, SETTING_INFO, STEPS, gameCheck, newId, newProject, ruleText,
   type BuildStep, type ChatMsg, type GameKind, type GameProject, type Rule, type Settings,
 } from '../../lib/gameBuilder/model';
-import { deleteProject, logRequest, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
+import { deleteProject, logRequest, markUndone, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
 import { applyAnswer, askAzalea, problems } from '../../lib/gameBuilder/azalea';
 import { createWorkspace, loadRules, readRules, SB } from '../../games/gameBuilder/blocks';
-import { runGame, type RunHandle } from '../../games/gameBuilder/runtime';
 import ArtPanel from './GameBuilderArt';
 import SoundPanel from './GameBuilderSound';
-import { startMusic } from '../../games/gameBuilder/music';
+import { Player } from './GameBuilderPlayer';
 import './GameBuilder.css';
 
 // Game Builder (Build Queue 658, her words 2026-11-18): "I want to have a defined app in the kids computer that
@@ -23,16 +23,25 @@ import './GameBuilder.css';
 // blank), then build it with Azalea in four steps (idea, design, game logic, play test), using Scratch blocks AND
 // Azalea's chat (typed or voice). Every request is logged for her speech goals (lib/gameBuilder/store.ts).
 
+type Tab = 'blocks' | 'design' | 'art' | 'sound' | 'check';
 const VOICE = NPC_VOICE_PRESETS['bright-friendly'];
 const AZ_IMG = '/characters/azalea.png';
 const KINDS: GameKind[] = ['platformer', 'match3', 'clicker', 'maze', 'custom'];
 
-const FRAMES: Record<BuildStep, string[]> = {
-  idea: ['My game is about a ___ who ___.', 'You win when ___.', 'The hard part is ___.'],
-  design: ['My hero is a ___.', 'The world is ___.', 'Call it "___".'],
-  logic: ['When the hero touches a ___, ___.', 'Make the ___ worth ___ points.', 'You win when the score reaches ___.'],
-  playtest: ['It was too hard because ___.', 'The ___ is too fast. Make it ___.', 'Add a power up that ___.'],
-};
+// Sentence starters for each step, fitted to the kind of game (Claudia's review, Build Queue 668).
+function framesFor(kind: GameKind, step: BuildStep): string[] {
+  if (step === 'idea') return ['My game is about a ___ who ___.', 'You win when ___.', 'The hard part is ___.'];
+  if (step === 'design') return ['My hero is a ___.', 'The world is ___.', 'Call it ___.', 'Make the art pixel.'];
+  if (step === 'playtest') return ['It was too hard because ___.', 'The ___ is too fast. Make it speed ___.', 'Add a power up that ___.'];
+  if (kind === 'clicker') return ['Each tap gives ___ points.', 'Make upgrade 1 cost ___ points.', 'You win when the score reaches ___.'];
+  if (kind === 'match3') return ['A match gives ___ points.', 'Make the timer ___ seconds.', 'You win when the score reaches ___.'];
+  if (kind === 'maze') return ['When the hero touches a ___, ___.', 'Make the ghost speed ___.', 'You win when the score reaches ___.'];
+  return ['When the hero touches a ___, ___.', 'Make the ___ worth ___ points.', 'You win when the score reaches ___.'];
+}
+// Which tabs show at each step, so a student sees only what the step needs (Claudia's review, 668).
+const TABS_FOR: Record<BuildStep, Tab[]> = { idea: ['design'], design: ['design', 'art', 'sound'], logic: ['blocks', 'design', 'art', 'sound', 'check'], playtest: ['blocks', 'design', 'art', 'sound', 'check'] };
+const TAB_FOR_STEP: Record<BuildStep, Tab> = { idea: 'design', design: 'art', logic: 'blocks', playtest: 'check' };
+const TAB_LABEL: Record<Tab, string> = { blocks: 'Blocks', design: 'Design', art: 'Art', sound: 'Sound', check: 'Game check' };
 
 function greet(p: GameProject): string {
   if (p.kind === 'custom') return `Hi, I am Azalea! We are building a brand new game from blank. Step 1 is the idea. What is your game about? Try: "My game is about a ___ who ___."`;
@@ -58,6 +67,10 @@ function ProjectList({ projects, onOpen, onBack, backLabel, studentId }: { proje
   const [name, setName] = useState('');
   const [confirmDel, setConfirmDel] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
+  // Custom games need the AI; without it the card says so instead of leading to a dead end (Claudia's review, 668).
+  const [ai, setAi] = useState(false);
+  useEffect(() => { fetch('/api/game-builder').then((r) => (r.ok ? r.json() : null)).then((j: { ai?: boolean } | null) => setAi(!!j?.ai)).catch(() => {}); }, []);
+  const HELLO = 'Pick a kind of game to start a new project, then give it a name. Or tap one of your projects to keep building.';
   const create = () => {
     if (!picking) return;
     const p = newProject(picking, name);
@@ -69,17 +82,18 @@ function ProjectList({ projects, onOpen, onBack, backLabel, studentId }: { proje
       <header className="gb-top">
         <button type="button" className="gb-btn" onClick={onBack}>Back to {backLabel}</button>
         <h1>Game Builder</h1>
-        <span />
+        <button type="button" className="gb-btn gb-icon" onClick={() => speak(HELLO, undefined, undefined, VOICE)} aria-label="Read the directions aloud">🔊</button>
       </header>
       <main className="gb-list">
         <section>
           <h2>Start a new project</h2>
+          <p className="gb-muted">{HELLO}</p>
           <div className="gb-kinds">
             {KINDS.map((k) => (
-              <button key={k} type="button" className={`gb-kind ${picking === k ? 'on' : ''}`} onClick={() => setPicking(k)}>
+              <button key={k} type="button" className={`gb-kind ${picking === k ? 'on' : ''}`} disabled={k === 'custom' && !ai} onClick={() => setPicking(k)}>
                 <span className="gb-kind-icon" aria-hidden>{KIND_INFO[k].icon}</span>
                 <b>{KIND_INFO[k].label}</b>
-                <small>{KIND_INFO[k].blurb}</small>
+                <small>{k === 'custom' && !ai ? 'Coming soon: your teacher turns on Azalea\'s thinking cap for this one.' : KIND_INFO[k].blurb}</small>
               </button>
             ))}
           </div>
@@ -123,14 +137,14 @@ function ProjectList({ projects, onOpen, onBack, backLabel, studentId }: { proje
 }
 
 // ---------- Editor ----------
-type Tab = 'blocks' | 'design' | 'art' | 'sound' | 'check';
 function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
   const [p, setP] = useState<GameProject>(initial);
-  const [tab, setTab] = useState<Tab>(initial.kind === 'custom' ? 'design' : 'blocks');
+  const [tab, setTabRaw] = useState<Tab>(TAB_FOR_STEP[initial.step] === 'blocks' && initial.kind === 'custom' ? 'design' : TAB_FOR_STEP[initial.step]);
   const [chatOpen, setChatOpen] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [loose, setLoose] = useState(0);
   const [lastReq, setLastReq] = useState<BuildRequest | null>(null);
+  const [showAll, setShowAll] = useState(false);
   const latest = useRef(p); latest.current = p;
 
   // Save shortly after each change.
@@ -140,6 +154,14 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   const update = useCallback((f: (q: GameProject) => GameProject) => setP((q) => f(q)), []);
   const probs = problems(p, loose);
   const check = gameCheck(p);
+  const tabs = (showAll ? TABS_FOR.playtest : TABS_FOR[p.step]).filter((t) => !(t === 'blocks' && p.kind === 'custom'));
+  const setTab = setTabRaw;
+  useEffect(() => { if (!tabs.includes(tab)) setTabRaw(tabs[0]); }, [tabs, tab]);
+  const stepInfo = STEPS.find((x) => x.id === p.step)!;
+  const nextThing = check.find((c) => !c.ok);
+  const banner = `Step ${STEPS.findIndex((x) => x.id === p.step) + 1}, ${stepInfo.label}: ${stepInfo.tip}${nextThing ? ` Next: ${nextThing.text.toLowerCase()}.` : ' Your game has everything. Tap Play to test it!'}`;
+  // One main menu (her rule): a "What do I do now?" item reads the step and the next thing to do.
+  useMenuItems([{ id: 'gb-now', icon: '❓', label: 'What do I do now?', bg: '#7c3aed', order: 5, onSelect: () => speak(banner, tts, undefined, VOICE) }]);
 
   return (
     <div className="gb-shell gb-editor">
@@ -150,20 +172,25 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
       </header>
       <nav className="gb-steps" aria-label="Steps">
         {STEPS.map((s, i) => (
-          <button key={s.id} type="button" className={`gb-step ${p.step === s.id ? 'on' : ''} ${STEPS.findIndex((x) => x.id === p.step) > i ? 'done' : ''}`} onClick={() => update((q) => ({ ...q, step: s.id }))} title={s.tip}>
-            <span className="gb-step-n">{i + 1}</span> {s.label}
+          <button key={s.id} type="button" className={`gb-step ${p.step === s.id ? 'on' : ''} ${STEPS.findIndex((x) => x.id === p.step) > i ? 'done' : ''}`} onClick={() => { update((q) => ({ ...q, step: s.id })); setTabRaw(s.id === 'logic' && p.kind === 'custom' ? 'design' : TAB_FOR_STEP[s.id]); }} aria-current={p.step === s.id ? 'step' : undefined}>
+            <span className="gb-step-n">{STEPS.findIndex((x) => x.id === p.step) > i ? '✓' : i + 1}</span> {s.label}
           </button>
         ))}
       </nav>
+      <div className="gb-banner" role="status">
+        <button type="button" className="gb-btn gb-icon" onClick={() => speak(banner, tts, undefined, VOICE)} aria-label="Read the step aloud">🔊</button>
+        <p>{banner}</p>
+      </div>
       <div className={`gb-body ${chatOpen ? '' : 'chat-closed'}`}>
         <Chat p={p} setP={setP} studentId={studentId} tts={tts} loose={loose} open={chatOpen} setOpen={setChatOpen} lastReq={lastReq} setLastReq={setLastReq} />
         <section className="gb-work">
           <div className="gb-tabs" role="tablist">
-            {p.kind !== 'custom' && <button type="button" role="tab" aria-selected={tab === 'blocks'} className={tab === 'blocks' ? 'on' : ''} onClick={() => setTab('blocks')}>Blocks</button>}
-            <button type="button" role="tab" aria-selected={tab === 'design'} className={tab === 'design' ? 'on' : ''} onClick={() => setTab('design')}>Design</button>
-            <button type="button" role="tab" aria-selected={tab === 'art'} className={tab === 'art' ? 'on' : ''} onClick={() => setTab('art')}>Art</button>
-            <button type="button" role="tab" aria-selected={tab === 'sound'} className={tab === 'sound' ? 'on' : ''} onClick={() => setTab('sound')}>Sound</button>
-            <button type="button" role="tab" aria-selected={tab === 'check'} className={tab === 'check' ? 'on' : ''} onClick={() => setTab('check')}>Game check {probs.length ? <span className="gb-badge">{probs.length}</span> : check.every((c) => c.ok) ? '✓' : ''}</button>
+            {tabs.map((t) => (
+              <button key={t} type="button" role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
+                {TAB_LABEL[t]}{t === 'check' && (probs.length ? <span className="gb-badge">{probs.length}</span> : check.every((c) => c.ok) ? ' ✓' : '')}
+              </button>
+            ))}
+            {!showAll && tabs.length < TABS_FOR.playtest.length && <button type="button" className="gb-more" onClick={() => setShowAll(true)}>Show all tabs</button>}
           </div>
           <div className="gb-tabpane">
             {tab === 'blocks' && p.kind !== 'custom' && <Blocks p={p} onRules={(rules, l) => { setLoose(l); setP((q) => (JSON.stringify(q.rules) === JSON.stringify(rules) ? q : { ...q, rules })); }} />}
@@ -192,29 +219,37 @@ function Chat({ p, setP, studentId, tts, loose, open, setOpen, lastReq, setLastR
   const [busy, setBusy] = useState(false);
   const [voiced, setVoiced] = useState(false);
   const [readAloud, setReadAloud] = useState(true);
+  // Undo (Build Queue 667): the game as it was before each of Azalea's changes, newest last.
+  const [undo, setUndo] = useState<{ reqId: string; snap: Pick<GameProject, 'rules' | 'settings' | 'design' | 'code'> }[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
   const voice = useVoiceToText((heard) => { setVoiced(true); setDraft((d) => (d ? `${d} ${heard}` : heard)); }, { continuous: false });
   useEffect(() => { listRef.current?.scrollTo({ top: 1e9, behavior: 'smooth' }); }, [p.chat.length, busy]);
-  const said = useRef(new Set<string>());
+  const said = useRef(new Set<string>(p.chat.length ? [p.chat[p.chat.length - 1].id] : []));
+  const [usedFrame, setUsedFrame] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const putDraft = (t: string) => { setDraft(t); setUsedFrame(true); window.setTimeout(() => { const ta = taRef.current; if (!ta) return; ta.focus(); const i = t.indexOf('___'); if (i >= 0) ta.setSelectionRange(i, i + 3); }, 0); };
   useEffect(() => {
     const last = p.chat[p.chat.length - 1];
-    if (readAloud && last?.from === 'azalea' && !said.current.has(last.id)) { said.current.add(last.id); speak(last.text, tts, undefined, VOICE); }
-  }, [p.chat, readAloud, tts]);
+    if (readAloud && open && last?.from === 'azalea' && !said.current.has(last.id)) { said.current.add(last.id); speak(last.text, tts, undefined, VOICE); }
+  }, [p.chat, readAloud, tts, open]);
 
   const send = async () => {
-    const text = draft.trim(); if (!text || busy) return;
+    const text = draft.trim(); if (!text || busy || text.includes('___')) return;
     voice.stop();
+    const prompt = [...p.chat].reverse().find((m) => m.from === 'azalea')?.text ?? '';
     const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: voiced };
     const withMsg = { ...p, chat: [...p.chat, msg] };
     setP(withMsg); setDraft(''); setBusy(true);
     const ans = await askAzalea(p, text, loose);
-    const next = applyAnswer(withMsg, ans);
     const changes = ans.changes.length ? ans.changes : ans.ops.length || ans.code ? ['Changed the game'] : [];
-    const revisionOf = ans.revision ? lastReq?.projectId === p.id ? lastReq.id : undefined : undefined;
-    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf });
+    const prevId = lastReq?.projectId === p.id ? lastReq.id : p.lastReqId;
+    const revisionOf = ans.revision ? prevId : undefined;
+    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf, source: ans.source, usedFrame, prompt: prompt.slice(0, 300) });
     setLastReq(req);
-    setP({ ...next, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay!', at: new Date().toISOString() }], bugsFixed: next.bugsFixed + (p.step === 'playtest' && changes.length ? 1 : 0) });
-    setBusy(false); setVoiced(false);
+    if (changes.length) setUndo((u) => [...u.slice(-9), { reqId: req.id, snap: { rules: p.rules, settings: p.settings, design: p.design, code: p.code } }]);
+    // Applied to the newest game, so edits made while Azalea was thinking are kept (Claudia's review, 668).
+    setP((q) => { const next = applyAnswer(q, ans); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay!', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
+    setBusy(false); setVoiced(false); setUsedFrame(false);
   };
 
   const meter = (m: ChatMsg) => {
@@ -223,7 +258,7 @@ function Chat({ p, setP, studentId, tts, loose, open, setOpen, lastReq, setLastR
     return (
       <div className={`gb-meter lvl-${lvl}`} aria-label={`Specific meter: ${lvl}`}>
         <span className="gb-meter-bars">{[1, 2, 3].map((i) => <i key={i} className={i <= n ? 'on' : ''} />)}</span>
-        <b>{lvl === 'specific' ? 'Specific!' : lvl === 'partly' ? 'Almost specific' : 'Not specific yet'}</b>
+        <b>{lvl === 'specific' ? 'Specific!' : lvl === 'partly' ? 'Almost specific' : 'Add what to change and how much'}</b>
         {lastReq.details.length > 0 && <small>You said: {lastReq.details.join(', ')}</small>}
         {lastReq.missing.length > 0 && <small>Add: {lastReq.missing.join(', ')}</small>}
       </div>
@@ -245,18 +280,27 @@ function Chat({ p, setP, studentId, tts, loose, open, setOpen, lastReq, setLastR
             <p>{m.text}</p>
             {m.from === 'azalea' && <button type="button" className="gb-say" onClick={() => speak(m.text, tts, undefined, VOICE)} aria-label="Read this aloud">🔊</button>}
             {meter(m)}
+            {m.from === 'azalea' && m.choices && m === p.chat[p.chat.length - 1] && !busy && (
+              <div className="gb-choices">{m.choices.map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>
+            )}
           </div>
         ))}
         {busy && <div className="gb-msg azalea gb-thinking"><p>Azalea is thinking<span>.</span><span>.</span><span>.</span></p></div>}
       </div>
+      {undo.length > 0 && !busy && (
+        <button type="button" className="gb-btn gb-undo" onClick={() => {
+          const last = undo[undo.length - 1]; setUndo((u) => u.slice(0, -1)); markUndone(studentId, last.reqId);
+          setP((q) => ({ ...q, ...last.snap, chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay, I put it back the way it was. What would you like instead? Tell me what to change and how much.' }] }));
+        }}>↩ Undo Azalea's last change</button>
+      )}
       <div className="gb-frames">
-        {FRAMES[p.step].map((f) => <button key={f} type="button" onClick={() => setDraft(f)}>{f}</button>)}
+        {framesFor(p.kind, p.step).map((f) => <button key={f} type="button" onClick={() => putDraft(f)}>{f}</button>)}
       </div>
       <div className="gb-compose">
-        <textarea value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Tell Azalea what you want. Be specific!" rows={2} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} />
+        <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Tell Azalea what you want. Be specific!" rows={2} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} />
         <div className="gb-compose-btns">
-          {voice.supported && <button type="button" className={`gb-btn ${voice.listening ? 'gb-rec' : ''}`} onClick={() => voice.toggle()}>{voice.listening ? 'Stop' : '🎤 Talk'}</button>}
-          <button type="button" className="gb-btn gb-primary" disabled={!draft.trim() || busy} onClick={() => void send()}>Send</button>
+          {voice.supported && <button type="button" className={`gb-btn ${voice.listening ? 'gb-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }}>{voice.listening ? 'Stop' : '🎤 Talk'}</button>}
+          <button type="button" className="gb-btn gb-primary" disabled={!draft.trim() || busy || draft.includes('___')} onClick={() => void send()}>{draft.includes('___') ? 'Fill the blanks' : 'Send'}</button>
         </div>
       </div>
     </aside>
@@ -277,11 +321,11 @@ function Blocks({ p, onRules }: { p: GameProject; onRules: (rules: Rule[], loose
     const onChange = (e: SB.Events.Abstract) => {
       if (e.isUiEvent) return;
       window.clearTimeout(t);
-      t = window.setTimeout(() => { const { rules, loose } = readRules(w); lastJson.current = JSON.stringify(rules); cb.current(rules, loose); }, 250);
+      t = window.setTimeout(() => { t = 0; const { rules, loose } = readRules(w); lastJson.current = JSON.stringify(rules); cb.current(rules, loose); }, 250);
     };
     w.addChangeListener(onChange);
     const ro = new ResizeObserver(() => SB.svgResize(w)); ro.observe(el.current);
-    return () => { window.clearTimeout(t); ro.disconnect(); w.dispose(); ws.current = null; };
+    return () => { if (t) { window.clearTimeout(t); const { rules, loose } = readRules(w); cb.current(rules, loose); } ro.disconnect(); w.dispose(); ws.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.kind]);
   // Azalea or the Design tab changed the rules: show them as blocks.
@@ -326,74 +370,6 @@ function CheckPanel({ p, probs }: { p: GameProject; probs: string[] }) {
       <ul>{check.map((c) => <li key={c.id} className={c.ok ? 'ok' : ''}><span aria-hidden>{c.ok ? '✓' : '○'}</span> {c.text}</li>)}</ul>
       {probs.length > 0 && <><h3>Things to fix</h3><ul className="gb-probs">{probs.map((x) => <li key={x}>{x}</li>)}</ul><p className="gb-muted">Ask Azalea: "Help me fix this."</p></>}
       {p.kind !== 'custom' && <><h3>My rules</h3><ol className="gb-rules">{p.rules.map((r) => <li key={r.id}>{ruleText(p.kind, r)}</li>)}</ol></>}
-    </div>
-  );
-}
-
-// ---------- Play ----------
-function Player({ p, onClose }: { p: GameProject; onClose: (r: 'win' | 'lose' | null) => void }) {
-  const cv = useRef<HTMLCanvasElement>(null);
-  const h = useRef<RunHandle | null>(null);
-  const [end, setEnd] = useState<{ r: 'win' | 'lose'; score: number } | null>(null);
-  const [round, setRound] = useState(0);
-  const [sound, setSound] = useState(true);
-  useEffect(() => {
-    if (p.kind === 'custom' || !cv.current) return;
-    setEnd(null);
-    const stopMusic = sound ? startMusic(p.design.music) : () => {};
-    const handle = runGame(cv.current, p, { sound, onEnd: (r, score) => { stopMusic(); setEnd({ r, score: Math.floor(score) }); } }); h.current = handle;
-    const keyMap: Record<string, string> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: p.kind === 'platformer' ? 'jump' : 'up', ArrowDown: 'down', ' ': 'jump', a: 'left', d: 'right', w: 'up', s: 'down' };
-    const kd = (e: KeyboardEvent) => { const k = keyMap[e.key]; if (k) { e.preventDefault(); handle.press(k, true); } };
-    const ku = (e: KeyboardEvent) => { const k = keyMap[e.key]; if (k) handle.press(k, false); };
-    window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
-    return () => { stopMusic(); handle.stop(); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round, sound]);
-  const tap = (e: React.PointerEvent<HTMLCanvasElement>) => {
-    const c = cv.current; if (!c || !h.current) return; const b = c.getBoundingClientRect();
-    h.current.tap((e.clientX - b.left) * (c.width / b.width), (e.clientY - b.top) * (c.height / b.height));
-  };
-  // Swipes steer the maze.
-  const swipe = useRef<{ x: number; y: number } | null>(null);
-  const hold = (k: string) => ({
-    onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); h.current?.press(k, true); },
-    onPointerUp: () => h.current?.press(k, false), onPointerLeave: () => h.current?.press(k, false), onPointerCancel: () => h.current?.press(k, false),
-  });
-  const customDoc = useMemo(() => p.code ?? '', [p.code]);
-  return (
-    <div className="gb-player" role="dialog" aria-label={`Playing ${p.name}`}>
-      <div className="gb-player-top">
-        <b>{p.name}</b>
-        {p.kind !== 'custom' && <button type="button" className="gb-btn" onClick={() => setSound((s) => !s)}>{sound ? '🔊 Sound on' : '🔇 Sound off'}</button>}
-        <button type="button" className="gb-btn" onClick={() => setRound((r) => r + 1)}>Start over</button>
-        <button type="button" className="gb-btn gb-primary" onClick={() => onClose(end?.r ?? null)}>Back to building</button>
-      </div>
-      <div className="gb-stage">
-        {p.kind === 'custom'
-          ? (customDoc ? <iframe key={round} title={p.name} sandbox="allow-scripts" srcDoc={customDoc} className="gb-frame" /> : <p className="gb-empty">There is no game yet. Tell Azalea your idea and ask her to build it.</p>)
-          : <canvas ref={cv} width={960} height={540} onPointerDown={(e) => { swipe.current = { x: e.clientX, y: e.clientY }; tap(e); }}
-              onPointerUp={(e) => { const s = swipe.current; swipe.current = null; if (!s || p.kind !== 'maze') return; const dx = e.clientX - s.x, dy = e.clientY - s.y; if (Math.hypot(dx, dy) < 24) return; h.current?.press(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'), true); }} />}
-        {end && (
-          <div className="gb-end">
-            <h2>{end.r === 'win' ? 'You won!' : 'Game over'}</h2>
-            <p>Score: {end.score}</p>
-            <button type="button" className="gb-btn gb-primary" onClick={() => setRound((r) => r + 1)}>Play again</button>
-            <button type="button" className="gb-btn" onClick={() => onClose(end.r)}>Back to building</button>
-          </div>
-        )}
-      </div>
-      {p.kind === 'platformer' && (
-        <div className="gb-pad">
-          <div><button type="button" {...hold('left')} aria-label="Left">◀</button><button type="button" {...hold('right')} aria-label="Right">▶</button></div>
-          <button type="button" className="gb-jump" {...hold('jump')}>Jump</button>
-        </div>
-      )}
-      {p.kind === 'maze' && (
-        <div className="gb-pad gb-dpad">
-          <button type="button" {...hold('up')} aria-label="Up">▲</button>
-          <div><button type="button" {...hold('left')} aria-label="Left">◀</button><button type="button" {...hold('down')} aria-label="Down">▼</button><button type="button" {...hold('right')} aria-label="Right">▶</button></div>
-        </div>
-      )}
     </div>
   );
 }

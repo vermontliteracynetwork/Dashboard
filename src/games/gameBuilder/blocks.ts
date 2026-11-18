@@ -125,7 +125,7 @@ export function createWorkspace(el: HTMLElement, k: GameKind): SB.WorkspaceSvg {
     theme: scratchTheme(),
     toolbox: toolbox(k) as never,
     media: '/game-builder/blocks-media/',
-    zoom: { controls: true, wheel: true, startScale: 0.8 },
+    zoom: { controls: true, wheel: true, startScale: 1 },
     grid: { spacing: 40, length: 2, colour: '#ddd' },
     trashcan: true, sounds: false, move: { scrollbars: true, drag: true, wheel: true },
   });
@@ -135,11 +135,16 @@ export function loadRules(ws: SB.WorkspaceSvg, k: GameKind, rules: Rule[]) {
   kind = k;
   SB.Events.disable();
   try {
+    // Keep each stack where the student put it (Claudia's review, 668); new stacks go below the rest.
+    const at = new Map<string, { x: number; y: number }>();
+    let bottom = 30;
+    for (const b of ws.getTopBlocks(false)) { const xy = b.getRelativeToSurfaceXY(); at.set(b.id, { x: xy.x, y: xy.y }); bottom = Math.max(bottom, xy.y + b.getHeightWidth().height + 30); }
     ws.clear();
-    let y = 30;
+    let y = at.size ? bottom : 30;
     for (const r of rules) {
-      SB.serialization.blocks.append(ruleState(r, 30, y) as never, ws);
-      y += 70 + r.actions.length * 52;
+      const pos = at.get(r.id);
+      SB.serialization.blocks.append(ruleState(r, pos?.x ?? 30, pos?.y ?? y) as never, ws);
+      if (!pos) y += 70 + r.actions.length * 56;
     }
   } finally { SB.Events.enable(); }
 }
