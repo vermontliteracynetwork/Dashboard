@@ -1,7 +1,7 @@
 import { costumesOf } from '../../games/gameBuilder/art';
 import { KIND_INFO, type GameKind, type GameProject } from './model';
 
-// The game building checklist, with Azalea walking the student through every step (Build Queue 673, 675 and 681).
+// The game building checklist, with Azalea walking the student through every step (Build Queue 673, 675 and 684).
 // Her words 2026-11-18: "the prompting needs to be MUCH more specific. like pick the game, define rules and
 // settings, pick theme and assets, play test (repeat steps until ready)", "in the early stages of every game (even
 // templates, but especially custom) work students through steps 1-3 at a time so they dont get overwhellmed",

@@ -321,7 +321,7 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
 .gbd-row.by-azalea b { color: #4f46b8; }
 @media (max-width: 700px) { .gbd-row { grid-template-columns: 1fr; gap: 2px; } }
 
-/* ===== 681 to 683 ===== */
+/* ===== 684 to 686 ===== */
 .gbx-top-slim { padding: 6px 12px; }
 .gbx-top-slim h1 { font-size: 1.2rem; }
 .gbx-top-slim .gbx-btn { min-height: 44px; padding: 6px 14px; }

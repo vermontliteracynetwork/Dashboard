@@ -23,6 +23,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "In Game Builder, Azalea now walks you through every step, one small instruction at a time. Tap I did it, then Next. The steps are: pick the game, rules and settings, theme and assets, then play test until your game is ready. The Menu button next to Play has your tools and your dev log. You can fold the checklist and the chat away to get more room.",
   },
   {
+    id: "2026-11-18-literacy-manipulatives-lessons",
+    date: "2026-11-18",
+    icon: "🧩",
+    title: "Literacy Manipulatives: join your teacher's lesson",
+    body: "When your teacher shares a lesson, open Literacy Manipulatives on the Computer, go to Join and type the code (or open the link your teacher sends, then just type your name). Your screen follows your teacher. When it says Your turn, do the activity yourself: type your sentence or build it with word tiles, then add the capital letter and the punctuation. Tap I need help or I need a break any time. Word Explorer now has Word Jobs: words that can be more than one part of speech, and how to tell which one it is.",
+  },
+  {
     id: "2026-11-18-game-builder-library",
     date: "2026-11-18",
     icon: "🖼️",

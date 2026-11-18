@@ -154,7 +154,7 @@ function NewProject({ studentId, onCancel, onMade }: { studentId: string; onCanc
 }
 
 // ---------- Editor ----------
-// Build Queue 681: Azalea walks the student through each step (one instruction at a time, "I did it", then Next);
+// Build Queue 684: Azalea walks the student through each step (one instruction at a time, "I did it", then Next);
 // the checklist and the chat can be folded away and resized; the top bar is slim; all messages open in the work area.
 type ToolTab = 'blocks' | 'look' | 'sound' | 'settings';
 const LS = { get: (k: string, d: number) => { try { const v = Number(localStorage.getItem(k)); return v > 0 ? v : d; } catch { return d; } }, set: (k: string, v: number) => { try { localStorage.setItem(k, String(v)); } catch { /* fine */ } } };
@@ -318,7 +318,7 @@ function MuteIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" ari
 function MicIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>; }
 function SendIcon() { return <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden><path d="M4 12l16-8-6 16-2.5-6.5L4 12z" fill="currentColor" /></svg>; }
 
-// The checklist, in chunks (681): every stage's name, but only the current stage open, showing at most 3 steps.
+// The checklist, in chunks (684): every stage's name, but only the current stage open, showing at most 3 steps.
 function Checklist({ p, tasks, current, onFold }: { p: GameProject; tasks: Task[]; current: Task | null; onFold: () => void }) {
   const done = new Set(p.doneTasks ?? []);
   return (
@@ -452,7 +452,7 @@ function ToolsView({ p, update, tab, setTab, setLoose, onChecklist }: { p: GameP
 }
 
 // ---------- Azalea's chat, across the bottom ----------
-// 681: one message (Azalea's newest) above the box; the arrow opens all messages in the work area; icon buttons for
+// 684: one message (Azalea's newest) above the box; the arrow opens all messages in the work area; icon buttons for
 // Talk and Send; it folds down and its message area can be dragged taller.
 function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzalea, help, tts, voiceOn, setVoiceOn, history, setHistory, sendRef }: {
   p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; task: Task | null; loose: number;

@@ -50,7 +50,7 @@ export interface GameProject {
   plays: number;          // how many times it was play tested
   devlog?: { at: string; kind: 'request' | 'change' | 'rule' | 'design' | 'art' | 'sound' | 'step' | 'test'; by: 'student' | 'azalea'; text: string }[]; // Build Queue 679
   doneTasks?: string[];
-  testRound?: number;     // plays counted before this play test round (681: repeat until ready)
+  testRound?: number;     // plays counted before this play test round (684: repeat until ready)
   finished?: boolean;     // the student said the game is ready
   taskReplies?: Record<string, number>; // messages the student sent while each task was on screen   // checklist tasks the student finished (Build Queue 673)
   moreBlocks?: boolean;   // the full block shelf is open (Build Queue 670)
