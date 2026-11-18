@@ -12912,3 +12912,5 @@ body.calm-games .me-burst { display: none; }
 /* Rocket Chickens gliders (Build Queue 650) */
 .rc-glider-pic { width: 100px; height: 60px; }
 .rc-sub { font-weight: 600; color: #566175; font-size: 0.85rem; margin-left: 6px; }
+
+.rc-world { display: block; font-size: 0.55em; opacity: 0.9; margin-top: 2px; }

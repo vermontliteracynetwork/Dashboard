@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-rocket-chickens-worlds",
+    date: "2026-11-18",
+    icon: "🐔",
+    title: "Rocket Chickens: a new world every round",
+    body: "Every round of Rocket Chickens flies over a new place: the farm, a desert, a forest, a beach, an iceberg bay, a winter night, above the clouds, a city at night, the moon and paper hills. The round report tells you where you are going next.",
+  },
+  {
     id: "2026-11-18-yoga-one-path",
     date: "2026-11-18",
     icon: "🐕",
