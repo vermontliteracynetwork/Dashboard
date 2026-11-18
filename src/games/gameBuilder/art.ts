@@ -11,8 +11,13 @@ export const PALETTE = ['', '#000000', '#ffffff', '#8a8f99', '#e5484d', '#ff8c1a
 export const PALETTE_NAMES = ['erase', 'black', 'white', 'gray', 'red', 'orange', 'yellow', 'green', 'dark green', 'blue', 'dark blue', 'purple', 'pink', 'brown', 'skin', 'light blue'];
 export type Sprite = string[]; // 16 rows of 16 hex digits, each a PALETTE index
 
-export const emptySprite = (): Sprite => Array.from({ length: SPRITE_SIZE }, () => '0'.repeat(SPRITE_SIZE));
-export const isSprite = (s: unknown): s is Sprite => Array.isArray(s) && s.length === SPRITE_SIZE && s.every((r) => typeof r === 'string' && r.length === SPRITE_SIZE);
+// Sprites are 16 by 16, or 32 by 32 for more detail (Build Queue 671).
+export const emptySprite = (n = SPRITE_SIZE): Sprite => Array.from({ length: n }, () => '0'.repeat(n));
+export const isSprite = (s: unknown): s is Sprite => Array.isArray(s) && (s.length === 16 || s.length === 32) && s.every((r) => typeof r === 'string' && r.length === s.length);
+export const resizeSprite = (s: Sprite, n: number): Sprite => Array.from({ length: n }, (_, y) => Array.from({ length: n }, (_, x) => s[Math.floor((y * s.length) / n)][Math.floor((x * s.length) / n)]).join(''));
+// Costumes (Build Queue 671): costume 1 is sprites[key], the others sprites['key#2'] to sprites['key#4'].
+export const costumeKey = (key: string, i: number) => (i === 0 ? key : `${key}#${i + 1}`);
+export const costumesOf = (sprites: Record<string, string[]> | undefined, key: string): Sprite[] => [0, 1, 2, 3].map((i) => sprites?.[costumeKey(key, i)]).filter((s): s is Sprite => isSprite(s) && spriteHasInk(s));
 export const spriteHasInk = (s: Sprite) => s.some((r) => /[1-9a-f]/.test(r));
 
 export const ART_STYLES: { id: string; label: string; blurb: string }[] = [
@@ -54,7 +59,7 @@ const canvasCache = new Map<string, HTMLCanvasElement>();
 export function spriteCanvas(s: Sprite): HTMLCanvasElement {
   const key = s.join('');
   const hit = canvasCache.get(key); if (hit) return hit;
-  const c = document.createElement('canvas'); c.width = c.height = SPRITE_SIZE;
+  const c = document.createElement('canvas'); c.width = c.height = s.length;
   const g = c.getContext('2d')!;
   s.forEach((row, y) => [...row].forEach((ch, x) => { const col = PALETTE[parseInt(ch, 16)]; if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); } }));
   if (canvasCache.size > 200) canvasCache.clear();
@@ -73,7 +78,7 @@ const shade = (col: string, amt: number) => { const [r, g, b] = hex(col); const 
 
 export interface Artist {
   style: string; colors: Colors;
-  thing: (g: CanvasRenderingContext2D, key: string, emoji: string, cx: number, cy: number, size: number) => void;
+  thing: (g: CanvasRenderingContext2D, key: string, emoji: string, cx: number, cy: number, size: number, moving?: boolean) => void;
   sky: (g: CanvasRenderingContext2D, W: number, H: number, cam?: number) => void;
   block: (g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) => void;
 }
@@ -82,12 +87,13 @@ export function makeArtist(p: GameProject): Artist {
   const style = p.design.style || 'classic';
   const colors = colorsOf(p);
   const own = p.design.sprites ?? {};
-  const spriteFor = (key: string, emoji: string): Sprite | null => {
-    const s = own[key]; if (isSprite(s) && spriteHasInk(s)) return s;
+  const spriteFor = (key: string, emoji: string, moving: boolean): Sprite | null => {
+    const cs = costumesOf(own, key);
+    if (cs.length) return cs.length > 1 && moving ? cs[Math.floor(performance.now() / 160) % cs.length] : cs[0];
     return style === 'pixel' ? emojiToSprite(emoji) : null;
   };
   const anim = p.design.anim ?? {};
-  const thing: Artist['thing'] = (g, key, emoji, cx, cy, size) => {
+  const thing: Artist['thing'] = (g, key, emoji, cx, cy, size, moving = true) => {
     const mv = anim[key];
     if (mv) {
       const t = performance.now() / 1000; g.save();
@@ -99,12 +105,12 @@ export function makeArtist(p: GameProject): Artist {
       if (mv === 'wiggle') g.rotate(Math.sin(t * 9) * 0.25);
       if (mv === 'pulse') { const k = 1 + Math.sin(t * 5) * 0.15; g.scale(k, k); }
       g.translate(-cx, -cy);
-      draw(g, key, emoji, cx, cy, size); g.restore(); return;
+      draw(g, key, emoji, cx, cy, size, moving); g.restore(); return;
     }
-    draw(g, key, emoji, cx, cy, size);
+    draw(g, key, emoji, cx, cy, size, moving);
   };
-  function draw(g: CanvasRenderingContext2D, key: string, emoji: string, cx: number, cy: number, size: number) {
-    const s = spriteFor(key, emoji);
+  function draw(g: CanvasRenderingContext2D, key: string, emoji: string, cx: number, cy: number, size: number, moving: boolean) {
+    const s = spriteFor(key, emoji, moving);
     if (s) { g.imageSmoothingEnabled = false; g.drawImage(spriteCanvas(s), Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size)); return; }
     if (style === 'lowpoly') { g.save(); g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(cx, cy + size * 0.45, size * 0.4, size * 0.12, 0, 0, 7); g.fill(); g.restore(); }
     g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `${size}px ${EMOJI_FONT}`; g.fillText(emoji, cx, cy);

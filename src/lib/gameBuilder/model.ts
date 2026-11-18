@@ -46,6 +46,9 @@ export interface GameProject {
   code?: string;          // custom games: the game Azalea wrote
   chat: ChatMsg[];
   plays: number;          // how many times it was play tested
+  doneTasks?: string[];
+  taskReplies?: Record<string, number>; // messages the student sent while each task was on screen   // checklist tasks the student finished (Build Queue 673)
+  moreBlocks?: boolean;   // the full block shelf is open (Build Queue 670)
   lastReqId?: string;     // the student's last logged request, so revisions link across visits
   bugsFixed: number;
 }
@@ -173,7 +176,7 @@ export function newProject(kind: GameKind, name: string): GameProject {
   const now = new Date().toISOString();
   return {
     id: rid(), name: name.trim() || `My ${KIND_INFO[kind].label}`, kind, createdAt: now, updatedAt: now, step: 'idea',
-    design: { title: name.trim() || `My ${KIND_INFO[kind].label}`, hero: kind === 'clicker' ? 'cookie' : kind === 'maze' ? 'ghost' : 'cat', heroColor: '#ffcc33', theme: kind === 'maze' ? 'space' : 'meadow', idea: '', goal: '' },
+    design: { title: name.trim() || `My ${KIND_INFO[kind].label}`, hero: kind === 'clicker' ? 'cookie' : kind === 'maze' ? 'ghost' : 'cat', heroColor: '#ffcc33', theme: kind === 'maze' ? 'space' : 'meadow', idea: '', goal: '', style: 'pixel' },
     settings: { ...DEFAULT_SETTINGS, timer: kind === 'match3' ? 90 : 0 },
     rules: starterRules(kind), chat: [], plays: 0, bugsFixed: 0,
   };

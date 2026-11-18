@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../../store/store';
 import { useBack } from '../../lib/navTrail';
 import { speak } from '../../components/ReadAloud';
@@ -6,13 +6,16 @@ import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import { useVoiceToText } from '../../lib/useVoiceToText';
 import { useMenuItems } from '../../lib/mainMenu';
 import {
-  KIND_INFO, SETTING_INFO, STEPS, gameCheck, newId, newProject, ruleText,
+  KIND_INFO, SETTING_INFO, THEMES, heroEmoji, newId, newProject,
   type BuildStep, type ChatMsg, type GameKind, type GameProject, type Rule, type Settings,
 } from '../../lib/gameBuilder/model';
 import { deleteProject, logRequest, markUndone, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
-import { applyAnswer, askAzalea, problems } from '../../lib/gameBuilder/azalea';
-import { createWorkspace, loadRules, readRules, SB } from '../../games/gameBuilder/blocks';
-import ArtPanel from './GameBuilderArt';
+import { applyAnswer, askAzalea } from '../../lib/gameBuilder/azalea';
+import { STAGES, STAGE_NAMES, currentTask, tasksFor, type Task } from '../../lib/gameBuilder/checklist';
+import { createWorkspace, loadRules, readRules, SB, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
+import { ART_STYLES, costumesOf, isSprite, type Sprite } from '../../games/gameBuilder/art';
+import { PRESET_TUNES, startMusic } from '../../games/gameBuilder/music';
+import ArtPanel, { HeroPicker, Preview, SpriteEditor } from './GameBuilderArt';
 import SoundPanel from './GameBuilderSound';
 import { Player } from './GameBuilderPlayer';
 import './GameBuilder.css';
@@ -20,32 +23,31 @@ import './GameBuilder.css';
 // Game Builder (Build Queue 658, her words 2026-11-18): "I want to have a defined app in the kids computer that
 // they can go and each of their games will be refered to as projects that they can name and save. This will be
 // called "Game Builder."" Students pick a preset (Platformer, Match Three, Clicker, Maze Chase) or Custom (from
-// blank), then build it with Azalea in four steps (idea, design, game logic, play test), using Scratch blocks AND
-// Azalea's chat (typed or voice). Every request is logged for her speech goals (lib/gameBuilder/store.ts).
+// blank) and build it with Azalea using Scratch blocks AND her chat (typed or voice). Every request is logged for
+// her speech goals (lib/gameBuilder/store.ts).
+//
+// The screen (Build Queue 673 to 676, her words: "no emojis in the game builder and reduce having things that can
+// be selected/highlighted ... this needs to be visually very simple, directive as it moves through the screens",
+// "have a game builder view where the block code is on the left. Azalea should always be a chat like this ai screen
+// on the bottom and azalea visual on the right", and "show projects in card view like the games and have a plus
+// button on the top bar"): projects as cards; a + button opens a screen to pick the kind of game, then one to name
+// it; the editor has the work on the left (blocks, or the one picker the task needs), Azalea and the game building
+// checklist on the right, and her chat across the bottom. One task at a time; Next turns on when it is done.
 
-type Tab = 'blocks' | 'design' | 'art' | 'sound' | 'check';
 const VOICE = NPC_VOICE_PRESETS['bright-friendly'];
 const AZ_IMG = '/characters/azalea.png';
 const KINDS: GameKind[] = ['platformer', 'match3', 'clicker', 'maze', 'custom'];
+const STEP_OF: Record<string, BuildStep> = { Plan: 'idea', Look: 'design', Rules: 'logic', Test: 'playtest' };
 
-// Sentence starters for each step, fitted to the kind of game (Claudia's review, Build Queue 668).
-function framesFor(kind: GameKind, step: BuildStep): string[] {
-  if (step === 'idea') return ['My game is about a ___ who ___.', 'You win when ___.', 'The hard part is ___.'];
-  if (step === 'design') return ['My hero is a ___.', 'The world is ___.', 'Call it ___.', 'Make the art pixel.'];
-  if (step === 'playtest') return ['It was too hard because ___.', 'The ___ is too fast. Make it speed ___.', 'Add a power up that ___.'];
-  if (kind === 'clicker') return ['Each tap gives ___ points.', 'Make upgrade 1 cost ___ points.', 'You win when the score reaches ___.'];
-  if (kind === 'match3') return ['A match gives ___ points.', 'Make the timer ___ seconds.', 'You win when the score reaches ___.'];
-  if (kind === 'maze') return ['When the hero touches a ___, ___.', 'Make the ghost speed ___.', 'You win when the score reaches ___.'];
-  return ['When the hero touches a ___, ___.', 'Make the ___ worth ___ points.', 'You win when the score reaches ___.'];
+function Speaker() {
+  return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor" /><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" /></svg>;
 }
-// Which tabs show at each step, so a student sees only what the step needs (Claudia's review, 668).
-const TABS_FOR: Record<BuildStep, Tab[]> = { idea: ['design'], design: ['design', 'art', 'sound'], logic: ['blocks', 'design', 'art', 'sound', 'check'], playtest: ['blocks', 'design', 'art', 'sound', 'check'] };
-const TAB_FOR_STEP: Record<BuildStep, Tab> = { idea: 'design', design: 'art', logic: 'blocks', playtest: 'check' };
-const TAB_LABEL: Record<Tab, string> = { blocks: 'Blocks', design: 'Design', art: 'Art', sound: 'Sound', check: 'Game check' };
+function Listen({ text, tts, label = 'Listen' }: { text: string; tts?: Parameters<typeof speak>[1]; label?: string }) {
+  return <button type="button" className="gbx-listen" onClick={() => speak(text, tts, undefined, VOICE)}><Speaker /> {label}</button>;
+}
 
 function greet(p: GameProject): string {
-  if (p.kind === 'custom') return `Hi, I am Azalea! We are building a brand new game from blank. Step 1 is the idea. What is your game about? Try: "My game is about a ___ who ___."`;
-  return `Hi, I am Azalea! We are building a ${KIND_INFO[p.kind].label} game together. It already has a few starter rules, so it works right away. Step 1 is the idea. What is your game about? Try: "My game is about a ___ who ___."`;
+  return `Hi, I am Azalea. We are going to build your ${KIND_INFO[p.kind].label} game together, one step at a time. Look at the checklist. We start with the plan.`;
 }
 
 export default function GameBuilder() {
@@ -54,268 +56,360 @@ export default function GameBuilder() {
   const sid = student?.id ?? '';
   const projects = useProjects(sid);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [making, setMaking] = useState(false);
   const open = projects.find((p) => p.id === openId) ?? null;
-
-  if (!student) return <div className="gb-shell gb-center"><p>Log in to use Game Builder.</p></div>;
+  if (!student) return <div className="gbx gb-center"><p>Log in to use Game Builder.</p></div>;
   if (open) return <Editor key={open.id} initial={open} studentId={sid} tts={student.ttsSettings} onClose={() => setOpenId(null)} />;
-  return <ProjectList projects={projects} onBack={back.go} backLabel={back.label} onOpen={setOpenId} studentId={sid} />;
+  if (making) return <NewProject studentId={sid} onCancel={() => setMaking(false)} onMade={(id) => { setMaking(false); setOpenId(id); }} />;
+  return <ProjectList projects={projects} onBack={back.go} backLabel={back.label.replace(/^\S+\s(?=[A-Z])/u, '')} onOpen={setOpenId} onNew={() => setMaking(true)} studentId={sid} />;
 }
 
-// ---------- Projects ----------
-function ProjectList({ projects, onOpen, onBack, backLabel, studentId }: { projects: GameProject[]; onOpen: (id: string) => void; onBack: () => void; backLabel: string; studentId: string }) {
-  const [picking, setPicking] = useState<GameKind | null>(null);
+// ---------- Projects: cards, like the games ----------
+function ProjectList({ projects, onOpen, onBack, backLabel, onNew, studentId }: { projects: GameProject[]; onOpen: (id: string) => void; onBack: () => void; backLabel: string; onNew: () => void; studentId: string }) {
+  const [options, setOptions] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState('');
+  const HELLO = projects.length ? 'Tap a game to keep building it. Tap New game to start a new one.' : 'Tap New game to start your first game.';
+  return (
+    <div className="gbx">
+      <header className="gbx-top">
+        <button type="button" className="gbx-btn" onClick={onBack}>Back to {backLabel}</button>
+        <h1>Game Builder</h1>
+        <button type="button" className="gbx-btn gbx-primary gbx-plus" onClick={onNew} aria-label="New game"><span aria-hidden>+</span> New game</button>
+      </header>
+      <main className="gbx-scroll">
+        <div className="gbx-hello"><p>{HELLO}</p><Listen text={HELLO} /></div>
+        <div className="gbx-cards">
+          {projects.map((p) => (
+            <div key={p.id} className="gbx-card">
+              {options === p.id ? (
+                <div className="gbx-card-options">
+                  <label>Name <input value={renaming} maxLength={40} onChange={(e) => setRenaming(e.target.value)} /></label>
+                  <button type="button" className="gbx-btn gbx-primary" onClick={() => { if (renaming.trim()) saveProject(studentId, { ...p, name: renaming.trim(), design: { ...p.design, title: renaming.trim() } }); setOptions(null); }}>Save name</button>
+                  <button type="button" className="gbx-btn" onClick={() => { if (window.confirm(`Delete ${p.name} for good?`)) { deleteProject(studentId, p.id); setOptions(null); } }}>Delete game</button>
+                  <button type="button" className="gbx-link" onClick={() => setOptions(null)}>Cancel</button>
+                </div>
+              ) : <>
+                <button type="button" className="gbx-card-open" onClick={() => onOpen(p.id)}>
+                  <Preview p={p} />
+                  <b>{p.name}</b>
+                  <small>{KIND_INFO[p.kind].label}</small>
+                </button>
+                <button type="button" className="gbx-link" onClick={() => { setOptions(p.id); setRenaming(p.name); }}>Rename or delete</button>
+              </>}
+            </div>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// ---------- New game: pick the kind, then the name ----------
+function NewProject({ studentId, onCancel, onMade }: { studentId: string; onCancel: () => void; onMade: (id: string) => void }) {
+  const [kind, setKind] = useState<GameKind | null>(null);
   const [name, setName] = useState('');
-  const [confirmDel, setConfirmDel] = useState<string | null>(null);
-  const [renaming, setRenaming] = useState<{ id: string; name: string } | null>(null);
-  // Custom games need the AI; without it the card says so instead of leading to a dead end (Claudia's review, 668).
   const [ai, setAi] = useState(false);
   useEffect(() => { fetch('/api/game-builder').then((r) => (r.ok ? r.json() : null)).then((j: { ai?: boolean } | null) => setAi(!!j?.ai)).catch(() => {}); }, []);
-  const HELLO = 'Pick a kind of game to start a new project, then give it a name. Or tap one of your projects to keep building.';
-  const create = () => {
-    if (!picking) return;
-    const p = newProject(picking, name);
+  const make = () => {
+    if (!kind) return;
+    const p = newProject(kind, name);
     p.chat = [{ id: newId(), from: 'azalea', text: greet(p), at: new Date().toISOString() }];
-    saveProject(studentId, p); setPicking(null); setName(''); onOpen(p.id);
+    saveProject(studentId, p); onMade(p.id);
   };
+  const say = kind ? `Name your ${KIND_INFO[kind].label} game. You can change the name later.` : 'What kind of game do you want to make? Tap one.';
   return (
-    <div className="gb-shell">
-      <header className="gb-top">
-        <button type="button" className="gb-btn" onClick={onBack}>Back to {backLabel}</button>
-        <h1>Game Builder</h1>
-        <button type="button" className="gb-btn gb-icon" onClick={() => speak(HELLO, undefined, undefined, VOICE)} aria-label="Read the directions aloud">🔊</button>
+    <div className="gbx">
+      <header className="gbx-top">
+        <button type="button" className="gbx-btn" onClick={kind ? () => setKind(null) : onCancel}>Back</button>
+        <h1>{kind ? 'Name your game' : 'New game'}</h1>
+        <span />
       </header>
-      <main className="gb-list">
-        <section>
-          <h2>Start a new project</h2>
-          <p className="gb-muted">{HELLO}</p>
-          <div className="gb-kinds">
-            {KINDS.map((k) => (
-              <button key={k} type="button" className={`gb-kind ${picking === k ? 'on' : ''}`} disabled={k === 'custom' && !ai} onClick={() => setPicking(k)}>
-                <span className="gb-kind-icon" aria-hidden>{KIND_INFO[k].icon}</span>
-                <b>{KIND_INFO[k].label}</b>
-                <small>{k === 'custom' && !ai ? 'Coming soon: your teacher turns on Azalea\'s thinking cap for this one.' : KIND_INFO[k].blurb}</small>
-              </button>
-            ))}
-          </div>
-          {picking && (
-            <div className="gb-newname">
-              <label>Name your project <input value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder={`My ${KIND_INFO[picking].label}`} onKeyDown={(e) => { if (e.key === 'Enter') create(); }} /></label>
-              <button type="button" className="gb-btn gb-primary" onClick={create}>Make it</button>
-              <button type="button" className="gb-btn" onClick={() => setPicking(null)}>Cancel</button>
-            </div>
-          )}
-        </section>
-        <section>
-          <h2>My projects</h2>
-          {!projects.length && <p className="gb-muted">No projects yet. Pick a kind of game above to start one.</p>}
-          <div className="gb-projects">
-            {projects.map((p) => (
-              <div key={p.id} className="gb-project">
-                <button type="button" className="gb-project-open" onClick={() => onOpen(p.id)}>
-                  <span className="gb-kind-icon" aria-hidden>{KIND_INFO[p.kind].icon}</span>
-                  <b>{p.name}</b>
-                  <small>{KIND_INFO[p.kind].label} · step: {STEPS.find((s) => s.id === p.step)?.label} · saved {new Date(p.updatedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</small>
+      <main className="gbx-scroll">
+        <div className="gbx-hello"><p>{say}</p><Listen text={say} /></div>
+        {!kind ? (
+          <div className="gbx-cards">
+            {KINDS.map((k) => {
+              const off = k === 'custom' && !ai;
+              return (
+                <button key={k} type="button" className="gbx-card gbx-card-open" disabled={off} onClick={() => setKind(k)}>
+                  {k === 'custom' ? <div className="gbx-blank">Blank</div> : <Preview p={newProject(k, KIND_INFO[k].label)} />}
+                  <b>{KIND_INFO[k].label}</b>
+                  <small>{off ? 'Coming soon. Your teacher turns this on.' : KIND_INFO[k].blurb}</small>
                 </button>
-                <div className="gb-project-tools">
-                  {renaming?.id === p.id ? (
-                    <>
-                      <input value={renaming.name} maxLength={40} onChange={(e) => setRenaming({ id: p.id, name: e.target.value })} aria-label="New name" />
-                      <button type="button" className="gb-btn gb-primary" onClick={() => { if (renaming.name.trim()) saveProject(studentId, { ...p, name: renaming.name.trim(), design: { ...p.design, title: renaming.name.trim() } }); setRenaming(null); }}>Save</button>
-                    </>
-                  ) : <button type="button" className="gb-btn" onClick={() => setRenaming({ id: p.id, name: p.name })}>Rename</button>}
-                  {confirmDel === p.id
-                    ? <><span>Delete for good?</span><button type="button" className="gb-btn gb-danger" onClick={() => { deleteProject(studentId, p.id); setConfirmDel(null); }}>Yes, delete</button><button type="button" className="gb-btn" onClick={() => setConfirmDel(null)}>Keep it</button></>
-                    : <button type="button" className="gb-btn" onClick={() => setConfirmDel(p.id)}>Delete</button>}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
-        </section>
+        ) : (
+          <div className="gbx-name">
+            <input autoFocus value={name} maxLength={40} onChange={(e) => setName(e.target.value)} placeholder={`My ${KIND_INFO[kind].label}`} onKeyDown={(e) => { if (e.key === 'Enter') make(); }} aria-label="Game name" />
+            <button type="button" className="gbx-btn gbx-primary gbx-big" onClick={make}>Start building</button>
+          </div>
+        )}
       </main>
     </div>
   );
 }
 
 // ---------- Editor ----------
+type ToolTab = 'blocks' | 'look' | 'sound' | 'settings';
 function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
   const [p, setP] = useState<GameProject>(initial);
-  const [tab, setTabRaw] = useState<Tab>(TAB_FOR_STEP[initial.step] === 'blocks' && initial.kind === 'custom' ? 'design' : TAB_FOR_STEP[initial.step]);
-  const [chatOpen, setChatOpen] = useState(true);
   const [playing, setPlaying] = useState(false);
   const [loose, setLoose] = useState(0);
   const [lastReq, setLastReq] = useState<BuildRequest | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const [tools, setTools] = useState<ToolTab | null>(null);
+  const [voiceOn, setVoiceOn] = useState(true);
   const latest = useRef(p); latest.current = p;
-
-  // Save shortly after each change.
   useEffect(() => { const t = window.setTimeout(() => saveProject(studentId, latest.current), 600); return () => window.clearTimeout(t); }, [p, studentId]);
   useEffect(() => () => saveProject(studentId, latest.current), [studentId]);
+  const update = (f: (q: GameProject) => GameProject) => setP((q) => f(q));
 
-  const update = useCallback((f: (q: GameProject) => GameProject) => setP((q) => f(q)), []);
-  const probs = problems(p, loose);
-  const check = gameCheck(p);
-  const tabs = (showAll ? TABS_FOR.playtest : TABS_FOR[p.step]).filter((t) => !(t === 'blocks' && p.kind === 'custom'));
-  const setTab = setTabRaw;
-  useEffect(() => { if (!tabs.includes(tab)) setTabRaw(tabs[0]); }, [tabs, tab]);
-  const stepInfo = STEPS.find((x) => x.id === p.step)!;
-  const nextThing = check.find((c) => !c.ok);
-  const banner = `Step ${STEPS.findIndex((x) => x.id === p.step) + 1}, ${stepInfo.label}: ${stepInfo.tip}${nextThing ? ` Next: ${nextThing.text.toLowerCase()}.` : ' Your game has everything. Tap Play to test it!'}`;
-  // One main menu (her rule): a "What do I do now?" item reads the step and the next thing to do.
-  useMenuItems([{ id: 'gb-now', icon: '❓', label: 'What do I do now?', bg: '#7c3aed', order: 5, onSelect: () => speak(banner, tts, undefined, VOICE) }]);
+  const tasks = tasksFor(p);
+  const task = currentTask(p);
+  const idx = task ? tasks.findIndex((t) => t.id === task.id) : tasks.length;
+  // Azalea says each task once, when it comes up.
+  useEffect(() => {
+    if (!task) return;
+    setP((q) => {
+      const last = [...q.chat].reverse().find((m) => m.from === 'azalea');
+      const step = STEP_OF[task.stage];
+      if (last?.text === task.say) return q.step === step ? q : { ...q, step };
+      return { ...q, step, chat: [...q.chat, { id: newId(), from: 'azalea', text: task.say, at: new Date().toISOString() }] };
+    });
+  }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Read Azalea's newest message aloud (not old ones on opening).
+  const said = useRef(new Set<string>(initial.chat.map((m) => m.id)));
+  useEffect(() => {
+    const last = p.chat[p.chat.length - 1];
+    if (voiceOn && last?.from === 'azalea' && !said.current.has(last.id)) { said.current.add(last.id); speak(last.text, tts, undefined, VOICE); }
+  }, [p.chat, voiceOn, tts]);
+  const finishTask = () => { if (task) update((q) => ({ ...q, doneTasks: [...new Set([...(q.doneTasks ?? []), task.id])] })); };
+  const nowText = task ? task.say : 'Your game is finished. You can keep changing it with all the tools, and play test it again.';
+  useMenuItems([{ id: 'gb-now', icon: '?', label: 'What do I do now?', bg: '#5b4fc7', order: 5, onSelect: () => speak(nowText, tts, undefined, VOICE) }]);
+  const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
+  const showTools = tools ?? (task ? null : 'blocks');
 
   return (
-    <div className="gb-shell gb-editor">
-      <header className="gb-top">
-        <button type="button" className="gb-btn" onClick={() => { saveProject(studentId, latest.current); onClose(); }}>My projects</button>
-        <div className="gb-title"><span aria-hidden>{KIND_INFO[p.kind].icon}</span> {p.name}</div>
-        <button type="button" className="gb-btn gb-play" onClick={() => setPlaying(true)}>▶ Play</button>
+    <div className="gbx gbx-editor">
+      <header className="gbx-top">
+        <button type="button" className="gbx-btn" onClick={() => { saveProject(studentId, latest.current); onClose(); }}>My games</button>
+        <h1 className="gbx-name-title">{p.name}</h1>
+        <button type="button" className="gbx-btn gbx-primary" onClick={() => setPlaying(true)}>Play</button>
       </header>
-      <nav className="gb-steps" aria-label="Steps">
-        {STEPS.map((s, i) => (
-          <button key={s.id} type="button" className={`gb-step ${p.step === s.id ? 'on' : ''} ${STEPS.findIndex((x) => x.id === p.step) > i ? 'done' : ''}`} onClick={() => { update((q) => ({ ...q, step: s.id })); setTabRaw(s.id === 'logic' && p.kind === 'custom' ? 'design' : TAB_FOR_STEP[s.id]); }} aria-current={p.step === s.id ? 'step' : undefined}>
-            <span className="gb-step-n">{STEPS.findIndex((x) => x.id === p.step) > i ? '✓' : i + 1}</span> {s.label}
-          </button>
-        ))}
-      </nav>
-      <div className="gb-banner" role="status">
-        <button type="button" className="gb-btn gb-icon" onClick={() => speak(banner, tts, undefined, VOICE)} aria-label="Read the step aloud">🔊</button>
-        <p>{banner}</p>
-      </div>
-      <div className={`gb-body ${chatOpen ? '' : 'chat-closed'}`}>
-        <Chat p={p} setP={setP} studentId={studentId} tts={tts} loose={loose} open={chatOpen} setOpen={setChatOpen} lastReq={lastReq} setLastReq={setLastReq} />
-        <section className="gb-work">
-          <div className="gb-tabs" role="tablist">
-            {tabs.map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={tab === t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
-                {TAB_LABEL[t]}{t === 'check' && (probs.length ? <span className="gb-badge">{probs.length}</span> : check.every((c) => c.ok) ? ' ✓' : '')}
-              </button>
-            ))}
-            {!showAll && tabs.length < TABS_FOR.playtest.length && <button type="button" className="gb-more" onClick={() => setShowAll(true)}>Show all tabs</button>}
-          </div>
-          <div className="gb-tabpane">
-            {tab === 'blocks' && p.kind !== 'custom' && <Blocks p={p} onRules={(rules, l) => { setLoose(l); setP((q) => (JSON.stringify(q.rules) === JSON.stringify(rules) ? q : { ...q, rules })); }} />}
-            {tab === 'design' && <DesignPanel p={p} update={update} />}
-            {tab === 'art' && <ArtPanel p={p} update={update} />}
-            {tab === 'sound' && <SoundPanel p={p} update={update} />}
-            {tab === 'check' && <CheckPanel p={p} probs={probs} />}
-          </div>
+      <div className="gbx-main">
+        <section className="gbx-work" aria-label="Work area">
+          {showTools ? (
+            <ToolsView p={p} update={update} tab={showTools} setTab={setTools} setLoose={setLoose} onChecklist={task ? () => setTools(null) : undefined} />
+          ) : task && <>
+            <div className="gbx-taskhead">
+              <small>{STAGE_NAMES[task.stage]} · step {idx + 1} of {tasks.length}</small>
+              <h2>{task.label}</h2>
+            </div>
+            <div className="gbx-taskbody"><TaskWork p={p} task={task} update={update} setLoose={setLoose} onPlay={() => setPlaying(true)} /></div>
+            <div className="gbx-taskfoot">
+              {task.optional && <button type="button" className="gbx-link" onClick={finishTask}>Skip this step</button>}
+              <button type="button" className="gbx-btn gbx-primary gbx-big" disabled={!task.ready(p)} onClick={finishTask}>{task.ready(p) ? 'Next' : task.tool === 'play' ? 'Play first, then Next' : task.tool === 'chat' ? 'Answer Azalea first' : 'Next'}</button>
+            </div>
+          </>}
         </section>
+        <aside className="gbx-side" aria-label="Azalea and your checklist">
+          <div className="gbx-azalea">
+            <img src={AZ_IMG} alt="Azalea the cat" />
+            <div className="gbx-bubble">
+              <p>{lastAz?.text}</p>
+              <div className="gbx-row">{lastAz && <Listen text={lastAz.text} tts={tts} />}<button type="button" className="gbx-link" onClick={() => setVoiceOn((v) => !v)}>{voiceOn ? 'Voice on' : 'Voice off'}</button></div>
+            </div>
+          </div>
+          <Checklist p={p} tasks={tasks} current={task} toolsLink={!showTools && <button type="button" className="gbx-link" onClick={() => setTools('blocks')}>Open all tools</button>} />
+        </aside>
       </div>
+      <ChatBar p={p} setP={setP} studentId={studentId} task={task} loose={loose} lastReq={lastReq} setLastReq={setLastReq} />
       {playing && <Player p={p} onClose={(result) => {
         setPlaying(false);
-        update((q) => ({ ...q, plays: q.plays + 1, step: q.step === 'logic' || q.step === 'design' ? 'playtest' : q.step,
-          chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! Nice play testing. Was it too easy, too hard, or just right? Tell me one thing to change, and be specific.' : result === 'lose' ? 'Game over! Play testers look for what feels unfair or boring. What happened, and what should we change?' : 'Thanks for testing! What did you notice? Tell me one thing to change.' }] }));
+        update((q) => ({ ...q, plays: q.plays + 1,
+          chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! Was it too easy, too hard, or just right?' : result === 'lose' ? 'Game over. What felt unfair or too hard?' : 'Thanks for testing. What did you notice?' }] }));
       }} />}
     </div>
   );
 }
 
-// ---------- Azalea's chat ----------
-function Chat({ p, setP, studentId, tts, loose, open, setOpen, lastReq, setLastReq }: {
-  p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; tts: Parameters<typeof speak>[1]; loose: number;
-  open: boolean; setOpen: (o: boolean) => void; lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void;
+function Check() { return <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
+
+// The game building checklist: read only, so there is nothing extra to tap. Done steps have a check, the step to do
+// now is the only one marked.
+function Checklist({ p, tasks, current, toolsLink }: { p: GameProject; tasks: Task[]; current: Task | null; toolsLink: React.ReactNode }) {
+  const done = new Set(p.doneTasks ?? []);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { const box = ref.current; const li = box?.querySelector<HTMLElement>('li.now'); if (box && li) box.scrollTop = Math.max(0, li.offsetTop - 60); }, [current?.id]);
+  return (
+    <div className="gbx-check" ref={ref} aria-label="Game building checklist">
+      <h3>Game building checklist</h3>
+      {STAGES.map((st) => {
+        const ts = tasks.filter((t) => t.stage === st); if (!ts.length) return null;
+        return (
+          <div key={st} className="gbx-stage">
+            <b>{STAGE_NAMES[st]}</b>
+            <ol>{ts.map((t) => (
+              <li key={t.id} className={current?.id === t.id ? 'now' : done.has(t.id) ? 'done' : ''} aria-current={current?.id === t.id ? 'step' : undefined}>
+                <span className="gbx-mark">{done.has(t.id) ? <Check /> : null}</span>{t.label}{t.optional ? ' (if you want)' : ''}
+              </li>
+            ))}</ol>
+          </div>
+        );
+      })}
+      {toolsLink}
+    </div>
+  );
+}
+
+// The work for one task: only what that task needs.
+function TaskWork({ p, task, update, setLoose, onPlay }: { p: GameProject; task: Task; update: (f: (q: GameProject) => GameProject) => void; setLoose: (n: number) => void; onPlay: () => void }) {
+  const setD = (patch: Partial<GameProject['design']>) => update((q) => ({ ...q, design: { ...q.design, ...patch } }));
+  if (task.tool === 'blocks') return <Blocks p={p} onMore={() => update((q) => ({ ...q, moreBlocks: true }))} onRules={(rules, l) => { setLoose(l); update((q) => (JSON.stringify(q.rules) === JSON.stringify(rules) ? q : { ...q, rules })); }} />;
+  if (task.tool === 'play') return <div className="gbx-center-box"><p className="gbx-say">Tap the button to play your game.</p><button type="button" className="gbx-btn gbx-primary gbx-huge" onClick={onPlay}>Play your game</button><p className="gbx-muted">Played {p.plays} {p.plays === 1 ? 'time' : 'times'}.</p></div>;
+  if (task.tool === 'chat') {
+    const saved = task.id === 'idea' ? p.design.idea : task.id === 'goal' ? p.design.goal : '';
+    return <div className="gbx-center-box">{saved ? <><p className="gbx-muted">Saved:</p><p className="gbx-saved">{saved}</p></> : <p className="gbx-say">Type or talk to Azalea in the chat box at the bottom.</p>}</div>;
+  }
+  if (task.tool === 'hero') return <div className="gbx-stack"><Preview p={p} /><HeroPicker p={p} update={update} /></div>;
+  if (task.tool === 'world') return (
+    <div className="gbx-stack"><Preview p={p} />
+      <div className="gbx-pick">{THEMES.map((t) => <button key={t.id} type="button" className={p.design.theme === t.id ? 'on' : ''} onClick={() => setD({ theme: t.id, colors: undefined })}><i className="gbx-swatch" style={{ background: `linear-gradient(${t.sky} 55%, ${t.ground} 55%)` }} /><span>{t.label}</span></button>)}</div>
+    </div>
+  );
+  if (task.tool === 'style') return (
+    <div className="gbx-stack"><Preview p={p} />
+      <div className="gbx-pick">{ART_STYLES.map((s) => <button key={s.id} type="button" className={(p.design.style || 'classic') === s.id ? 'on' : ''} onClick={() => setD({ style: s.id })}><span><b>{s.label}</b><br /><small>{s.blurb}</small></span></button>)}</div>
+    </div>
+  );
+  if (task.tool === 'draw') {
+    const own = costumesOf(p.design.sprites, 'hero')[0];
+    return <SpriteEditor size={isSprite(own) ? own.length : 16} label="hero" start={isSprite(own) ? own : null} emoji={heroEmojiOf(p)} onSave={(s: Sprite | null) => update((q) => { const sprites = { ...(q.design.sprites ?? {}) }; if (s) sprites.hero = s; else delete sprites.hero; return { ...q, design: { ...q.design, sprites } }; })} />;
+  }
+  return <MusicPick p={p} update={update} />;
+}
+const heroEmojiOf = (p: GameProject) => heroEmoji(p.design.hero);
+
+function MusicPick({ p, update }: { p: GameProject; update: (f: (q: GameProject) => GameProject) => void }) {
+  const [hearing, setHearing] = useState(false);
+  const m = p.design.music;
+  const cur = !m || m.kind === 'none' ? 'none' : PRESET_TUNES.find((t) => JSON.stringify(t.notes) === JSON.stringify(m.notes))?.id ?? 'own';
+  useEffect(() => { if (!hearing) return; const stop = startMusic(m); const t = window.setTimeout(() => setHearing(false), 6000); return () => { stop(); window.clearTimeout(t); }; }, [hearing, m]);
+  return (
+    <div className="gbx-stack">
+      <div className="gbx-pick">
+        <button type="button" className={cur === 'none' ? 'on' : ''} onClick={() => { setHearing(false); update((q) => ({ ...q, design: { ...q.design, music: { kind: 'none' } } })); }}><span>No music</span></button>
+        {PRESET_TUNES.map((t) => <button key={t.id} type="button" className={cur === t.id ? 'on' : ''} onClick={() => { update((q) => ({ ...q, design: { ...q.design, music: { kind: 'tune', notes: t.notes, tempo: t.tempo, wave: t.wave } } })); setHearing(true); }}><span>{t.label}</span></button>)}
+      </div>
+      {cur !== 'none' && <button type="button" className="gbx-btn" onClick={() => setHearing((h) => !h)}>{hearing ? 'Stop' : 'Hear it'}</button>}
+    </div>
+  );
+}
+
+// All the tools, for students who finished the checklist (or open them on purpose).
+function ToolsView({ p, update, tab, setTab, setLoose, onChecklist }: { p: GameProject; update: (f: (q: GameProject) => GameProject) => void; tab: ToolTab; setTab: (t: ToolTab) => void; setLoose: (n: number) => void; onChecklist?: () => void }) {
+  const tabs: [ToolTab, string][] = [...(p.kind === 'custom' ? [] : [['blocks', 'Blocks'] as [ToolTab, string]]), ['look', 'Look'], ['sound', 'Sound'], ['settings', 'Settings']];
+  const t = p.kind === 'custom' && tab === 'blocks' ? 'look' : tab;
+  return (
+    <div className="gbx-tools">
+      <div className="gbx-tabs" role="tablist">
+        {tabs.map(([id, l]) => <button key={id} type="button" role="tab" aria-selected={t === id} className={t === id ? 'on' : ''} onClick={() => setTab(id)}>{l}</button>)}
+        {onChecklist && <button type="button" className="gbx-link gbx-right" onClick={onChecklist}>Back to the checklist</button>}
+      </div>
+      <div className="gbx-toolbody">
+        {t === 'blocks' && <Blocks p={p} onMore={() => update((q) => ({ ...q, moreBlocks: true }))} onRules={(rules, l) => { setLoose(l); update((q) => (JSON.stringify(q.rules) === JSON.stringify(rules) ? q : { ...q, rules })); }} />}
+        {t === 'look' && <ArtPanel p={p} update={update} />}
+        {t === 'sound' && <SoundPanel p={p} update={update} />}
+        {t === 'settings' && <DesignPanel p={p} update={update} />}
+      </div>
+    </div>
+  );
+}
+
+// ---------- Azalea's chat, across the bottom ----------
+function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq }: {
+  p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; task: Task | null; loose: number;
+  lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [voiced, setVoiced] = useState(false);
-  const [readAloud, setReadAloud] = useState(true);
-  // Undo (Build Queue 667): the game as it was before each of Azalea's changes, newest last.
+  const [usedFrame, setUsedFrame] = useState(false);
+  const [history, setHistory] = useState(false);
   const [undo, setUndo] = useState<{ reqId: string; snap: Pick<GameProject, 'rules' | 'settings' | 'design' | 'code'> }[]>([]);
+  const taRef = useRef<HTMLTextAreaElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const voice = useVoiceToText((heard) => { setVoiced(true); setDraft((d) => (d ? `${d} ${heard}` : heard)); }, { continuous: false });
-  useEffect(() => { listRef.current?.scrollTo({ top: 1e9, behavior: 'smooth' }); }, [p.chat.length, busy]);
-  const said = useRef(new Set<string>(p.chat.length ? [p.chat[p.chat.length - 1].id] : []));
-  const [usedFrame, setUsedFrame] = useState(false);
-  const taRef = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { listRef.current?.scrollTo({ top: 1e9 }); }, [history, p.chat.length]);
   const putDraft = (t: string) => { setDraft(t); setUsedFrame(true); window.setTimeout(() => { const ta = taRef.current; if (!ta) return; ta.focus(); const i = t.indexOf('___'); if (i >= 0) ta.setSelectionRange(i, i + 3); }, 0); };
-  useEffect(() => {
-    const last = p.chat[p.chat.length - 1];
-    if (readAloud && open && last?.from === 'azalea' && !said.current.has(last.id)) { said.current.add(last.id); speak(last.text, tts, undefined, VOICE); }
-  }, [p.chat, readAloud, tts, open]);
+  const stepStart = useRef<string>('');
+  useEffect(() => { stepStart.current = new Date().toISOString(); }, [task?.id]);
+  const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
+  const choices = lastAz && lastAz === p.chat[p.chat.length - 1] ? lastAz.choices : undefined;
 
   const send = async () => {
     const text = draft.trim(); if (!text || busy || text.includes('___')) return;
     voice.stop();
-    const prompt = [...p.chat].reverse().find((m) => m.from === 'azalea')?.text ?? '';
+    const prompt = lastAz?.text ?? '';
     const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: voiced };
-    const withMsg = { ...p, chat: [...p.chat, msg] };
-    setP(withMsg); setDraft(''); setBusy(true);
+    const tid = task?.id ?? 'free';
+    setP((q) => ({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }));
+    setDraft(''); setBusy(true);
     const ans = await askAzalea(p, text, loose);
     const changes = ans.changes.length ? ans.changes : ans.ops.length || ans.code ? ['Changed the game'] : [];
     const prevId = lastReq?.projectId === p.id ? lastReq.id : p.lastReqId;
-    const revisionOf = ans.revision ? prevId : undefined;
-    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf, source: ans.source, usedFrame, prompt: prompt.slice(0, 300) });
+    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame, prompt: prompt.slice(0, 300) });
     setLastReq(req);
     if (changes.length) setUndo((u) => [...u.slice(-9), { reqId: req.id, snap: { rules: p.rules, settings: p.settings, design: p.design, code: p.code } }]);
-    // Applied to the newest game, so edits made while Azalea was thinking are kept (Claudia's review, 668).
-    setP((q) => { const next = applyAnswer(q, ans); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay!', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
+    setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay.', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
     setBusy(false); setVoiced(false); setUsedFrame(false);
   };
-
-  const meter = (m: ChatMsg) => {
-    if (m.from !== 'student' || !lastReq || lastReq.said !== m.text) return null;
-    const lvl = lastReq.specificity; const n = lvl === 'specific' ? 3 : lvl === 'partly' ? 2 : 1;
-    return (
-      <div className={`gb-meter lvl-${lvl}`} aria-label={`Specific meter: ${lvl}`}>
-        <span className="gb-meter-bars">{[1, 2, 3].map((i) => <i key={i} className={i <= n ? 'on' : ''} />)}</span>
-        <b>{lvl === 'specific' ? 'Specific!' : lvl === 'partly' ? 'Almost specific' : 'Add what to change and how much'}</b>
-        {lastReq.details.length > 0 && <small>You said: {lastReq.details.join(', ')}</small>}
-        {lastReq.missing.length > 0 && <small>Add: {lastReq.missing.join(', ')}</small>}
-      </div>
-    );
-  };
-
-  if (!open) return <button type="button" className="gb-chat-tab" onClick={() => setOpen(true)}><img src={AZ_IMG} alt="" /> Azalea</button>;
+  // The specific meter is about the student's newest message in this step only.
+  const lvl = lastReq && lastReq.at >= (stepStart.current ?? '') ? lastReq.specificity : undefined;
   return (
-    <aside className="gb-chat" aria-label="Azalea, your co-designer">
-      <div className="gb-chat-head">
-        <img src={AZ_IMG} alt="Azalea the cat" />
-        <div><b>Azalea</b><small>your co-designer</small></div>
-        <button type="button" className="gb-btn gb-icon" onClick={() => setReadAloud((r) => !r)} aria-label={readAloud ? 'Stop reading aloud' : 'Read aloud'}>{readAloud ? '🔊' : '🔇'}</button>
-        <button type="button" className="gb-btn gb-icon" onClick={() => setOpen(false)} aria-label="Hide chat">✕</button>
-      </div>
-      <div className="gb-msgs" ref={listRef}>
-        {p.chat.map((m) => (
-          <div key={m.id} className={`gb-msg ${m.from}`}>
-            <p>{m.text}</p>
-            {m.from === 'azalea' && <button type="button" className="gb-say" onClick={() => speak(m.text, tts, undefined, VOICE)} aria-label="Read this aloud">🔊</button>}
-            {meter(m)}
-            {m.from === 'azalea' && m.choices && m === p.chat[p.chat.length - 1] && !busy && (
-              <div className="gb-choices">{m.choices.map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>
-            )}
-          </div>
-        ))}
-        {busy && <div className="gb-msg azalea gb-thinking"><p>Azalea is thinking<span>.</span><span>.</span><span>.</span></p></div>}
-      </div>
-      {undo.length > 0 && !busy && (
-        <button type="button" className="gb-btn gb-undo" onClick={() => {
-          const last = undo[undo.length - 1]; setUndo((u) => u.slice(0, -1)); markUndone(studentId, last.reqId);
-          setP((q) => ({ ...q, ...last.snap, chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay, I put it back the way it was. What would you like instead? Tell me what to change and how much.' }] }));
-        }}>↩ Undo Azalea's last change</button>
-      )}
-      <div className="gb-frames">
-        {framesFor(p.kind, p.step).map((f) => <button key={f} type="button" onClick={() => putDraft(f)}>{f}</button>)}
-      </div>
-      <div className="gb-compose">
-        <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Tell Azalea what you want. Be specific!" rows={2} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} />
-        <div className="gb-compose-btns">
-          {voice.supported && <button type="button" className={`gb-btn ${voice.listening ? 'gb-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }}>{voice.listening ? 'Stop' : '🎤 Talk'}</button>}
-          <button type="button" className="gb-btn gb-primary" disabled={!draft.trim() || busy || draft.includes('___')} onClick={() => void send()}>{draft.includes('___') ? 'Fill the blanks' : 'Send'}</button>
+    <footer className="gbx-chat" aria-label="Chat with Azalea">
+      {history && (
+        <div className="gbx-history" ref={listRef}>
+          {p.chat.map((m) => <p key={m.id} className={m.from}><b>{m.from === 'azalea' ? 'Azalea' : 'You'}:</b> {m.text}</p>)}
         </div>
+      )}
+      <div className="gbx-chat-top">
+        {busy ? <span className="gbx-muted">Azalea is thinking...</span> : lastReq && lvl ? (
+          <span className="gbx-meter" aria-label={`Specific meter: ${lvl}`}>
+            <span className="gbx-bars">{[1, 2, 3].map((i) => <i key={i} className={i <= (lvl === 'specific' ? 3 : lvl === 'partly' ? 2 : 1) ? 'on' : ''} />)}</span>
+            {lvl === 'specific' ? 'Specific!' : lvl === 'partly' ? 'Almost specific.' : 'Add what to change and how much.'}{lastReq.missing.length ? ` Add: ${lastReq.missing.join(', ')}.` : ''}
+          </span>
+        ) : <span className="gbx-muted">Be specific: say what to change and how much.</span>}
+        <span className="gbx-grow" />
+        {undo.length > 0 && !busy && <button type="button" className="gbx-link" onClick={() => {
+          const last = undo[undo.length - 1]; setUndo((u) => u.slice(0, -1)); markUndone(studentId, last.reqId);
+          setP((q) => ({ ...q, ...last.snap, chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay, I put it back the way it was. What would you like instead?' }] }));
+        }}>Undo the last change</button>}
+        <button type="button" className="gbx-link" onClick={() => setHistory((h) => !h)}>{history ? 'Hide past messages' : 'Past messages'}</button>
       </div>
-    </aside>
+      {choices && choices.length > 0 && !busy && <div className="gbx-choices">{choices.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>}
+      <div className="gbx-compose">
+        <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} rows={2} placeholder={task?.starter ? `Try: ${task.starter}` : 'Tell Azalea what you want. Be specific.'}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} aria-label="Message to Azalea" />
+        {task?.starter && !draft && <button type="button" className="gbx-btn" onClick={() => putDraft(task.starter!)}>Use the starter</button>}
+        {voice.supported && <button type="button" className={`gbx-btn ${voice.listening ? 'gbx-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }}>{voice.listening ? 'Stop' : 'Talk'}</button>}
+        <button type="button" className="gbx-btn gbx-primary" disabled={!draft.trim() || busy || draft.includes('___')} onClick={() => void send()}>{draft.includes('___') ? 'Fill the blanks' : 'Send'}</button>
+      </div>
+    </footer>
   );
 }
 
 // ---------- Blocks ----------
-function Blocks({ p, onRules }: { p: GameProject; onRules: (rules: Rule[], loose: number) => void }) {
+function Blocks({ p, onRules, onMore }: { p: GameProject; onRules: (rules: Rule[], loose: number) => void; onMore: () => void }) {
   const el = useRef<HTMLDivElement>(null);
   const ws = useRef<SB.WorkspaceSvg | null>(null);
   const lastJson = useRef('');
   const cb = useRef(onRules); cb.current = onRules;
+  // The starter shelf until the student asks for more, or already uses more (Build Queue 670).
+  const full = !!p.moreBlocks || !usesOnlyStarter(p.rules);
   useEffect(() => {
     if (!el.current) return;
-    const w = createWorkspace(el.current, p.kind); ws.current = w;
+    const w = createWorkspace(el.current, p.kind, full); ws.current = w;
     lastJson.current = JSON.stringify(p.rules); loadRules(w, p.kind, p.rules);
     let t = 0;
     const onChange = (e: SB.Events.Abstract) => {
@@ -328,21 +422,28 @@ function Blocks({ p, onRules }: { p: GameProject; onRules: (rules: Rule[], loose
     return () => { if (t) { window.clearTimeout(t); const { rules, loose } = readRules(w); cb.current(rules, loose); } ro.disconnect(); w.dispose(); ws.current = null; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.kind]);
+  useEffect(() => { ws.current?.updateToolbox(toolbox(p.kind, full) as never); }, [full, p.kind]);
   // Azalea or the Design tab changed the rules: show them as blocks.
   useEffect(() => {
     const j = JSON.stringify(p.rules);
     if (ws.current && j !== lastJson.current) { lastJson.current = j; loadRules(ws.current, p.kind, p.rules); }
   }, [p.rules, p.kind]);
-  return <div className="gb-blocks" ref={el} />;
+  return (
+    <div className="gb-blocks-wrap">
+      {!full && <button type="button" className="gb-btn gb-moreblocks" onClick={onMore}>More blocks</button>}
+      <div className="gb-blocks" ref={el} />
+    </div>
+  );
 }
 
-// ---------- Design ----------
+
+// ---------- Settings ----------
 function DesignPanel({ p, update }: { p: GameProject; update: (f: (q: GameProject) => GameProject) => void }) {
   const d = p.design;
   const setD = (k: keyof GameProject['design'], v: string) => update((q) => ({ ...q, design: { ...q.design, [k]: v }, ...(k === 'title' && v.trim() ? { name: v } : {}) }));
   const keys = (Object.keys(SETTING_INFO) as (keyof Settings)[]).filter((k) => SETTING_INFO[k].kinds.includes(p.kind));
   return (
-    <div className="gb-design">
+    <div className="gb-design gbx-settings">
       <label>Game name <input value={d.title} maxLength={40} onChange={(e) => setD('title', e.target.value)} /></label>
       <label>My idea <textarea rows={2} value={d.idea} onChange={(e) => setD('idea', e.target.value)} placeholder="My game is about a ___ who ___." /></label>
       <label>How you win <input value={d.goal} onChange={(e) => setD('goal', e.target.value)} placeholder="You win when ___." /></label>
@@ -361,15 +462,3 @@ function DesignPanel({ p, update }: { p: GameProject; update: (f: (q: GameProjec
   );
 }
 
-// ---------- Game check ----------
-function CheckPanel({ p, probs }: { p: GameProject; probs: string[] }) {
-  const check = gameCheck(p);
-  return (
-    <div className="gb-check">
-      <h3>Azalea's game check</h3>
-      <ul>{check.map((c) => <li key={c.id} className={c.ok ? 'ok' : ''}><span aria-hidden>{c.ok ? '✓' : '○'}</span> {c.text}</li>)}</ul>
-      {probs.length > 0 && <><h3>Things to fix</h3><ul className="gb-probs">{probs.map((x) => <li key={x}>{x}</li>)}</ul><p className="gb-muted">Ask Azalea: "Help me fix this."</p></>}
-      {p.kind !== 'custom' && <><h3>My rules</h3><ol className="gb-rules">{p.rules.map((r) => <li key={r.id}>{ruleText(p.kind, r)}</li>)}</ol></>}
-    </div>
-  );
-}

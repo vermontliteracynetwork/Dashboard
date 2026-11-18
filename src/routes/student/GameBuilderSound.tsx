@@ -51,7 +51,7 @@ export default function SoundPanel({ p, update }: { p: GameProject; update: Upda
       {m.kind === 'song' && <div className="gbs-songs">{tracks.map((t) => <button key={t.id} type="button" className={`gb-btn ${m.songUrl === t.url ? 'gb-primary' : ''}`} onClick={() => setM({ songUrl: t.url, songTitle: t.title })}>{t.title}</button>)}</div>}
       <h3>Sound effects</h3>
       <p className="gb-muted">Tap to hear one. Use a "play sound" block to put it in your game.</p>
-      <div className="gba-row">{SOUNDS.map(([id, l]) => <button key={id} type="button" className="gb-btn" onClick={() => tone(id)}>🔊 {l}</button>)}</div>
+      <div className="gba-row">{SOUNDS.map(([id, l]) => <button key={id} type="button" className="gb-btn" onClick={() => tone(id)}>Hear {l}</button>)}</div>
     </div>
   );
 }

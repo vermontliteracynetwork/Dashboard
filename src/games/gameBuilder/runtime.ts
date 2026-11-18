@@ -207,7 +207,7 @@ function platformer(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): Run
     for (const o of objs) { if (o.gone || o.x < cam - 60 || o.x > cam + W + 60) continue; A.thing(g, o.kind, THING_ICON[o.kind] ?? '❓', o.x + o.w / 2, o.y + o.h / 2, o.h + 4); }
     g.globalAlpha = hero.inv > 0 && Math.floor(now / 100) % 2 ? 0.4 : 1;
     if (R.has('shield')) { g.strokeStyle = '#6cf'; g.lineWidth = 3; g.beginPath(); g.arc(hero.x + hero.w / 2, hero.y + hero.h / 2, hero.w * 0.85, 0, 7); g.stroke(); }
-    A.thing(g, 'hero', heroEmoji(p.design.hero), hero.x + hero.w / 2, hero.y + hero.h / 2, hero.h + 6);
+    A.thing(g, 'hero', heroEmoji(p.design.hero), hero.x + hero.w / 2, hero.y + hero.h / 2, hero.h + 6, hero.vx !== 0 || !hero.ground);
     g.globalAlpha = 1; g.restore();
     R.hud(g, W, th.ink);
   });
@@ -283,7 +283,7 @@ function maze(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle
     g.fillStyle = "#000"; g.font = `${cell * 0.85}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui`;
     for (const gh of ghosts) { g.globalAlpha = R.has('scare') ? 0.55 : 1; A.thing(g, 'ghost', R.has('scare') ? '😱' : '👻', ox + gh.x * cell + cell / 2, oy + gh.y * cell + cell / 2, cell * 0.85); }
     g.globalAlpha = hero.inv > 0 && Math.floor(now / 100) % 2 ? 0.4 : 1;
-    A.thing(g, 'hero', heroEmoji(p.design.hero), ox + hero.x * cell + cell / 2, oy + hero.y * cell + cell / 2, cell * 0.85); g.globalAlpha = 1;
+    A.thing(g, 'hero', heroEmoji(p.design.hero), ox + hero.x * cell + cell / 2, oy + hero.y * cell + cell / 2, cell * 0.85, hero.d[0] !== 0 || hero.d[1] !== 0); g.globalAlpha = 1;
     R.hud(g, W, th.ink);
   });
   const dirs: Record<string, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
@@ -355,7 +355,7 @@ function clicker(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHan
     A.sky(g, W, H);
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#000';
     g.fillStyle = th.ground; g.beginPath(); g.arc(btn.x, btn.y, btn.r * (1 - squish * 0.12), 0, 7); g.fill();
-    A.thing(g, 'hero', heroEmoji(p.design.hero), btn.x, btn.y + 4, btn.r * 1.1 * (1 - squish * 0.12)); g.fillStyle = th.ink; g.textAlign = 'center';
+    A.thing(g, 'hero', heroEmoji(p.design.hero), btn.x, btn.y + 4, btn.r * 1.1 * (1 - squish * 0.12), squish > 0); g.fillStyle = th.ink; g.textAlign = 'center';
     g.font = 'bold 20px system-ui'; g.fillStyle = th.ink; g.fillText(`${R.perTap} per tap${R.perSecond ? `, ${R.perSecond} per second` : ''}`, btn.x, btn.y + btn.r + 26);
     for (const f of floats) { const a = 1 - (now - f.t) / 800; if (a <= 0) continue; g.globalAlpha = a; g.font = 'bold 24px system-ui'; g.fillText(`+${f.n}`, f.x, f.y - (1 - a) * 60); g.globalAlpha = 1; }
     ups.forEach((u, i) => { const b = upBox(i); const cost = R.costs.get(u) ?? 10; const can = R.score >= cost;

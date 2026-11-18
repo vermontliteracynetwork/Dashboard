@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder-checklist",
+    date: "2026-11-18",
+    icon: "🕹️",
+    title: "Game Builder: one step at a time with a checklist",
+    body: "Game Builder is calmer now. Tap New game to start, pick a kind of game, then name it. Azalea walks you through a checklist: plan the game, build the world, write the rules, then test and fix. Do one step, then tap Next. Chat with Azalea at the bottom of the screen. You can also give your sprites up to 4 costumes so they look like they are walking.",
+  },
+  {
     id: "2026-11-18-game-builder-easier",
     date: "2026-11-18",
     icon: "🕹️",

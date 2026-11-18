@@ -50,11 +50,11 @@ export function Player({ p, onClose }: { p: GameProject; onClose: (r: 'win' | 'l
     <div className="gb-player" role="dialog" aria-label={`Playing ${p.name}`}>
       <div className="gb-player-top">
         <b>{p.name}</b>
-        {p.kind !== 'custom' && <button type="button" className="gb-btn" onClick={() => setSound((s) => !s)}>{sound ? '🔊 Sound on' : '🔇 Sound off'}</button>}
+        {p.kind !== 'custom' && <button type="button" className="gb-btn" onClick={() => setSound((s) => !s)}>{sound ? 'Sound on' : 'Sound off'}</button>}
         <button type="button" className="gb-btn" onClick={() => setRound((r) => r + 1)}>Start over</button>
         <button type="button" className="gb-btn gb-primary" onClick={() => onClose(end?.r ?? null)}>Back to building</button>
       </div>
-      <div className="gb-how"><button type="button" className="gb-btn gb-icon" onClick={() => speak(HOW[p.kind])} aria-label="Read how to play">🔊</button><span>{HOW[p.kind]}</span></div>
+      <div className="gb-how"><button type="button" className="gb-btn gb-icon" onClick={() => speak(HOW[p.kind])} aria-label="Read how to play">Listen</button><span>{HOW[p.kind]}</span></div>
       <div className="gb-stage">
         {p.kind === 'custom'
           ? (customDoc ? <iframe key={round} title={p.name} sandbox="allow-scripts" srcDoc={customDoc} className="gb-frame" /> : <p className="gb-empty">There is no game yet. Tell Azalea your idea and ask her to build it.</p>)

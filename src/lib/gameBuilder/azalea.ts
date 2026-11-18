@@ -206,7 +206,6 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   const check = gameCheck(applyAnswer(p, ans));
   const next = check.find((c) => !c.ok);
   const stepIdx = STEPS.findIndex((x) => x.id === p.step);
-  if (next && ans.changes.length) say.push(`Next on our list: ${next.text.toLowerCase()}.`);
   if (!next && p.step !== 'playtest') { ans.next_step = 'playtest'; say.push('Your game has everything it needs. Tap Play to test it!'); }
   else if (next && ['win', 'challenge', 'score', 'power'].includes(next.id) && stepIdx < 2 && p.design.idea && p.design.goal) ans.next_step = 'logic';
   else if (next?.id === 'design' && stepIdx < 1 && (p.design.idea || ans.design.idea)) ans.next_step = 'design';

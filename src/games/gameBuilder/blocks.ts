@@ -80,9 +80,14 @@ function ruleState(r: Rule, x: number, y: number): object {
   return st;
 }
 
-export function toolbox(k: GameKind) {
+// The starter shelf (Build Queue 670, from Claudia's review): a new builder sees only these until "More blocks".
+export const STARTER_TRIGGERS = ['start', 'touch', 'tap', 'match', 'score'];
+export const STARTER_ACTIONS = ['addScore', 'perTap', 'cost', 'remove', 'loseLife', 'win', 'sound'];
+export const usesOnlyStarter = (rules: Rule[]) => rules.every((r) => STARTER_TRIGGERS.includes(r.when) && r.actions.every((a) => STARTER_ACTIONS.includes(a.do)));
+
+export function toolbox(k: GameKind, full = true) {
   const block = (type: string, extra: object = {}) => ({ kind: 'block', type, ...extra });
-  const forKind = <T extends { kinds: GameKind[] }>(l: T[]) => l.filter((x) => x.kinds.includes(k));
+  const forKind = <T extends { id: string; kinds: GameKind[] }>(l: T[]) => l.filter((x) => x.kinds.includes(k) && (full || STARTER_TRIGGERS.includes(x.id) || STARTER_ACTIONS.includes(x.id)));
   const acts = forKind(ACTIONS);
   const cat = (name: string, colour: string, secondary: string, ids: string[]) => ({
     kind: 'category', name, colour, secondaryColour: secondary,
@@ -119,11 +124,11 @@ const scratchTheme = () => theme ?? (theme = SB.Theme.defineTheme('gameBuilderSc
   componentStyles: { workspaceBackgroundColour: '#F9F9F9', toolboxBackgroundColour: '#FFFFFF', flyoutBackgroundColour: '#F9F9F9', scrollbarColour: '#CECDCE' },
 }));
 
-export function createWorkspace(el: HTMLElement, k: GameKind): SB.WorkspaceSvg {
+export function createWorkspace(el: HTMLElement, k: GameKind, full = true): SB.WorkspaceSvg {
   kind = k; define();
   return SB.inject(el, {
     theme: scratchTheme(),
-    toolbox: toolbox(k) as never,
+    toolbox: toolbox(k, full) as never,
     media: '/game-builder/blocks-media/',
     zoom: { controls: true, wheel: true, startScale: 1 },
     grid: { spacing: 40, length: 2, colour: '#ddd' },
