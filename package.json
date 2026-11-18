@@ -17,6 +17,7 @@
     "predev": "npm run engine:assets"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.10.0",
     "@fontsource/opendyslexic": "^5.3.0",
     "@mozilla/readability": "^0.6.0",
     "@react-three/drei": "^10.7.8",
@@ -32,6 +33,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.3",
+    "scratch-blocks": "^2.2.11",
     "spin-wheel": "^5.0.2",
     "symbolic-grammar-engine": "https://codeload.github.com/vermontliteracynetwork/symbolic-grammar-engine/tar.gz/399410bd2e1f1955580d5e52f65b971b3b29322f",
     "three": "^0.186.0",

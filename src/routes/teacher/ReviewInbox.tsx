@@ -6,6 +6,7 @@ import { SEL_ZONE_LABELS, SEL_ZONE_FACE } from '../../lib/selZones';
 import { resolveGameReport, useAllGameReports, type GameReport } from '../../lib/gameReports';
 import { formatMoney } from '../../lib/money';
 import AzaleaLog from '../../components/AzaleaLog';
+import GameBuilderLog from '../../components/GameBuilderLog';
 import { RECEIPT_TO, isPrizeReceipt, mailtoFor } from '../../lib/prizeReceipts';
 import ClassMessageComposer from '../../components/ClassMessageComposer';
 
@@ -77,7 +78,7 @@ export default function ReviewInbox() {
 
   const nameFor = (id: string) => students.find((s) => s.id === id)?.name ?? 'Unknown';
   const [zoomedPhoto, setZoomedPhoto] = useState<string | null>(null);
-  const [view, setView] = useState<'all' | 'azalea'>('all');
+  const [view, setView] = useState<'all' | 'azalea' | 'builder'>('all');
   const [composeOpen, setComposeOpen] = useState(false);
 
   const items: InboxItem[] = [
@@ -143,8 +144,9 @@ export default function ReviewInbox() {
         <div className="az-log-tabs big" role="tablist">
           <button type="button" role="tab" aria-selected={view === 'all'} className={view === 'all' ? 'on' : ''} onClick={() => setView('all')}>📥 Everything</button>
           <button type="button" role="tab" aria-selected={view === 'azalea'} className={view === 'azalea' ? 'on' : ''} onClick={() => setView('azalea')}>🐱 Azalea's log (bugs and ideas)</button>
+          <button type="button" role="tab" aria-selected={view === 'builder'} className={view === 'builder' ? 'on' : ''} onClick={() => setView('builder')} title="Every request students make to Azalea in Game Builder, for speech goals">Game Builder requests</button>
         </div>
-        {view === 'azalea' ? <AzaleaLog nameFor={nameFor} onPhoto={setZoomedPhoto} /> : <>
+        {view === 'builder' ? <GameBuilderLog nameFor={nameFor} /> : view === 'azalea' ? <AzaleaLog nameFor={nameFor} onPhoto={setZoomedPhoto} /> : <>
         {receipts.length > 0 && (
           <section className="receipts" aria-label="Prize receipts">
             <h2>🧾 Prize receipts <small>real-life prizes to hand over · tap Email to send one to {RECEIPT_TO.join(' and ')}</small></h2>

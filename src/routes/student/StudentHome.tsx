@@ -443,6 +443,11 @@ export default function StudentHome() {
           <span className="widget-icon">⚗️</span>
           <span className="widget-label">Alchemy</span>
         </button>
+        {/* Game Builder (Build Queue 658, her words 2026-11-18: "I want to have a defined app in the kids computer ... This will be called "Game Builder.""). */}
+        <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/game-builder')} aria-label="Game Builder">
+          <span className="widget-icon">🕹️</span>
+          <span className="widget-label">Game Builder</span>
+        </button>
         {/* Music (Build Queue 348, her words: "add "Music" on computer that opens as the music viewer"): the same song list as
             the Boom Box, car radio and Concert Hall; songs keep playing in the background. */}
         <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => setShowMusic(true)} aria-label="Music">

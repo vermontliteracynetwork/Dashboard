@@ -12912,3 +12912,21 @@ body.calm-games .me-burst { display: none; }
 /* Rocket Chickens gliders (Build Queue 650) */
 .rc-glider-pic { width: 100px; height: 60px; }
 .rc-sub { font-weight: 600; color: #566175; font-size: 0.85rem; margin-left: 6px; }
+
+/* Game Builder speech goal log (Build Queue 658): laptop first, full width. */
+.gbl { display: flex; flex-direction: column; gap: 14px; }
+.gbl-bar { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; }
+.gbl-bar label { display: flex; flex-direction: column; gap: 2px; font-size: 0.85rem; font-weight: 700; }
+.gbl-bar select, .gbl-bar input { min-height: 34px; padding: 4px 8px; border-radius: 8px; border: 1px solid #ccc; font: inherit; }
+.gbl-grow { flex: 1; }
+.gbl-empty { color: #666; }
+.gbl table { width: 100%; border-collapse: collapse; font-size: 0.88rem; background: #fff; }
+.gbl th, .gbl td { border-bottom: 1px solid #eee; padding: 6px 8px; text-align: left; vertical-align: top; }
+.gbl th { background: #f6f3ff; font-weight: 800; position: sticky; top: 0; }
+.gbl td small { color: #666; }
+.gbl-sum { max-width: 980px; }
+.gbl-table td:nth-child(3) { min-width: 200px; font-weight: 600; }
+.gbl-specific td:nth-child(6) b { color: #15803d; }
+.gbl-partly td:nth-child(6) b { color: #b45309; }
+.gbl-vague td:nth-child(6) b { color: #b91c1c; }
+@media print { .gbl-bar, .teacher-nav, .cm-inbox-head, .az-log-tabs { display: none !important; } .gbl th { position: static; } }

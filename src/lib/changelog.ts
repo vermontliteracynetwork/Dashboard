@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder",
+    date: "2026-11-18",
+    icon: "🕹️",
+    title: "Game Builder: make your own games with Azalea",
+    body: "Open Game Builder on the Computer to make your own game projects. Pick a Platformer, Match Three, Clicker, Maze Chase, or Custom, then name it and save it. Azalea helps you build it step by step: your idea, the design, the game logic and play testing. Snap Scratch blocks together, or tell Azalea what you want by typing or talking. Be specific! The specific meter shows when you said what to change and how much. Tap Play to test your game any time.",
+  },
+  {
     id: "2026-11-17-literacy-manipulatives-story-book",
     date: "2026-11-17",
     icon: "📖",
