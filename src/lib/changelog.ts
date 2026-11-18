@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder-art",
+    date: "2026-11-18",
+    icon: "🎨",
+    title: "Game Builder: draw your own sprites",
+    body: "In Game Builder, open the Art tab. Pick an art style: Classic, Pixel or Low poly. Choose your own colors for the sky, the ground and the words. Then draw your own hero, coins, enemies and more on a pixel grid with the pencil and the fill bucket. Tap Play to see your drawings in your game.",
+  },
+  {
     id: "2026-11-18-game-builder",
     date: "2026-11-18",
     icon: "🕹️",

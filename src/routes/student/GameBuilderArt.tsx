@@ -1,0 +1,153 @@
+import { useEffect, useRef, useState } from 'react';
+import { HERO_LOOKS, THEMES, THINGS, heroEmoji, type GameProject } from '../../lib/gameBuilder/model';
+import { ART_STYLES, PALETTE, PALETTE_NAMES, SPRITE_SIZE, colorsOf, emojiToSprite, emptySprite, isSprite, makeArtist, type Sprite } from '../../games/gameBuilder/art';
+
+// The Art tab in Game Builder (Build Queue 664, her words 2026-11-18: "preset design themes (pixel, 3d low poly)
+// but i also want them to be able to have a design creator similar to the Gamify theme builder ... I want to have a
+// sprite designer/editer so they can work on the design of the game"). Like the Plinko theme builder: a live
+// preview on top, then the art style, the colors (with hex codes) and a 16 by 16 sprite editor for the hero and
+// every thing in the game.
+
+const ICONS: Record<string, string> = { coin: '🪙', enemy: '🐌', spike: '🔺', star: '⭐', flag: '🚩', dot: '•', power: '●', ghost: '👻', fruit: '🍒', big: '', up1: '⬆️', up2: '⬆️', up3: '⬆️' };
+const TILE_HEX: Record<string, string> = { red: '#ff5a5f', blue: '#4c97ff', green: '#3fbf6f', yellow: '#ffcc33', purple: '#9966ff' };
+type Update = (f: (q: GameProject) => GameProject) => void;
+
+export function slotsFor(p: GameProject): { key: string; label: string; emoji: string }[] {
+  const hero = { key: 'hero', label: p.kind === 'clicker' ? 'big button' : 'hero', emoji: heroEmoji(p.design.hero) };
+  if (p.kind === 'match3') return THINGS.match3.filter(([k]) => k !== 'any').map(([k, l]) => ({ key: k, label: l, emoji: '' }));
+  if (p.kind === 'clicker') return [hero];
+  return [hero, ...THINGS[p.kind].filter(([k]) => k !== 'dot' && k !== 'power').map(([k, l]) => ({ key: k, label: l, emoji: ICONS[k] ?? '❓' }))];
+}
+
+function Preview({ p }: { p: GameProject }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const c = ref.current; if (!c) return; const g = c.getContext('2d')!; const W = c.width, H = c.height;
+    const A = makeArtist(p); A.sky(g, W, H);
+    if (p.kind === 'match3') {
+      const cols = THINGS.match3.filter(([k]) => k !== 'any').slice(0, p.settings.tileColors);
+      cols.forEach(([k], i) => { const x = 40 + i * 92; g.fillStyle = TILE_HEX[k]; g.beginPath(); g.roundRect(x, 60, 78, 78, 12); g.fill(); A.thing(g, k, '', x + 39, 99, 48); });
+    } else {
+      A.block(g, 0, H - 44, W, 44); A.block(g, W * 0.55, H - 110, 140, 16);
+      const things = slotsFor(p).filter((s) => s.key !== 'hero');
+      things.forEach((t, i) => A.thing(g, t.key, t.emoji, 170 + i * 70, H - 70, 34));
+      A.thing(g, 'hero', heroEmoji(p.design.hero), 70, H - 68, 44);
+    }
+    g.font = 'bold 22px system-ui'; g.fillStyle = A.colors.ink; g.textAlign = 'left'; g.textBaseline = 'top'; g.fillText(p.design.title || p.name, 14, 12);
+  }, [p]);
+  return <canvas ref={ref} width={560} height={200} className="gba-preview" aria-label="Preview of your game's look" />;
+}
+
+export default function ArtPanel({ p, update }: { p: GameProject; update: Update }) {
+  const slots = slotsFor(p);
+  const [slot, setSlot] = useState(slots[0]?.key ?? 'hero');
+  const cur = slots.find((s) => s.key === slot) ?? slots[0];
+  const colors = colorsOf(p);
+  const setDesign = (patch: Partial<GameProject['design']>) => update((q) => ({ ...q, design: { ...q.design, ...patch } }));
+  const setColor = (k: 'sky' | 'ground' | 'ink' | 'accent', v: string) => update((q) => ({ ...q, design: { ...q.design, colors: { ...q.design.colors, [k]: v } } }));
+  const sprite = p.design.sprites?.[cur?.key ?? ''];
+  const saveSprite = (s: Sprite | null) => update((q) => { const sprites = { ...(q.design.sprites ?? {}) }; if (s) sprites[cur.key] = s; else delete sprites[cur.key]; return { ...q, design: { ...q.design, sprites } }; });
+
+  return (
+    <div className="gb-design gba">
+      <Preview p={p} />
+      <h3>Art style</h3>
+      <div className="gba-styles">
+        {ART_STYLES.map((s) => (
+          <button key={s.id} type="button" className={(p.design.style || 'classic') === s.id ? 'on' : ''} onClick={() => setDesign({ style: s.id })}>
+            <b>{s.label}</b><small>{s.blurb}</small>
+          </button>
+        ))}
+      </div>
+      {p.kind !== 'custom' && <>
+        <h3>World and colors</h3>
+        <div className="gb-pick gb-themes">{THEMES.map((t) => <button key={t.id} type="button" className={p.design.theme === t.id && !p.design.colors ? 'on' : ''} style={{ background: `linear-gradient(${t.sky} 60%, ${t.ground} 60%)`, color: t.ink }} onClick={() => setDesign({ theme: t.id, colors: undefined })}>{t.label}</button>)}</div>
+        <div className="gba-colors">
+          {([['sky', 'Sky'], ['ground', 'Ground and walls'], ['ink', 'Words'], ['accent', 'Extra color']] as const).map(([k, l]) => (
+            <label key={k}><input type="color" value={colors[k]} onChange={(e) => setColor(k, e.target.value)} /> <span>{l}<small>{colors[k].toUpperCase()}</small></span></label>
+          ))}
+          {p.design.colors && <button type="button" className="gb-btn" onClick={() => setDesign({ colors: undefined })}>Use the world's colors</button>}
+        </div>
+        <h3>Sprites: draw your own</h3>
+        <div className="gba-slots">
+          {slots.map((s) => {
+            const own = p.design.sprites?.[s.key];
+            return (
+              <button key={s.key} type="button" className={slot === s.key ? 'on' : ''} onClick={() => setSlot(s.key)}>
+                <span className="gba-slot-pic">{isSprite(own) ? <SpriteThumb s={own} /> : s.emoji ? s.emoji : <i style={{ background: TILE_HEX[s.key] }} />}</span>
+                {s.label}{isSprite(own) && <small>drawn</small>}
+              </button>
+            );
+          })}
+        </div>
+        {cur && <SpriteEditor key={cur.key} label={cur.label} start={isSprite(sprite) ? sprite : null} emoji={cur.emoji} onSave={saveSprite} />}
+        {p.kind !== 'match3' && <>
+          <h3>Or pick a hero picture</h3>
+          <div className="gb-pick">{HERO_LOOKS.map(([id, e]) => <button key={id} type="button" className={p.design.hero === id ? 'on' : ''} onClick={() => setDesign({ hero: id })} aria-label={id}>{e}</button>)}</div>
+        </>}
+      </>}
+    </div>
+  );
+}
+
+function SpriteThumb({ s }: { s: Sprite }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => { const c = ref.current; if (!c) return; const g = c.getContext('2d')!; g.clearRect(0, 0, 16, 16); s.forEach((row, y) => [...row].forEach((ch, x) => { const col = PALETTE[parseInt(ch, 16)]; if (col) { g.fillStyle = col; g.fillRect(x, y, 1, 1); } })); }, [s]);
+  return <canvas ref={ref} width={16} height={16} className="gba-thumb" />;
+}
+
+function SpriteEditor({ label, start, emoji, onSave }: { label: string; start: Sprite | null; emoji: string; onSave: (s: Sprite | null) => void }) {
+  const [grid, setGrid] = useState<Sprite>(start ?? emptySprite());
+  const [color, setColor] = useState(1);
+  const [tool, setTool] = useState<'pen' | 'fill'>('pen');
+  const [undo, setUndo] = useState<Sprite[]>([]);
+  const painting = useRef(false);
+  const gridRef = useRef<HTMLDivElement>(null);
+  const latest = useRef(grid); latest.current = grid;
+
+  const commit = (g: Sprite) => { setGrid(g); onSave(g.some((r) => /[1-9a-f]/.test(r)) ? g : null); };
+  const remember = () => setUndo((u) => [...u.slice(-29), latest.current]);
+  const setCell = (g: Sprite, x: number, y: number, v: string) => g.map((row, yy) => (yy === y ? row.slice(0, x) + v + row.slice(x + 1) : row));
+  const fill = (g: Sprite, x: number, y: number, v: string) => {
+    const target = g[y][x]; if (target === v) return g; const rows = g.map((r) => r.split('')); const st = [[x, y]];
+    while (st.length) { const [cx, cy] = st.pop()!; if (cx < 0 || cy < 0 || cx >= SPRITE_SIZE || cy >= SPRITE_SIZE || rows[cy][cx] !== target) continue; rows[cy][cx] = v; st.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]); }
+    return rows.map((r) => r.join(''));
+  };
+  const cellAt = (e: React.PointerEvent) => {
+    const b = gridRef.current!.getBoundingClientRect();
+    const x = Math.floor(((e.clientX - b.left) / b.width) * SPRITE_SIZE), y = Math.floor(((e.clientY - b.top) / b.height) * SPRITE_SIZE);
+    return x >= 0 && y >= 0 && x < SPRITE_SIZE && y < SPRITE_SIZE ? [x, y] : null;
+  };
+  const v = color.toString(16);
+  const down = (e: React.PointerEvent) => {
+    const c = cellAt(e); if (!c) return; e.preventDefault(); remember();
+    if (tool === 'fill') { commit(fill(latest.current, c[0], c[1], v)); return; }
+    painting.current = true; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); setGrid(setCell(latest.current, c[0], c[1], v));
+  };
+  const move = (e: React.PointerEvent) => { if (!painting.current) return; const c = cellAt(e); if (c && latest.current[c[1]][c[0]] !== v) setGrid(setCell(latest.current, c[0], c[1], v)); };
+  const up = () => { if (!painting.current) return; painting.current = false; commit(latest.current); };
+
+  return (
+    <div className="gba-editor">
+      <div className="gba-grid" ref={gridRef} onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up} role="grid" aria-label={`Drawing grid for the ${label}`}>
+        {grid.map((row, y) => [...row].map((ch, x) => <i key={`${x},${y}`} style={{ background: PALETTE[parseInt(ch, 16)] || undefined }} />))}
+      </div>
+      <div className="gba-tools">
+        <div className="gba-palette" role="radiogroup" aria-label="Colors">
+          {PALETTE.map((c, i) => <button key={i} type="button" role="radio" aria-checked={color === i} aria-label={PALETTE_NAMES[i]} title={PALETTE_NAMES[i]} className={`${color === i ? 'on' : ''} ${i === 0 ? 'gba-erase' : ''}`} style={c ? { background: c } : undefined} onClick={() => setColor(i)}>{i === 0 ? 'Erase' : ''}</button>)}
+        </div>
+        <div className="gba-row">
+          <button type="button" className={`gb-btn ${tool === 'pen' ? 'gb-primary' : ''}`} onClick={() => setTool('pen')}>Pencil</button>
+          <button type="button" className={`gb-btn ${tool === 'fill' ? 'gb-primary' : ''}`} onClick={() => setTool('fill')}>Fill bucket</button>
+          <button type="button" className="gb-btn" disabled={!undo.length} onClick={() => { const last = undo[undo.length - 1]; setUndo((u) => u.slice(0, -1)); commit(last); }}>Undo</button>
+        </div>
+        <div className="gba-row">
+          <button type="button" className="gb-btn" onClick={() => { remember(); commit(grid.map((r) => [...r].reverse().join(''))); }}>Flip</button>
+          {emoji && <button type="button" className="gb-btn" onClick={() => { remember(); commit(emojiToSprite(emoji)); }}>Start from the picture</button>}
+          <button type="button" className="gb-btn" onClick={() => { remember(); commit(emptySprite()); }}>Clear</button>
+        </div>
+        <p className="gb-muted">Tip: drag your finger to draw. An empty grid uses the picture instead.</p>
+      </div>
+    </div>
+  );
+}

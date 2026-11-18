@@ -5,13 +5,14 @@ import { speak } from '../../components/ReadAloud';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import { useVoiceToText } from '../../lib/useVoiceToText';
 import {
-  HERO_LOOKS, KIND_INFO, SETTING_INFO, STEPS, THEMES, gameCheck, newId, newProject, ruleText,
+  KIND_INFO, SETTING_INFO, STEPS, gameCheck, newId, newProject, ruleText,
   type BuildStep, type ChatMsg, type GameKind, type GameProject, type Rule, type Settings,
 } from '../../lib/gameBuilder/model';
 import { deleteProject, logRequest, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
 import { applyAnswer, askAzalea, problems } from '../../lib/gameBuilder/azalea';
 import { createWorkspace, loadRules, readRules, SB } from '../../games/gameBuilder/blocks';
 import { runGame, type RunHandle } from '../../games/gameBuilder/runtime';
+import ArtPanel from './GameBuilderArt';
 import './GameBuilder.css';
 
 // Game Builder (Build Queue 658, her words 2026-11-18): "I want to have a defined app in the kids computer that
@@ -120,7 +121,7 @@ function ProjectList({ projects, onOpen, onBack, backLabel, studentId }: { proje
 }
 
 // ---------- Editor ----------
-type Tab = 'blocks' | 'design' | 'check';
+type Tab = 'blocks' | 'design' | 'art' | 'check';
 function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
   const [p, setP] = useState<GameProject>(initial);
   const [tab, setTab] = useState<Tab>(initial.kind === 'custom' ? 'design' : 'blocks');
@@ -158,11 +159,13 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
           <div className="gb-tabs" role="tablist">
             {p.kind !== 'custom' && <button type="button" role="tab" aria-selected={tab === 'blocks'} className={tab === 'blocks' ? 'on' : ''} onClick={() => setTab('blocks')}>Blocks</button>}
             <button type="button" role="tab" aria-selected={tab === 'design'} className={tab === 'design' ? 'on' : ''} onClick={() => setTab('design')}>Design</button>
+            <button type="button" role="tab" aria-selected={tab === 'art'} className={tab === 'art' ? 'on' : ''} onClick={() => setTab('art')}>Art</button>
             <button type="button" role="tab" aria-selected={tab === 'check'} className={tab === 'check' ? 'on' : ''} onClick={() => setTab('check')}>Game check {probs.length ? <span className="gb-badge">{probs.length}</span> : check.every((c) => c.ok) ? '✓' : ''}</button>
           </div>
           <div className="gb-tabpane">
             {tab === 'blocks' && p.kind !== 'custom' && <Blocks p={p} onRules={(rules, l) => { setLoose(l); setP((q) => (JSON.stringify(q.rules) === JSON.stringify(rules) ? q : { ...q, rules })); }} />}
             {tab === 'design' && <DesignPanel p={p} update={update} />}
+            {tab === 'art' && <ArtPanel p={p} update={update} />}
             {tab === 'check' && <CheckPanel p={p} probs={probs} />}
           </div>
         </section>
@@ -296,10 +299,6 @@ function DesignPanel({ p, update }: { p: GameProject; update: (f: (q: GameProjec
       <label>My idea <textarea rows={2} value={d.idea} onChange={(e) => setD('idea', e.target.value)} placeholder="My game is about a ___ who ___." /></label>
       <label>How you win <input value={d.goal} onChange={(e) => setD('goal', e.target.value)} placeholder="You win when ___." /></label>
       {p.kind !== 'custom' && <>
-        <h3>Hero</h3>
-        <div className="gb-pick">{HERO_LOOKS.map(([id, e]) => <button key={id} type="button" className={d.hero === id ? 'on' : ''} onClick={() => setD('hero', id)} aria-label={id}>{e}</button>)}</div>
-        <h3>World</h3>
-        <div className="gb-pick gb-themes">{THEMES.map((t) => <button key={t.id} type="button" className={d.theme === t.id ? 'on' : ''} style={{ background: `linear-gradient(${t.sky} 60%, ${t.ground} 60%)`, color: t.ink }} onClick={() => setD('theme', t.id)}>{t.label}</button>)}</div>
         <h3>Settings</h3>
         <div className="gb-sliders">
           {keys.map((k) => (

@@ -1,4 +1,5 @@
-import { heroEmoji, theme, type Action, type GameProject, type Rule, type Settings } from '../../lib/gameBuilder/model';
+import { makeArtist, spriteCanvas, isSprite } from './art';
+import { heroEmoji, type Action, type GameProject, type Rule, type Settings } from '../../lib/gameBuilder/model';
 
 // The Game Builder runtime (Build Queue 658): plays a student's project. One small rules engine reads the same
 // hat-and-action rules the blocks and Azalea edit, and four game engines (platformer, match three, clicker, maze)
@@ -134,7 +135,7 @@ function loop(step: (now: number, dt: number) => void) {
 // ---------- Platformer ----------
 interface Obj { kind: string; x: number; y: number; w: number; h: number; vx?: number; gone?: boolean; minX?: number; maxX?: number; cool?: number }
 function platformer(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle {
-  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const th = theme(p.design.theme);
+  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const A = makeArtist(p); const th = A.colors;
   const R = new Rules(p, hooks); const rnd = seeded(p.id);
   const len = 1400 + p.settings.level * 900; const groundY = H - 50;
   const solids: { x: number; y: number; w: number; h: number }[] = []; const objs: Obj[] = [];
@@ -185,14 +186,14 @@ function platformer(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): Run
       cam = Math.max(0, Math.min(hero.x - W / 3, x + 400 - W));
     }
     // draw
-    g.fillStyle = th.sky; g.fillRect(0, 0, W, H);
+    A.sky(g, W, H, cam);
     g.save(); g.translate(-cam, 0);
-    for (const b of solids) { g.fillStyle = th.ground; g.fillRect(b.x, b.y, b.w, b.h); g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(b.x, b.y, b.w, 5); }
+    for (const b of solids) A.block(g, b.x, b.y, b.w, b.h);
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#000';
-    for (const o of objs) { if (o.gone || o.x < cam - 60 || o.x > cam + W + 60) continue; g.font = `${o.h + 4}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui`; g.fillText(THING_ICON[o.kind] ?? '❓', o.x + o.w / 2, o.y + o.h / 2); }
+    for (const o of objs) { if (o.gone || o.x < cam - 60 || o.x > cam + W + 60) continue; A.thing(g, o.kind, THING_ICON[o.kind] ?? '❓', o.x + o.w / 2, o.y + o.h / 2, o.h + 4); }
     g.globalAlpha = hero.inv > 0 && Math.floor(now / 100) % 2 ? 0.4 : 1;
     if (R.has('shield')) { g.strokeStyle = '#6cf'; g.lineWidth = 3; g.beginPath(); g.arc(hero.x + hero.w / 2, hero.y + hero.h / 2, hero.w * 0.85, 0, 7); g.stroke(); }
-    g.font = `${hero.h + 6}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui`; g.fillText(heroEmoji(p.design.hero), hero.x + hero.w / 2, hero.y + hero.h / 2);
+    A.thing(g, 'hero', heroEmoji(p.design.hero), hero.x + hero.w / 2, hero.y + hero.h / 2, hero.h + 6);
     g.globalAlpha = 1; g.restore();
     R.hud(g, W, th.ink);
   });
@@ -205,7 +206,7 @@ const MAZES = [
   ['###############', '#o...........o#', '#.###.###.###.#', '#.............#', '###.#.#G#.#.###', '#...#.GGG.#...#', '#.#.#.###.#.#.#', '#.#....P....#.#', '#.###.#.#.###.#', '#....F#.#.....#', '#.##.......##.#', '#o..#.###.#..o#', '###############'],
 ];
 function maze(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle {
-  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const th = theme(p.design.theme);
+  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const A = makeArtist(p); const th = A.colors;
   const R = new Rules(p, hooks);
   const map = MAZES[(p.settings.level - 1) % MAZES.length].map((row) => row.split(''));
   const rows = map.length, cols = map[0].length; const cell = Math.floor(Math.min(W / cols, (H - 40) / rows)); const ox = (W - cell * cols) / 2, oy = 36 + (H - 36 - cell * rows) / 2;
@@ -261,14 +262,14 @@ function maze(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle
         }
       }
     }
-    g.fillStyle = th.sky; g.fillRect(0, 0, W, H);
-    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (map[r][c] === '#') { g.fillStyle = th.ground; g.fillRect(ox + c * cell + 2, oy + r * cell + 2, cell - 4, cell - 4); }
+    A.sky(g, W, H);
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) if (map[r][c] === '#') A.block(g, ox + c * cell + 2, oy + r * cell + 2, cell - 4, cell - 4);
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#000';
-    items.forEach((v, k) => { const [c, r] = k.split(',').map(Number); const px = ox + c * cell + cell / 2, py = oy + r * cell + cell / 2; if (v === 'dot') { g.fillStyle = th.ink; g.beginPath(); g.arc(px, py, cell * 0.1, 0, 7); g.fill(); } else if (v === 'power') { g.fillStyle = '#ffd34d'; g.beginPath(); g.arc(px, py, cell * 0.24 + Math.sin(now / 200) * 2, 0, 7); g.fill(); } else { g.font = `${cell * 0.7}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui`; g.fillText(THING_ICON[v] ?? '❓', px, py); } });
+    items.forEach((v, k) => { const [c, r] = k.split(',').map(Number); const px = ox + c * cell + cell / 2, py = oy + r * cell + cell / 2; if (v === 'dot') { g.fillStyle = th.ink; g.beginPath(); g.arc(px, py, cell * 0.1, 0, 7); g.fill(); } else if (v === 'power') { g.fillStyle = '#ffd34d'; g.beginPath(); g.arc(px, py, cell * 0.24 + Math.sin(now / 200) * 2, 0, 7); g.fill(); } else A.thing(g, v, THING_ICON[v] ?? '❓', px, py, cell * 0.7); });
     g.fillStyle = "#000"; g.font = `${cell * 0.85}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui`;
-    for (const gh of ghosts) { g.globalAlpha = R.has('scare') ? 0.55 : 1; g.fillText(R.has('scare') ? '😱' : '👻', ox + gh.x * cell + cell / 2, oy + gh.y * cell + cell / 2); }
+    for (const gh of ghosts) { g.globalAlpha = R.has('scare') ? 0.55 : 1; A.thing(g, 'ghost', R.has('scare') ? '😱' : '👻', ox + gh.x * cell + cell / 2, oy + gh.y * cell + cell / 2, cell * 0.85); }
     g.globalAlpha = hero.inv > 0 && Math.floor(now / 100) % 2 ? 0.4 : 1;
-    g.fillText(heroEmoji(p.design.hero), ox + hero.x * cell + cell / 2, oy + hero.y * cell + cell / 2); g.globalAlpha = 1;
+    A.thing(g, 'hero', heroEmoji(p.design.hero), ox + hero.x * cell + cell / 2, oy + hero.y * cell + cell / 2, cell * 0.85); g.globalAlpha = 1;
     R.hud(g, W, th.ink);
   });
   const dirs: Record<string, [number, number]> = { left: [-1, 0], right: [1, 0], up: [0, -1], down: [0, 1] };
@@ -278,7 +279,7 @@ function maze(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle
 // ---------- Match three ----------
 const TILE_COLORS: [string, string][] = [['red', '#ff5a5f'], ['blue', '#4c97ff'], ['green', '#3fbf6f'], ['yellow', '#ffcc33'], ['purple', '#9966ff']];
 function match3(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle {
-  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const th = theme(p.design.theme);
+  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const A = makeArtist(p); const th = A.colors;
   const R = new Rules(p, hooks); const N = 7; const nc = Math.max(3, Math.min(5, p.settings.tileColors));
   const cell = Math.floor(Math.min(W - 40, H - 60) / N); const ox = (W - cell * N) / 2, oy = 44 + (H - 44 - cell * N) / 2;
   const rand = () => Math.floor(Math.random() * nc);
@@ -300,11 +301,12 @@ function match3(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHand
   const stop = loop((now, dt) => {
     R.tick(now, dt);
     if (busy > 0) { busy -= dt; if (busy <= 0) resolve(false); }
-    g.fillStyle = th.sky; g.fillRect(0, 0, W, H);
+    A.sky(g, W, H);
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       const v = grid[r][c]; if (v < 0) continue; const x = ox + c * cell, y = oy + r * cell;
       g.fillStyle = TILE_COLORS[v][1]; g.beginPath(); g.roundRect(x + 4, y + 4, cell - 8, cell - 8, 10); g.fill();
       g.fillStyle = 'rgba(255,255,255,0.35)'; g.beginPath(); g.roundRect(x + 9, y + 8, cell - 18, (cell - 16) / 3, 6); g.fill();
+      const own = p.design.sprites?.[TILE_COLORS[v][0]]; if (isSprite(own)) { g.imageSmoothingEnabled = false; g.drawImage(spriteCanvas(own), x + cell * 0.18, y + cell * 0.18, cell * 0.64, cell * 0.64); }
       if (sel && sel.r === r && sel.c === c) { g.strokeStyle = '#fff'; g.lineWidth = 4; g.strokeRect(x + 3, y + 3, cell - 6, cell - 6); }
     }
     for (const pp of pops) { const a = 1 - (now - pp.t) / 300; if (a <= 0) continue; g.globalAlpha = a; g.fillStyle = '#fff'; g.beginPath(); g.arc(ox + pp.c * cell + cell / 2, oy + pp.r * cell + cell / 2, cell * (0.5 - a * 0.3), 0, 7); g.fill(); g.globalAlpha = 1; }
@@ -322,7 +324,7 @@ function match3(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHand
 
 // ---------- Clicker ----------
 function clicker(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle {
-  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const th = theme(p.design.theme);
+  const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const A = makeArtist(p); const th = A.colors;
   const R = new Rules(p, hooks); let squish = 0; const floats: { x: number; y: number; t: number; n: number }[] = [];
   const ups = ['up1', 'up2', 'up3'].filter((u) => R.rulesFor('tap', u).some((r) => r.whenArg === u));
   ups.forEach((u) => R.costs.set(u, R.rulesFor('tap', u).flatMap((r) => r.actions).find((a) => a.do === 'cost')?.num ?? 10));
@@ -332,10 +334,10 @@ function clicker(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHan
   R.start();
   const stop = loop((now, dt) => {
     R.tick(now, dt); squish = Math.max(0, squish - dt * 4);
-    g.fillStyle = th.sky; g.fillRect(0, 0, W, H);
+    A.sky(g, W, H);
     g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#000';
     g.fillStyle = th.ground; g.beginPath(); g.arc(btn.x, btn.y, btn.r * (1 - squish * 0.12), 0, 7); g.fill();
-    g.font = `${btn.r * 1.1 * (1 - squish * 0.12)}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui`; g.fillText(heroEmoji(p.design.hero), btn.x, btn.y + 4);
+    A.thing(g, 'hero', heroEmoji(p.design.hero), btn.x, btn.y + 4, btn.r * 1.1 * (1 - squish * 0.12)); g.fillStyle = th.ink; g.textAlign = 'center';
     g.font = 'bold 20px system-ui'; g.fillStyle = th.ink; g.fillText(`${R.perTap} per tap${R.perSecond ? `, ${R.perSecond} per second` : ''}`, btn.x, btn.y + btn.r + 26);
     for (const f of floats) { const a = 1 - (now - f.t) / 800; if (a <= 0) continue; g.globalAlpha = a; g.font = 'bold 24px system-ui'; g.fillText(`+${f.n}`, f.x, f.y - (1 - a) * 60); g.globalAlpha = 1; }
     ups.forEach((u, i) => { const b = upBox(i); const cost = R.costs.get(u) ?? 10; const can = R.score >= cost;

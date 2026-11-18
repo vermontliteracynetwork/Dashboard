@@ -23,6 +23,9 @@ export interface Design {
   theme: string;      // a theme id from THEMES
   idea: string;       // the student's own one-line idea, in their words
   goal: string;       // how you win, in their words
+  style?: string;     // art style: classic, pixel, lowpoly (Build Queue 664)
+  colors?: { sky?: string; ground?: string; ink?: string; accent?: string }; // the student's own colors
+  sprites?: Record<string, string[]>; // sprites they drew: 'hero' or a thing id -> 16 rows of palette digits
 }
 
 export interface Settings {

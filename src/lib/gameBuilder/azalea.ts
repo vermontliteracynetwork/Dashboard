@@ -64,7 +64,7 @@ export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'desig
   for (const [k, v] of Object.entries(a.design ?? {})) if (v && typeof v === 'string') {
     if (k === 'hero' && !HERO_LOOKS.some(([id]) => id === v)) continue;
     if (k === 'theme' && !THEMES.some((t) => t.id === v)) continue;
-    (d as Record<string, string>)[k] = v;
+    (d as unknown as Record<string, string>)[k] = v;
   }
   return { ...p, rules, settings, design: d, step: a.next_step || p.step, code: a.code ? a.code : p.code, name: d.title && p.name.startsWith('My ') ? d.title : p.name };
 }
