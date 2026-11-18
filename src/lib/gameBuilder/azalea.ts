@@ -3,6 +3,7 @@ import {
   gameCheck, newId, ruleText, type BuildStep, type GameProject, type Rule, type Settings,
 } from './model';
 import type { Specificity } from './store';
+import { PRESET_TUNES } from '../../games/gameBuilder/music';
 
 // Azalea's side of Game Builder (Build Queue 658). She answers every student message with: a reply, the changes
 // to the game, and how specific the request was (her rule: "a goal is for them to recongnize how specific they
@@ -13,7 +14,7 @@ import type { Specificity } from './store';
 export interface Op { op: 'add' | 'replace' | 'remove' | 'setting'; ruleId: string; when: string; whenArg: string; whenNum: number; actions: { do: string; arg: string; num: number }[]; key: string; value: number }
 export interface AzaleaAnswer {
   reply: string; specificity: Specificity; details: string[]; missing: string[]; changes: string[];
-  ops: Op[]; design: Partial<Record<'title' | 'hero' | 'theme' | 'idea' | 'goal', string>>; revision: boolean; next_step: '' | BuildStep; code: string;
+  ops: Op[]; design: Partial<Record<'title' | 'hero' | 'theme' | 'idea' | 'goal' | 'style', string>>; music?: string; revision: boolean; next_step: '' | BuildStep; code: string;
   source: 'ai' | 'guide';
 }
 
@@ -47,7 +48,7 @@ export function problems(p: GameProject, loose = 0): string[] {
   return out;
 }
 
-export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'design' | 'next_step' | 'code'>): GameProject {
+export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'design' | 'next_step' | 'code' | 'music'>): GameProject {
   let rules = [...p.rules];
   const settings = { ...p.settings };
   const okRule = (o: Op): Rule | null => {
@@ -64,8 +65,11 @@ export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'desig
   for (const [k, v] of Object.entries(a.design ?? {})) if (v && typeof v === 'string') {
     if (k === 'hero' && !HERO_LOOKS.some(([id]) => id === v)) continue;
     if (k === 'theme' && !THEMES.some((t) => t.id === v)) continue;
+    if (k === 'style' && !['classic', 'pixel', 'lowpoly'].includes(v)) continue;
     (d as unknown as Record<string, string>)[k] = v;
   }
+  const tuneP = a.music ? PRESET_TUNES.find((t) => t.id === a.music) : undefined;
+  if (tuneP) d.music = { kind: 'tune', notes: tuneP.notes, tempo: tuneP.tempo, wave: tuneP.wave };
   return { ...p, rules, settings, design: d, step: a.next_step || p.step, code: a.code ? a.code : p.code, name: d.title && p.name.startsWith('My ') ? d.title : p.name };
 }
 
@@ -101,6 +105,10 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   // Design: hero, theme, name.
   for (const [id] of HERO_LOOKS) if (new RegExp(`\\b${id}s?\\b`).test(s) && /\b(hero|player|be|character|look|main)\b/.test(s)) { ans.design.hero = id; ans.changes.push(`Your hero is now the ${id}`); ans.details.push('what the hero looks like'); break; }
   for (const t of THEMES) if (s.includes(t.id) || s.includes(t.label.toLowerCase())) { ans.design.theme = t.id; ans.changes.push(`The world is now ${t.label}`); ans.details.push('where it happens'); break; }
+  if (/\bpixel/.test(s)) { ans.design.style = 'pixel'; ans.changes.push('The art style is now Pixel'); ans.details.push('the art style'); }
+  else if (/\b(low poly|lowpoly|3d|three d)\b/.test(s)) { ans.design.style = 'lowpoly'; ans.changes.push('The art style is now Low poly'); ans.details.push('the art style'); }
+  const tuneWord = PRESET_TUNES.find((t) => s.includes(t.id) && /\b(music|song|tune)\b/.test(s));
+  if (tuneWord) { ans.music = tuneWord.id; ans.changes.push(`The music is now the ${tuneWord.label} tune`); ans.details.push('the music'); }
   const named = said1.match(/\b(?:call it|name it|called|title is)\s+["']?([^"'.!?]{2,40})/i);
   if (named) { ans.design.title = named[1].trim(); ans.changes.push(`The game is named "${named[1].trim()}"`); ans.details.push('the name'); }
 
@@ -160,7 +168,7 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   if (n !== null) ans.details.push(`how much: ${n}`);
   if (hasWhen) ans.details.push('when it happens');
   const what = !!thing || ans.changes.length > 0;
-  ans.specificity = what && (n !== null || hasWhen || ans.design.hero || ans.design.theme || ans.design.title) ? 'specific' : what || hasHow ? 'partly' : 'vague';
+  ans.specificity = what && (n !== null || hasWhen || ans.design.hero || ans.design.theme || ans.design.title || ans.design.style || ans.music) ? 'specific' : what || hasHow ? 'partly' : 'vague';
   if (!what) ans.missing.push('what should change');
   if (what && n === null && !hasWhen && ans.ops.length) ans.missing.push('how much');
   if (ans.specificity === 'specific' && ans.details.length) ans.details = [...new Set(ans.details)];

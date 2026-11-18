@@ -86,12 +86,29 @@ export function makeArtist(p: GameProject): Artist {
     const s = own[key]; if (isSprite(s) && spriteHasInk(s)) return s;
     return style === 'pixel' ? emojiToSprite(emoji) : null;
   };
+  const anim = p.design.anim ?? {};
   const thing: Artist['thing'] = (g, key, emoji, cx, cy, size) => {
+    const mv = anim[key];
+    if (mv) {
+      const t = performance.now() / 1000; g.save();
+      if (mv === 'bounce') cy -= Math.abs(Math.sin(t * 5)) * size * 0.3;
+      if (mv === 'float') cy += Math.sin(t * 2) * size * 0.18;
+      if (mv === 'flash') g.globalAlpha *= 0.55 + 0.45 * Math.abs(Math.sin(t * 4));
+      g.translate(cx, cy);
+      if (mv === 'spin') g.rotate(t * 3);
+      if (mv === 'wiggle') g.rotate(Math.sin(t * 9) * 0.25);
+      if (mv === 'pulse') { const k = 1 + Math.sin(t * 5) * 0.15; g.scale(k, k); }
+      g.translate(-cx, -cy);
+      draw(g, key, emoji, cx, cy, size); g.restore(); return;
+    }
+    draw(g, key, emoji, cx, cy, size);
+  };
+  function draw(g: CanvasRenderingContext2D, key: string, emoji: string, cx: number, cy: number, size: number) {
     const s = spriteFor(key, emoji);
     if (s) { g.imageSmoothingEnabled = false; g.drawImage(spriteCanvas(s), Math.round(cx - size / 2), Math.round(cy - size / 2), Math.round(size), Math.round(size)); return; }
     if (style === 'lowpoly') { g.save(); g.fillStyle = 'rgba(0,0,0,0.18)'; g.beginPath(); g.ellipse(cx, cy + size * 0.45, size * 0.4, size * 0.12, 0, 0, 7); g.fill(); g.restore(); }
     g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `${size}px ${EMOJI_FONT}`; g.fillText(emoji, cx, cy);
-  };
+  }
   const sky: Artist['sky'] = (g, W, H, cam = 0) => {
     if (style === 'lowpoly') {
       const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, shade(colors.sky, -30)); gr.addColorStop(1, shade(colors.sky, 25)); g.fillStyle = gr; g.fillRect(0, 0, W, H);

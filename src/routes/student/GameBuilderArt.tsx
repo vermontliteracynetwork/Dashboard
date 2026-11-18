@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { HERO_LOOKS, THEMES, THINGS, heroEmoji, type GameProject } from '../../lib/gameBuilder/model';
+import { ANIMS, HERO_LOOKS, THEMES, THINGS, heroEmoji, type GameProject } from '../../lib/gameBuilder/model';
+import { pathAt } from '../../games/gameBuilder/runtime';
 import { ART_STYLES, PALETTE, PALETTE_NAMES, SPRITE_SIZE, colorsOf, emojiToSprite, emptySprite, isSprite, makeArtist, type Sprite } from '../../games/gameBuilder/art';
 
 // The Art tab in Game Builder (Build Queue 664, her words 2026-11-18: "preset design themes (pixel, 3d low poly)
@@ -81,6 +82,7 @@ export default function ArtPanel({ p, update }: { p: GameProject; update: Update
           })}
         </div>
         {cur && <SpriteEditor key={cur.key} label={cur.label} start={isSprite(sprite) ? sprite : null} emoji={cur.emoji} onSave={saveSprite} />}
+        {cur && <><h3>Moves for the {cur.label}</h3><MovesPanel key={`m-${cur.key}`} p={p} update={update} slotKey={cur.key} emoji={cur.emoji} label={cur.label} /></>}
         {p.kind !== 'match3' && <>
           <h3>Or pick a hero picture</h3>
           <div className="gb-pick">{HERO_LOOKS.map(([id, e]) => <button key={id} type="button" className={p.design.hero === id ? 'on' : ''} onClick={() => setDesign({ hero: id })} aria-label={id}>{e}</button>)}</div>
@@ -147,6 +149,57 @@ function SpriteEditor({ label, start, emoji, onSave }: { label: string; start: S
           <button type="button" className="gb-btn" onClick={() => { remember(); commit(emptySprite()); }}>Clear</button>
         </div>
         <p className="gb-muted">Tip: drag your finger to draw. An empty grid uses the picture instead.</p>
+      </div>
+    </div>
+  );
+}
+
+// ---------- Moves: a preset animation, or a path drawn with a finger (her words: "draw an animation path like
+// custom animations on canva") ----------
+export function MovesPanel({ p, update, slotKey, emoji, label }: { p: GameProject; update: Update; slotKey: string; emoji: string; label: string }) {
+  const cur = p.design.anim?.[slotKey] ?? '';
+  const setAnim = (v: string) => update((q) => { const anim = { ...(q.design.anim ?? {}) }; if (v) anim[slotKey] = v; else delete anim[slotKey]; return { ...q, design: { ...q.design, anim } }; });
+  const canPath = p.kind === 'platformer' && slotKey !== 'hero';
+  return (
+    <div className="gba-moves">
+      <div className="gba-row">{ANIMS.map(([id, l]) => <button key={id || 'none'} type="button" className={`gb-btn ${cur === id ? 'gb-primary' : ''}`} onClick={() => setAnim(id)}>{l}</button>)}</div>
+      {canPath && <PathEditor p={p} update={update} slotKey={slotKey} emoji={emoji} label={label} />}
+    </div>
+  );
+}
+
+function PathEditor({ p, update, slotKey, emoji, label }: { p: GameProject; update: Update; slotKey: string; emoji: string; label: string }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const saved = p.design.paths?.[slotKey];
+  const [pts, setPts] = useState<number[][]>(saved?.pts ?? []);
+  const [secs, setSecs] = useState(saved?.secs ?? 3);
+  const drawing = useRef(false);
+  const W = 420, H = 220, cx = W / 2, cy = H / 2;
+  const save = (np: number[][], s: number) => update((q) => { const paths = { ...(q.design.paths ?? {}) }; if (np.length > 1) paths[slotKey] = { pts: np, secs: s }; else delete paths[slotKey]; return { ...q, design: { ...q.design, paths } }; });
+  useEffect(() => {
+    const c = ref.current; if (!c) return; const g = c.getContext('2d')!; const A = makeArtist(p); let raf = 0;
+    const frame = () => {
+      A.sky(g, W, H); A.block(g, 0, H - 24, W, 24);
+      if (pts.length > 1) { g.strokeStyle = '#7c3aed'; g.lineWidth = 3; g.setLineDash([8, 6]); g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(cx + x, cy + y) : g.moveTo(cx + x, cy + y))); g.stroke(); g.setLineDash([]); }
+      let ox = 0, oy = 0;
+      if (pts.length > 1 && !drawing.current) [ox, oy] = pathAt({ pts, secs }, performance.now() / 1000);
+      else if (pts.length) [ox, oy] = [pts[pts.length - 1][0] - pts[0][0], pts[pts.length - 1][1] - pts[0][1]];
+      A.thing(g, slotKey, emoji, cx + (pts[0]?.[0] ?? 0) + ox, cy + (pts[0]?.[1] ?? 0) + oy, 36);
+      raf = requestAnimationFrame(frame);
+    };
+    frame(); return () => cancelAnimationFrame(raf);
+  }, [p, pts, secs, slotKey, emoji, cx, cy]);
+  const at = (e: React.PointerEvent) => { const b = ref.current!.getBoundingClientRect(); return [Math.round((e.clientX - b.left) * (W / b.width) - cx), Math.round((e.clientY - b.top) * (H / b.height) - cy)]; };
+  return (
+    <div className="gba-path">
+      <p className="gb-muted">Draw a path with your finger. The {label} will follow it in the game, over and over.</p>
+      <canvas ref={ref} width={W} height={H} className="gba-path-canvas" aria-label={`Draw a path for the ${label}`}
+        onPointerDown={(e) => { e.preventDefault(); drawing.current = true; (e.target as HTMLElement).setPointerCapture?.(e.pointerId); setPts([at(e)]); }}
+        onPointerMove={(e) => { if (!drawing.current) return; const q = at(e); setPts((old) => { const l = old[old.length - 1]; return l && Math.hypot(q[0] - l[0], q[1] - l[1]) < 6 ? old : [...old, q].slice(0, 120); }); }}
+        onPointerUp={() => { if (!drawing.current) return; drawing.current = false; setPts((cur) => { save(cur, secs); return cur; }); }} />
+      <div className="gba-row">
+        <label className="gba-speed">Time for one trip: <b>{secs} seconds</b><input type="range" min={1} max={10} value={secs} onChange={(e) => { const v = Number(e.target.value); setSecs(v); if (pts.length > 1) save(pts, v); }} /></label>
+        <button type="button" className="gb-btn" disabled={!pts.length} onClick={() => { setPts([]); save([], secs); }}>Clear path</button>
       </div>
     </div>
   );

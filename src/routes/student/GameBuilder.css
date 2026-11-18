@@ -148,3 +148,15 @@
 .gba-palette button.on { outline: 4px solid #7c3aed; outline-offset: 1px; }
 .gba-palette .gba-erase { background: #fff; font: 700 0.7rem 'Nunito', sans-serif; }
 .gba-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.gba-moves { display: flex; flex-direction: column; gap: 10px; }
+.gba-path-canvas { width: 100%; max-width: 420px; aspect-ratio: 420 / 220; border-radius: 12px; border: 2px dashed #b9a8ef; touch-action: none; cursor: crosshair; }
+.gba-speed { display: flex !important; flex-direction: column !important; font-weight: 700; min-width: 220px; }
+.gba-speed input { accent-color: #7c3aed; min-height: 40px; }
+.gbs-grid { display: flex; flex-direction: column; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+.gbs-row { display: flex; gap: 3px; align-items: center; }
+.gbs-note { width: 58px; flex: none; font-weight: 700; font-size: 0.85rem; color: #4b3d85; }
+.gbs-row button { flex: none; width: 36px; height: 36px; border-radius: 7px; border: 2px solid #e1d7ff; background: #faf8ff; cursor: pointer; padding: 0; }
+.gbs-row button.beat { border-left-color: #b9a8ef; }
+.gbs-row button.on { background: #7c3aed; border-color: #5b21b6; }
+.gbs-songs { display: flex; flex-wrap: wrap; gap: 8px; }
+.gb-design > *, .gb-check > * { flex-shrink: 0; }

@@ -13,6 +13,8 @@ import { applyAnswer, askAzalea, problems } from '../../lib/gameBuilder/azalea';
 import { createWorkspace, loadRules, readRules, SB } from '../../games/gameBuilder/blocks';
 import { runGame, type RunHandle } from '../../games/gameBuilder/runtime';
 import ArtPanel from './GameBuilderArt';
+import SoundPanel from './GameBuilderSound';
+import { startMusic } from '../../games/gameBuilder/music';
 import './GameBuilder.css';
 
 // Game Builder (Build Queue 658, her words 2026-11-18): "I want to have a defined app in the kids computer that
@@ -121,7 +123,7 @@ function ProjectList({ projects, onOpen, onBack, backLabel, studentId }: { proje
 }
 
 // ---------- Editor ----------
-type Tab = 'blocks' | 'design' | 'art' | 'check';
+type Tab = 'blocks' | 'design' | 'art' | 'sound' | 'check';
 function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
   const [p, setP] = useState<GameProject>(initial);
   const [tab, setTab] = useState<Tab>(initial.kind === 'custom' ? 'design' : 'blocks');
@@ -160,12 +162,14 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
             {p.kind !== 'custom' && <button type="button" role="tab" aria-selected={tab === 'blocks'} className={tab === 'blocks' ? 'on' : ''} onClick={() => setTab('blocks')}>Blocks</button>}
             <button type="button" role="tab" aria-selected={tab === 'design'} className={tab === 'design' ? 'on' : ''} onClick={() => setTab('design')}>Design</button>
             <button type="button" role="tab" aria-selected={tab === 'art'} className={tab === 'art' ? 'on' : ''} onClick={() => setTab('art')}>Art</button>
+            <button type="button" role="tab" aria-selected={tab === 'sound'} className={tab === 'sound' ? 'on' : ''} onClick={() => setTab('sound')}>Sound</button>
             <button type="button" role="tab" aria-selected={tab === 'check'} className={tab === 'check' ? 'on' : ''} onClick={() => setTab('check')}>Game check {probs.length ? <span className="gb-badge">{probs.length}</span> : check.every((c) => c.ok) ? '✓' : ''}</button>
           </div>
           <div className="gb-tabpane">
             {tab === 'blocks' && p.kind !== 'custom' && <Blocks p={p} onRules={(rules, l) => { setLoose(l); setP((q) => (JSON.stringify(q.rules) === JSON.stringify(rules) ? q : { ...q, rules })); }} />}
             {tab === 'design' && <DesignPanel p={p} update={update} />}
             {tab === 'art' && <ArtPanel p={p} update={update} />}
+            {tab === 'sound' && <SoundPanel p={p} update={update} />}
             {tab === 'check' && <CheckPanel p={p} probs={probs} />}
           </div>
         </section>
@@ -336,14 +340,15 @@ function Player({ p, onClose }: { p: GameProject; onClose: (r: 'win' | 'lose' | 
   useEffect(() => {
     if (p.kind === 'custom' || !cv.current) return;
     setEnd(null);
-    const handle = runGame(cv.current, p, { sound, onEnd: (r, score) => setEnd({ r, score: Math.floor(score) }) }); h.current = handle;
+    const stopMusic = sound ? startMusic(p.design.music) : () => {};
+    const handle = runGame(cv.current, p, { sound, onEnd: (r, score) => { stopMusic(); setEnd({ r, score: Math.floor(score) }); } }); h.current = handle;
     const keyMap: Record<string, string> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: p.kind === 'platformer' ? 'jump' : 'up', ArrowDown: 'down', ' ': 'jump', a: 'left', d: 'right', w: 'up', s: 'down' };
     const kd = (e: KeyboardEvent) => { const k = keyMap[e.key]; if (k) { e.preventDefault(); handle.press(k, true); } };
     const ku = (e: KeyboardEvent) => { const k = keyMap[e.key]; if (k) handle.press(k, false); };
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku);
-    return () => { handle.stop(); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
+    return () => { stopMusic(); handle.stop(); window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [round]);
+  }, [round, sound]);
   const tap = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const c = cv.current; if (!c || !h.current) return; const b = c.getBoundingClientRect();
     h.current.tap((e.clientX - b.left) * (c.width / b.width), (e.clientY - b.top) * (c.height / b.height));

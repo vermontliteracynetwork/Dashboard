@@ -1,5 +1,5 @@
 import { makeArtist, spriteCanvas, isSprite } from './art';
-import { heroEmoji, type Action, type GameProject, type Rule, type Settings } from '../../lib/gameBuilder/model';
+import { SOUND_FILES, heroEmoji, type Action, type GameProject, type Rule, type Settings } from '../../lib/gameBuilder/model';
 
 // The Game Builder runtime (Build Queue 658): plays a student's project. One small rules engine reads the same
 // hat-and-action rules the blocks and Azalea edit, and four game engines (platformer, match three, clicker, maze)
@@ -12,7 +12,10 @@ export interface RunHandle { stop: () => void; press: (key: string, down: boolea
 
 // ---------- sounds (made in the browser, no files) ----------
 let ac: AudioContext | null = null;
-function tone(kind: string) {
+const files = new Map<string, HTMLAudioElement>();
+export function tone(kind: string) {
+  const file = SOUND_FILES[kind];
+  if (file) { try { const a = files.get(file) ?? new Audio(file); files.set(file, a); a.currentTime = 0; a.volume = 0.6; void a.play().catch(() => {}); } catch { /* no sound */ } return; }
   try {
     ac = ac ?? new AudioContext();
     const o = ac.createOscillator(); const g = ac.createGain(); o.connect(g); g.connect(ac.destination);
@@ -125,6 +128,13 @@ function seeded(seedText: string) {
 
 const THING_ICON: Record<string, string> = { coin: '🪙', enemy: '🐌', spike: '🔺', star: '⭐', flag: '🚩', dot: '•', power: '●', ghost: '👻', fruit: '🍒' };
 
+export function pathAt(pa: { pts: number[][]; secs: number }, t: number): [number, number] {
+  const pts = pa.pts; if (pts.length < 2) return [0, 0];
+  const f = ((t / Math.max(0.5, pa.secs)) % 1 + 1) % 1 * (pts.length - 1); const i = Math.floor(f), k = f - i;
+  const a = pts[i], b = pts[Math.min(pts.length - 1, i + 1)];
+  return [a[0] + (b[0] - a[0]) * k - pts[0][0], a[1] + (b[1] - a[1]) * k - pts[0][1]];
+}
+
 function loop(step: (now: number, dt: number) => void) {
   let raf = 0; let last = performance.now(); let on = true;
   const f = (now: number) => { if (!on) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; step(now, dt); raf = requestAnimationFrame(f); };
@@ -133,7 +143,7 @@ function loop(step: (now: number, dt: number) => void) {
 }
 
 // ---------- Platformer ----------
-interface Obj { kind: string; x: number; y: number; w: number; h: number; vx?: number; gone?: boolean; minX?: number; maxX?: number; cool?: number }
+interface Obj { kind: string; x: number; y: number; w: number; h: number; vx?: number; gone?: boolean; minX?: number; maxX?: number; cool?: number; hx?: number; hy?: number; phase?: number }
 function platformer(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): RunHandle {
   const g = cv.getContext('2d')!; const W = cv.width, H = cv.height; const A = makeArtist(p); const th = A.colors;
   const R = new Rules(p, hooks); const rnd = seeded(p.id);
@@ -157,9 +167,13 @@ function platformer(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): Run
   const counts = () => { const c: Record<string, number> = {}; objs.forEach((o) => { if (!o.gone) c[o.kind] = (c[o.kind] ?? 0) + 1; }); return c; };
   const spawn = (kind: string, n: number) => { for (let i = 0; i < n; i++) { const sx = hero.x + 160 + Math.random() * 500; objs.push({ kind, x: sx, y: kind === 'enemy' ? groundY - 26 : groundY - 70 - Math.random() * 80, w: 24, h: 24, vx: 1, minX: sx - 120, maxX: sx + 120 }); } };
   const hit = (a: { x: number; y: number; w: number; h: number }, b: { x: number; y: number; w: number; h: number }) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  // A path the student drew (Build Queue 664): that kind of thing follows it, over and over, from where it starts.
+  const paths = p.design.paths ?? {};
+  objs.forEach((o, i) => { o.hx = o.x; o.hy = o.y; o.phase = (i * 0.37) % 1; });
   R.start();
   const stop = loop((now, dt) => {
     R.tick(now, dt); const s = R.settings;
+    for (const o of objs) { const pa = paths[o.kind]; if (!pa || o.gone || (o.kind === 'enemy' && R.has('freeze'))) continue; const [dx, dy] = pathAt(pa, now / 1000 + (o.phase ?? 0) * pa.secs); o.x = (o.hx ?? o.x) + dx; o.y = (o.hy ?? o.y) + dy; }
     if (!R.over) {
       const speed = 60 + s.heroSpeed * 32 * (R.has('speed') ? 1.6 : 1);
       hero.vx = (keys.right ? speed : 0) - (keys.left ? speed : 0);
@@ -172,7 +186,7 @@ function platformer(cv: HTMLCanvasElement, p: GameProject, hooks: RunHooks): Run
       hero.inv = Math.max(0, hero.inv - dt);
       for (const o of objs) {
         if (o.gone) continue;
-        if (o.kind === 'enemy' && !R.has('freeze')) { o.x += (o.vx ?? 1) * (20 + s.enemySpeed * 18) * dt; if (o.x < (o.minX ?? 0) || o.x > (o.maxX ?? 1e9)) o.vx = -(o.vx ?? 1); }
+        if (o.kind === 'enemy' && !R.has('freeze') && !paths.enemy) { o.x += (o.vx ?? 1) * (20 + s.enemySpeed * 18) * dt; if (o.x < (o.minX ?? 0) || o.x > (o.maxX ?? 1e9)) o.vx = -(o.vx ?? 1); }
         o.cool = Math.max(0, (o.cool ?? 0) - dt);
         if (o.cool > 0 || !hit(hero, o)) continue;
         if ((o.kind === 'enemy' || o.kind === 'spike') && hero.inv > 0) continue;

@@ -26,6 +26,9 @@ export interface Design {
   style?: string;     // art style: classic, pixel, lowpoly (Build Queue 664)
   colors?: { sky?: string; ground?: string; ink?: string; accent?: string }; // the student's own colors
   sprites?: Record<string, string[]>; // sprites they drew: 'hero' or a thing id -> 16 rows of palette digits
+  anim?: Record<string, string>;      // a preset move for a sprite: bounce, spin, pulse, wiggle, float
+  paths?: Record<string, { pts: number[][]; secs: number }>; // a path they drew for a thing to follow (Canva style)
+  music?: { kind: 'none' | 'tune' | 'song'; notes?: string[]; tempo?: number; wave?: string; songUrl?: string; songTitle?: string };
 }
 
 export interface Settings {
@@ -126,7 +129,11 @@ export const ACTIONS: { id: string; label: string; arg?: 'thing' | 'setting' | '
   { id: 'lose', label: 'game over', kinds: ['platformer', 'match3', 'clicker', 'maze'] },
 ];
 export const POWERS: [string, string][] = [['speed', 'super speed'], ['shield', 'shield'], ['double', 'double points'], ['giant', 'giant hero'], ['freeze', 'freeze enemies'], ['scare', 'scare ghosts']];
-export const SOUNDS: [string, string][] = [['coin', 'coin'], ['boing', 'boing'], ['pop', 'pop'], ['zap', 'zap'], ['win', 'win'], ['oops', 'oops']];
+export const SOUNDS: [string, string][] = [['coin', 'coin'], ['boing', 'boing'], ['pop', 'pop'], ['zap', 'zap'], ['win', 'win'], ['oops', 'oops'],
+  ['bark', 'bark'], ['swish', 'swish'], ['boom', 'boom'], ['yum', 'yum'], ['chime', 'chime'], ['cash', 'cash register'], ['splash', 'splash']];
+// Sounds that are real recordings already in the app (the rest are made in the browser).
+export const SOUND_FILES: Record<string, string> = { bark: '/sounds/yoga/bark.mp3', swish: '/sounds/yoga/swish.mp3', boom: '/sounds/yoga/boom.mp3', yum: '/sounds/restaurant/yum.mp3', chime: '/sounds/up-chime.mp3', cash: '/sounds/cash-register.mp3', splash: '/sounds/calm/singular-water-droplet.wav' };
+export const ANIMS: [string, string][] = [['', 'no move'], ['bounce', 'bounce'], ['spin', 'spin'], ['pulse', 'grow and shrink'], ['wiggle', 'wiggle'], ['float', 'float'], ['flash', 'flash']];
 
 const rid = () => Math.random().toString(36).slice(2, 9);
 export const newId = rid;

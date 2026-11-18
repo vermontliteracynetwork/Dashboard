@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-18-game-builder-moves-music",
+    date: "2026-11-18",
+    icon: "🎵",
+    title: "Game Builder: moves, paths and music",
+    body: "In Game Builder, give any sprite a move, like bounce, spin or wiggle. In a Platformer, draw a path with your finger and your enemy or coin will follow it. Open the Sound tab to pick music or make your own tune by tapping notes on a grid, and listen to every sound effect.",
+  },
+  {
     id: "2026-11-18-game-builder-art",
     date: "2026-11-18",
     icon: "🎨",
