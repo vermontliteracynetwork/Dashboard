@@ -26,11 +26,20 @@ export function Sprite({ f, px, fitW, anim = 'idle', className, style }: { f: Fo
 
 const TYPE_MARK: Record<string, string> = { Fire: 'F', Water: 'W', Leaf: 'L', Frost: 'Fr', Shadow: 'Sh', Stone: 'St', Light: 'Li', Spark: 'Sp', Sky: 'Sk' };
 
-export function CreatureCard({ f, state = 'caught', scale = 1, onClick, level, compact }: { f: Form; state?: 'caught' | 'seen' | 'unknown'; scale?: number; onClick?: () => void; level?: number; compact?: boolean }) {
+export function CreatureCard({ f, state = 'caught', scale = 1, onClick, level, compact }: { f: Form; state?: 'caught' | 'seen' | 'unknown' | 'mystery'; scale?: number; onClick?: () => void; level?: number; compact?: boolean }) {
   const l = line(f.id); const frame = f.stage === 1 ? 1 : f.stage === 2 ? 2 : 3;
   const st = statsAt(f, level ?? 1); const nx = nextForm(f.id); const col = TYPE_COLOR[l.type];
   const small = compact ?? scale < 0.8;
-  const body = state === 'unknown'
+  // Build Queue 750: a card not earned yet shows only the creature's name and a gray question mark, no details.
+  const body = state === 'mystery' ? (
+      <>
+        <span className="cm-card-window mystery"><span className="cm-card-q">?</span></span>
+        <img className="cm-card-art" src={`${IMG}cards/frame${frame}.png`} alt="" draggable={false} />
+        <span className="cm-card-name">{f.name}</span>
+        <span className="cm-card-info small"><span className="cm-card-stage">Not earned yet</span></span>
+      </>
+    )
+    : state === 'unknown'
     ? <img className="cm-card-art" src={`${IMG}cards/back${frame}.png`} alt="" draggable={false} />
     : (
       <>
@@ -62,7 +71,7 @@ export function CreatureCard({ f, state = 'caught', scale = 1, onClick, level, c
     );
   return (
     <button type="button" className={`cm-card${state !== 'caught' ? ' locked' : ''}`} onClick={onClick} style={{ '--k': scale } as CSSProperties}
-      aria-label={state === 'caught' ? `${f.name} card, ${l.type} type, stage ${f.stage}` : state === 'seen' ? 'A card you have seen but not caught' : 'A card not found yet'}>
+      aria-label={state === 'caught' ? `${f.name} card, ${l.type} type, stage ${f.stage}` : state === 'mystery' ? `${f.name}, not earned yet` : state === 'seen' ? 'A card you have seen but not caught' : 'A card not found yet'}>
       <span className="cm-card-in">{body}</span>
     </button>
   );

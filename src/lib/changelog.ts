@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-you",
+    date: "2026-11-19",
+    icon: "🌳",
+    title: "Creaturemon: you, new trees and fruit",
+    body: "You now explore the Creaturemon world as your own Style character! The world has new pixel trees, rocks, flowers and grass. In Play mode, tap the fruit to fuel your battle moves and to make orbs. In My cards, creatures you have not earned yet show their name and a question mark.",
+  },
+  {
     id: "2026-11-19-creaturemon-deck",
     date: "2026-11-19",
     icon: "📇",

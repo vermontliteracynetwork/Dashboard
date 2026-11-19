@@ -11,8 +11,8 @@ import { supabase, isSupabaseConfigured } from '../../lib/supabaseClient';
 import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { Sprite } from './Card';
-import { Fx, XpBar, uiSound, type CmApi } from './shared';
-import { FightHud, IslandBg } from './Island';
+import { Fx, FruitTap, XpBar, uiSound, type CmApi } from './shared';
+import { FightHud, IslandBg, type Anchors } from './Island';
 import { IMG, TYPE_COLOR, battleXp, displayName, form, line, type AbilityId, type Mon } from './data';
 import { makeBF, nap, resolveMove, moveName, type BF, type MoveId } from './engine';
 
@@ -21,7 +21,7 @@ interface Side { name: string; team: BF[]; idx: number }
 interface VState { sides: [Side, Side]; round: number; log: string[]; fx?: { side: 0 | 1; name: string; key: number }[]; done?: 0 | 1 | null; waiting: [boolean, boolean] }
 type Join = { name: string; team: { formId: string; level: number; name: string; abs: AbilityId[]; uid: string }[] };
 
-export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: string, onRight: () => void, onCancel?: () => void) => void; onClose: () => void }) {
+export default function Versus({ cm, ask, onClose, learn = true }: { cm: CmApi; ask: (label: string, onRight: () => void, onCancel?: () => void) => void; onClose: () => void; learn?: boolean }) {
   const tts = cm.student?.ttsSettings; const myName = cm.student?.name ?? 'Me';
   const [step, setStep] = useState<'menu' | 'code' | 'team' | 'wait' | 'fight'>('menu');
   const [role, setRole] = useState<'host' | 'guest'>('host');
@@ -32,11 +32,14 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
   const [st, setSt] = useState<VState | null>(null);
   const [myMove, setMyMove] = useState<MoveId | null>(null);
   const [note, setNote] = useState('');
+  const [fruit, setFruit] = useState<MoveId | null>(null);
+  const [anchors, setAnchors] = useState<Anchors | null>(null);
   const ch = useRef<RealtimeChannel | null>(null);
   const joins = useRef<[Join | null, Join | null]>([null, null]);
   const moves = useRef<[{ m: MoveId; foc: number } | null, { m: MoveId; foc: number } | null]>([null, null]);
   const stRef = useRef(st); stRef.current = st;
   const rewarded = useRef(false);
+  const fruitGo = useRef<(foc: number) => void>(() => {});
   const me: 0 | 1 = role === 'host' ? 0 : 1;
   // the room's handlers are made once, so they read these refs (not old state)
   const roleRef = useRef<'host' | 'guest'>('host'); const teamRef = useRef(false);
@@ -108,6 +111,7 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
     const mine = st.sides[me].team[st.sides[me].idx]; if (m === 'berry' && !mine.berry) return;
     setMyMove(m); uiSound('select-1');
     const go = (foc: number) => { if (role === 'host') { moves.current[0] = { m, foc }; resolveIfReady(); } else send('move', { m, foc }); };
+    if (!learn) { fruitGo.current = go; setFruit(m); return; } // 747: Play mode taps fruit instead of questions
     ask(`Creaturemon: answer to fuel ${moveName(mine, m)}`, () => go(1), () => go(0.35));
   };
   // XP and stats for my own creatures when the battle ends
@@ -134,7 +138,7 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
   const stand = (sd: Side, who: 'me' | 'foe', idx: 0 | 1) => {
     const f = form(sd.team[sd.idx].formId); const fx = st?.fx?.find((x) => x.side === idx);
     return (
-      <div className={`cmb-side ${who}`}>
+      <div className={`cmb-side ${who}`} style={anchors ? { left: anchors[who].x, top: anchors[who].y, right: 'auto', bottom: 'auto', transform: 'translate(-50%, -100%)' } : undefined}>
         <div className="cmb-stand">
           <Sprite f={f} px={Math.min(150, 60 + f.stage * 26)} style={who === 'me' ? { transform: 'scaleX(-1)' } : undefined} />
           <span className="cmb-plat"><img src={`${UI}grass_basic_01.png`} alt="" className="cmb-tuft l" /><img src={`${UI}grass_basic_03.png`} alt="" className="cmb-tuft r" /></span>
@@ -147,6 +151,7 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
 
   return (
     <div className="cmb" role="dialog" aria-label="Battle a friend">
+      {fruit && <FruitTap count={3} calm={cm.calm} title="Tap the fruit to fuel your move!" onDone={(h, of) => { setFruit(null); fruitGo.current(0.35 + 0.65 * (h / of)); }} />}
       <div className={`cmb-guide${step === 'fight' ? ' mini' : ''}`} role="status">
         <p className="cmb-now">{doNow}</p>
         <button type="button" className="btn" onClick={() => speak(doNow, tts)} aria-label="Listen">🔊</button>
@@ -188,7 +193,7 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
       )}
       {step === 'fight' && st && mineNow && (
         <div className="cmb-arena">
-          <IslandBg sky="demo06" calm={cm.calm} />
+          <IslandBg sky="demo06" calm={cm.calm} onAnchors={setAnchors} />
           <FightHud round={st.round} left={hud(st.sides[me])} right={hud(st.sides[1 - me])} />
           {stand(st.sides[1 - me], 'foe', (1 - me) as 0 | 1)}
           {stand(st.sides[me], 'me', me)}

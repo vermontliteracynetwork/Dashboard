@@ -541,3 +541,15 @@
 .cm-tm .cm-abs { justify-content: center; }
 .cm-tm .cm-statgrid { font-size: 0.78rem; grid-template-columns: auto auto; text-align: left; }
 @media (max-width: 1000px) { .cm-tms { grid-template-columns: repeat(2, 1fr); } .cm-tm-pic { height: 90px; } }
+
+/* 750: a card not earned yet: its name and a gray question mark, nothing else */
+.cm-card-window.mystery { background: radial-gradient(circle at 50% 55%, #9aa0b0, #5a6070 60%, #2a2e3a 100%); align-items: center; padding: 0; }
+.cm-card-q { font: 900 86px/1 system-ui, sans-serif; color: #d6d9e0; text-shadow: 0 4px 0 #3a3f4c; }
+.dk-mystery { flex: 1; display: grid; place-items: center; border-radius: calc(8px * var(--k)); background: radial-gradient(circle, #6b7180, #2a2e3a 75%); }
+.dk-mystery span { font: 900 calc(70px * var(--k))/1 system-ui, sans-serif; color: #c8ccd6; text-shadow: 0 calc(3px * var(--k)) 0 #2a2e3a; }
+.dk-q { display: grid; place-items: center; width: calc(20px * var(--k)); height: calc(20px * var(--k)); border-radius: 50%; background: #5a6070; color: #d6d9e0; font: 900 calc(12px * var(--k))/1 system-ui, sans-serif; }
+
+/* 747: the tap the fruit game (Play mode) */
+.cm-fruit { background: #1d2238; border: 4px solid #ffd23f; border-radius: 22px; padding: 16px 20px; color: #fff; text-align: center; }
+.cm-fruit h2 { margin: 0 0 4px; font-family: 'Pixel Lorebook', system-ui, sans-serif; }
+.cm-fruit p { margin: 0 0 10px; font-weight: 800; }

@@ -35,15 +35,23 @@ function Clouds() {
     </group>
   );
 }
-function Bob() {
-  const { camera } = useThree();
-  useFrame(({ clock }) => { camera.position.y = 3.2 + Math.sin(clock.elapsedTime * 0.5) * 0.08; camera.lookAt(0, 1.1, 0); });
+// Where on the screen the two creatures stand on the island (747: they stand right on it, like the first battles).
+export interface Anchors { me: { x: number; y: number }; foe: { x: number; y: number }; scale: number }
+function Bob({ onAnchors }: { onAnchors?: (a: Anchors) => void }) {
+  const { camera, size } = useThree(); const last = useRef('');
+  useFrame(({ clock }) => {
+    camera.position.y = 3.2 + Math.sin(clock.elapsedTime * 0.5) * 0.04; camera.lookAt(0, 1.1, 0); camera.updateMatrixWorld();
+    if (!onAnchors) return;
+    const p = (x: number) => { const v = new THREE.Vector3(x, 0, 0.6).project(camera); return { x: Math.round((v.x + 1) / 2 * size.width), y: Math.round((1 - v.y) / 2 * size.height) }; };
+    const a = { me: p(-4.2), foe: p(4.2), scale: Math.max(0.7, Math.min(1.8, size.height / 560)) };
+    const key = `${a.me.x},${a.me.y},${a.foe.x},${a.scale.toFixed(2)}`; if (key !== last.current) { last.current = key; onAnchors(a); }
+  });
   return null;
 }
-export function IslandBg({ sky = 'demo01', calm }: { sky?: string; calm?: boolean }) {
+export function IslandBg({ sky = 'demo01', onAnchors }: { sky?: string; calm?: boolean; onAnchors?: (a: Anchors) => void }) {
   return (
     <div className="cmb-island" aria-hidden>
-      <Canvas dpr={0.45} gl={{ antialias: false }} camera={{ fov: 40, position: [0, 3.2, 17] }} frameloop={calm ? 'demand' : 'always'}>
+      <Canvas dpr={0.45} gl={{ antialias: false }} camera={{ fov: 40, position: [0, 3.2, 17] }}>
         <Sky which={sky} />
         <hemisphereLight args={['#fff4e0', '#5a6a8a', 1]} />
         <directionalLight position={[5, 10, 8]} intensity={1.4} />
@@ -51,7 +59,7 @@ export function IslandBg({ sky = 'demo01', calm }: { sky?: string; calm?: boolea
         <mesh position={[0, -0.05, 0]}><boxGeometry args={[17.2, 0.12, 4.2]} /><meshLambertMaterial color="#8fd16a" flatShading /></mesh>
         <mesh position={[0, -2.6, 0]}><cylinderGeometry args={[8, 2.2, 3, 7]} /><meshLambertMaterial color="#8a6a48" flatShading /></mesh>
         <mesh position={[0, -4.6, 0]}><coneGeometry args={[2.2, 2.4, 6]} /><meshLambertMaterial color="#6b5038" flatShading /></mesh>
-        {[[-4.6, 3.4], [4.6, 3.4]].map(([x, y], i) => (
+        {[[-4.6, 3.6], [4.6, 3.6], [0, 6.6]].map(([x, y], i) => (
           <group key={i} position={[x, y, -1]}>
             <mesh><boxGeometry args={[4.4, 0.3, 2]} /><meshLambertMaterial color="#c9a46a" flatShading /></mesh>
             <mesh position={[0, -0.55, 0]}><coneGeometry args={[1.2, 0.9, 5]} /><meshLambertMaterial color="#8a6a48" flatShading /></mesh>
@@ -59,7 +67,7 @@ export function IslandBg({ sky = 'demo01', calm }: { sky?: string; calm?: boolea
         ))}
         <Tufts />
         <Clouds />
-        <Bob />
+        <Bob onAnchors={onAnchors} />
       </Canvas>
     </div>
   );

@@ -27,7 +27,7 @@ export default function Deck({ caught, seen, mons, startId, onClose, tts }: { ca
   const [flipped, setFlipped] = useState(false);
   const stage = useRef<HTMLDivElement>(null); const k = useFit(stage);
   const f = FORMS[i]; const l = line(f.id); const has = caught.includes(f.id); const saw = seen.includes(f.id);
-  const state = has ? 'caught' : saw ? 'seen' : 'unknown';
+  const state = has ? 'caught' : 'mystery'; void saw;
   const mine = mons.filter((m) => m.formId === f.id).sort((a, b) => b.level - a.level)[0];
   const level = mine?.level ?? 1; const st = statsAt(f, level); const top = statsAt(l.forms[l.forms.length - 1], 50);
   const go = (d: 1 | -1) => { uiSound('cursor-1'); setTurn(d > 0 ? 'next' : 'prev'); setFlipped(false); window.setTimeout(() => { setI((x) => (x + d + FORMS.length) % FORMS.length); setTurn(''); }, 180); };
@@ -37,7 +37,7 @@ export default function Deck({ caught, seen, mons, startId, onClose, tts }: { ca
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const sx = useRef<number | null>(null);
-  const words = has ? `${f.name}. ${l.type} type, stage ${f.stage} of ${l.forms.length}. ${f.desc} Its name comes from ${f.nameFrom}. Its special move is ${l.special.name}.` : saw ? `A card you have seen but not caught yet. It lives in ${HABITAT_NAME[l.habitat]}.` : 'A card not found yet. Keep exploring!';
+  const words = has ? `${f.name}. ${l.type} type, stage ${f.stage} of ${l.forms.length}. ${f.desc} Its name comes from ${f.nameFrom}. Its special move is ${l.special.name}.` : `${f.name}. Not earned yet.`;
   const bar = (label: string, icon: string, v: number, max: number) => (
     <div className="dk-stat"><img src={`${IMG}cards/${icon}.png`} alt="" /><span>{label}</span><i><b style={{ width: `${Math.min(100, (v / max) * 100)}%` }} /></i><em>{v}</em></div>
   );
@@ -71,23 +71,23 @@ export default function Deck({ caught, seen, mons, startId, onClose, tts }: { ca
               </>
             ) : (
               <>
-                <h2>{saw ? '? ? ?' : 'Not found yet'}</h2>
-                <p className="dk-tags"><span className="dk-type">{l.type}</span><span>Stage {f.stage} of {l.forms.length}</span></p>
-                <p className="dk-desc">{saw ? `You have seen this creature but not caught it yet. Look in ${HABITAT_NAME[l.habitat]}!` : f.stage > 1 ? 'This card comes from evolving a creature. Train and battle to find it.' : `Explore ${HABITAT_NAME[l.habitat]} to find it.`}</p>
+                <h2>{f.name}</h2>
+                <div className="dk-mystery"><span>?</span></div>
+                <p className="dk-desc">Not earned yet.</p>
               </>
             )}
-            <div className="dk-chain" aria-label="Evolution line">
+            {has && <div className="dk-chain" aria-label="Evolution line">
               {l.forms.map((x, n) => {
                 const got = caught.includes(x.id);
                 return (
                   <span key={x.id} className={`dk-step${x.id === f.id ? ' on' : ''}`}>
                     {n > 0 && <small className="dk-lv">Lv {l.forms[n - 1].evolvesAt}</small>}
-                    <Sprite f={x} px={30} fitW={44} className={got ? '' : 'cm-shadow'} />
-                    <small>{got ? x.name : '? ? ?'}</small>
+                    {got ? <Sprite f={x} px={30} fitW={44} /> : <span className="dk-q">?</span>}
+                    <small>{x.name}</small>
                   </span>
                 );
               })}
-            </div>
+            </div>}
           </div>
         </div>
       </div>

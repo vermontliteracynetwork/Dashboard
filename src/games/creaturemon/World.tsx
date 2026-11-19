@@ -6,7 +6,9 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { CreatureSprite, fbm, mergeModel, pixelTex, rng } from './three';
+import { StyleAvatar, STYLE_IN_WORLD_SCALE } from '../../style/StyleAvatar';
 import { IMG, wildPick, type Habitat } from './data';
 
 export const R = 110; // half the world's width
@@ -37,8 +39,8 @@ const COL: Record<Habitat, [string, string]> = {
 };
 // Which of her models grow where, and how many.
 const PLANTS: Record<Habitat, { m: string; n: number }[]> = {
-  meadow: [{ m: 'tree-g', n: 10 }, { m: 'mushroom_v1', n: 10 }, { m: 'rock_v1', n: 6 }],
-  forest: [{ m: 'tree-g', n: 34 }, { m: 'tree-o', n: 18 }, { m: 'tree-y', n: 16 }, { m: 'mushroom_v2', n: 12 }, { m: 'cut_tree_v1', n: 6 }],
+  meadow: [{ m: 'tree-g', n: 5 }, { m: 'mushroom_v1', n: 10 }, { m: 'rock_v1', n: 6 }],
+  forest: [{ m: 'tree-g', n: 14 }, { m: 'tree-o', n: 8 }, { m: 'tree-y', n: 8 }, { m: 'mushroom_v2', n: 12 }, { m: 'cut_tree_v1', n: 6 }],
   lake: [{ m: 'rock_v2', n: 10 }, { m: 'tree-y', n: 6 }],
   snow: [{ m: 'tree-gsnow', n: 30 }, { m: 'rock_sv1', n: 10 }, { m: 'rock_sv2', n: 6 }],
   night: [{ m: 'tree-o', n: 18 }, { m: 'mushroom_v1', n: 16 }, { m: 'mushroom_v2', n: 10 }],
@@ -112,17 +114,95 @@ class Safe extends Component<{ children: ReactNode }, { bad: boolean }> {
 
 // Build Queue 742 (her words: "improve the rendering of the creaturemon world"): thousands of her BinbunGrass tufts
 // (crossed pixel quads, two draw calls each) over the grassy habitats, and soft round shadows under everyone.
+// Build Queue 748 (her words: "i have SO many pixel assets loaded. make sure the world is rendered nice"): her
+// 3D Pixel Art vegetation pack (Eduardo Schildt, MIT): round pixel trees with bark and toon shaded leaf clouds, and
+// mossy rocks, instanced through the forest, meadow and lake shore.
+const TOON = (() => { const d = new Uint8Array([90, 160, 230, 255]); const t = new THREE.DataTexture(d, 4, 1, THREE.RedFormat); t.minFilter = t.magFilter = THREE.NearestFilter; t.needsUpdate = true; return t; })();
+const VEG = ['tree', 'tree3', 'rock2'];
+const VEG_H: Record<string, number> = { tree: 7.5, tree3: 9, rock2: 1.6 };
+const VEG_WHERE: Record<string, Habitat[]> = { tree: ['forest', 'meadow', 'lake'], tree3: ['forest', 'night'], rock2: ['meadow', 'forest', 'lake', 'snow', 'night'] };
+const VEG_N: Record<string, number> = { tree: 70, tree3: 50, rock2: 60 };
+function Vegetation() {
+  const gl = useLoader(GLTFLoader, VEG.map((v) => `${IMG}veg/${v}.glb`));
+  const meshes = useMemo(() => {
+    const r = rng(9090); const out: THREE.InstancedMesh[] = [];
+    VEG.forEach((v, vi) => {
+      const root = gl[vi].scene; root.updateMatrixWorld(true);
+      const parts: { geo: THREE.BufferGeometry; leaf: boolean }[] = [];
+      root.traverse((o) => { const m = o as THREE.Mesh; if (!m.isMesh) return; const g = m.geometry.clone(); g.applyMatrix4(m.matrixWorld); parts.push({ geo: g, leaf: /sphere/i.test(m.name) || /sphere/i.test(m.geometry.name ?? '') }); });
+      if (!parts.length) return;
+      const box = new THREE.Box3(); parts.forEach((p) => { p.geo.computeBoundingBox(); box.union(p.geo.boundingBox!); });
+      // the leaf cloud is the part that starts well above the ground (the trunk starts at the bottom)
+      parts.forEach((p) => { p.leaf = v !== 'rock2' && p.geo.boundingBox!.min.y > box.min.y + (box.max.y - box.min.y) * 0.2; });
+      const size = new THREE.Vector3(); box.getSize(size); const c = new THREE.Vector3(); box.getCenter(c); const k = VEG_H[v] / Math.max(0.001, size.y);
+      const spots: THREE.Matrix4[] = [];
+      for (let i = 0; i < 4000 && spots.length < VEG_N[v]; i++) {
+        const x = (r() * 2 - 1) * (R - 12), z = (r() * 2 - 1) * (R - 12); if (Math.hypot(x, z) < 14) continue;
+        if (!VEG_WHERE[v].includes(habitatAt(x, z))) continue; const h = heightAt(x, z); if (h < WATER + 0.6) continue;
+        const sc = k * (0.8 + r() * 0.5);
+        spots.push(new THREE.Matrix4().compose(new THREE.Vector3(x, h - 0.15, z), new THREE.Quaternion().setFromEuler(new THREE.Euler(0, r() * 6.28, 0)), new THREE.Vector3(sc, sc, sc)));
+      }
+      parts.forEach((p) => {
+        p.geo.translate(-c.x, -box.min.y, -c.z); p.geo.computeVertexNormals();
+        const mat = v === 'rock2' ? new THREE.MeshToonMaterial({ color: '#8a8f80', gradientMap: TOON })
+          : p.leaf ? new THREE.MeshToonMaterial({ color: v === 'tree3' ? '#3f8f4a' : '#5cae3c', gradientMap: TOON })
+          : new THREE.MeshToonMaterial({ map: pixelTex(`${IMG}veg/tree_bark.png`), color: '#a07a50', gradientMap: TOON });
+        const im = new THREE.InstancedMesh(p.geo, mat, spots.length); spots.forEach((m, j) => im.setMatrixAt(j, m)); out.push(im);
+      });
+    });
+    return out;
+  }, [gl]);
+  return <>{meshes.map((m, i) => <primitive key={i} object={m} />)}</>;
+}
+
+// Build Queue 748: the outline pass behind 3D pixel art (the idea in her 3D Pixel Art kits): the world is drawn at low
+// resolution, then every edge where something stands in front of something farther away gets a dark pixel line.
+function PixelOutline() {
+  const { gl, scene, camera, size } = useThree();
+  const rt = useMemo(() => new THREE.WebGLRenderTarget(4, 4, { depthTexture: new THREE.DepthTexture(4, 4), magFilter: THREE.NearestFilter, minFilter: THREE.NearestFilter }), []);
+  const post = useMemo(() => {
+    const mat = new THREE.ShaderMaterial({
+      uniforms: { tColor: { value: null }, tDepth: { value: null }, texel: { value: new THREE.Vector2() }, near: { value: 0.3 }, far: { value: 260 } },
+      vertexShader: 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
+      fragmentShader: `uniform sampler2D tColor; uniform sampler2D tDepth; uniform vec2 texel; uniform float near; uniform float far; varying vec2 vUv;
+        float lin(vec2 uv){ float d = texture2D(tDepth, uv).x; return (near * far) / (far - d * (far - near)); }
+        void main(){
+          vec4 c = texture2D(tColor, vUv); float d = lin(vUv);
+          float dn = max(max(lin(vUv + vec2(texel.x, 0.0)), lin(vUv - vec2(texel.x, 0.0))), max(lin(vUv + vec2(0.0, texel.y)), lin(vUv - vec2(0.0, texel.y))));
+          float edge = step(0.6 + d * 0.06, dn - d) * step(d, 140.0);
+          gl_FragColor = vec4(mix(c.rgb, c.rgb * 0.28 + vec3(0.03, 0.02, 0.06), edge * 0.85), 1.0);
+          #include <colorspace_fragment>
+        }`,
+      depthTest: false, depthWrite: false,
+    });
+    const sc = new THREE.Scene(); sc.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), mat));
+    return { mat, sc, cam: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1) };
+  }, []);
+  useEffect(() => () => { rt.dispose(); post.mat.dispose(); }, [rt, post]);
+  useFrame(() => {
+    const dpr = gl.getPixelRatio(); const w = Math.max(4, Math.floor(size.width * dpr)), h = Math.max(4, Math.floor(size.height * dpr));
+    if (rt.width !== w || rt.height !== h) rt.setSize(w, h);
+    gl.setRenderTarget(rt); gl.render(scene, camera); gl.setRenderTarget(null);
+    const u = post.mat.uniforms; u.tColor.value = rt.texture; u.tDepth.value = rt.depthTexture; u.texel.value.set(1 / w, 1 / h);
+    const pc = camera as THREE.PerspectiveCamera; u.near.value = pc.near; u.far.value = pc.far;
+    gl.render(post.sc, post.cam);
+  }, 1);
+  return null;
+}
+
 function Grass() {
   const meshes = useMemo(() => {
     const r = rng(777); const out: THREE.InstancedMesh[] = [];
-    for (let k = 1; k <= 4; k++) {
-      const mat = new THREE.MeshLambertMaterial({ map: pixelTex(`${IMG}ui/grass_basic_0${k}.png`), transparent: true, alphaTest: 0.45, side: THREE.DoubleSide });
+    const TEX = [1, 2, 3, 4].map((k) => `${IMG}ui/grass_basic_0${k}.png`).concat([`${IMG}veg/grass_thin.png`, `${IMG}veg/flower.png`]);
+    for (let k = 1; k <= TEX.length; k++) {
+      const flower = k === TEX.length;
+      const mat = new THREE.MeshLambertMaterial({ map: pixelTex(TEX[k - 1]), transparent: true, alphaTest: 0.45, side: THREE.DoubleSide });
       const geo = new THREE.PlaneGeometry(1.1, 0.9); geo.translate(0, 0.45, 0);
-      const n = 900; const im = new THREE.InstancedMesh(geo, mat, n * 2); let c = 0; const m = new THREE.Matrix4(); const q = new THREE.Quaternion(); const e = new THREE.Euler();
+      const n = flower ? 500 : 800; const im = new THREE.InstancedMesh(geo, mat, n * 2); let c = 0; const m = new THREE.Matrix4(); const q = new THREE.Quaternion(); const e = new THREE.Euler();
       for (let i = 0; i < n * 6 && c < n * 2; i++) {
         const x = (r() * 2 - 1) * (R - 10), z = (r() * 2 - 1) * (R - 10); const hab = habitatAt(x, z);
-        if (hab === 'snow' || hab === 'ember') continue; const h = heightAt(x, z); if (h < WATER + 0.5) continue;
-        const sc = 0.7 + r() * 0.9; const yaw = r() * Math.PI;
+        if (hab === 'snow' || hab === 'ember' || (flower && hab !== 'meadow' && hab !== 'lake')) continue; const h = heightAt(x, z); if (h < WATER + 0.5) continue;
+        const sc = flower ? 0.45 + r() * 0.35 : 0.7 + r() * 0.9; const yaw = r() * Math.PI;
         for (const add of [0, Math.PI / 2]) { e.set(0, yaw + add, 0); q.setFromEuler(e); m.compose(new THREE.Vector3(x, h - 0.05, z), q, new THREE.Vector3(sc, sc, sc)); im.setMatrixAt(c++, m); }
       }
       im.count = c; out.push(im);
@@ -143,6 +223,7 @@ function Player({ ctl, lead, wilds, onTarget, onHabitat, calm }: {
   onTarget: (t: Target | null) => void; onHabitat: (h: Habitat) => void; calm: boolean;
 }) {
   const body = useRef<THREE.Group>(null); const legL = useRef<THREE.Mesh>(null); const legR = useRef<THREE.Mesh>(null);
+  const moving = useRef(false);
   const st = useRef({ x: 0, z: 4, yaw: Math.PI, face: Math.PI, walk: 0, hab: 'meadow' as Habitat, tgt: '' as string, tT: 0 });
   const comp = useMemo(() => (lead ? new CreatureSprite(lead) : null), [lead]);
   const cpos = useRef(new THREE.Vector3(1.5, 0, 6));
@@ -182,6 +263,7 @@ function Player({ ctl, lead, wilds, onTarget, onHabitat, calm }: {
       body.current.position.set(s.x, gy, s.z); body.current.rotation.y = s.face;
       const sw = Math.sin(s.walk) * 0.6 * Math.min(1, m * 2);
       if (legL.current) legL.current.rotation.x = sw; if (legR.current) legR.current.rotation.x = -sw;
+      moving.current = m > 0.05;
     }
     // camera behind and above
     const dist = 9, hgt = 4.6;
@@ -234,14 +316,9 @@ function Player({ ctl, lead, wilds, onTarget, onHabitat, calm }: {
     <>
       <group ref={body}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}><circleGeometry args={[0.55, 12]} /><meshBasicMaterial color="#000" transparent opacity={0.28} depthWrite={false} /></mesh>
-        {/* a blocky explorer: hat, head, backpack, body, legs */}
-        <mesh position={[0, 1.95, 0]} castShadow><boxGeometry args={[0.62, 0.22, 0.62]} /><meshLambertMaterial color="#d8402c" flatShading /></mesh>
-        <mesh position={[0, 2.02, 0.3]}><boxGeometry args={[0.5, 0.08, 0.3]} /><meshLambertMaterial color="#d8402c" /></mesh>
-        <mesh position={[0, 1.6, 0]} castShadow><boxGeometry args={[0.55, 0.5, 0.5]} /><meshLambertMaterial color="#f2c49a" flatShading /></mesh>
-        <mesh position={[0, 1.0, 0]} castShadow><boxGeometry args={[0.7, 0.75, 0.42]} /><meshLambertMaterial color="#2aa198" flatShading /></mesh>
-        <mesh position={[0, 1.05, -0.32]}><boxGeometry args={[0.55, 0.6, 0.25]} /><meshLambertMaterial color="#c58a3a" flatShading /></mesh>
-        <mesh ref={legL} position={[-0.18, 0.62, 0]}><boxGeometry args={[0.24, 0.62, 0.28]} /><meshLambertMaterial color="#2b3a67" /></mesh>
-        <mesh ref={legR} position={[0.18, 0.62, 0]}><boxGeometry args={[0.24, 0.62, 0.28]} /><meshLambertMaterial color="#2b3a67" /></mesh>
+        {/* Build Queue 749 (her words: "the student character should be their regular avatar characters they've created"):
+            the student walks as their own Style character, the same one as in Town Square, twice as big to match this world. */}
+        <StyleAvatar isMoving={moving} scale={STYLE_IN_WORLD_SCALE * 2} />
       </group>
       <mesh ref={orb} visible={false}>
         <icosahedronGeometry args={[0.28, 1]} /><meshLambertMaterial color="#ff4a4a" flatShading emissive="#401010" />
@@ -305,9 +382,9 @@ function Wilds({ wilds, avgLevel }: { wilds: React.MutableRefObject<Wild[]>; avg
   return null;
 }
 
-export default function World({ ctl, lead, wilds, avgLevel, onTarget, onHabitat, paused, pixel, calm, sky }: {
+export default function World({ ctl, lead, wilds, avgLevel, onTarget, onHabitat, paused, pixel, calm, sky, outline = true }: {
   ctl: React.MutableRefObject<WorldCtl>; lead: string | null; wilds: React.MutableRefObject<Wild[]>; avgLevel: number;
-  onTarget: (t: Target | null) => void; onHabitat: (h: Habitat) => void; paused: boolean; pixel: number; calm: boolean; sky: string;
+  onTarget: (t: Target | null) => void; onHabitat: (h: Habitat) => void; paused: boolean; pixel: number; calm: boolean; sky: string; outline?: boolean;
 }) {
   const drag = useRef<{ x: number; id: number } | null>(null);
   return (
@@ -326,6 +403,8 @@ export default function World({ ctl, lead, wilds, avgLevel, onTarget, onHabitat,
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER, 0]}><planeGeometry args={[R * 2, R * 2]} /><meshLambertMaterial color="#3d8fd8" transparent opacity={0.78} /></mesh>
         <Safe><Suspense fallback={null}><Plants /></Suspense></Safe>
         <Grass />
+        <Safe><Suspense fallback={null}><Vegetation /></Suspense></Safe>
+        {outline && <PixelOutline />}
         <Wilds wilds={wilds} avgLevel={avgLevel} />
         <Player ctl={ctl} lead={lead} wilds={wilds} onTarget={onTarget} onHabitat={onHabitat} calm={calm} />
       </Canvas>

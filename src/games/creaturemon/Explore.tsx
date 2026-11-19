@@ -15,7 +15,7 @@ import { HABITAT_NAME, TYPE_COLOR, catchChance, form, line, type Habitat } from 
 type Gfx = 'low' | 'medium' | 'high';
 const PIXEL: Record<Gfx, number> = { low: 0.35, medium: 0.5, high: 0.7 };
 
-export default function Explore({ cm, ask, gfx, onClose }: { cm: CmApi; ask: (label: string, onRight: () => void, onCancel?: () => void) => void; gfx: Gfx; onClose: () => void }) {
+export default function Explore({ cm, ask, gfx, onClose, learn = true }: { cm: CmApi; ask: (label: string, onRight: () => void, onCancel?: () => void) => void; gfx: Gfx; onClose: () => void; learn?: boolean }) {
   const tts = cm.student?.ttsSettings; const S = cm.S;
   const ctl = useRef<WorldCtl>({ throwOrb: () => {}, catchResult: () => {}, removeWild: () => {}, input: { mx: 0, mz: 0, yawV: 0, run: false } });
   const wilds = useRef<Wild[]>([]);
@@ -112,7 +112,7 @@ export default function Explore({ cm, ask, gfx, onClose }: { cm: CmApi; ask: (la
       </div>
       {catching && <CatchScene shakes={catching.shakes} onDone={caught} />}
       {reveal && <RevealScene formId={reveal.formId} isNew={reveal.isNew} title={reveal.title} onClose={() => setReveal(null)} tts={tts} />}
-      {battle && <div className="cmb-host"><Battle cm={cm} wildFoe={{ formId: battle.formId, level: battle.level }} ask={ask} onClose={endBattle} /></div>}
+      {battle && <div className="cmb-host"><Battle cm={cm} wildFoe={{ formId: battle.formId, level: battle.level }} ask={ask} onClose={endBattle} learn={learn} /></div>}
       {zen && <Meditate formId={zen.formId} calm={cm.calm} tts={tts} onDone={joined} onStop={() => setZen(null)} />}
     </div>
   );

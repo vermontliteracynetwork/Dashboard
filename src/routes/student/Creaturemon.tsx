@@ -11,7 +11,7 @@ import Versus from '../../games/creaturemon/Versus';
 import Explore from '../../games/creaturemon/Explore';
 import Deck from '../../games/creaturemon/Deck';
 import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
-import { AbilityScene, EvoScene, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
+import { AbilityScene, EvoScene, FruitTap, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
 import { ABILITIES, FORMS, abName, IMG, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Mon } from '../../games/creaturemon/data';
 
 // Creaturemon on the Computer (Build Queue 710 to 712, then 725 to 730, 2026-11-19). Her 725 words: "instead of
@@ -52,7 +52,9 @@ export default function Creaturemon() {
     const xp = Math.round(xpToNext(m.level) * (0.35 + n.hits * 0.09));
     const r = cm.train(m.uid, xp); cm.stat(m.uid, (st) => ({ ...st, trainings: st.trainings + 1 })); say(`${displayName(m)} got ${xp} XP${r?.levels ? ` and grew ${r.levels} level${r.levels > 1 ? 's' : ''}` : ''}!`);
   };
-  const makeOrbs = () => ask('Creaturemon: answer to make 3 orbs', () => { cm.put({ orbs: cm.sRef.current.orbs + 3 }); sfx.coin(); say('3 new orbs!'); });
+  // 747: in Play mode the fruit game makes the orbs (1 orb, plus 1 for every 2 fruit tapped)
+  const [orbFruit, setOrbFruit] = useState(false);
+  const makeOrbs = () => { if (!learn) { setOrbFruit(true); return; } ask('Creaturemon: answer to make 3 orbs', () => { cm.put({ orbs: cm.sRef.current.orbs + 3 }); sfx.coin(); say('3 new orbs!'); }); };
   const pickStarter = (formId: string) => {
     const r = cm.addMon(formId, 5, 'starter'); cm.put({ starterPicked: true, team: [r.mon.uid] });
     setReveal({ formId, isNew: true, title: `${form(formId).name} is your partner!` });
@@ -115,9 +117,9 @@ export default function Creaturemon() {
         {toast && <div className="cm-toast" role="status">{toast}</div>}
       </div>
 
-      {panel === 'battle' && <div className="cmb-host"><Battle cm={cm} ask={ask} onClose={() => setPanel('')} /></div>}
-      {explore && <div className="cmb-host"><Explore cm={cm} ask={ask} gfx={gfx} onClose={() => setExplore(false)} /></div>}
-      {panel === 'versus' && <div className="cmb-host"><Versus cm={cm} ask={ask} onClose={() => setPanel('')} /></div>}
+      {panel === 'battle' && <div className="cmb-host"><Battle cm={cm} ask={ask} learn={learn} onClose={() => setPanel('')} /></div>}
+      {explore && <div className="cmb-host"><Explore cm={cm} ask={ask} gfx={gfx} learn={learn} onClose={() => setExplore(false)} /></div>}
+      {panel === 'versus' && <div className="cmb-host"><Versus cm={cm} ask={ask} learn={learn} onClose={() => setPanel('')} /></div>}
 
       {trainRun && (
         <div className="cm-over">
@@ -205,6 +207,7 @@ export default function Creaturemon() {
         </div>
       )}
       {reveal && <RevealScene formId={reveal.formId} isNew={reveal.isNew} title={reveal.title} onClose={() => setReveal(null)} tts={student.ttsSettings} />}
+      {orbFruit && <FruitTap count={6} calm={cm.calm} title="Tap the fruit to make orbs!" onDone={(h) => { setOrbFruit(false); const n = 1 + Math.floor(h / 2); cm.put({ orbs: cm.sRef.current.orbs + n }); sfx.coin(); say(`${n} new orb${n > 1 ? 's' : ''}!`); }} />}
       <EvoScene cm={cm} />
       <AbilityScene cm={cm} />
       {element}

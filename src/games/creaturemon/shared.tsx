@@ -191,3 +191,34 @@ export function AbilityScene({ cm }: { cm: CmApi }) {
     </div>
   );
 }
+
+// Build Queue 747 (her words: "in play mode, no questions are required so do the click fruit thing"): in Play mode a
+// quick tap the fruit game takes the place of the questions (battle moves, making orbs, training). Fruit pops up one
+// at a time in a 3 by 3 garden; tap each before it hides.
+export function FruitTap({ count, title, onDone, calm }: { count: number; title: string; onDone: (hits: number, of: number) => void; calm?: boolean }) {
+  const [left, setLeft] = useState(count); const [hits, setHits] = useState(0); const [spot, setSpot] = useState(() => Math.floor(Math.random() * 9));
+  const done = useRef(false);
+  const next = (hit: boolean) => {
+    if (done.current) return;
+    if (hit) sfx.pop(); const h = hits + (hit ? 1 : 0); const l = left - 1;
+    if (l <= 0) { done.current = true; window.setTimeout(() => onDone(h, count), 250); }
+    setHits(h); setLeft(l); setSpot((sp) => { let n = Math.floor(Math.random() * 9); if (n === sp) n = (n + 4) % 9; return n; });
+  };
+  useEffect(() => { if (left <= 0) return; const t = window.setTimeout(() => next(false), calm ? 1700 : 1150); return () => window.clearTimeout(t); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [left, spot]);
+  const fruit = ['apple', 'flower', 'mushroom'][spot % 3];
+  return (
+    <div className="cm-over" style={{ zIndex: 1300 }}>
+      <div className="cm-fruit">
+        <h2>{title}</h2>
+        <p>Tap the fruit! <b>{hits}</b> of {count} <small>({Math.max(0, left)} left)</small></p>
+        <div className="cm-train-grid">
+          {Array.from({ length: 9 }, (_, i) => (
+            <button key={`${left}-${i}`} type="button" className={`cm-train-cell${i === spot && left > 0 ? ' hot' : ''}`} onClick={() => next(i === spot && left > 0)} aria-label={i === spot ? 'Fruit' : 'Grass'}>
+              {i === spot && left > 0 && <img src={`${IMG}cards/${fruit}.png`} alt="" />}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

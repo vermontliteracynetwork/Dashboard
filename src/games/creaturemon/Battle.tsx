@@ -9,8 +9,8 @@ import { useEffect, useRef, useState } from 'react';
 import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { CreatureCard, Sprite } from './Card';
-import { Fx, XpBar, uiSound, type CmApi } from './shared';
-import { FightHud, IslandBg } from './Island';
+import { Fx, FruitTap, XpBar, uiSound, type CmApi } from './shared';
+import { FightHud, IslandBg, type Anchors } from './Island';
 import { IMG, abName, abv, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, rollAbility, statsAt, typeMult, type AbilityId, type CType, type Mon } from './data';
 
 type MoveId = 'tackle' | 'special' | 'guard' | 'berry';
@@ -33,8 +33,8 @@ export function foeAt(level: number) {
 }
 export type BattleEnd = { won: boolean; foe: { formId: string; level: number } } | null;
 
-export default function Battle({ cm, wildFoe, ask, onClose }: {
-  cm: CmApi; wildFoe?: { formId: string; level: number }; ask: (label: string, onRight: () => void, onCancel?: () => void, count?: number) => void;
+export default function Battle({ cm, wildFoe, ask, onClose, learn = true }: {
+  cm: CmApi; wildFoe?: { formId: string; level: number }; ask: (label: string, onRight: () => void, onCancel?: () => void, count?: number) => void; learn?: boolean;
   onClose: (r: BattleEnd) => void;
 }) {
   const tts = cm.student?.ttsSettings;
@@ -87,6 +87,8 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   // Team battles (735, her words: "team battles where they would have multiple battles in a row ... (one at a time)"):
   // up to 3 creatures on each side; when one taps out, the next one comes in.
   const [teamMode, setTeamMode] = useState(false);
+  const [fruit, setFruit] = useState<MoveId | null>(null);
+  const [anchors, setAnchors] = useState<Anchors | null>(null);
   const [sel, setSel] = useState<Mon | null>(null);
   const [picks, setPicks] = useState<Mon[]>([]);
   const myQ = useRef<Mon[]>([]); const foeQ = useRef<{ formId: string; level: number }[]>([]); const used = useRef<Mon[]>([]);
@@ -173,6 +175,8 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const act = (m: MoveId) => {
     if (stage !== 'choose' || !me || !foe || (m === 'berry' && !me.berry)) return;
     setStage('power'); uiSound('select-1');
+    // 747: Play mode has no questions, so a quick tap the fruit game fuels the move instead
+    if (!learn) { setFruit(m); return; }
     ask(`Creaturemon: answer to fuel ${moveName(me, m)}`, () => { focusRef.current = 1; perform(m, true); }, () => { focusRef.current = 0.35; perform(m, false); });
   };
   const perform = (m: MoveId, fueled: boolean) => {
@@ -233,7 +237,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const side = (f: F, s: 'me' | 'foe') => {
     const ff = form(f.formId); const back = s === 'me' && !!ff.sprite.back;
     return (
-      <div className={`cmb-side ${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}${lunge === s ? ' lunge' : ''}`}>
+      <div className={`cmb-side ${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}${lunge === s ? ' lunge' : ''}`} style={anchors ? { left: anchors[s].x, top: anchors[s].y, right: 'auto', bottom: 'auto', transform: 'translate(-50%, -100%)' } : undefined}>
         <div className="cmb-stand" ref={s === 'me' ? meRef : foeRef}>
           {back ? <img className="cmb-back" src={`${IMG}forms/${ff.id}_back.png`} alt="" style={{ height: Math.min(170, ff.sprite.fh * Math.max(1, Math.floor(150 / ff.sprite.fh))) }} />
             : <Sprite f={ff} px={Math.min(150, 60 + ff.stage * 26)} anim={fx?.side === s && fx.hit ? 'hurt' : 'idle'} style={s === 'me' ? { transform: 'scaleX(-1)' } : undefined} />}
@@ -254,6 +258,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
 
   return (
     <div className="cmb" role="dialog" aria-label="Creaturemon battle">
+      {fruit && me && <FruitTap count={3} calm={cm.calm} title={`Tap the fruit to fuel ${moveName(me, fruit)}!`} onDone={(h, of) => { const m = fruit; setFruit(null); focusRef.current = 0.35 + 0.65 * (h / of); perform(m, h >= 2); }} />}
       <div className={`cmb-guide${phase === 'fight' || phase === 'done' ? ' mini' : ''}`} role="status">
         <ol className="cmb-steps" aria-label={`Step ${step} of 3`}>
           {['Your creature', 'Opponent', 'Battle'].map((t, i) => <li key={t} className={i + 1 === step ? 'on' : i + 1 < step ? 'done' : ''}>{i + 1 < step ? '✓' : i + 1}<span>{t}</span></li>)}
@@ -330,7 +335,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
       )}
       {(phase === 'fight' || phase === 'done') && me && foe && (
         <div className="cmb-arena" ref={arenaRef}>
-          <IslandBg calm={cm.calm} />
+          <IslandBg calm={cm.calm} onAnchors={setAnchors} />
           <FightHud round={round} left={{ name: me.name, level: me.level, type: me.type, hp: me.hp, max: me.max, guard: me.guard, abs: me.abs, stage: stg(me), formId: me.formId, sub: myQ.current.length ? `${myQ.current.length} more` : undefined }}
             right={{ name: foe.name, level: foe.level, type: foe.type, hp: foe.hp, max: foe.max, guard: foe.guard, abs: foe.abs, stage: stg(foe), formId: foe.formId, sub: foeQ.current.length ? `${foeQ.current.length} more` : undefined }} />
           {mine && <span className="fh-xp"><img src={`${UI}i_star.png`} alt="" /><small>XP</small><XpBar m={cm.sRef.current.mons.find((m) => m.uid === mine.uid) ?? mine} /></span>}
