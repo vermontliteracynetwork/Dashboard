@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon",
+    date: "2026-11-19",
+    icon: "🐉",
+    title: "Creaturemon: catch, battle and evolve",
+    body: "Open Creaturemon on the Computer or in the Arcade. Pick your partner, then explore a 3D pixel world with six places to find creatures. Walk up to a wild creature and tap Throw orb to catch it, or Battle it first. In battles, knock the other creature off the island to win! Train your creatures to level up, and watch them evolve. Every evolution is a new card for your collection. There are 61 cards to find.",
+  },
+  {
     id: "2026-11-19-game-builder-voice-mode",
     date: "2026-11-19",
     icon: "🎙️",

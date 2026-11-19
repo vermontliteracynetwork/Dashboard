@@ -1,0 +1,128 @@
+/* Creaturemon (Build Queue 700 to 702). iPad first: big touch targets, nothing over the move pad or the buttons. */
+@font-face { font-family: 'Pixel Lorebook'; src: url('/games/creaturemon/PixelLorebook.ttf') format('truetype'); font-display: swap; }
+.cm { position: fixed; inset: 0; display: flex; flex-direction: column; background: #1d2238; color: #1f2430; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+.cm-head { flex: none; }
+.cm-title { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.35rem; letter-spacing: 0.02em; }
+.cm-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.cm-fill, .cm-world, .cm-battle { position: absolute; inset: 0; }
+.cm-hide { position: absolute; inset: 0; visibility: hidden; }
+.cm-canvas, .cm-canvas canvas { image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+.cm-orb-i { display: inline-block; width: 1em; height: 1em; border-radius: 50%; background: linear-gradient(#ff4a4a 0 46%, #222 46% 54%, #fff 54%); border: 2px solid #222; box-sizing: border-box; vertical-align: -0.15em; }
+
+.cm-movepad { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(18px, env(safe-area-inset-bottom)); width: 150px; height: 150px; border-radius: 50%; background: rgba(20,28,48,0.45); border: 4px solid rgba(255,255,255,0.7); touch-action: none; z-index: 6; display: grid; place-items: center; }
+.cm-knob { width: 64px; height: 64px; border-radius: 50%; background: #fff; box-shadow: 0 4px 0 rgba(0,0,0,0.3); pointer-events: none; }
+.cm-run { position: absolute; left: 186px; bottom: max(28px, env(safe-area-inset-bottom)); width: 88px; height: 88px; border-radius: 50%; border: 4px solid #111; background: #f2a33a; color: #111; font: 900 1.1rem system-ui, sans-serif; display: grid; place-items: center; touch-action: none; z-index: 6; line-height: 1; }
+.cm-run small { font-size: 0.8rem; font-weight: 700; }
+.cm-run:active { background: #ffd23f; }
+.cm-hint { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); margin: 0; padding: 10px 16px; border-radius: 14px; background: rgba(255,255,255,0.88); font-weight: 800; z-index: 5; max-width: calc(100vw - 600px); min-width: 220px; text-align: center; }
+.cm-target { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.95); border: 4px solid #888; border-radius: 20px; z-index: 6; max-width: calc(100vw - 320px); flex-wrap: wrap; }
+.cm-target-txt { display: flex; flex-direction: column; min-width: 120px; }
+.cm-target-txt b { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.2rem; }
+.cm-sneak { color: #2a7a3a; font-weight: 800; }
+.cm-big { min-width: 120px; min-height: 72px; border-radius: 20px; border: 4px solid #111; font: 900 1.15rem system-ui, sans-serif; color: #fff; box-shadow: 0 5px 0 rgba(0,0,0,0.25); cursor: pointer; padding: 6px 14px; }
+.cm-big:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.25); }
+.cm-big:disabled { opacity: 0.45; }
+.cm-big.orb { background: #e0482a; }
+.cm-big.fight { background: #3a4fb0; }
+.cm-toast { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: rgba(20,28,48,0.88); color: #fff; padding: 10px 18px; border-radius: 14px; font-weight: 800; z-index: 8; max-width: calc(100vw - 32px); text-align: center; }
+
+.cm-over { position: fixed; inset: 0; z-index: 60; background: rgba(12,14,30,0.78); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; color: #fff; text-align: center; overflow: auto; }
+.cm-row { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.cm-note { color: #555; margin: 4px 0 10px; }
+.cm-catch p { font-weight: 800; font-size: 1.3rem; }
+.cm-orb-big { width: 110px; height: 110px; border-radius: 50%; background: linear-gradient(#ff4a4a 0 45%, #222 45% 55%, #fff 55%); border: 6px solid #222; position: relative; }
+.cm-orb-big::after { content: ''; position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px; border-radius: 50%; background: #fff; border: 6px solid #222; box-sizing: border-box; }
+.cm-orb-big.shake1 { animation: cm-wob 0.65s ease-in-out 1 0.3s; }
+.cm-orb-big.shake2 { animation: cm-wob 0.65s ease-in-out 2 0.3s; }
+.cm-orb-big.shake3 { animation: cm-wob 0.65s ease-in-out 3 0.3s; }
+.cm-orb-big.ok::after { animation: cm-glow 0.4s ease 2.3s forwards; }
+@keyframes cm-wob { 25% { transform: rotate(-22deg); } 75% { transform: rotate(22deg); } }
+@keyframes cm-glow { to { background: #ffd23f; box-shadow: 0 0 24px #ffd23f; } }
+
+.cm-reveal h2, .cm-evo h2 { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 2rem; margin: 0; text-shadow: 0 3px 0 #000; }
+.cm-new { background: #ffd23f; color: #222; font-weight: 900; padding: 4px 14px; border-radius: 999px; display: inline-block; margin: 6px; }
+.cm-pack { position: relative; display: grid; place-items: center; min-height: calc(284px * 1.25); min-width: calc(195px * 1.25); }
+.cm-pack-img { position: absolute; width: 200px; image-rendering: pixelated; animation: cm-pack 0.9s ease forwards; }
+.cm-pack-card { animation: cm-card-in 0.6s ease 0.7s both; }
+@keyframes cm-pack { 0% { transform: scale(1) rotate(0); } 40% { transform: scale(1.05) rotate(-6deg); } 70% { transform: scale(1.1) rotate(6deg); opacity: 1; } 100% { transform: scale(1.6) translateY(-40px); opacity: 0; } }
+@keyframes cm-card-in { from { transform: scale(0.2) rotateY(180deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.cm-result { color: #1f2430; max-width: 520px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.cm-xp { display: block; width: 100%; max-width: 220px; height: 10px; border-radius: 5px; background: #ddd; overflow: hidden; }
+.cm-xp i { display: block; height: 100%; background: linear-gradient(90deg, #4caf50, #b6e34a); }
+
+/* evolution: the old and new shapes flash white faster and faster, then the new card */
+.cm-evo { background: radial-gradient(circle, #3a4fb0 0%, #12142a 70%); }
+.cm-evo-stage { position: relative; display: grid; place-items: center; min-height: 360px; min-width: 300px; }
+.cm-evo.glow .cm-sprite { position: absolute; filter: brightness(0) invert(1) drop-shadow(0 0 12px #fff); }
+.cm-evo-a { animation: cm-evo-a 4.2s steps(1) forwards; }
+.cm-evo-b { animation: cm-evo-b 4.2s steps(1) forwards; }
+@keyframes cm-evo-a { 0%, 20%, 34%, 44%, 52%, 58%, 63%, 67%, 71%, 74%, 77% { opacity: 1; } 12%, 28%, 40%, 49%, 56%, 61%, 65%, 69%, 72.5%, 75.5%, 78%, 100% { opacity: 0; } }
+@keyframes cm-evo-b { 0%, 20%, 34%, 44%, 52%, 58%, 63%, 67%, 71%, 74%, 77% { opacity: 0; } 12%, 28%, 40%, 49%, 56%, 61%, 65%, 69%, 72.5%, 75.5%, 78%, 100% { opacity: 1; } }
+.cm-evo.done .cm-evo-stage { animation: cm-card-in 0.6s ease both; }
+@media (prefers-reduced-motion: reduce) { .cm-evo-a, .cm-evo-b, .cm-orb-big, .cm-pack-img, .cm-pack-card { animation-duration: 0.01s !important; } }
+
+.cm-train { color: #1f2430; }
+.cm-train h2 small { font-size: 1rem; color: #666; }
+.cm-train-grid { display: grid; grid-template-columns: repeat(3, 96px); gap: 10px; justify-content: center; }
+.cm-train-cell { width: 96px; height: 96px; border-radius: 18px; border: 4px solid #3f8f3a; background: #7cc850; display: grid; place-items: center; cursor: pointer; }
+.cm-train-cell img { width: 64px; image-rendering: pixelated; animation: cm-pop 0.25s ease; }
+@keyframes cm-pop { from { transform: scale(0.3); } }
+
+.cm-panel { max-height: calc(100vh - 32px); overflow: auto; color: #1f2430; width: min(640px, calc(100vw - 32px)); }
+.cm-panel.wide { width: min(1100px, calc(100vw - 32px)); }
+.cm-panel-head { display: flex; align-items: center; gap: 10px; position: sticky; top: -16px; background: inherit; z-index: 2; padding: 4px 0; }
+.cm-panel-head h2 { margin: 0 auto 0 0; font-family: 'Pixel Lorebook', system-ui, sans-serif; }
+.cm-team { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.cm-mon { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 4px solid #999; border-radius: 16px; background: #fff; text-align: left; font: inherit; color: inherit; }
+.cm-mon.pick { cursor: pointer; min-height: 80px; }
+.cm-mon.boxed { opacity: 0.8; background: #f3f1ea; }
+.cm-mon-txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.cm-mon-txt b { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.15rem; }
+.cm-mon-btns { display: flex; flex-direction: column; gap: 4px; }
+.cm-mon-btns .btn { min-height: 40px; }
+.cm-sprite { display: inline-block; flex: none; image-rendering: pixelated; background-repeat: no-repeat; }
+.cm-shadow { filter: brightness(0) opacity(0.7); }
+
+.cm-lines { display: flex; flex-direction: column; gap: 12px; }
+.cm-line { display: flex; gap: 6px; align-items: center; overflow-x: auto; padding-bottom: 4px; }
+.cm-line-step { display: flex; align-items: center; gap: 6px; flex: none; }
+.cm-arrow { font-weight: 900; color: #6b4fa0; white-space: nowrap; }
+.cm-starters { color: #1f2430; }
+.cm-starters h2 { font-family: 'Pixel Lorebook', system-ui, sans-serif; }
+
+/* the card: her frame is 195 x 284 pixels, drawn at --k times */
+.cm-card { --k: 1; position: relative; width: calc(195px * var(--k)); height: calc(284px * var(--k)); padding: 0; border: 0; background: none; cursor: pointer; flex: none; }
+.cm-card-in { position: absolute; left: 0; top: 0; width: 195px; height: 284px; transform: scale(var(--k)); transform-origin: 0 0; }
+.cm-card-art { position: absolute; inset: 0; width: 195px; height: 284px; image-rendering: pixelated; pointer-events: none; }
+.cm-card-window { position: absolute; left: 25px; top: 15px; width: 145px; height: 131px; border-radius: 70px 70px 0 0; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 8px; box-sizing: border-box; overflow: hidden; }
+.cm-card-name { position: absolute; left: 22px; right: 22px; top: 146px; text-align: center; font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 15px; color: #fff; text-shadow: 0 2px 0 #1d2238, 1px 0 0 #1d2238, -1px 0 0 #1d2238; white-space: nowrap; overflow: hidden; }
+.cm-card-info { position: absolute; left: 34px; right: 34px; top: 176px; height: 70px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #3a2a1a; font: 700 10px/1.15 system-ui, sans-serif; }
+.cm-card-type { color: #fff; padding: 1px 8px; border-radius: 6px; font-weight: 900; text-shadow: 0 1px 0 rgba(0,0,0,0.4); }
+.cm-card-stats { display: flex; align-items: center; gap: 2px; }
+.cm-card-stats img { width: 11px; height: 11px; image-rendering: pixelated; }
+.cm-card-move { font-weight: 900; }
+.cm-card-evo { font-style: italic; }
+.cm-card.locked .cm-card-name { opacity: 0.7; }
+.cm-cardview { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cm-flip { cursor: pointer; }
+.cm-card-backside { width: calc(195px * 1.5); min-height: calc(284px * 1.5); box-sizing: border-box; padding: 22px; border-radius: 16px; background: #f6efd8; border: 8px solid #3a2f5a; color: #2a2030; text-align: left; overflow: auto; }
+.cm-card-backside h3 { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.6rem; margin: 0 0 8px; }
+
+/* battles */
+.cm-bhud { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 14px; z-index: 5; pointer-events: none; }
+.cm-bcard { display: flex; flex-direction: column; align-items: center; min-width: 150px; padding: 6px 12px; border-radius: 14px; border: 4px solid #888; background: rgba(20,28,48,0.85); color: #fff; }
+.cm-bcard b { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.05rem; }
+.cm-pct { font: 900 2rem/1 system-ui, sans-serif; text-shadow: 0 3px 0 #000; }
+.cm-stars { color: #ffd23f; font-size: 1.1rem; letter-spacing: 2px; }
+.cm-stars i { color: rgba(255,255,255,0.25); font-style: normal; }
+.cm-bmsg { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 3rem; color: #fff; text-shadow: 0 4px 0 #000; z-index: 6; pointer-events: none; text-align: center; }
+.cm-pad { position: absolute; left: max(16px, env(safe-area-inset-left)); bottom: max(16px, env(safe-area-inset-bottom)); display: flex; gap: 12px; z-index: 6; }
+.cm-acts { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: max(16px, env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(2, auto); gap: 10px; z-index: 6; }
+.cm-btn { min-width: 104px; min-height: 84px; border-radius: 22px; border: 4px solid #111; color: #fff; font: 900 1.1rem system-ui, sans-serif; touch-action: none; box-shadow: 0 5px 0 rgba(0,0,0,0.3); cursor: pointer; padding: 4px 10px; }
+.cm-btn:active { transform: translateY(3px); box-shadow: 0 2px 0 rgba(0,0,0,0.3); }
+.cm-btn.mv { background: #3a4fb0; font-size: 2rem; min-width: 96px; }
+.cm-btn.at { background: #e0482a; }
+.cm-btn.jp { background: #2aa198; }
+.cm-btn.sh { background: #6b7a9a; }
+.cm-btn.sp { text-shadow: 0 2px 0 rgba(0,0,0,0.4); }
+@media (max-width: 900px) { .cm-hint { display: none; } .cm-target { max-width: calc(100vw - 32px); bottom: 190px; } }
