@@ -6,7 +6,6 @@ import { StylePortrait } from '../../style/StylePortrait';
 import ChatPanel from '../../components/ChatPanel';
 import type { StudentStatus } from '../../types';
 import { setAssignmentsPaused, useAssignmentsPaused } from '../../lib/assignmentPause';
-import { setTeacherPlay, useTeacherPlay } from '../../lib/playMode';
 
 const STATUS_META: Record<StudentStatus, { label: string; dot: string }> = {
   'not-started': { label: 'Not started yet', dot: 'status-idle' },
@@ -78,7 +77,6 @@ export default function TeacherHome() {
                     👁️ Live View
                   </button>
                   <PauseButton studentId={st.id} name={st.name} />
-                  <ModeSwitch studentId={st.id} name={st.name} />
                 </div>
               </div>
             );
@@ -148,21 +146,6 @@ export default function TeacherHome() {
           Town Square: car bump jump sound "cfork jump" by qubodup (CC BY 3.0)
         </p>
       </div>
-    </div>
-  );
-}
-
-// Build Queue 730 (her words: "add a button on the live view where i can press play mode/live mode. it should be a
-// button that double clicks, always one option required"): two halves, exactly one always picked. Learn keeps the usual
-// rules; Play opens Play mode for this student for the rest of today.
-function ModeSwitch({ studentId, name }: { studentId: string; name: string }) {
-  const play = useTeacherPlay(studentId);
-  return (
-    <div className="mode-switch" role="radiogroup" aria-label={`${name}: Learn mode or Play mode`}>
-      <button type="button" role="radio" aria-checked={!play} className={`btn btn-sm${!play ? ' btn-primary' : ''}`} onClick={() => setTeacherPlay(studentId, false)}
-        title={`Learn mode for ${name}: the usual rules (Learn is required Monday to Friday, 7am to 3pm).`}>Learn mode</button>
-      <button type="button" role="radio" aria-checked={play} className={`btn btn-sm${play ? ' btn-primary' : ''}`} onClick={() => setTeacherPlay(studentId, true)}
-        title={`Play mode for ${name} for the rest of today: games run with no questions.`}>Play mode</button>
     </div>
   );
 }
