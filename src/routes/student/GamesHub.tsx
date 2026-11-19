@@ -19,7 +19,7 @@ const SHELVES: { title: string; ids: Id[] }[] = [
   { title: 'Food games', ids: ['bakery', 'idleTycoon', 'dinerDash', 'farmGrow'] },
   { title: 'Pet and animal games', ids: ['petShow', 'rescueShelter', 'fishingDock', 'crossyHopper'] },
   { title: 'Basics', ids: ['mergeEm', 'memoryMatch', 'wordSearch', 'quizMode', 'plinkoDrop'] },
-  { title: 'Cool themes', ids: ['creaturemon', 'rocketChickens', 'chess', 'spaceBowling', 'alchemy', 'castleDefense', 'shapeDash', 'gemMine', 'lighthouse', 'bubbleShooter'] },
+  { title: 'Cool themes', ids: ['christmasCatChase', 'creaturemon', 'rocketChickens', 'chess', 'spaceBowling', 'alchemy', 'castleDefense', 'shapeDash', 'gemMine', 'lighthouse', 'bubbleShooter'] },
 ];
 const NEW_FOR_MS = 14 * 24 * 3600 * 1000;
 interface Plays { plays?: Partial<Record<Id, number>>; last?: Partial<Record<Id, number>> }

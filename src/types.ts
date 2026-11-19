@@ -599,7 +599,7 @@ export interface TaskReward {
 // target — see NATIVE_GAME_STANDARD.md for the wider "native games per
 // building/asset" direction this mirrors. Extend as more ship.
 export type NativeGameId = 'bakery' | 'gasPump' | 'castleDefense' | 'chess' | 'spaceBowling' | 'shapeDash' | 'bubbleShooter'
-  | 'petShow' | 'rescueShelter' | 'fishingDock' | 'farmGrow' | 'lighthouse' | 'gemMine' | 'memoryMatch' | 'wordSearch' | 'plinkoDrop' | 'crossyHopper' | 'idleTycoon' | 'dinerDash' | 'mergeEm' | 'rocketChickens' | 'creaturemon';
+  | 'petShow' | 'rescueShelter' | 'fishingDock' | 'farmGrow' | 'lighthouse' | 'gemMine' | 'memoryMatch' | 'wordSearch' | 'plinkoDrop' | 'crossyHopper' | 'idleTycoon' | 'dinerDash' | 'mergeEm' | 'rocketChickens' | 'creaturemon' | 'christmasCatChase';
 
 export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   bakery: '🧁 Bakery Match',
@@ -624,6 +624,7 @@ export const NATIVE_GAME_LABELS: Record<NativeGameId, string> = {
   mergeEm: "🔢 Merge 'Em",
   rocketChickens: '🐔 Rocket Chickens',
   creaturemon: '🐉 Creaturemon',
+  christmasCatChase: '🎄 Christmas Cat Chase',
 };
 
 // How a question-set-backed activity (Quiz or Native Game type) is

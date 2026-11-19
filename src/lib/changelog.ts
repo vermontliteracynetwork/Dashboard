@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-christmas-cat-chase",
+    date: "2026-11-19",
+    icon: "🎄",
+    title: "New game: Christmas Cat Chase",
+    body: "You are a cat in a Santa hat! Chase the mouse through a snowy maze and catch it before Santa comes. Watch Santa walk along the path at the top. Every round is longer, and the mouse gets quicker. Grab a candy cane to make the snowmen run away. Find it in the Arcade.",
+  },
+  {
     id: "2026-11-19-creaturemon-live-battle",
     date: "2026-11-19",
     icon: "⚔️",

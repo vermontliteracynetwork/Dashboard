@@ -5,7 +5,7 @@
 // photos in their unique game themes." Gas Pump is left out: it is the
 // car's fuel quiz, not a game you start on its own.
 export interface NativeGameCard {
-  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dinerDash' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'gemMine' | 'lighthouse' | 'farmGrow' | 'fishingDock' | 'rescueShelter' | 'yogasRevenge' | 'mergeEm' | 'rocketChickens' | 'creaturemon';
+  id: 'spaceBowling' | 'chess' | 'bakery' | 'castleDefense' | 'shapeDash' | 'quizMode' | 'alchemy' | 'bubbleShooter' | 'petShow' | 'dinerDash' | 'idleTycoon' | 'crossyHopper' | 'plinkoDrop' | 'wordSearch' | 'memoryMatch' | 'gemMine' | 'lighthouse' | 'farmGrow' | 'fishingDock' | 'rescueShelter' | 'yogasRevenge' | 'mergeEm' | 'rocketChickens' | 'creaturemon' | 'christmasCatChase';
   title: string;
   route: string;
   cover: string;
@@ -68,6 +68,8 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'rocketChickens', added: '2026-11-17', title: 'Rocket Chickens', route: '/student/rocket-chickens', cover: '/games/covers/rocket-chickens.webp', blurb: 'Aim the farm cannon and launch a chicken with a rocket pack! Fly far, fly high and smash crates to earn coins for bigger cannons and more fuel.', versus: false, cabinet: { marquee: '#b0322a', panel: '#e0603a', trim: '#ffd23f', icon: '🐔' } },
   // Build Queue 710 to 712 (2026-11-19): catch, battle, train and evolve creatures in a 3D pixel open world.
   { id: 'creaturemon', added: '2026-11-19', title: 'Creaturemon', route: '/student/creaturemon', cover: '/games/covers/creaturemon.png', blurb: 'Explore a 3D pixel world, catch wild creatures, battle them Smash style, and evolve them to collect every card!', versus: false, cabinet: { marquee: '#2b1f5a', panel: '#3a4fb0', trim: '#ffd23f', icon: '🐉' } },
+  // Build Queue 764 to 766 (2026-11-19): a cat in a Santa hat chases a mouse through a snowy maze before Santa comes.
+  { id: 'christmasCatChase', added: '2026-11-19', title: 'Christmas Cat Chase', route: '/student/christmas-cat-chase', cover: '/games/covers/christmas-cat-chase.png', blurb: 'You are a cat in a Santa hat! Catch the mouse in the snowy maze before Santa comes. Every round is longer.', versus: false, cabinet: { marquee: '#b0322a', panel: '#2f6b55', trim: '#ffd23f', icon: '🎄' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
 
