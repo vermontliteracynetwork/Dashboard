@@ -1307,7 +1307,10 @@ export default function YogasRevenge() {
       {gate && !playMode && q && (
         <QuestionScreen prompt={q.prompt} choices={q.choices} correctIndex={q.correctIndex} imageUrl={q.imageUrl} imageAlt={q.imageAlt} done={0} total={1}
           whoLabel={GATE_TITLE[gate.why]} onCorrectAnswer={() => { passGate(); api.current.xp?.(25); }}
-          onWrongAnswer={() => window.setTimeout(() => setQ(drawQuestion(questionSets, q.id) ?? generateAutoQuestion()), 1500)}
+          // Build Queue 705 (her words: "if they answer incorrectly, they are prompted to go to the main game menu. this should
+          // never happen"): with no onSkip the "Next question" button after a wrong answer left the level. Now a wrong answer
+          // always brings another question (by itself after a moment, or straight away with the button).
+          onSkip={() => setQ(drawQuestion(questionSets, q.id) ?? generateAutoQuestion())}
           onExit={() => { setGate(null); setQ(null); setScreen('title'); }} />
       )}
     </div>

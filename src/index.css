@@ -12853,6 +12853,8 @@ body.calm-games .me-burst { display: none; }
 .rc-launch { position: absolute; top: 90px; left: 50%; transform: translateX(-50%); background: #ffd23f; color: #5a2a14; font-weight: 900; font-size: 1.6rem; padding: 10px 20px; border-radius: 16px; border: 3px solid #5a2a14; pointer-events: none; animation: rc-pop 0.35s ease-out; }
 .rc-tip { position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); background: rgba(20,28,48,0.8); color: #fff; padding: 10px 16px; border-radius: 12px; font-weight: 700; pointer-events: none; text-align: center; max-width: calc(100% - 32px); }
 .rc-tip.small { font-size: 0.9rem; }
+.rc-tip .rc-keys { display: block; font-weight: 600; font-size: 0.85rem; opacity: 0.9; margin-top: 4px; }
+.rc-why { margin: 0 0 8px; font-weight: 700; text-align: center; color: #23324f; }
 .rc-center { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .rc-center .btn { pointer-events: auto; }
 @keyframes rc-pop { 0% { transform: translateX(-50%) scale(0.5); } 70% { transform: translateX(-50%) scale(1.1); } 100% { transform: translateX(-50%) scale(1); } }

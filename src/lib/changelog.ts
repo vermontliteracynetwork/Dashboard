@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-yoga-next-question",
+    date: "2026-11-19",
+    icon: "🐕",
+    title: "Yoga's Revenge: a new question after a miss",
+    body: "In Yoga's Revenge, if you miss a question you get a new question right away. You stay in your level and keep playing.",
+  },
+  {
+    id: "2026-11-19-rocket-chickens-keys",
+    date: "2026-11-19",
+    icon: "🐔",
+    title: "Rocket Chickens: play on a computer, and no more surprise stops",
+    body: "On a computer you can aim with the arrow keys or by dragging on the sky, and press Space to fire. In the air, hold Up to fly up and Down to dive. Long flights no longer stop by surprise, and the report tells you why each round ended. Gems now go much farther too.",
+  },
+  {
     id: "2026-11-19-game-builder-windows",
     date: "2026-11-19",
     icon: "🪟",
