@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-silly-stories",
+    date: "2026-11-19",
+    icon: "📚",
+    title: "Silly Stories in Literacy Manipulatives",
+    body: "Your teacher can share Silly Stories with a join code. Open Literacy Manipulatives on the Computer, join, and fill in the words it asks for: an adjective, a noun, a verb in the past and more. Then tap Read my silly story to see your words in the story and hear it read aloud. Stories about a dog park, life as a lizard, a pet dragon and more.",
+  },
+  {
     id: "2026-11-18-game-builder-live",
     date: "2026-11-18",
     icon: "🎮",
