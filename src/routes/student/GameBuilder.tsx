@@ -5,12 +5,13 @@ import { speak } from '../../components/ReadAloud';
 import { NPC_VOICE_PRESETS } from '../../lib/npcVoices';
 import { useVoiceToText } from '../../lib/useVoiceToText';
 import { useMenuItems } from '../../lib/mainMenu';
+import { setLeaveGuard } from '../../lib/navTrail';
 import {
   KIND_INFO, SETTING_INFO, newId, newProject,
   type ChatMsg, type GameKind, type GameProject, type Rule, type Settings,
 } from '../../lib/gameBuilder/model';
 import { deleteProject, logRequest, markUndone, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
-import { applyAnswer, askAzalea } from '../../lib/gameBuilder/azalea';
+import { applyAnswer, askAzalea, problems } from '../../lib/gameBuilder/azalea';
 import type { Task } from '../../lib/gameBuilder/checklist';
 import { createWorkspace, loadRules, readRules, SB, setExtraSounds, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
 import DevLogView from './GameBuilderDevLog';
@@ -18,6 +19,7 @@ import { diffLog, withLog } from '../../lib/gameBuilder/devlog';
 import ArtPanel, { Preview } from './GameBuilderArt';
 import SoundPanel from './GameBuilderSound';
 import { LivePreview, Player } from './GameBuilderPlayer';
+import { Win, useFreeLayout } from './GameBuilderLayout';
 import './GameBuilder.css';
 
 // Game Builder (Build Queue 658, her words 2026-11-18): "I want to have a defined app in the kids computer that
@@ -66,6 +68,8 @@ export default function GameBuilder() {
 function ProjectList({ projects, onOpen, onBack, backLabel, onNew, studentId }: { projects: GameProject[]; onOpen: (id: string) => void; onBack: () => void; backLabel: string; onNew: () => void; studentId: string }) {
   const [options, setOptions] = useState<string | null>(null);
   const [renaming, setRenaming] = useState('');
+  // 700: students choose how big the game cards are.
+  const [cardW, setCardW] = useState(() => { try { return Number(localStorage.getItem('gbx-card-w')) || 230; } catch { return 230; } });
   const HELLO = projects.length ? 'Tap a game to keep building it. Tap New game to start a new one.' : 'Tap New game to start your first game.';
   return (
     <div className="gbx">
@@ -75,8 +79,10 @@ function ProjectList({ projects, onOpen, onBack, backLabel, onNew, studentId }: 
         <button type="button" className="gbx-btn gbx-primary gbx-plus" onClick={onNew} aria-label="New game"><span aria-hidden>+</span> New game</button>
       </header>
       <main className="gbx-scroll">
-        <div className="gbx-hello"><p>{HELLO}</p><Listen text={HELLO} /></div>
-        <div className="gbx-cards">
+        <div className="gbx-hello"><p>{HELLO}</p><Listen text={HELLO} />
+          <label className="gbx-cardsize">Card size <input type="range" min={160} max={420} step={20} value={cardW} onChange={(e) => { const v = Number(e.target.value); setCardW(v); try { localStorage.setItem('gbx-card-w', String(v)); } catch { /* fine */ } }} /></label>
+        </div>
+        <div className="gbx-cards" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardW}px, 1fr))` }}>
           {projects.map((p) => (
             <div key={p.id} className="gbx-card">
               {options === p.id ? (
@@ -157,7 +163,6 @@ function NewProject({ studentId, onCancel, onMade }: { studentId: string; onCanc
 // checklist is a list of ideas to try (it checks itself off as the game grows; tapping one opens the right tool and
 // Azalea explains it). Nothing is locked.
 type ToolTab = 'blocks' | 'look' | 'sound' | 'settings';
-const LS = { get: (k: string, d: number) => { try { const v = Number(localStorage.getItem(k)); return v > 0 ? v : d; } catch { return d; } }, set: (k: string, v: number) => { try { localStorage.setItem(k, String(v)); } catch { /* fine */ } } };
 
 // Ideas to try, in a sensible order (rules first, then test, then the look), all open at any time.
 interface Idea { id: string; label: string; tab: ToolTab; tip: string; done: (q: GameProject) => boolean; help?: string[] }
@@ -179,7 +184,8 @@ function ideasFor(p: GameProject): Idea[] {
 }
 
 function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
-  const [p, setP] = useState<GameProject>(initial);
+  // 700: an older Custom game (made when Azalea had to write the code) opens as a blank game built with blocks.
+  const [p, setP] = useState<GameProject>(() => (initial.kind === 'custom' && !initial.code ? { ...initial, kind: 'platformer', rules: [], design: { ...initial.design, blank: true } } : initial));
   const [playing, setPlayingRaw] = useState(false);
   const playOpened = useRef(0);
   const setPlaying = (v: boolean) => { if (v) playOpened.current = Date.now(); setPlayingRaw(v); };
@@ -187,11 +193,20 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   const [lastReq, setLastReq] = useState<BuildRequest | null>(null);
   const [tab, setTab] = useState<ToolTab>(initial.kind === 'custom' ? 'look' : 'blocks');
   const [history, setHistory] = useState(false);
-  const [sideOpen, setSideOpen] = useState(true);
+  const lay = useFreeLayout(studentId);
   const [menu, setMenu] = useState(false);
-  const [sideW, setSideW] = useState(() => LS.get('gbx-side-w', 240));
   const latest = useRef(p); latest.current = p;
-  useEffect(() => { const t = window.setTimeout(() => saveProject(studentId, latest.current), 600); return () => window.clearTimeout(t); }, [p, studentId]);
+  // 701 (her words: "always auto save student games and have a confirmation menu to save if exited"): every change
+  // saves itself a moment later ("Saved" in the top bar); leaving asks first, with Save and leave as the main choice.
+  const [savedAt, setSavedAt] = useState(true);
+  const [leaving, setLeaving] = useState<null | (() => void)>(null);
+  useEffect(() => { setSavedAt(false); const t = window.setTimeout(() => { saveProject(studentId, latest.current); setSavedAt(true); }, 600); return () => window.clearTimeout(t); }, [p, studentId]);
+  useEffect(() => {
+    setLeaveGuard((go) => { setLeaving(() => go); return true; });
+    const bu = () => { saveProject(studentId, latest.current); };
+    window.addEventListener('beforeunload', bu); window.addEventListener('pagehide', bu);
+    return () => { setLeaveGuard(null); window.removeEventListener('beforeunload', bu); window.removeEventListener('pagehide', bu); };
+  }, [studentId]);
   const update = (f: (q: GameProject) => GameProject) => setP((q) => f(q));
   const sendRef = useRef<(text: string, system?: boolean) => void>(() => {});
   // Undo and Redo for every change to the game (687).
@@ -218,7 +233,6 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
     setP((q) => withLog({ ...q, ...h.last }, [{ kind: 'change', by: 'student', text: dir === 'undo' ? 'Undo' : 'Redo' }]));
     setHistN({ u: h.past.length, r: h.future.length });
   };
-  const [workW, setWorkW] = useState(() => LS.get('gbx-work-w', Math.round(window.innerWidth * 0.42)));
 
   // The dev log (679): every change, the student's or Azalea's; changes after the first play test are marked.
   const logged = useRef(initial);
@@ -236,6 +250,30 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   useEffect(() => () => { flushLog(); saveProject(studentId, latest.current); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const ideas = ideasFor(p);
+  // 702 (her words: "Azalea must make a comment if its not allowed or wont work ... dont just leave the checkmark un
+  // done, always explain"): a moment after the game changes, if an idea that was working stops working, or a new
+  // problem appears (a block not under a When block, no way to win...), Azalea says why and how to fix it.
+  const WHY: Record<string, string> = {
+    score: 'Heads up: nobody can earn points now. A "change score by" block has to be snapped under a yellow When block. Put one back, or tell me how players get points.',
+    win: 'Heads up: nobody can win now. The "win the game" block is gone or not snapped under a When block. Add it back, or tell me how players win.',
+    challenge: 'Heads up: your game has no challenge now, so it is very easy. Add "lose a life" under a When block, or a timer, or tell me what should be hard.',
+    power: 'Heads up: your power up is gone. Add a "give power up" block under a When block, or tell me what the power up should do.',
+  };
+  const looseRef = useRef(loose); looseRef.current = loose;
+  const watch = useRef<{ done: Record<string, boolean>; probs: string[] } | null>(null);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const q = latest.current; const now = Object.fromEntries(ideasFor(q).map((i) => [i.id, i.done(q)]));
+      const probs = problems(q, looseRef.current);
+      const before = watch.current; watch.current = { done: now, probs };
+      if (!before) return;
+      const lines = [...Object.keys(WHY).filter((id) => before.done[id] && !now[id]).map((id) => WHY[id]), ...probs.filter((x) => !before.probs.includes(x)).map((x) => `${x} Tell me if you want help fixing it.`)];
+      if (!lines.length) return;
+      const text = lines.slice(0, 2).join(' ');
+      setP((cur) => withLog({ ...cur, chat: [...cur.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text }] }, [{ kind: 'prompt', by: 'azalea', text: `Explained a problem: ${text}` }]));
+    }, 1500);
+    return () => window.clearTimeout(t);
+  }, [p.rules, p.settings, loose]); // eslint-disable-line react-hooks/exhaustive-deps
   const nextIdea = ideas.find((i) => !i.done(p)) ?? null;
   // Azalea's voice is always on (695): she reads every new message of hers aloud.
   const said = useRef(new Set<string>(initial.chat.map((m) => m.id)));
@@ -257,20 +295,11 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   const nowText = nextIdea ? nextIdea.tip : 'Your game has everything. Keep playing and changing anything you want.';
   useMenuItems([{ id: 'gb-now', icon: '?', label: 'What can I do now?', bg: '#5b4fc7', order: 5, onSelect: () => speak(nowText, tts, undefined, VOICE) }]);
 
-  const drag = (key: 'work' | 'side') => (e: React.PointerEvent) => {
-    e.preventDefault(); const x0 = e.clientX, w0 = key === 'work' ? workW : sideW;
-    const move = (ev: PointerEvent) => {
-      if (key === 'work') { const w = Math.max(320, Math.min(window.innerWidth - 520, w0 + ev.clientX - x0)); setWorkW(w); LS.set('gbx-work-w', w); }
-      else { const w = Math.max(200, Math.min(480, window.innerWidth - ev.clientX - 12)); setSideW(w); LS.set('gbx-side-w', w); }
-    };
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-  };
-
   return (
     <div className="gbx gbx-editor">
       <header className="gbx-top gbx-top-slim">
-        <button type="button" className="gbx-btn" onClick={() => { saveProject(studentId, latest.current); onClose(); }}>My games</button>
+        <button type="button" className="gbx-btn" onClick={() => setLeaving(() => onClose)}>My games</button>
+        <span className="gbx-saved" aria-live="polite">{savedAt ? 'Saved' : 'Saving...'}</span>
         <h1 className="gbx-name-title">{p.name}</h1>
         <div className="gbx-row gbx-topright">
           <div className="gbx-undo" role="group" aria-label="Undo and redo">
@@ -284,45 +313,45 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
                 <button type="button" role="menuitem" onClick={() => { setShowLog(true); setMenu(false); }}>My dev log</button>
                 <button type="button" role="menuitem" onClick={() => { setHistory((h) => !h); setMenu(false); }}>{history ? 'Hide all messages' : 'All messages'}</button>
                 <button type="button" role="menuitem" onClick={() => { speak(nowText, tts, undefined, VOICE); setMenu(false); }}>What can I do now?</button>
-                <button type="button" role="menuitem" onClick={() => { setSideOpen((o) => !o); setMenu(false); }}>{sideOpen ? 'Hide the ideas list' : 'Show the ideas list'}</button>
+                <button type="button" role="menuitem" onClick={() => { lay.unfoldAll(); setMenu(false); }}>Open all windows</button>
+                <button type="button" role="menuitem" onClick={() => { lay.reset(); setMenu(false); }}>Reset my layout</button>
               </div>
             )}
           </div>
           <button type="button" className="gbx-btn gbx-primary" onClick={() => setPlaying(true)}>Play</button>
         </div>
       </header>
-      <div className="gbx-main" style={{ gridTemplateColumns: `${workW}px 10px minmax(300px, 1fr) 10px ${sideOpen ? `${sideW}px` : '52px'}` }}>
-        <section className="gbx-work" aria-label="Build your game">
+      {/* 700: every part is a window the student can move, resize and fold (GameBuilderLayout.tsx). */}
+      <div className="gbx-free" ref={lay.ref}>
+        <Win id="tools" title={history ? 'All messages' : 'Build'} box={lay.boxes.tools} size={lay.size} setBox={lay.setBox} front={lay.front} minW={300} minH={200}
+          extra={history ? <button type="button" className="gbw-btn gbw-text" onClick={() => setHistory(false)}>Back</button> : undefined}>
           {history ? (
-            <div className="gbx-allmsgs">
-              <div className="gbx-taskhead gbx-row"><h2 className="gbx-grow">All messages</h2><button type="button" className="gbx-btn" onClick={() => setHistory(false)}>Back to my game</button></div>
-              <div className="gbx-allmsgs-list">{p.chat.map((m) => <p key={m.id} className={m.from}><b>{m.from === 'azalea' ? 'Azalea' : 'You'}:</b> {m.text}</p>)}</div>
-            </div>
+            <div className="gbx-allmsgs-list">{p.chat.map((m) => <p key={m.id} className={m.from}><b>{m.from === 'azalea' ? 'Azalea' : 'You'}:</b> {m.text}</p>)}</div>
           ) : <ToolsView p={p} update={update} tab={tab} setTab={setTab} setLoose={setLoose} />}
-        </section>
-        <div className="gbx-resize-v" onPointerDown={drag('work')} role="separator" aria-orientation="vertical" aria-label="Drag to resize" />
-        <LivePreview p={p} onPlayed={(r) => update((q) => withLog({ ...q, plays: q.plays + 1 }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1} in the live game: ${r === 'win' ? 'won' : 'game over'}` }]))} />
-        <div className="gbx-resize-v" onPointerDown={drag('side')} role="separator" aria-orientation="vertical" aria-label="Drag to resize the ideas list" />
-        <aside className="gbx-side" aria-label="Ideas to try">
-          {sideOpen ? (
-            <div className="gbx-check">
-              <div className="gbx-row"><h3 className="gbx-grow">Ideas to try</h3><button type="button" className="gbx-iconbtn" onClick={() => setSideOpen(false)} aria-label="Fold the ideas list away"><Chevron dir="right" /></button></div>
-              <p className="gbx-muted gbx-small">Do them in any order. Tap one for help.</p>
-              <ol className="gbx-ideas">
-                {ideas.map((i) => { const d = i.done(p); return (
-                  <li key={i.id}><button type="button" className={`${d ? 'done' : ''} ${nextIdea?.id === i.id ? 'next' : ''}`} onClick={() => tryIdea(i)}>
-                    <span className="gbx-mark">{d ? <Check /> : null}</span>{i.label}
-                  </button></li>
-                ); })}
-              </ol>
-            </div>
-          ) : <button type="button" className="gbx-fold-tab" onClick={() => setSideOpen(true)} aria-label="Open the ideas list"><Chevron dir="left" /><span>Ideas</span></button>}
-        </aside>
-      </div>
-      <div className="gbx-bottom">
-        <ChatBar p={p} setP={setP} studentId={studentId} task={null} idea={nextIdea} loose={loose} lastReq={lastReq} setLastReq={setLastReq} help={help} tts={tts}
-          history={history} setHistory={setHistory} sendRef={sendRef} onAzalea={(reqId) => { azaleaUntil.current = Date.now() + 2500; hist.current.reqId = reqId || undefined; }} />
-        <img className="gbx-az-corner" src={AZ_IMG} alt="Azalea the cat" />
+        </Win>
+        <Win id="live" title="Live game" box={lay.boxes.live} size={lay.size} setBox={lay.setBox} front={lay.front} minW={240} minH={160}>
+          <LivePreview bare p={p} onPlayed={(r) => update((q) => withLog({ ...q, plays: q.plays + 1 }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1} in the live game: ${r === 'win' ? 'won' : 'game over'}` }]))} />
+        </Win>
+        <Win id="ideas" title="Ideas to try" box={lay.boxes.ideas} size={lay.size} setBox={lay.setBox} front={lay.front} minW={180} minH={100}>
+          <div className="gbx-check gbx-check-bare">
+            <p className="gbx-muted gbx-small">Do them in any order. Tap one for help.</p>
+            <ol className="gbx-ideas">
+              {ideas.map((i) => { const d = i.done(p); return (
+                <li key={i.id}><button type="button" className={`${d ? 'done' : ''} ${nextIdea?.id === i.id ? 'next' : ''}`} onClick={() => tryIdea(i)}>
+                  <span className="gbx-mark">{d ? <Check /> : null}</span>{i.label}
+                </button></li>
+              ); })}
+            </ol>
+          </div>
+        </Win>
+        <Win id="chat" title="Talk to Azalea" box={lay.boxes.chat} size={lay.size} setBox={lay.setBox} front={lay.front} minW={300} minH={130}
+          extra={<button type="button" className="gbw-btn gbw-text" onClick={() => setHistory((h) => !h)}>{history ? 'Hide messages' : 'All messages'}</button>}>
+          <ChatBar p={p} setP={setP} studentId={studentId} task={null} idea={nextIdea} loose={loose} lastReq={lastReq} setLastReq={setLastReq} help={help} tts={tts}
+            history={history} setHistory={setHistory} sendRef={sendRef} onAzalea={(reqId) => { azaleaUntil.current = Date.now() + 2500; hist.current.reqId = reqId || undefined; }} />
+        </Win>
+        <Win id="azalea" title="Azalea" box={lay.boxes.azalea} size={lay.size} setBox={lay.setBox} front={lay.front} minW={90} minH={90}>
+          <img className="gbx-az-win" src={AZ_IMG} alt="Azalea the cat" />
+        </Win>
       </div>
       {playing && <Player p={p} onClose={(result) => {
         setPlaying(false);
@@ -331,15 +360,23 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
           chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! What do you want to change or add next?' : result === 'lose' ? 'Game over. Was it too hard? Tell me what to change.' : 'What did you notice? Tell me what to change or add.' }] }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1}: ${result === 'win' ? 'won' : result === 'lose' ? 'game over' : 'stopped before the end'}` }]));
       }} />}
       {showLog && <DevLogView p={p} onClose={() => setShowLog(false)} />}
+      {leaving && (
+        <div className="gbl-modal" role="dialog" aria-label="Save your game">
+          <div className="gbl-modal-box gbx-leave">
+            <h2>Save your game before you leave?</h2>
+            <p>Your game saves by itself as you work. Tap Save and leave to keep everything.</p>
+            <div className="gbx-row">
+              <button type="button" className="gbx-btn gbx-primary gbx-big" onClick={() => { flushLog(); saveProject(studentId, latest.current); const go = leaving; setLeaving(null); setLeaveGuard(null); go(); }}>Save and leave</button>
+              <button type="button" className="gbx-btn gbx-big" onClick={() => setLeaving(null)}>Keep building</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 function Check() { return <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden><path d="M5 12.5l4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>; }
-function Chevron({ dir }: { dir: 'up' | 'down' | 'left' | 'right' }) {
-  const r = { up: 180, down: 0, left: 90, right: -90 }[dir];
-  return <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden style={{ transform: `rotate(${r}deg)` }}><path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>;
-}
 function ArrowIcon({ dir }: { dir: 'back' | 'forward' }) { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden style={dir === 'forward' ? { transform: 'scaleX(-1)' } : undefined}><path d="M9 7L4 12l5 5" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" /><path d="M5 12h9a6 6 0 0 1 0 12" stroke="currentColor" strokeWidth="2.5" fill="none" strokeLinecap="round" transform="translate(0 -5)" /></svg>; }
 function MenuIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" /></svg>; }
 function PlayIcon() { return <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden><path d="M8 5v14l11-7z" fill="currentColor" /></svg>; }
@@ -368,17 +405,16 @@ function ToolsView({ p, update, tab, setTab, setLoose }: { p: GameProject; updat
 // ---------- Azalea's chat, across the bottom ----------
 // 684: one message (Azalea's newest) above the box; the arrow opens all messages in the work area; icon buttons for
 // Talk and Send; it folds down and its message area can be dragged taller.
-function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, onAzalea, help, tts, history, setHistory, sendRef }: {
+function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, onAzalea, help, tts, sendRef }: {
   p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; task: Task | null; idea: { help?: string[] } | null; loose: number;
   lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void; onAzalea: (reqId: string) => void; help: boolean; tts: Parameters<typeof speak>[1];
-  history: boolean; setHistory: (f: (v: boolean) => boolean) => void; sendRef: React.MutableRefObject<(text: string, system?: boolean) => void>;
+  history?: boolean; setHistory?: (f: (v: boolean) => boolean) => void; sendRef: React.MutableRefObject<(text: string, system?: boolean) => void>;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const [voiced, setVoiced] = useState(false);
   const [usedFrame, setUsedFrame] = useState(false);
-  const [folded, setFolded] = useState(false);
-  const [msgH, setMsgH] = useState(() => LS.get('gbx-msg-h', 72));
+  const folded = false;
   const taRef = useRef<HTMLTextAreaElement>(null);
   // 689: what the microphone heard is kept as the transcript, beside what was finally sent (written).
   const heardRef = useRef('');
@@ -456,22 +492,13 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
   };
   sendRef.current = (t, system) => { void send(t, system); };
   sendRef2.current = send;
-  const dragMsg = (e: React.PointerEvent) => {
-    e.preventDefault(); const y0 = e.clientY, h0 = msgH;
-    const move = (ev: PointerEvent) => { const h = Math.max(48, Math.min(320, h0 + (y0 - ev.clientY))); setMsgH(h); LS.set('gbx-msg-h', h); };
-    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
-    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-  };
   return (
     <footer className={`gbx-chat ${folded ? 'folded' : ''}`} aria-label="Chat with Azalea">
-      {!folded && <div className="gbx-resize-h" onPointerDown={dragMsg} role="separator" aria-orientation="horizontal" aria-label="Drag to make the message bigger" />}
       <div className="gbx-azline">
-        <button type="button" className="gbx-iconbtn" onClick={() => setHistory((h) => !h)} aria-label={history ? 'Hide all messages' : 'Show all messages'} aria-expanded={history}><Chevron dir={history ? 'down' : 'up'} /></button>
-        <div className="gbx-azmsg" style={folded ? undefined : { maxHeight: msgH }}>
+        <div className="gbx-azmsg">
           <b>Azalea:</b> {busy ? 'Let me think...' : lastAz?.text}
         </div>
         {lastAz && <button type="button" className="gbx-iconbtn" onClick={() => speak(lastAz.text, tts, undefined, VOICE)} aria-label="Listen to Azalea again" title="Listen again"><PlayIcon /></button>}
-        <button type="button" className="gbx-iconbtn" onClick={() => setFolded((f) => !f)} aria-label={folded ? 'Open the chat' : 'Fold the chat down'}><Chevron dir={folded ? 'up' : 'down'} /></button>
       </div>
       {!folded && <>
         {!busy && choices?.length ? (

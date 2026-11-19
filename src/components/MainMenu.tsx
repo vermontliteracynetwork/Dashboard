@@ -1,3 +1,4 @@
+import { guardLeave } from '../lib/navTrail';
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../store/store';
@@ -60,7 +61,8 @@ export default function MainMenu() {
   }, []);
   if (!show) return null;
 
-  const go = (to: string) => () => navigate(to, { state: { from: pathname.startsWith('/world/town') ? 'town' : undefined } });
+  // A screen's leave check (for example Game Builder's "Save your game?", Build Queue 701) runs first.
+  const go = (to: string) => () => guardLeave(() => navigate(to, { state: { from: pathname.startsWith('/world/town') ? 'town' : undefined } }));
   const base: MenuItem[] = [
     { id: 'report', icon: '🐱', label: 'Report', bg: '#5b6bd6', order: 1, onSelect: () => window.dispatchEvent(new Event(OPEN_AZALEA)) },
     { id: 'streak', icon: '🔥', label: `My Streak (${streak.count ?? 0})`, bg: '#e0611a', order: 2, onSelect: () => openStreakView() },

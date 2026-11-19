@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-game-builder-windows",
+    date: "2026-11-19",
+    icon: "🪟",
+    title: "Game Builder: set up your screen your way",
+    body: "In Game Builder every part is a window. Drag the top of a window to move it, drag its corner to make it bigger or smaller, and tap the arrow to fold it away. Your game saves by itself, and it asks before you leave. If something in your game stops working, Azalea tells you why and how to fix it.",
+  },
+  {
     id: "2026-11-19-game-builder-voice-mode",
     date: "2026-11-19",
     icon: "🎙️",
