@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-word-explorer-meanings",
+    date: "2026-11-19",
+    icon: "📖",
+    title: "Word Explorer: a meaning for every word",
+    body: "In Literacy Manipulatives on the Computer, Word Explorer now shows what every word means, even words like pushes, they and crunchy. Words with a picture show the picture on their card.",
+  },
+  {
     id: "2026-11-19-yoga-next-question",
     date: "2026-11-19",
     icon: "🐕",
