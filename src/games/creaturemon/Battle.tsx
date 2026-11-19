@@ -10,7 +10,7 @@ import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { CreatureCard, Sprite } from './Card';
 import { Fx, FruitTap, XpBar, uiSound, type CmApi } from './shared';
-import { FightHud, IslandBg, type Anchors } from './Island';
+import { FightHud, IslandStage } from './Island';
 import { IMG, abName, abv, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, rollAbility, statsAt, typeMult, type AbilityId, type CType, type Mon } from './data';
 
 type MoveId = 'tackle' | 'special' | 'guard' | 'berry';
@@ -88,7 +88,20 @@ export default function Battle({ cm, wildFoe, ask, onClose, learn = true }: {
   // up to 3 creatures on each side; when one taps out, the next one comes in.
   const [teamMode, setTeamMode] = useState(false);
   const [fruit, setFruit] = useState<MoveId | null>(null);
-  const [anchors, setAnchors] = useState<Anchors | null>(null);
+  // 754: a creature that loses a heart falls off the island, then drops back on
+  const [falling, setFalling] = useState<{ me?: boolean; foe?: boolean }>({});
+  const livesOf = (f: F | null) => (f ? (f.hp <= 0 ? 0 : Math.ceil(f.hp / (f.max / 3) - 1e-6)) : 3);
+  const prevLives = useRef<{ me: number; foe: number; key: string }>({ me: 3, foe: 3, key: '' });
+  useEffect(() => {
+    const key = `${me?.name}|${foe?.name}`; const p = prevLives.current;
+    const lm = livesOf(me), lf = livesOf(foe);
+    if (p.key !== key) { prevLives.current = { me: lm, foe: lf, key }; return; }
+    const drop = (side: 'me' | 'foe', name: string) => { setFalling((x) => ({ ...x, [side]: true })); sfx.boing(); add(`${name} falls off the island and loses a heart!`, false); window.setTimeout(() => setFalling((x) => ({ ...x, [side]: false })), cm.calm ? 900 : 1500); };
+    if (me && lm < p.me) drop('me', me.name);
+    if (foe && lf < p.foe) drop('foe', foe.name);
+    prevLives.current = { me: lm, foe: lf, key };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me?.hp, foe?.hp, me?.name, foe?.name]);
   const [sel, setSel] = useState<Mon | null>(null);
   const [picks, setPicks] = useState<Mon[]>([]);
   const myQ = useRef<Mon[]>([]); const foeQ = useRef<{ formId: string; level: number }[]>([]); const used = useRef<Mon[]>([]);
@@ -237,7 +250,7 @@ export default function Battle({ cm, wildFoe, ask, onClose, learn = true }: {
   const side = (f: F, s: 'me' | 'foe') => {
     const ff = form(f.formId); const back = s === 'me' && !!ff.sprite.back;
     return (
-      <div className={`cmb-side ${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}${lunge === s ? ' lunge' : ''}`} style={anchors ? { left: anchors[s].x, top: anchors[s].y, right: 'auto', bottom: 'auto', transform: 'translate(-50%, -100%)' } : undefined}>
+      <div className={`cmb-side ${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}${lunge === s ? ' lunge' : ''}${falling[s] ? ' falling' : ''}`}>
         <div className="cmb-stand" ref={s === 'me' ? meRef : foeRef}>
           {back ? <img className="cmb-back" src={`${IMG}forms/${ff.id}_back.png`} alt="" style={{ height: Math.min(170, ff.sprite.fh * Math.max(1, Math.floor(150 / ff.sprite.fh))) }} />
             : <Sprite f={ff} px={Math.min(150, 60 + ff.stage * 26)} anim={fx?.side === s && fx.hit ? 'hurt' : 'idle'} style={s === 'me' ? { transform: 'scaleX(-1)' } : undefined} />}
@@ -335,12 +348,10 @@ export default function Battle({ cm, wildFoe, ask, onClose, learn = true }: {
       )}
       {(phase === 'fight' || phase === 'done') && me && foe && (
         <div className="cmb-arena" ref={arenaRef}>
-          <IslandBg calm={cm.calm} onAnchors={setAnchors} />
+          <IslandStage calm={cm.calm} falling={falling}>{side(foe, 'foe')}{side(me, 'me')}</IslandStage>
           <FightHud round={round} left={{ name: me.name, level: me.level, type: me.type, hp: me.hp, max: me.max, guard: me.guard, abs: me.abs, stage: stg(me), formId: me.formId, sub: myQ.current.length ? `${myQ.current.length} more` : undefined }}
             right={{ name: foe.name, level: foe.level, type: foe.type, hp: foe.hp, max: foe.max, guard: foe.guard, abs: foe.abs, stage: stg(foe), formId: foe.formId, sub: foeQ.current.length ? `${foeQ.current.length} more` : undefined }} />
           {mine && <span className="fh-xp"><img src={`${UI}i_star.png`} alt="" /><small>XP</small><XpBar m={cm.sRef.current.mons.find((m) => m.uid === mine.uid) ?? mine} /></span>}
-          {side(foe, 'foe')}
-          {side(me, 'me')}
           {shot && <span className="cmb-shot" style={{ left: shot.x - 23, top: shot.y - 23, background: TYPE_COLOR[shot.type], boxShadow: `0 0 24px ${TYPE_COLOR[shot.type]}`, ['--dx' as string]: `${shot.dx}px`, ['--dy' as string]: `${shot.dy}px` } as React.CSSProperties} />}
           <div className="cmb-log" aria-live="polite">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>
           {phase === 'fight' && (

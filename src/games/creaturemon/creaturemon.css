@@ -575,3 +575,31 @@
 .lo-hero { overflow: hidden; min-width: 0; }
 .lo-hero .cm-sprite { max-width: 100%; }
 .lo-left, .lo-right { min-width: 0; }
+
+/* 754: the battle island: her sky behind, drifting clouds, a pixel grass island tilting slowly left and right */
+.isl-stage { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; image-rendering: pixelated; overflow: hidden; background-color: #5b8fe0; }
+.isl-cloud { position: absolute; width: 160px; height: 50px; background: #fff; border-radius: 50px; opacity: 0.9; box-shadow: 40px -20px 0 -6px #fff, 90px -6px 0 -10px #fff; animation: islCloud 60s linear infinite; }
+.isl-cloud.c1 { top: 22%; left: -20%; } .isl-cloud.c2 { top: 36%; left: -40%; animation-duration: 85s; transform: scale(0.7); } .isl-cloud.c3 { top: 14%; left: -60%; animation-duration: 110s; transform: scale(1.2); }
+@keyframes islCloud { to { left: 120%; } }
+.isl { position: absolute; left: 6%; right: 6%; bottom: 16%; height: 30%; transform-origin: 50% 20%; animation: islTilt 7s ease-in-out infinite alternate; }
+@keyframes islTilt { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+.isl.tip-left { animation: islTipL 1.4s ease-in-out; }
+.isl.tip-right { animation: islTipR 1.4s ease-in-out; }
+@keyframes islTipL { 30% { transform: rotate(-9deg); } 100% { transform: rotate(-3deg); } }
+@keyframes islTipR { 30% { transform: rotate(9deg); } 100% { transform: rotate(3deg); } }
+.isl-art { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 18px 18px rgba(0,0,0,0.25)); }
+.isl-tuft { position: absolute; top: -26px; width: 44px; image-rendering: pixelated; pointer-events: none; }
+.isl-tuft.t1 { left: 6%; } .isl-tuft.t2 { left: 42%; } .isl-tuft.t3 { right: 8%; } .isl-tuft.t4 { left: 60%; width: 30px; top: -18px; }
+.isl-top { position: absolute; left: 0; right: 0; top: 9%; height: 0; }
+.isl-top .cmb-side { position: absolute; top: auto; bottom: 0; transform: none; }
+.isl-top .cmb-side.me { left: 16%; right: auto; }
+.isl-top .cmb-side.foe { right: 16%; left: auto; }
+.isl-top .cmb-stand { transform: scale(1.4); transform-origin: 50% 100%; }
+/* falling off the island loses a heart: slide off the edge, fall, then drop back on */
+.isl-top .cmb-side.me.falling { animation: islFallL 1.5s ease-in forwards; }
+.isl-top .cmb-side.foe.falling { animation: islFallR 1.5s ease-in forwards; }
+@keyframes islFallL { 0% { translate: 0 0; rotate: 0deg; opacity: 1; } 30% { translate: -18vw 0; rotate: -20deg; } 55% { translate: -26vw 60vh; rotate: -80deg; opacity: 1; } 56% { opacity: 0; translate: 0 -60vh; rotate: 0deg; } 100% { opacity: 1; translate: 0 0; } }
+@keyframes islFallR { 0% { translate: 0 0; rotate: 0deg; opacity: 1; } 30% { translate: 18vw 0; rotate: 20deg; } 55% { translate: 26vw 60vh; rotate: 80deg; opacity: 1; } 56% { opacity: 0; translate: 0 -60vh; rotate: 0deg; } 100% { opacity: 1; translate: 0 0; } }
+.isl-stage.calm .isl, .isl-stage.calm .isl-cloud { animation: none; }
+@media (prefers-reduced-motion: reduce) { .isl, .isl-cloud { animation: none !important; } .isl-top .cmb-side.falling { animation-duration: 0.6s; } }
+@media (max-width: 1000px) { .isl { bottom: 22%; height: 24%; } .isl-top .cmb-stand { transform: scale(1.15); } }

@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-tilting-island",
+    date: "2026-11-19",
+    icon: "🏝️",
+    title: "Creaturemon: the tilting island",
+    body: "Battles now happen on a grass island floating in the sky. The island slowly tilts left and right. Every time a creature loses a heart, it falls off the island, then drops back on for the next round!",
+  },
+  {
     id: "2026-11-19-creaturemon-you",
     date: "2026-11-19",
     icon: "🌳",

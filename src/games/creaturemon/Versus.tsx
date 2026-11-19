@@ -12,7 +12,7 @@ import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { Sprite } from './Card';
 import { Fx, FruitTap, XpBar, uiSound, type CmApi } from './shared';
-import { FightHud, IslandBg, type Anchors } from './Island';
+import { FightHud, IslandStage } from './Island';
 import { IMG, TYPE_COLOR, battleXp, displayName, form, line, type AbilityId, type Mon } from './data';
 import { makeBF, nap, resolveMove, moveName, type BF, type MoveId } from './engine';
 
@@ -33,12 +33,21 @@ export default function Versus({ cm, ask, onClose, learn = true }: { cm: CmApi; 
   const [myMove, setMyMove] = useState<MoveId | null>(null);
   const [note, setNote] = useState('');
   const [fruit, setFruit] = useState<MoveId | null>(null);
-  const [anchors, setAnchors] = useState<Anchors | null>(null);
   const ch = useRef<RealtimeChannel | null>(null);
   const joins = useRef<[Join | null, Join | null]>([null, null]);
   const moves = useRef<[{ m: MoveId; foc: number } | null, { m: MoveId; foc: number } | null]>([null, null]);
   const stRef = useRef(st); stRef.current = st;
   const rewarded = useRef(false);
+  // 754: the creature that just lost a heart falls off the island for a moment
+  const [fallSide, setFallSide] = useState<0 | 1 | null>(null);
+  const lastLives = useRef<[number, number]>([3, 3]);
+  useEffect(() => {
+    if (!st) return;
+    const lv = st.sides.map((sd) => { const f = sd.team[sd.idx]; return f.hp <= 0 ? 0 : Math.ceil(f.hp / (f.max / 3) - 1e-6) + sd.idx * 3; }) as [number, number];
+    [0, 1].forEach((i) => { if (lv[i] < lastLives.current[i]) { setFallSide(i as 0 | 1); sfx.boing(); window.setTimeout(() => setFallSide(null), cm.calm ? 900 : 1500); } });
+    lastLives.current = lv;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [st]);
   const fruitGo = useRef<(foc: number) => void>(() => {});
   const me: 0 | 1 = role === 'host' ? 0 : 1;
   // the room's handlers are made once, so they read these refs (not old state)
@@ -138,7 +147,7 @@ export default function Versus({ cm, ask, onClose, learn = true }: { cm: CmApi; 
   const stand = (sd: Side, who: 'me' | 'foe', idx: 0 | 1) => {
     const f = form(sd.team[sd.idx].formId); const fx = st?.fx?.find((x) => x.side === idx);
     return (
-      <div className={`cmb-side ${who}`} style={anchors ? { left: anchors[who].x, top: anchors[who].y, right: 'auto', bottom: 'auto', transform: 'translate(-50%, -100%)' } : undefined}>
+      <div className={`cmb-side ${who}${fallSide === idx ? ' falling' : ''}`}>
         <div className="cmb-stand">
           <Sprite f={f} px={Math.min(150, 60 + f.stage * 26)} style={who === 'me' ? { transform: 'scaleX(-1)' } : undefined} />
           <span className="cmb-plat"><img src={`${UI}grass_basic_01.png`} alt="" className="cmb-tuft l" /><img src={`${UI}grass_basic_03.png`} alt="" className="cmb-tuft r" /></span>
@@ -193,10 +202,8 @@ export default function Versus({ cm, ask, onClose, learn = true }: { cm: CmApi; 
       )}
       {step === 'fight' && st && mineNow && (
         <div className="cmb-arena">
-          <IslandBg sky="demo06" calm={cm.calm} onAnchors={setAnchors} />
+          <IslandStage sky="demo06" calm={cm.calm} falling={{ me: fallSide === me, foe: fallSide === 1 - me }}>{stand(st.sides[1 - me], 'foe', (1 - me) as 0 | 1)}{stand(st.sides[me], 'me', me)}</IslandStage>
           <FightHud round={st.round} left={hud(st.sides[me])} right={hud(st.sides[1 - me])} />
-          {stand(st.sides[1 - me], 'foe', (1 - me) as 0 | 1)}
-          {stand(st.sides[me], 'me', me)}
           <div className="cmb-log" aria-live="polite">{st.log.slice(-3).map((l, i) => <p key={i}>{l}</p>)}</div>
           {st.done == null ? (
             <>

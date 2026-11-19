@@ -133,3 +133,31 @@ function HudHalf({ s, side }: { s: HudSide; side: 'me' | 'foe' }) {
     </div>
   );
 }
+
+// Build Queue 754 (her words: "redo the battle background so the sky is in the background, have it be a grass island
+// (slight tilting of the island right and left). if a player falls off, they lose a heart"): no 3D canvas any more
+// (iPads were showing a blank screen). Her pixel sky fills the back, clouds drift, and a pixel grass island floats in
+// the middle, tilting slowly left and right. Both creatures stand on it, so they tilt with it. When a creature loses a
+// heart, it slides off the island and falls, then drops back on.
+export function IslandStage({ sky = 'demo01', calm, children, falling }: { sky?: string; calm?: boolean; children?: React.ReactNode; falling?: { me?: boolean; foe?: boolean } }) {
+  return (
+    <div className={`isl-stage${calm ? ' calm' : ''}`} style={{ backgroundImage: `url(${IMG}sky/${sky}.png)` }}>
+      <span className="isl-cloud c1" /><span className="isl-cloud c2" /><span className="isl-cloud c3" />
+      <div className={`isl${falling?.me ? ' tip-left' : ''}${falling?.foe ? ' tip-right' : ''}`}>
+        <svg className="isl-art" viewBox="0 0 200 64" preserveAspectRatio="none" shapeRendering="crispEdges" aria-hidden>
+          <polygon points="6,14 194,14 186,26 170,34 150,42 128,50 112,60 96,62 84,56 64,48 44,40 24,30 12,22" fill="#7a5a3e" />
+          <polygon points="30,30 170,30 150,42 128,50 112,58 96,60 84,54 64,46 44,38" fill="#5e4430" />
+          <polygon points="80,52 120,52 108,62 96,64 88,60" fill="#4a3424" />
+          <rect x="40" y="28" width="6" height="4" fill="#9a7a5a" /><rect x="120" y="34" width="8" height="4" fill="#9a7a5a" /><rect x="90" y="44" width="6" height="4" fill="#9a7a5a" />
+          <rect x="2" y="6" width="196" height="9" fill="#5fae3c" />
+          <rect x="2" y="4" width="196" height="4" fill="#8fd16a" />
+          <rect x="4" y="15" width="192" height="3" fill="#3f8a2e" />
+          {Array.from({ length: 24 }, (_, i) => <rect key={i} x={6 + i * 8} y={15 + (i % 3)} width="4" height={3 + (i % 2) * 2} fill="#3f8a2e" />)}
+        </svg>
+        <img src={`${IMG}ui/grass_basic_01.png`} alt="" className="isl-tuft t1" /><img src={`${IMG}ui/grass_basic_02.png`} alt="" className="isl-tuft t2" />
+        <img src={`${IMG}ui/grass_basic_03.png`} alt="" className="isl-tuft t3" /><img src={`${IMG}veg/flower.png`} alt="" className="isl-tuft t4" />
+        <div className="isl-top">{children}</div>
+      </div>
+    </div>
+  );
+}
