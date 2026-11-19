@@ -3,6 +3,7 @@ import { footLiftFor, pickIdle, pickWalk } from '../../lib/petClips';
 import AfterschoolSettings from '../../components/AfterschoolSettings';
 import { withPersonality } from '../../lib/npcPersonality';
 import { MenuItems, openMainMenu } from '../../lib/mainMenu';
+import { CreaturemonGoOverlay, CreaturemonWilds, useCreaturemonActive, type GoWild } from '../../games/creaturemon/Go';
 import GroundPatchMesh from './GroundPatchMesh';
 import { Canvas, useFrame, useThree, type ThreeEvent } from '@react-three/fiber';
 import { useGLTF, Html, useTexture, useAnimations, Line, Text, PerformanceMonitor } from '@react-three/drei';
@@ -3380,6 +3381,10 @@ export default function TownSquare() {
   const regionName = regionAt(regions, playerPos.x, playerPos.z);
   const playerPosRef = useRef(playerPos);
   playerPosRef.current = playerPos;
+  // Creaturemon, Pokemon GO style (Build Queue 715): turned on from the Computer app, wild creatures appear around the
+  // student here and the view gets a Creaturemon border.
+  const creaturemonOn = useCreaturemonActive();
+  const creaturemonWilds = useRef<GoWild[]>([]);
   // Home lots (2026-10-10): every student's lot in the Neighborhood, the lock rules for walking,
   // and the mailbox / house card.
   // Lots placed by hand in Build Mode first, then the automatic Neighborhood for anyone not placed.
@@ -4980,6 +4985,7 @@ export default function TownSquare() {
         { id: 'mystuff', icon: '🎒', label: showInventory ? 'Close My Stuff' : 'My Stuff', bg: '#6b5b8a', order: 25, onSelect: () => setShowInventory((v) => !v) },
         { id: 'compass', icon: '🧭', label: showCompass ? 'Hide Compass' : 'Compass', bg: '#2f8f6b', order: 26, onSelect: () => setShowCompass((v) => !v) },
       ]} />
+      {creaturemonOn && <CreaturemonGoOverlay playerPosRef={playerPosRef} wildsRef={creaturemonWilds} />}
       {showInventory && <InventoryHotbar student={student} onClose={() => setShowInventory(false)} />}
       {showCompass && <CompassWidget onClose={() => setShowCompass(false)} />}
       {customRoleLink && (
@@ -5129,6 +5135,7 @@ export default function TownSquare() {
             except stray-object fade — only the always-on default. */}
         <ambientLight intensity={0.75} />
         <directionalLight position={[10, 14, 8]} intensity={1.3} castShadow />
+        {creaturemonOn && <CreaturemonWilds playerPosRef={playerPosRef} wildsRef={creaturemonWilds} clamp={(x, z) => blockBuildings(clampGroundX(x), clampGroundZ(z))} />}
         <Suspense fallback={null}>
           <SkyboxBackground skyColor={skyColor} />
           {prevSkyPath && <SkyDome key={`sky-prev-${skyStep}`} path={prevSkyPath} />}
