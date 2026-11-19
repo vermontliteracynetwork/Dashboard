@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-rocket-chickens-computers",
+    date: "2026-11-19",
+    icon: "🐔",
+    title: "Rocket Chickens on computers, and longer flights",
+    body: "On a computer, move the mouse to aim and click to fire. In the air, hold the mouse button above the chicken to fly up, or below it to dive. The arrow keys and Space work too. And no more stopping at 7 miles: fly as far as you can!",
+  },
+  {
     id: "2026-11-19-creaturemon",
     date: "2026-11-19",
     icon: "🐉",
