@@ -444,3 +444,4 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
 
 /* 767: the third choice opens the chat box for the student's own words */
 .gbx-choices .gbx-own { background: #f3efff; border-style: dashed; }
+.gbx-teacher { background: #fff3cd; color: #6b4a00; border: 1px solid #e0b84a; border-radius: 999px; padding: 4px 10px; font-weight: 800; font-size: 0.85rem; }

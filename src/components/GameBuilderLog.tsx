@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
-import { useAllBuildRequests, useAllProjects, type Specificity } from '../lib/gameBuilder/store';
+import { saveProject, useAllBuildRequests, useAllProjects, type Specificity } from '../lib/gameBuilder/store';
+import { applyAnswer, askAzalea, fixOps, problems } from '../lib/gameBuilder/azalea';
+import { setTeacherEdit, withLog } from '../lib/gameBuilder/devlog';
+import { Editor } from '../routes/student/GameBuilder';
 import { Player } from '../routes/student/GameBuilderPlayer';
 import DevLogView from '../routes/student/GameBuilderDevLog';
 import type { GameProject } from '../lib/gameBuilder/model';
@@ -21,6 +24,33 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
   const [view, setView] = useState<'requests' | 'projects'>('requests');
   const [playing, setPlaying] = useState<GameProject | null>(null);
   const [logOf, setLogOf] = useState<(GameProject & { studentId: string }) | null>(null);
+  // Build Queue 768 (her words: "for game builder, give me on the teacher side the way to fix and edit all projects in
+  // an overhaul manner"): open any project in the full editor, or pick many and fix or change them all at once, with
+  // an Undo for the last batch.
+  const [editing, setEditing] = useState<(GameProject & { studentId: string }) | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [change, setChange] = useState('');
+  const [working, setWorking] = useState('');
+  const [undo, setUndo] = useState<(GameProject & { studentId: string })[] | null>(null);
+  const keyOf = (p: { studentId: string; id: string }) => `${p.studentId}:${p.id}`;
+  const bulk = async (label: string, f: (p: GameProject) => Promise<{ next: GameProject; note: string }>) => {
+    const list = projects.filter((p) => picked.has(keyOf(p)));
+    if (!list.length) return;
+    setUndo(list); setTeacherEdit(true);
+    let n = 0; const notes: string[] = [];
+    try {
+      for (const p of list) {
+        setWorking(`${label}: ${++n} of ${list.length}`);
+        const { next, note } = await f(p);
+        if (next !== p) saveProject(p.studentId, withLog(next, [{ kind: 'change', by: 'azalea', text: `${label}: ${note}` }]));
+        notes.push(`${nameFor(p.studentId)}, ${p.name}: ${note}`);
+      }
+    } finally { setTeacherEdit(false); }
+    setWorking(`Done. ${notes.join(' | ')}`);
+  };
+  const fixAll = () => bulk('Fixed by the teacher', async (p) => { const fx = fixOps(p); if (!fx.ops.length) return { next: p, note: 'nothing to fix' }; return { next: applyAnswer(p, { ops: fx.ops, design: {}, next_step: '', code: '' }), note: fx.changes.join('; ') }; });
+  const changeAll = () => { const said = change.trim(); if (!said) return; void bulk(`Teacher change "${said}"`, async (p) => { const a = await askAzalea(p, said, 0); const did = a.changes.length > 0 || a.ops.length > 0 || !!a.code; return { next: did ? { ...applyAnswer(p, { ...a, next_step: '' }), azNote: p.azNote } : p, note: did ? (a.changes.join('; ') || 'changed') : `not changed (${a.reply})` }; }); };
+  const undoAll = () => { if (!undo) return; undo.forEach((p) => saveProject(p.studentId, p)); setUndo(null); setWorking(`Undid the last change on ${undo.length} project${undo.length === 1 ? '' : 's'}.`); };
   const [who, setWho] = useState('');
   const [spec, setSpec] = useState<'' | Specificity>('');
   const [from, setFrom] = useState('');
@@ -53,11 +83,20 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
         <div className="az-log-tabs" role="tablist"><button type="button" role="tab" aria-selected={false} onClick={() => setView('requests')}>Requests</button><button type="button" role="tab" aria-selected className="on">Projects</button></div>
         <label>Student <select value={who} onChange={(e) => setWho(e.target.value)}><option value="">All students</option>{[...new Set(projects.map((p) => p.studentId))].map((s) => <option key={s} value={s}>{nameFor(s)}</option>)}</select></label>
       </div>
+      <div className="gbl-bar gbl-bulk" aria-label="Change many projects at once">
+        <b>{picked.size} picked</b>
+        <button type="button" className="btn btn-sm" disabled={!picked.size || !!working && !working.startsWith('Done') && !working.startsWith('Undid')} onClick={() => void fixAll()} title="Azalea's game check fixes what she can in each picked game: empty rules, no way to win, a score or timer rule set to 0, a free upgrade, a jump too low">Fix problems</button>
+        <input value={change} onChange={(e) => setChange(e.target.value)} placeholder='One change for every picked game, like "make the enemy speed 3"' onKeyDown={(e) => { if (e.key === 'Enter') changeAll(); }} style={{ minWidth: 320 }} />
+        <button type="button" className="btn btn-sm" disabled={!picked.size || !change.trim()} onClick={changeAll} title="Azalea makes this change in every picked game, the same way she does when a student asks">Apply to picked</button>
+        <button type="button" className="btn btn-sm" disabled={!undo} onClick={undoAll} title="Put the picked games back the way they were before the last Fix or Apply">Undo last</button>
+        {working && <small className="gbl-working" role="status">{working}</small>}
+      </div>
       {!projects.length ? <p className="gbl-empty">No projects yet.</p> : (
         <table className="gbl-table">
-          <thead><tr><th>Student</th><th>Project</th><th>Idea and how you win</th><th>Step</th><th title="Rules made of blocks">Rules</th><th title="Sprites the student drew">Drawn sprites</th><th>Play tests</th><th title="Changes to rules, design or assets made after play testing (from the dev log)">Changes after testing</th><th>Saved</th><th /></tr></thead>
+          <thead><tr><th><input type="checkbox" aria-label="Pick every project" checked={picked.size > 0 && projects.filter((p) => !who || p.studentId === who).every((p) => picked.has(keyOf(p)))} onChange={(e) => setPicked(e.target.checked ? new Set(projects.filter((p) => !who || p.studentId === who).map(keyOf)) : new Set())} /></th><th>Student</th><th>Project</th><th>Idea and how you win</th><th>Step</th><th title="Rules made of blocks">Rules</th><th title="Sprites the student drew">Drawn sprites</th><th>Play tests</th><th title="Changes to rules, design or assets made after play testing (from the dev log)">Changes after testing</th><th title="What would stop the game from working, found by Azalea's game check">Problems</th><th>Saved</th><th /></tr></thead>
           <tbody>{projects.filter((p) => !who || p.studentId === who).map((p) => (
             <tr key={`${p.studentId}-${p.id}`}>
+              <td><input type="checkbox" aria-label={`Pick ${p.name}`} checked={picked.has(keyOf(p))} onChange={(e) => setPicked((s) => { const n = new Set(s); if (e.target.checked) n.add(keyOf(p)); else n.delete(keyOf(p)); return n; })} /></td>
               <td><b>{nameFor(p.studentId)}</b></td>
               <td>{p.name}<br /><small>{KIND_INFO[p.kind]?.label}{p.design.style ? ` · ${p.design.style === 'lowpoly' ? 'Low poly' : p.design.style === 'pixel' ? 'Pixel' : 'Classic'} art` : ''}</small></td>
               <td>{p.design.idea || <small>No idea saved yet</small>}{p.design.goal && <><br /><small>Win: {p.design.goal}</small></>}</td>
@@ -65,13 +104,15 @@ export default function GameBuilderLog({ nameFor }: { nameFor: (id: string) => s
               <td>{p.kind === 'custom' ? <small>{p.code ? 'Written by Azalea' : 'None yet'}</small> : p.rules.length}</td>
               <td>{Object.keys(p.design.sprites ?? {}).length}</td>
               <td>{p.plays}</td><td>{(p.devlog ?? []).filter((e) => e.text.includes('(after play testing)')).length}</td>
+              <td>{(() => { const pr = problems(p); return pr.length ? <small title={pr.join('\n')}>{pr.length}: {pr[0]}</small> : <small>None</small>; })()}</td>
               <td><small>{new Date(p.updatedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</small></td>
-              <td><button type="button" className="btn btn-sm" onClick={() => setPlaying(p)}>Play</button> <button type="button" className="btn btn-sm" onClick={() => setLogOf(p)}>Dev log ({(p.devlog ?? []).length})</button></td>
+              <td><button type="button" className="btn btn-sm" onClick={() => setEditing(p)} title="Open this game in the full Game Builder editor. Your changes save to the student's game.">Edit</button> <button type="button" className="btn btn-sm" onClick={() => setPlaying(p)}>Play</button> <button type="button" className="btn btn-sm" onClick={() => setLogOf(p)}>Dev log ({(p.devlog ?? []).length})</button></td>
             </tr>
           ))}</tbody>
         </table>
       )}
       {playing && <Player p={playing} onClose={() => setPlaying(null)} />}
+      {editing && <div className="gbl-edit"><Editor key={keyOf(editing)} initial={editing} studentId={editing.studentId} tts={undefined} teacher onClose={() => setEditing(null)} /></div>}
       {logOf && <DevLogView p={logOf} who={nameFor(logOf.studentId)} onClose={() => setLogOf(null)} />}
     </section>
   );

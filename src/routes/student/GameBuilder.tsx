@@ -15,7 +15,7 @@ import { OWN_WORDS, applyAnswer, askAzalea, problems } from '../../lib/gameBuild
 import type { Task } from '../../lib/gameBuilder/checklist';
 import { createWorkspace, loadRules, readRules, SB, setExtraSounds, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
 import DevLogView from './GameBuilderDevLog';
-import { diffLog, withLog } from '../../lib/gameBuilder/devlog';
+import { diffLog, setTeacherEdit, withLog } from '../../lib/gameBuilder/devlog';
 import ArtPanel, { Preview } from './GameBuilderArt';
 import SoundPanel from './GameBuilderSound';
 import { LivePreview, Player } from './GameBuilderPlayer';
@@ -183,7 +183,9 @@ function ideasFor(p: GameProject): Idea[] {
   ];
 }
 
-function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
+export function Editor({ initial, studentId, tts, onClose, teacher = false }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void; teacher?: boolean }) {
+  // 768: the teacher can open any student's game here and fix or change anything; her edits save to the student's game.
+  useEffect(() => { setTeacherEdit(teacher); return () => setTeacherEdit(false); }, [teacher]);
   // 700: an older Custom game (made when Azalea had to write the code) opens as a blank game built with blocks.
   const [p, setP] = useState<GameProject>(() => (initial.kind === 'custom' && !initial.code ? { ...initial, kind: 'platformer', rules: [], design: { ...initial.design, blank: true } } : initial));
   const [playing, setPlayingRaw] = useState(false);
@@ -298,7 +300,8 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   return (
     <div className="gbx gbx-editor">
       <header className="gbx-top gbx-top-slim">
-        <button type="button" className="gbx-btn" onClick={() => setLeaving(() => onClose)}>My games</button>
+        <button type="button" className="gbx-btn" onClick={() => setLeaving(() => onClose)}>{teacher ? 'Back to projects' : 'My games'}</button>
+        {teacher && <span className="gbx-teacher" title="Your changes save to this student's game. Your messages to Azalea do not count in the student's speech log, and the dev log marks them as teacher edits.">Teacher editing</span>}
         <span className="gbx-saved" aria-live="polite">{savedAt ? 'Saved' : 'Saving...'}</span>
         <h1 className="gbx-name-title">{p.name}</h1>
         <div className="gbx-row gbx-topright">

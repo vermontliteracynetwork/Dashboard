@@ -9,10 +9,14 @@ export type DevKind = 'request' | 'change' | 'rule' | 'design' | 'art' | 'sound'
 export interface DevEntry { at: string; kind: DevKind; by: 'student' | 'azalea'; text: string }
 const KEEP = 3000; // 693: the first requests are the speech goal baseline, so keep a long history
 
+// Build Queue 768: while the teacher is editing a student's game, the dev log says so on every line.
+let teacherEdit = false;
+export const setTeacherEdit = (on: boolean) => { teacherEdit = on; };
+export const isTeacherEdit = () => teacherEdit;
 export function withLog(q: GameProject, entries: Omit<DevEntry, 'at'>[]): GameProject {
   if (!entries.length) return q;
   const at = new Date().toISOString();
-  return { ...q, devlog: [...(q.devlog ?? []), ...entries.map((e) => ({ ...e, at }))].slice(-KEEP) };
+  return { ...q, devlog: [...(q.devlog ?? []), ...entries.map((e) => ({ ...e, text: teacherEdit ? `Teacher edit: ${e.text}` : e.text, at }))].slice(-KEEP) };
 }
 
 const HERO = (id: string) => id;

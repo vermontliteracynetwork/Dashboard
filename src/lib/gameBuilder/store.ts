@@ -1,3 +1,4 @@
+import { isTeacherEdit } from './devlog';
 import { useStore } from '../../store/store';
 import type { BuildStep, GameKind, GameProject } from './model';
 
@@ -62,6 +63,7 @@ const reqItems = (sid: string): BuildRequest[] => {
 
 export function logRequest(studentId: string, r: Omit<BuildRequest, 'id' | 'at' | 'words'>): BuildRequest {
   const item: BuildRequest = { ...r, id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, at: new Date().toISOString(), words: r.said.trim().split(/\s+/).filter(Boolean).length };
+  if (isTeacherEdit()) return item; // 768: the teacher's own messages never count toward a student's speech goal log
   const prev = reqItems(studentId).map((x) => (x.id === r.revisionOf ? { ...x, revisedLater: true } : x));
   if (studentId) useStore.getState().mergeStyleRow(reqOwner(studentId), { items: [item, ...prev].slice(0, KEEP_REQUESTS) });
   return item;
