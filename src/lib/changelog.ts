@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-word-explorer-verb-forms",
+    date: "2026-11-19",
+    icon: "🔤",
+    title: "Word Explorer: the right past for every verb",
+    body: "In Literacy Manipulatives on the Computer, Word Explorer now shows the real past of every verb: teach is taught, sting is stung and forgive is forgave. Silly Stories and the word pickers use the same forms.",
+  },
+  {
     id: "2026-11-19-creaturemon-tilting-island",
     date: "2026-11-19",
     icon: "🏝️",
