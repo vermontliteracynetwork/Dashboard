@@ -30,13 +30,6 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "In the Creaturemon app, tap Battle a friend. Make a battle and tell your friend the 4 number code, or tap Join a battle and type their code. Pick your creature (or up to 3 for a team battle), then both of you pick a move each round. You can also do team battles against the computer: your creatures battle one at a time, and the next one jumps in when one taps out.",
   },
   {
-    id: "2026-11-19-play-mode-done",
-    date: "2026-11-19",
-    icon: "▶️",
-    title: "Play mode when you are done",
-    body: "Finished all your work for today and saved your streak? Now you can switch any game to Play mode, even during school time.",
-  },
-  {
     id: "2026-11-19-creaturemon-abilities",
     date: "2026-11-19",
     icon: "🐉",
