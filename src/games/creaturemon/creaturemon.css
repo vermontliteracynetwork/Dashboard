@@ -226,3 +226,26 @@
 .cm-zen-ring { width: 300px; height: 300px; border-radius: 50%; border: 8px solid rgba(255,255,255,0.8); box-shadow: 0 0 40px rgba(255,255,255,0.4); transition-property: transform; transition-timing-function: ease-in-out; transform: scale(0.55); }
 .cm-zen-ring.in { transform: scale(1); }
 .cm-zen-word { font-size: 1.8rem; }
+
+/* battle a friend with a join code, and team battles (735) */
+.cmv-note { margin: 0; padding: 8px 14px; background: #fff3cd; font-weight: 800; text-align: center; }
+.cmv-menu { flex: 1; display: flex; gap: 16px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 20px; }
+.cmv-big { width: 250px; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; border-radius: 22px; border: 5px solid #111; background: #3a4fb0; color: #fff; cursor: pointer; font: inherit; box-shadow: 0 6px 0 rgba(0,0,0,0.3); }
+.cmv-big.join { background: #2aa198; }
+.cmv-big img { width: 48px; height: 48px; image-rendering: pixelated; }
+.cmv-big b { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.4rem; }
+.cmv-big:active { transform: translateY(3px); }
+.cmv-pad { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 16px; }
+.cmv-code { display: flex; gap: 10px; }
+.cmv-code span { width: 70px; height: 86px; border-radius: 14px; background: #fff; display: grid; place-items: center; font: 900 2.6rem system-ui, sans-serif; border: 4px solid #3a4fb0; }
+.cmv-keys { display: grid; grid-template-columns: repeat(3, 96px); gap: 10px; }
+.cmv-key { height: 76px; border-radius: 16px; border: 4px solid #111; background: #fff; font: 900 1.8rem system-ui, sans-serif; cursor: pointer; }
+.cmv-key.del { font-size: 1.1rem; background: #ddd; }
+.cmv-key.go { font-size: 1.2rem; background: #4caf50; color: #fff; }
+.cmv-key:disabled { opacity: 0.4; }
+.cmv-share { width: 100%; display: flex; flex-direction: column; align-items: center; color: #fff; }
+.cmv-share b { font: 900 3.4rem system-ui, sans-serif; letter-spacing: 0.3em; color: #ffd23f; text-shadow: 0 3px 0 #000; }
+.cmv-share b.name { letter-spacing: 0; font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 2.2rem; }
+.cmv-modes { width: 100%; display: flex; gap: 10px; justify-content: center; }
+.cm-mon.pick.on { box-shadow: 0 0 0 4px #ffd23f; }
+.cmb-move.chosen { outline: 5px solid #ffd23f; }

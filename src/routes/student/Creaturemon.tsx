@@ -8,6 +8,7 @@ import { sfx, SfxToggle } from '../../lib/miniSfx';
 import { MyBest } from '../../components/MyBest';
 import { MenuItems } from '../../lib/mainMenu';
 import Battle from '../../games/creaturemon/Battle';
+import Versus from '../../games/creaturemon/Versus';
 import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
 import { AbilityScene, EvoScene, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
 import { ABILITIES, FORMS, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
@@ -25,7 +26,7 @@ export default function Creaturemon() {
   const back = useBack(); const navigate = useNavigate();
   const cm = useCmSave(); const S = cm.S; const team = cm.team; const student = cm.student;
   const { ask, element, pay, settingsPanel, learn } = useAsk('Creaturemon', '🐉', 'creaturemon', { startCard: false, perLabel: 'Questions for each move, orb or training' });
-  const [panel, setPanel] = useState<'' | 'team' | 'cards' | 'train' | 'help' | 'gear' | 'battle'>('');
+  const [panel, setPanel] = useState<'' | 'team' | 'cards' | 'train' | 'help' | 'gear' | 'battle' | 'versus'>('');
   const [cardOpen, setCardOpen] = useState<string | null>(null);
   const [reveal, setReveal] = useState<{ formId: string; isNew: boolean; title: string } | null>(null);
   const [toast, setToast] = useState('');
@@ -62,7 +63,8 @@ export default function Creaturemon() {
   const tiles: { id: string; icon: string; label: string; sub: string; on: () => void; off?: boolean }[] = [
     { id: 'cards', icon: 'card', label: 'My cards', sub: `${S.caught.length} of ${FORMS.length}`, on: () => setPanel('cards') },
     { id: 'team', icon: 'bag', label: 'My team', sub: `${team.length} on the team`, on: () => setPanel('team') },
-    { id: 'battle', icon: 'sword', label: 'Battle', sub: 'Turn based battles', on: () => setPanel('battle'), off: !team.length },
+    { id: 'battle', icon: 'sword', label: 'Battle', sub: 'One creature or a team', on: () => setPanel('battle'), off: !team.length },
+    { id: 'versus', icon: 'unlock', label: 'Battle a friend', sub: 'Make or join with a code', on: () => setPanel('versus'), off: !team.length },
     { id: 'train', icon: 'trophy', label: 'Train', sub: 'Tap berries for XP', on: () => setPanel('train'), off: !team.length },
     { id: 'orbs', icon: 'coin', label: 'Make orbs', sub: `${S.orbs} orbs now`, on: makeOrbs },
     { id: 'help', icon: 'magnifier', label: 'How to play', sub: 'Read or listen', on: () => setPanel('help') },
@@ -112,6 +114,7 @@ export default function Creaturemon() {
       </div>
 
       {panel === 'battle' && <div className="cmb-host"><Battle cm={cm} ask={ask} onClose={() => setPanel('')} /></div>}
+      {panel === 'versus' && <div className="cmb-host"><Versus cm={cm} ask={ask} onClose={() => setPanel('')} /></div>}
 
       {trainRun && (
         <div className="cm-over">

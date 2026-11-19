@@ -82,8 +82,29 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const wait = (ms: number, fn: () => void) => { timer.current = window.setTimeout(fn, cm.calm ? ms * 0.7 : ms); };
   const add = (t: string, read = true) => { setLines((l) => [...l.slice(-2), t]); if (read) say(t); };
 
+  // Team battles (735, her words: "team battles where they would have multiple battles in a row ... (one at a time)"):
+  // up to 3 creatures on each side; when one taps out, the next one comes in.
+  const [teamMode, setTeamMode] = useState(false);
+  const [picks, setPicks] = useState<Mon[]>([]);
+  const myQ = useRef<Mon[]>([]); const foeQ = useRef<{ formId: string; level: number }[]>([]); const used = useRef<Mon[]>([]);
+  const foeAbs = () => (Math.random() < 0.35 ? [rollAbility({})!].filter(Boolean) : []);
+  const mkMe = (m: Mon) => { const fresh = cm.sRef.current.mons.find((x) => x.uid === m.uid) ?? m; used.current.push(fresh); setMine(fresh); return fighter(fresh.formId, fresh.level, displayName(fresh), fresh.abilities ?? []); };
+  const mkFoe = (f: { formId: string; level: number }) => fighter(f.formId, f.level, `${wildFoe ? 'Wild ' : ''}${form(f.formId).name}`, foeAbs());
+  // Someone tapped out: the next creature on that side comes in, or the battle is over.
+  const tapOut = (iLost: boolean, a: F, b: F): boolean => {
+    if (iLost && myQ.current.length) { const n = mkMe(myQ.current.shift()!); setMe(n); add(`${a.name} taps out. High five! Go, ${n.name}!`); wait(1500, () => next(n)); return true; }
+    if (!iLost && foeQ.current.length) { const n = mkFoe(foeQ.current.shift()!); setFoe(n); add(`${b.name} taps out. High five! Here comes ${n.name}!`); wait(1500, () => next(a)); return true; }
+    return false;
+  };
+  const beginTeam = (list: Mon[], foes: { formId: string; level: number }[]) => {
+    used.current = []; myQ.current = list.slice(1); foeQ.current = foes.slice(1);
+    const a = mkMe(list[0]), b = mkFoe(foes[0]);
+    setMe(a); setFoe(b); setPhase('fight'); setStage('choose'); setRound(1); focusRef.current = 0.6; sfx.chime(); dealt.current = 0; taken.current = 0;
+    add(`Team battle! ${list.length} against ${foes.length}. ${a.name} faces ${b.name}! Tap one move for ${a.name}.`);
+  };
   const begin = (m: Mon, f: { formId: string; level: number }) => {
-    const fresh = cm.sRef.current.mons.find((x) => x.uid === m.uid) ?? m;
+    used.current = []; myQ.current = []; foeQ.current = [];
+    const fresh = cm.sRef.current.mons.find((x) => x.uid === m.uid) ?? m; used.current.push(fresh);
     const foeAb = Math.random() < 0.35 ? [rollAbility({})!].filter(Boolean) : [];
     const a = fighter(fresh.formId, fresh.level, displayName(fresh), fresh.abilities ?? []), b = fighter(f.formId, f.level, `${wildFoe ? 'Wild ' : ''}${form(f.formId).name}`, foeAb);
     setMe(a); setFoe(b); setPhase('fight'); setStage('choose'); setRound(1); focusRef.current = 0.6; sfx.chime(); dealt.current = 0; taken.current = 0;
@@ -128,12 +149,13 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const finish = (iWon: boolean, a: F, b: F) => {
     setWon(iWon); setPhase('done'); setShot(null);
     const gain = Math.round(battleXp(b.level, iWon) * (has(a, 'cheerful') ? 1.2 : 1)); setXp(gain);
-    if (mine) {
-      cm.train(mine.uid, gain);
-      cm.stat(mine.uid, (st) => ({ ...st, battles: st.battles + 1, wins: st.wins + (iWon ? 1 : 0), losses: st.losses + (iWon ? 0 : 1), dealt: st.dealt + dealt.current, taken: st.taken + taken.current }));
-      // a win sometimes teaches a new ability (732)
-      if (iWon && Math.random() < 0.3) window.setTimeout(() => cm.learn(mine.uid, 'in battle'), 2500);
-    }
+    const all = used.current.length ? used.current : mine ? [mine] : [];
+    all.forEach((m, i) => {
+      cm.train(m.uid, gain);
+      cm.stat(m.uid, (st) => ({ ...st, battles: st.battles + 1, wins: st.wins + (iWon ? 1 : 0), losses: st.losses + (iWon ? 0 : 1), dealt: st.dealt + (i === all.length - 1 ? dealt.current : 0), taken: st.taken + (i === all.length - 1 ? taken.current : 0) }));
+    });
+    // a win sometimes teaches a new ability (732)
+    const last = all[all.length - 1]; if (iWon && last && Math.random() < 0.3) window.setTimeout(() => cm.learn(last.uid, 'in battle'), 2500);
     cm.put({ wins: cm.sRef.current.wins + (iWon ? 1 : 0), orbs: cm.sRef.current.orbs + (iWon ? 2 : 0) });
     sfx.chime();
     say(iWon ? `${b.name} taps out. ${a.name} wins! High fives! ${a.name} gets ${gain} XP.${wildFoe ? ' It is tired now. Throw an orb!' : ''}` : `${a.name} taps out. ${b.name} wins this time. That is okay, every battle is practice. ${a.name} still gets ${gain} XP.`);
@@ -156,7 +178,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
       setShot(null); setLunge(null);
       const r = doMove({ ...me, guard: false }, foe, m, 'me', focusRef.current);
       setMe(r.a); setFoe(r.d); add(r.text);
-      if (r.d.hp <= 0) { wait(1300, () => finish(true, r.a, r.d)); return; }
+      if (r.d.hp <= 0) { wait(1300, () => { if (!tapOut(false, r.a, r.d)) finish(true, r.a, r.d); }); return; }
       const rested = nap(r.a, 'me'); if (rested !== r.a) setMe(rested);
       wait(1800, () => foeTurn(rested, r.d));
     });
@@ -170,8 +192,8 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
       setShot(null); setLunge(null);
       const r = doMove({ ...b, guard: false }, a, m, 'foe', 0.55);
       setFoe(r.a); setMe(r.d); add(r.text);
-      if (r.d.hp <= 0) { wait(1300, () => finish(false, r.d, r.a)); return; }
-      if (r.a.hp <= 0) { wait(1300, () => finish(true, r.d, r.a)); return; }
+      if (r.d.hp <= 0) { wait(1300, () => { if (!tapOut(true, r.d, r.a)) finish(false, r.d, r.a); }); return; }
+      if (r.a.hp <= 0) { wait(1300, () => { if (!tapOut(false, r.d, r.a)) finish(true, r.d, r.a); }); return; }
       const rested = nap(r.a, 'foe'); if (rested !== r.a) setFoe(rested);
       wait(1800, () => next(r.d));
     });
@@ -180,10 +202,10 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
     setStage('choose'); setRound((x) => x + 1);
     add(`Your turn. Tap one move for ${a.name}.`);
   };
-  const again = () => { setPhase('pick'); setMe(null); setFoe(null); setWon(null); setLines([]); setMine(null); if (!wildFoe) setFoePick(null); };
+  const again = () => { setPhase('pick'); setMe(null); setFoe(null); setWon(null); setLines([]); setMine(null); setPicks([]); if (!wildFoe) setFoePick(null); };
 
   const step = phase === 'pick' ? 1 : phase === 'foe' ? 2 : 3;
-  const doNow = phase === 'pick' ? 'Tap the creature you want to battle with.'
+  const doNow = phase === 'pick' ? (teamMode ? 'Tap up to 3 creatures for your team, then tap Start team battle.' : 'Tap the creature you want to battle with.')
     : phase === 'foe' ? 'Tap Battle under the creature you want to battle. Or tap New opponents.'
     : phase === 'done' ? (won ? (wildFoe ? 'You won! Tap Throw orb to catch it.' : 'You won! Tap Battle again or Done.') : 'Good try! Tap Battle again or Done.')
     : stage === 'choose' ? `Your turn! Tap one move for ${me?.name ?? 'your creature'}.`
@@ -253,12 +275,20 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
       {phase === 'pick' && (
         <div className="cmb-pick">
           {!cm.team.length && <p className="cmb-empty">Catch a creature first! Turn on Creaturemon and walk around Town Square.</p>}
+          {!wildFoe && cm.team.length > 1 && (
+            <div className="cmv-modes" role="radiogroup" aria-label="Battle kind">
+              <button type="button" role="radio" aria-checked={!teamMode} className={`btn btn-lg${!teamMode ? ' btn-primary' : ''}`} onClick={() => { setTeamMode(false); setPicks([]); }}>One creature</button>
+              <button type="button" role="radio" aria-checked={teamMode} className={`btn btn-lg${teamMode ? ' btn-primary' : ''}`} onClick={() => { setTeamMode(true); setPicks([]); }}>Team battle (up to 3)</button>
+            </div>
+          )}
           {cm.team.map((m) => (
-            <button key={m.uid} type="button" className="cm-mon pick" style={{ borderColor: TYPE_COLOR[line(m.formId).type] }} onClick={() => pickMine(m)}>
+            <button key={m.uid} type="button" className={`cm-mon pick${picks.some((p) => p.uid === m.uid) ? ' on' : ''}`} style={{ borderColor: TYPE_COLOR[line(m.formId).type] }}
+              onClick={() => (teamMode ? setPicks((p) => (p.some((x) => x.uid === m.uid) ? p.filter((x) => x.uid !== m.uid) : p.length < 3 ? [...p, m] : p)) : pickMine(m))}>
               <Sprite f={form(m.formId)} px={64} />
-              <div className="cm-mon-txt"><b>{displayName(m)}</b><small>Lv {m.level} · {line(m.formId).type} · {line(m.formId).special.name}</small><XpBar m={m} /></div>
+              <div className="cm-mon-txt"><b>{displayName(m)}{teamMode && picks.some((p) => p.uid === m.uid) ? ` (${picks.findIndex((p) => p.uid === m.uid) + 1})` : ''}</b><small>Lv {m.level} · {line(m.formId).type} · {line(m.formId).special.name}</small><XpBar m={m} /></div>
             </button>
           ))}
+          {teamMode && <button type="button" className="cm-big fight" disabled={!picks.length} onClick={() => { const lv = Math.max(...picks.map((p) => p.level)); beginTeam(picks, Array.from({ length: Math.max(2, picks.length) }, () => foeAt(lv))); }}>Start team battle</button>}
         </div>
       )}
       {phase === 'foe' && (
