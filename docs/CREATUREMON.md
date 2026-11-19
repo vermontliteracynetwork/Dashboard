@@ -95,7 +95,7 @@ Types and what they beat (special moves only; a strong hit does 1.5 times the da
 
 ## Abilities (each creature, up to 3 of its own)
 
-Lazy: naps in battle to get health back. Spiky: anyone who hits it gets poked back. Speedy: dodges more. Brave: hits harder with low hearts. Lucky: sometimes a double hit. Tough: takes less from every hit. Cheerful: more XP. Focused: moves fueled by right answers hit harder. Zen: Guard blocks more (from meditating). Snacky: berries heal more. Learned by winning battles, by every evolution and by meditating.
+Lazy: naps in battle to get health back. Spiky: anyone who hits it gets poked back. Speedy: dodges more. Brave: hits harder with low hearts. Lucky: sometimes a double hit. Tough: takes less from every hit. Cheerful: more XP. Focused: moves fueled by right answers hit harder. Zen: Guard blocks more (from meditating). Snacky: berries heal more. Learned by winning battles, by every evolution and by meditating. Abilities grow with the creature: plain at stage 1, Super at stage 2, Mega at stages 3 and 4 (for example Spiky pokes back 25%, 35%, then 45%). Every creature hits harder with low hearts (20% under half, 45% under a quarter).
 
 ## Art credits
 

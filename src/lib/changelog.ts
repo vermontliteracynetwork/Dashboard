@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-grow",
+    date: "2026-11-19",
+    icon: "🌱",
+    title: "Creaturemon: abilities grow, and comebacks",
+    body: "When your creature evolves, its abilities grow too: Spiky becomes Super Spiky, then Mega Spiky, with longer spikes. Creatures with low hearts now fight back harder, so a battle is never over until it is over. Watch out: computer creatures now try their best to win!",
+  },
+  {
     id: "2026-11-19-creaturemon-friends",
     date: "2026-11-19",
     icon: "🤝",

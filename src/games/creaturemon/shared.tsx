@@ -6,7 +6,7 @@ import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { recordBestGame } from '../../lib/personalBoard';
 import { CreatureCard, Sprite } from './Card';
-import { ABILITIES, FORMS, IMG, displayName, form, freshSave, freshStats, giveXp, rollAbility, uid, xpToNext, type AbilityId, type Mon, type MonStats, type Save } from './data';
+import { ABILITIES, AB_GROW, FORMS, IMG, abName, abTier, displayName, form, freshSave, freshStats, giveXp, rollAbility, uid, xpToNext, type AbilityId, type Mon, type MonStats, type Save } from './data';
 import './creaturemon.css';
 
 export interface CmSave extends Save { active?: boolean }
@@ -52,7 +52,7 @@ export function useCmSave() {
   const [evoQ, setEvoQ] = useState<Evo[]>([]);
   const record = (caught: string[]) => { if (studentId) recordBestGame(studentId, 'creaturemon', caught.length, `${caught.length} of ${FORMS.length} cards`); };
   // A new ability to show (732): "Kindlit learned Lazy!"
-  const [abQ, setAbQ] = useState<{ uid: string; ab: AbilityId; why: string }[]>([]);
+  const [abQ, setAbQ] = useState<{ uid: string; ab: AbilityId; why: string; grew?: number }[]>([]);
   const addMon = (formId: string, level: number, how: MonStats['how'] = 'orb', abilities: AbilityId[] = []): { mon: Mon; isNew: boolean } => {
     // a wild creature sometimes already knows one ability (each individual is different)
     const abs = [...abilities]; if (how === 'orb' && Math.random() < 0.25) { const a = rollAbility({ abilities: abs }); if (a) abs.push(a); }
@@ -80,6 +80,9 @@ export function useCmSave() {
     const st = { ...(m.stats ?? freshStats('orb')), evolutions: (m.stats?.evolutions ?? 0) + 1 };
     put({ mons: s.mons.map((x) => (x.uid === m.uid ? { ...x, formId: e.to, stats: st, abilities: ab ? [...(x.abilities ?? []), ab] : x.abilities } : x)), caught, seen });
     if (ab) setAbQ((q) => [...q, { uid: m.uid, ab, why: 'by evolving' }]);
+    // 738: the abilities it already has grow with it (Super at stage 2, Mega at stage 3)
+    const to = form(e.to).stage;
+    if (abTier(to) > abTier(form(m.formId).stage)) (m.abilities ?? []).forEach((a) => setAbQ((q) => [...q, { uid: m.uid, ab: a, why: 'by evolving', grew: to }]));
     if (isNew) record(caught);
   };
   // Stats for one creature (732), and a chance to learn an ability.
@@ -173,14 +176,16 @@ export function uiSound(name: 'select-1' | 'cursor-1' | 'popup-open-1' | 'popup-
 // "Kindlit learned Lazy!"
 export function AbilityScene({ cm }: { cm: CmApi }) {
   const a = cm.abQ[0]; const m = a ? cm.S.mons.find((x) => x.uid === a.uid) : null;
-  useEffect(() => { if (a && m) speak(`${displayName(m)} learned ${ABILITIES[a.ab].name} ${a.why}! ${ABILITIES[a.ab].how}`, cm.student?.ttsSettings); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [a?.uid, a?.ab]);
+  const title = a && m ? (a.grew ? `${displayName(m)}'s ${ABILITIES[a.ab].name} grew into ${abName(a.ab, a.grew)}!` : `${displayName(m)} learned ${ABILITIES[a.ab].name}!`) : '';
+  const how = a ? (a.grew ? `Now ${AB_GROW[a.ab]}.` : ABILITIES[a.ab].how) : '';
+  useEffect(() => { if (a && m) speak(`${title} ${how}`, cm.student?.ttsSettings); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [a?.uid, a?.ab, a?.grew]);
   if (!a || !m || cm.evoQ.length) return null;
   return (
     <div className="cm-over" onClick={() => cm.popAb()}>
       <div className="cm-reveal">
-        <h2>{displayName(m)} learned {ABILITIES[a.ab].name}!</h2>
-        <div className="cm-ab-stage"><Fx name={ABILITIES[a.ab].fx} size={220} loop /><Sprite f={form(m.formId)} px={110} anim="move" /></div>
-        <p className="cm-ab-how">{ABILITIES[a.ab].how} <small>(learned {a.why})</small></p>
+        <h2>{title}</h2>
+        <div className="cm-ab-stage"><Fx name={ABILITIES[a.ab].fx} size={a.grew ? 280 : 220} loop /><Sprite f={form(m.formId)} px={a.grew ? 140 : 110} anim="move" /></div>
+        <p className="cm-ab-how">{how} <small>({a.grew ? 'grew' : 'learned'} {a.why})</small></p>
         <button type="button" className="btn btn-primary btn-lg" onClick={() => cm.popAb()}>Cool!</button>
       </div>
     </div>

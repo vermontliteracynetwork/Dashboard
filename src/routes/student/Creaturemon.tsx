@@ -11,7 +11,7 @@ import Battle from '../../games/creaturemon/Battle';
 import Versus from '../../games/creaturemon/Versus';
 import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
 import { AbilityScene, EvoScene, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
-import { ABILITIES, FORMS, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
+import { ABILITIES, FORMS, abName, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
 
 // Creaturemon on the Computer (Build Queue 710 to 712, then 725 to 730, 2026-11-19). Her 725 words: "instead of
 // creating a new world, lets have it so the creaturemon is like a pokemon go style game ... if they've clicked on the
@@ -263,7 +263,8 @@ function CardView({ f, onClose, tts, level }: { f: Form; onClose: () => void; tt
 function Abilities({ m }: { m: Mon }) {
   const abs = m.abilities ?? [];
   if (!abs.length) return <small className="cm-note" style={{ margin: 0 }}>No abilities yet (up to 3)</small>;
-  return <span className="cm-abs">{abs.map((a) => <span key={a} className="cm-ab" title={ABILITIES[a].how}>{ABILITIES[a].name}</span>)}</span>;
+  const st = form(m.formId).stage;
+  return <span className="cm-abs">{abs.map((a) => <span key={a} className="cm-ab" title={`${ABILITIES[a].how} It grows stronger when ${displayName(m)} evolves.`}>{abName(a, st)}</span>)}</span>;
 }
 // Her "stats should be kept track of for each individual" (732).
 function MonStatsLine({ m }: { m: Mon }) {

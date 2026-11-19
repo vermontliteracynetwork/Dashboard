@@ -10,7 +10,7 @@ import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { CreatureCard, Sprite } from './Card';
 import { Fx, XpBar, uiSound, type CmApi } from './shared';
-import { ABILITIES, IMG, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, rollAbility, statsAt, typeMult, type AbilityId, type CType, type Mon } from './data';
+import { ABILITIES, IMG, abName, abv, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, rollAbility, statsAt, typeMult, type AbilityId, type CType, type Mon } from './data';
 
 type MoveId = 'tackle' | 'special' | 'guard' | 'berry';
 interface F { name: string; formId: string; level: number; type: CType; hp: number; max: number; atk: number; def: number; guard: boolean; berry: boolean; abs: AbilityId[] }
@@ -20,6 +20,7 @@ const fighter = (formId: string, level: number, name: string, abs: AbilityId[] =
   return { name, formId, level, type: line(formId).type, hp: max, max, atk: s.atk, def: s.def, guard: false, berry: true, abs };
 };
 const has = (f: F, a: AbilityId) => f.abs.includes(a);
+const stg = (f: F) => form(f.formId).stage;
 const fxOf = (t: CType) => t.toLowerCase();
 // Her battle song (733): "cinematic battle song" by theojt (Freesound).
 const SONG = `${IMG}battle-song.mp3`;
@@ -108,7 +109,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
     const foeAb = Math.random() < 0.35 ? [rollAbility({})!].filter(Boolean) : [];
     const a = fighter(fresh.formId, fresh.level, displayName(fresh), fresh.abilities ?? []), b = fighter(f.formId, f.level, `${wildFoe ? 'Wild ' : ''}${form(f.formId).name}`, foeAb);
     setMe(a); setFoe(b); setPhase('fight'); setStage('choose'); setRound(1); focusRef.current = 0.6; sfx.chime(); dealt.current = 0; taken.current = 0;
-    const abWords = a.abs.length ? ` ${a.name} is ${a.abs.map((x) => ABILITIES[x].name).join(' and ')}.` : '';
+    const abWords = a.abs.length ? ` ${a.name} is ${a.abs.map((x) => abName(x, stg(a))).join(' and ')}.` : '';
     add(`${a.name} faces ${b.name}!${abWords} Round 1. Tap one move for ${a.name}.`);
   };
   const pickMine = (m: Mon) => { setMine(m); uiSound('cursor-1'); if (foePick) begin(m, foePick); else setPhase('foe'); };
@@ -119,36 +120,40 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const doMove = (a: F, d: F, m: MoveId, side: 'me' | 'foe', foc: number): { a: F; d: F; text: string } => {
     const other = side === 'me' ? 'foe' : 'me';
     if (m === 'guard') { sfx.tick(); showGlow(side, 'guard'); return { a: { ...a, guard: true, hp: Math.min(a.max, a.hp + Math.round(a.max * 0.06)) }, d, text: `${a.name} uses Guard! It gets ready to block.` }; }
-    if (m === 'berry') { sfx.coin(); showGlow(side, 'heal'); return { a: { ...a, berry: false, hp: Math.min(a.max, a.hp + Math.round(a.max * (has(a, 'snacky') ? 0.55 : 0.4))) }, d, text: `${a.name} eats a berry and gets health back!${has(a, 'snacky') ? ' Snacky: extra health!' : ''}` }; }
+    if (m === 'berry') { sfx.coin(); showGlow(side, 'heal'); return { a: { ...a, berry: false, hp: Math.min(a.max, a.hp + Math.round(a.max * (has(a, 'snacky') ? abv('snacky', stg(a)) : 0.4))) }, d, text: `${a.name} eats a berry and gets health back!${has(a, 'snacky') ? ' Snacky: extra health!' : ''}` }; }
     const special = m === 'special';
-    const miss = Math.random() > (special ? 0.88 : 0.96) - (has(d, 'speedy') ? 0.08 : 0);
+    const miss = Math.random() > (special ? 0.88 : 0.96) - (has(d, 'speedy') ? abv('speedy', stg(d)) : 0);
     setFx({ side: other, hit: !miss, type: a.type, name: special ? fxOf(a.type) : 'stone' }); window.setTimeout(() => setFx(null), 1000);
     if (miss) { sfx.boing(); return { a, d: { ...d, guard: false }, text: `${a.name} uses ${moveName(a, m)}, but ${d.name} dodges!${has(d, 'speedy') ? ' So speedy!' : ''}` }; }
     const mult = special ? typeMult(a.type, d.type) : 1;
     let dmg = (special ? 1.45 : 1) * a.atk * mult * (0.75 + 0.5 * foc) * (9 / (d.def + 9)) * (0.85 + Math.random() * 0.3) * 1.3;
     const notes: string[] = [];
-    if (has(a, 'brave') && a.hp < a.max / 2) { dmg *= 1.3; notes.push(`${a.name} is Brave!`); }
-    if (has(a, 'focused') && foc >= 1) dmg *= 1.15;
-    if (has(d, 'tough')) dmg *= 0.85;
-    if (d.guard) dmg *= has(d, 'zen') ? 0.3 : 0.45;
+    if (has(a, 'brave') && a.hp < a.max / 2) { dmg *= abv('brave', stg(a)); notes.push(`${a.name} is ${abName('brave', stg(a))}!`); }
+    // Build Queue 737: every creature hits harder as its hearts run low (20% under half, 45% under a quarter).
+    const low = a.hp < a.max * 0.25 ? 1.45 : a.hp < a.max * 0.5 ? 1.2 : 1;
+    if (low > 1) notes.push(`${a.name} fights back harder!`);
+    dmg *= low;
+    if (has(a, 'focused') && foc >= 1) dmg *= abv('focused', stg(a));
+    if (has(d, 'tough')) dmg *= abv('tough', stg(d));
+    if (d.guard) dmg *= has(d, 'zen') ? abv('zen', stg(d)) : 0.45;
     let n = Math.max(1, Math.round(dmg));
-    if (has(a, 'lucky') && Math.random() < 0.15) { n *= 2; notes.push('A lucky double hit!'); }
+    if (has(a, 'lucky') && Math.random() < abv('lucky', stg(a))) { n *= 2; notes.push('A lucky double hit!'); }
     sfx.bonk();
     const extra = mult > 1 ? ' It is super strong!' : mult < 1 ? ' It is not very strong.' : '';
     let na = a;
-    if (has(d, 'spiky')) { const poke = Math.max(1, Math.ceil(n * 0.25)); na = { ...a, hp: Math.max(1, a.hp - poke) }; notes.push(`Ouch, Spiky! ${a.name} gets poked and loses ${poke}.`); window.setTimeout(() => showGlow(side, 'stone'), 400); if (side === 'me') taken.current += poke; else dealt.current += poke; }
+    if (has(d, 'spiky')) { const poke = Math.max(1, Math.ceil(n * abv('spiky', stg(d)))); na = { ...a, hp: Math.max(1, a.hp - poke) }; notes.push(`Ouch, ${abName('spiky', stg(d))}! ${a.name} gets poked and loses ${poke}.`); window.setTimeout(() => showGlow(side, 'stone'), 400); if (side === 'me') taken.current += poke; else dealt.current += poke; }
     if (side === 'me') dealt.current += n; else taken.current += n;
     return { a: na, d: { ...d, hp: Math.max(0, d.hp - n), guard: false }, text: `${a.name} uses ${moveName(a, m)}!${extra} ${d.name} loses ${n} health.${notes.length ? ` ${notes.join(' ')}` : ''}` };
   };
   // Lazy (732): after its move, a tired creature sometimes takes a nap and gets health back.
   const nap = (f: F, side: 'me' | 'foe'): F => {
-    if (!has(f, 'lazy') || f.hp >= f.max * 0.6 || f.hp <= 0 || Math.random() > 0.35) return f;
-    showGlow(side, 'heal'); add(`${f.name} is Lazy and takes a quick nap. Zzz. It gets health back!`, true);
-    return { ...f, hp: Math.min(f.max, f.hp + Math.round(f.max * 0.15)) };
+    if (!has(f, 'lazy') || f.hp >= f.max * 0.6 || f.hp <= 0 || Math.random() > abv('lazyChance', stg(f))) return f;
+    showGlow(side, 'heal'); add(`${f.name} is ${abName('lazy', stg(f))} and takes a quick nap. Zzz. It gets health back!`, true);
+    return { ...f, hp: Math.min(f.max, f.hp + Math.round(f.max * abv('lazyHeal', stg(f)))) };
   };
   const finish = (iWon: boolean, a: F, b: F) => {
     setWon(iWon); setPhase('done'); setShot(null);
-    const gain = Math.round(battleXp(b.level, iWon) * (has(a, 'cheerful') ? 1.2 : 1)); setXp(gain);
+    const gain = Math.round(battleXp(b.level, iWon) * (has(a, 'cheerful') ? abv('cheerful', stg(a)) : 1)); setXp(gain);
     const all = used.current.length ? used.current : mine ? [mine] : [];
     all.forEach((m, i) => {
       cm.train(m.uid, gain);
@@ -185,12 +190,18 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   };
   const foeTurn = (a: F, b: F) => {
     setStage('theirs');
-    const strong = typeMult(b.type, a.type) > 1;
-    const m: MoveId = b.hp < b.max * 0.35 && b.berry && Math.random() < 0.5 ? 'berry' : Math.random() < 0.12 ? 'guard' : strong || Math.random() < 0.5 ? 'special' : 'tackle';
+    // Build Queue 737 (her words: "the goal for the npc creaturemons should be to defeat the player"): the computer
+    // creature plays to win: its strongest move (the special move unless that is weak against you), a berry when it is
+    // low, a Guard when your creature is about to finish it, and it always moves at good power.
+    const tm = typeMult(b.type, a.type);
+    const myHit = a.atk * 1.45 * typeMult(a.type, b.type) * (9 / (b.def + 9)) * 1.3;
+    const m: MoveId = b.hp < b.max * 0.4 && b.berry ? 'berry'
+      : b.hp <= myHit && !b.guard && Math.random() < 0.45 ? 'guard'
+      : tm >= 1 ? (Math.random() < 0.85 ? 'special' : 'tackle') : 'tackle';
     if (m === 'special') fire('foe', b.type); if (m === 'tackle') setLunge('foe');
     wait(m === 'special' ? 900 : 500, () => {
       setShot(null); setLunge(null);
-      const r = doMove({ ...b, guard: false }, a, m, 'foe', 0.55);
+      const r = doMove({ ...b, guard: false }, a, m, 'foe', 0.85);
       setFoe(r.a); setMe(r.d); add(r.text);
       if (r.d.hp <= 0) { wait(1300, () => { if (!tapOut(true, r.d, r.a)) finish(false, r.d, r.a); }); return; }
       if (r.a.hp <= 0) { wait(1300, () => { if (!tapOut(false, r.d, r.a)) finish(true, r.d, r.a); }); return; }
@@ -224,7 +235,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
     return (
       <div className={`cmb-meter ${s}`} style={{ borderColor: TYPE_COLOR[f.type] }} aria-label={`${f.name}: ${f.hp} of ${f.max} health`}>
         <b>{f.name}</b><small>Lv {f.level} · {f.type}{f.guard ? ' · guarding' : ''}</small>
-        {f.abs.length > 0 && <span className="cm-abs">{f.abs.map((x) => <span key={x} className="cm-ab" title={ABILITIES[x].how}>{ABILITIES[x].name}</span>)}</span>}
+        {f.abs.length > 0 && <span className="cm-abs">{f.abs.map((x) => <span key={x} className="cm-ab" title={ABILITIES[x].how}>{abName(x, stg(f))}</span>)}</span>}
         <div className={`cmb-hearts${hitNow ? ' hit' : ''}`}>
           {Array.from({ length: hearts }, (_, i) => {
             const left = Math.max(0, Math.min(1, (f.hp - i * per) / per)); const q = Math.ceil(left * 4); // 0 to 4 quarters

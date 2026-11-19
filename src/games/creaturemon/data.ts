@@ -52,6 +52,22 @@ export const ABILITIES: Record<AbilityId, { name: string; how: string; fx: strin
   snacky: { name: 'Snacky', how: 'Berry snacks give back more health.', fx: 'heal' },
 };
 export const MAX_ABILITIES = 3;
+// Build Queue 738 (her words: "abilities should evolve with the creaturemon, doing things like expanding reach or
+// increasing size in future evolutions"): every ability grows with the creature. Stage 1 is the plain ability, stage 2
+// makes it Super, stage 3 and 4 make it Mega, each one stronger.
+export const abTier = (stage: number): 1 | 2 | 3 => (stage >= 3 ? 3 : stage === 2 ? 2 : 1);
+export const abName = (a: AbilityId, stage: number) => `${['', '', 'Super ', 'Mega '][abTier(stage)]}${ABILITIES[a].name}`;
+export const AB_GROW: Record<AbilityId, string> = {
+  lazy: 'its naps get longer and heal more', spiky: 'its spikes grow longer and reach farther', speedy: 'it gets even quicker',
+  brave: 'its courage grows bigger', lucky: 'it gets lucky more often', tough: 'its body grows bigger and tougher',
+  cheerful: 'it gets even more XP', focused: 'right answers power it up even more', zen: 'its Guard blocks even more', snacky: 'its berries heal even more',
+};
+// The numbers for each tier: [stage 1, stage 2, stage 3+].
+const AB_NUM: Record<string, [number, number, number]> = {
+  lazyHeal: [0.15, 0.22, 0.3], lazyChance: [0.35, 0.45, 0.55], spiky: [0.25, 0.35, 0.45], speedy: [0.08, 0.12, 0.16], brave: [1.3, 1.45, 1.6],
+  lucky: [0.15, 0.2, 0.25], tough: [0.85, 0.78, 0.7], cheerful: [1.2, 1.3, 1.4], focused: [1.15, 1.25, 1.35], zen: [0.3, 0.25, 0.2], snacky: [0.55, 0.65, 0.75],
+};
+export const abv = (key: keyof typeof AB_NUM | string, stage: number) => (AB_NUM[key] ?? [1, 1, 1])[abTier(stage) - 1];
 export const hasAb = (m: { abilities?: AbilityId[] } | null | undefined, a: AbilityId) => !!m?.abilities?.includes(a);
 // A new ability this creature does not have yet (or null when it has 3).
 export function rollAbility(m: { abilities?: AbilityId[] }, prefer?: AbilityId): AbilityId | null {
