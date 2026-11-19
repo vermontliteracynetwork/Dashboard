@@ -34,7 +34,7 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     date: "2026-11-19",
     icon: "📚",
     title: "Silly Stories in Literacy Manipulatives",
-    body: "Your teacher can share Silly Stories with a join code. Open Literacy Manipulatives on the Computer, join, and fill in one word at a time: an adjective, a noun, a verb in the past and more. Type it, tap Say it, or tap Pick a word to choose from the dictionary. Then tap Read my silly story to see your words in the story and hear it read aloud. Stories about a dog park, life as a lizard, a pet dragon and more.",
+    body: "Open Literacy Manipulatives on the Computer, then Silly Stories, and tap any story to play. Your teacher can also share a set of stories with a join link. Fill in one word at a time: an adjective, a noun, a verb in the past and more. Type it, tap Say it, or tap Pick a word to choose from the dictionary. Then tap Read my silly story to see your words in the story and hear it read aloud. Stories about a dog park, life as a lizard, a pet dragon and more.",
   },
   {
     id: "2026-11-18-game-builder-live",
