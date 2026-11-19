@@ -11,6 +11,12 @@ import { PRESET_TUNES } from '../../games/gameBuilder/music';
 // answers, for free: it walks the steps, understands the common requests, and asks a clear choice question when a
 // request is missing a detail.
 
+// Build Queue 767 (her words: "when azalea doesnt know what the student needs ... have her prompt the student with two
+// things and then a custom where the student can further clarify in their own words"): every "I am not sure" question
+// ends with two choices and this third one, which opens the chat box for the student's own words.
+export const OWN_WORDS = 'Something else: I will say it in my own words';
+const twoPlusOwn = (xs: string[]) => [...xs.filter((x) => x !== OWN_WORDS).slice(0, 2), OWN_WORDS];
+
 export interface Op { op: 'add' | 'replace' | 'remove' | 'setting'; ruleId: string; when: string; whenArg: string; whenNum: number; actions: { do: string; arg: string; num: number }[]; key: string; value: number }
 export interface AzaleaAnswer {
   reply: string; specificity: Specificity; details: string[]; missing: string[]; changes: string[];
@@ -244,7 +250,7 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
     else {
       const left = problems(p);
       ans.reply = left.length ? `I checked your game. ${left[0]} I cannot fix that one by myself. Look at your blocks and I will help.` : 'I checked your game and every rule works. What happens that you do not want? Tell me what you did and what happened.';
-      ans.choices = p.kind === 'platformer' ? ['The hero cannot jump high enough.', 'The enemies are too fast.', 'Nothing happens when I touch a coin.'] : p.kind === 'maze' ? ['The ghosts are too fast.', 'Nothing happens when I eat a dot.'] : p.kind === 'clicker' ? ['Tapping does not give points.', 'The upgrade does not work.'] : ['Matches do not give points.', 'The timer is too short.'];
+      ans.choices = twoPlusOwn(p.kind === 'platformer' ? ['The hero cannot jump high enough.', 'The enemies are too fast.'] : p.kind === 'maze' ? ['The ghosts are too fast.', 'Nothing happens when I eat a dot.'] : p.kind === 'clicker' ? ['Tapping does not give points.', 'The upgrade does not work.'] : ['Matches do not give points.', 'The timer is too short.']);
       ans.specificity = /\b(when|after|if)\b/.test(s) ? 'partly' : 'vague'; ans.missing.push('what happened and what you wanted');
       return ans;
     }
@@ -332,11 +338,11 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
       say.push('That is okay. Let us pick together. What should your game be about?');
       ans.choices = ['My game is about a cat who collects coins.', 'My game is about a robot who escapes a maze.', 'My game is about a dog who saves the town.'];
     } else if (what) {
-      say.push(`I think you mean the ${thing ?? 'game'}, but I need one more detail: what should happen, and how much?`);
-      ans.choices = [exampleFor(), thing ? `Make the ${thing} faster, speed 8.` : 'Make the hero speed 8.'];
+      say.push(`I think you mean the ${thing ?? 'game'}, but I need one more detail: what should happen, and how much? Pick one, or tell me in your own words.`);
+      ans.choices = twoPlusOwn([exampleFor(), thing ? `Make the ${thing} faster, speed 8.` : 'Make the hero speed 8.']);
     } else {
-      say.push('I want to build exactly what you want, but I am not sure what to change yet. Which part?');
-      ans.choices = p.kind === 'clicker' ? ['Each tap gives 5 points.', 'Make upgrade 1 cost 20 points.', 'My hero is a pizza.'] : p.kind === 'match3' ? ['A match gives 20 points.', 'Make the timer 60 seconds.', 'Use 5 tile colors.'] : ['Make the enemy speed 7.', exampleFor(), 'When the hero touches a star, give a shield for 6 seconds.'];
+      say.push('I want to build exactly what you want, but I am not sure what to change yet. Pick one, or tell me in your own words.');
+      ans.choices = twoPlusOwn(p.kind === 'clicker' ? ['Each tap gives 5 points.', 'Make upgrade 1 cost 20 points.'] : p.kind === 'match3' ? ['A match gives 20 points.', 'Make the timer 60 seconds.'] : ['Make the enemy speed 7.', exampleFor()]);
     }
   }
   // Next step and the game check.
@@ -362,7 +368,11 @@ export async function askAzalea(p: GameProject, said: string, loose: number, sho
     if (r.ok) {
       const j = await r.json() as Partial<AzaleaAnswer> & { refusal?: boolean };
       if (j.refusal) return { ...guideAnswer(p, '', history), reply: 'Let us keep our game friendly and kind. What is another idea we could try?', ops: [], changes: [], source: 'ai' };
-      if (typeof j.reply === 'string') return resolveLook(p, { specificity: 'partly', details: [], missing: [], changes: [], ops: [], design: {}, revision: false, next_step: '', code: '', ...j, source: 'ai' } as AzaleaAnswer);
+      if (typeof j.reply === 'string') {
+        const a = { specificity: 'partly', details: [], missing: [], changes: [], ops: [], design: {}, revision: false, next_step: '', code: '', ...j, source: 'ai' } as AzaleaAnswer;
+        if (!a.ops.length && !a.code && a.specificity !== 'specific' && !a.choices?.length) { const g = guideAnswer(p, said, history); if (g.choices?.length) a.choices = twoPlusOwn(g.choices); }
+        return resolveLook(p, a);
+      }
     }
   } catch { /* fall back to the guide */ }
   return resolveLook(p, guideAnswer(p, said, history, short));

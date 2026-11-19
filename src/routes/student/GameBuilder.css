@@ -441,3 +441,6 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
 .gbp-aznote { position: absolute; left: 50%; top: 8px; transform: translateX(-50%); z-index: 3; max-width: calc(100% - 20px); background: rgba(255,255,255,0.95); color: #2b2440; border: 2px solid #7b5cd6; border-radius: 12px; padding: 6px 12px; font-size: 0.95rem; line-height: 1.3; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.18); animation: gbpNote 0.3s ease-out; }
 @keyframes gbpNote { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @media (prefers-reduced-motion: reduce) { .gbp-aznote { animation: none; } }
+
+/* 767: the third choice opens the chat box for the student's own words */
+.gbx-choices .gbx-own { background: #f3efff; border-style: dashed; }

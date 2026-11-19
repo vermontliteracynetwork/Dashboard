@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-azalea-own-words",
+    date: "2026-11-19",
+    icon: "💬",
+    title: "Game Builder: say it your own way",
+    body: "When Azalea is not sure what you mean, she gives you two ideas to tap and a third button: Something else (my own words). Tap it to tell her exactly what you want.",
+  },
+  {
     id: "2026-11-19-christmas-cat-chase",
     date: "2026-11-19",
     icon: "🎄",

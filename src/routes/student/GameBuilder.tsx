@@ -11,7 +11,7 @@ import {
   type ChatMsg, type GameKind, type GameProject, type Rule, type Settings,
 } from '../../lib/gameBuilder/model';
 import { deleteProject, logRequest, markUndone, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
-import { applyAnswer, askAzalea, problems } from '../../lib/gameBuilder/azalea';
+import { OWN_WORDS, applyAnswer, askAzalea, problems } from '../../lib/gameBuilder/azalea';
 import type { Task } from '../../lib/gameBuilder/checklist';
 import { createWorkspace, loadRules, readRules, SB, setExtraSounds, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
 import DevLogView from './GameBuilderDevLog';
@@ -449,7 +449,8 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
   }, [lastAzId, voiceMode, busy]);
   const startVoiceMode = () => { window.speechSynthesis?.cancel(); silences.current = 0; setVoiceMode(true); setP((q) => withLog(q, [{ kind: 'prompt', by: 'student', text: 'Started voice mode' }])); window.setTimeout(() => listenRef.current(), 150); };
   const stopVoiceMode = () => { setVoiceMode(false); voice.stop(); setP((q) => withLog(q, [{ kind: 'prompt', by: 'student', text: 'Stopped voice mode' }])); };
-  const putDraft = (t: string) => { heardRef.current = ''; setVoiced(false); setDraft(t); setUsedFrame(true); window.setTimeout(() => taRef.current?.focus(), 0); };
+  const [own, setOwn] = useState(false);
+  const putDraft = (t: string) => { setOwn(false); heardRef.current = ''; setVoiced(false); setDraft(t); setUsedFrame(true); window.setTimeout(() => taRef.current?.focus(), 0); };
   const busyRef = useRef(false);
   const latestP = useRef(p); latestP.current = p;
   const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
@@ -476,7 +477,7 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
     const transcript = isVoice && heardNow && text.toLowerCase().includes(heardNow.split(' ')[0].toLowerCase()) ? heardNow : '';
     heardRef.current = '';
     const after = p.plays > 0 ? ' (after play testing)' : '';
-    const helpNote = fromVoice ? ' (voice mode)' : usedFrame ? ' (tapped a help answer)' : '';
+    const helpNote = fromVoice ? ' (voice mode)' : usedFrame ? ' (tapped a help answer)' : own ? ' (in my own words, after Azalea asked)' : '';
     setP((q) => withLog({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }, [
       transcript ? { kind: 'request', by: 'student', text: `Said${after}${helpNote} (transcript): "${transcript}"${transcript !== text ? `. Sent (written): "${text}"` : ''}` } : { kind: 'request', by: 'student', text: `Wrote${after}${helpNote}: "${text}"` },
     ]));
@@ -488,7 +489,7 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
     setLastReq(req);
     onAzalea(req.id);
     setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay.', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
-    setBusy(false); setVoiced(false); setUsedFrame(false); busyRef.current = false;
+    setBusy(false); setVoiced(false); setUsedFrame(false); setOwn(false); busyRef.current = false;
   };
   sendRef.current = (t, system) => { void send(t, system); };
   sendRef2.current = send;
@@ -502,7 +503,9 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
       </div>
       {!folded && <>
         {!busy && choices?.length ? (
-          <div className="gbx-choices">{choices.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>
+          <div className="gbx-choices">{choices.slice(0, 3).map((c) => c === OWN_WORDS
+            ? <button key={c} type="button" className="gbx-own" onClick={() => { heardRef.current = ''; setDraft(''); setOwn(true); setUsedFrame(false); window.setTimeout(() => taRef.current?.focus(), 0); }}>Something else (my own words)</button>
+            : <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>
         ) : null}
         {voiceMode ? (
           <div className="gbx-voicemode" role="status">
@@ -514,7 +517,7 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
           </div>
         ) : (
         <div className="gbx-compose">
-          <textarea ref={taRef} value={draft} onChange={(e) => { setDraft(e.target.value); if (!e.target.value.trim()) { heardRef.current = ''; setVoiced(false); setUsedFrame(false); } }} rows={1} placeholder="Tell Azalea anything you want in your game"
+          <textarea ref={taRef} value={draft} onChange={(e) => { setDraft(e.target.value); if (!e.target.value.trim()) { heardRef.current = ''; setVoiced(false); setUsedFrame(false); } }} rows={1} placeholder={own ? 'Tell Azalea in your own words: what should change, and how much?' : 'Tell Azalea anything you want in your game'}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} aria-label="Message to Azalea" />
           {voice.supported && <button type="button" className={`gbx-iconbtn gbx-round ${voice.listening ? 'gbx-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }} aria-label={voice.listening ? 'Stop talking' : 'Talk to Azalea'} aria-pressed={voice.listening}><MicIcon /></button>}
           <button type="button" className="gbx-iconbtn gbx-round gbx-send" disabled={!draft.trim() || busy} onClick={() => void send()} aria-label="Send to Azalea"><SendIcon /></button>
