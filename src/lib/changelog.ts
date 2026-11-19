@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-play-mode-done",
+    date: "2026-11-19",
+    icon: "▶️",
+    title: "Play mode when you are done",
+    body: "Finished all your work for today and saved your streak? Now you can switch any game to Play mode, even during school time.",
+  },
+  {
     id: "2026-11-19-creaturemon-grow",
     date: "2026-11-19",
     icon: "🌱",

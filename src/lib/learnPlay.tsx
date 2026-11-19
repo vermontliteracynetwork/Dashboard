@@ -1,4 +1,9 @@
 import { useEffect, useSyncExternalStore } from 'react';
+import { useStore } from '../store/store';
+import { useStreak } from './streak';
+import { todayISO } from './dates';
+import { useTeacherPlay } from './playMode';
+import { useAssignmentsPaused } from './assignmentPause';
 
 // Learn mode and Play mode (Build Queue 645, her words: "add a learn and play mode to all games, starting with the
 // rocket chicken and then give all arcade games the play and learn mode. learn mode should be default on on
@@ -34,12 +39,23 @@ export function useLearnPlayState() { return useSyncExternalStore(subscribe, sna
  * game where Play mode is allowed even during school time (Build Queue 721, her words: "allow play mode for
  * creaturemon"). */
 export function useLearnPlay(locked = false, free = false) {
+  // School time does not lock Learn mode when (Build Queue 727, her words: "if the student is "Done for today" and has
+  // completed all assignments and questions for streak, they can unlock play mode") the student is done for today and
+  // their streak is saved; when the teacher picked Play on Live Class Overview (730); when she paused their
+  // assignments (593); or in a free game like Creaturemon (721).
+  const sid = useStore((s) => s.currentStudentId);
+  const teacherPlay = useTeacherPlay(sid);
+  const paused = useAssignmentsPaused(sid);
+  const doneToday = useStore((s) => !!sid && s.studentStatus(sid) === 'done-for-day');
+  const streakSaved = useStreak(sid).lastSavedDay === todayISO();
+  const unlock = free || teacherPlay || paused || (doneToday && streakSaved);
   useEffect(() => {
-    set({ active: mode.active + 1, learn: mode.active ? mode.learn : learnByDefault(), locked: mode.locked || locked, school: schoolHours() && !free });
+    set({ active: mode.active + 1, learn: mode.active ? mode.learn : teacherPlay ? false : learnByDefault(), locked: mode.locked || locked, school: schoolHours() && !unlock });
     return () => set(mode.active <= 1 ? { active: 0, learn: true, locked: false, school: false } : { ...mode, active: mode.active - 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => { if (mode.active && mode.locked !== locked) set({ ...mode, locked }); }, [locked]);
+  useEffect(() => { if (mode.active) set({ ...mode, school: schoolHours() && !unlock, learn: teacherPlay ? false : mode.learn }); }, [unlock, teacherPlay]);
   const m = useLearnPlayState();
   return { learn: m.locked || m.school || m.learn, locked: m.locked || m.school, setLearn: setLearnMode };
 }
@@ -64,5 +80,5 @@ export function LearnPlayAuto() {
   if (!m.active) return null;
   const school = m.school && !m.locked;
   return <LearnPlayToggle learn={m.locked || m.school || m.learn} onChange={setLearnMode} locked={m.locked || m.school}
-    note={school ? 'Learn mode is on during school time (Monday to Friday, 7am to 3pm). Play mode opens after 3pm and on weekends.' : undefined} />;
+    note={school ? 'Learn mode is on during school time (Monday to Friday, 7am to 3pm). Play mode opens after 3pm, on weekends, or when you are done for today and your streak is saved.' : undefined} />;
 }
