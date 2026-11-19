@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-rocket-chickens-power-ups",
+    date: "2026-11-19",
+    icon: "🐔",
+    title: "Rocket Chickens: power ups and crash zones",
+    body: "Your chicken can now grab power ups in the sky: Fuel Tank, Wings, Bubble Shield, Bunny Bounce, Turbo Rockets and the Mega Potion that makes a giant chicken! Bounce on springs, jump off ramps and half pipes, blow up TNT, smash barrels and treasure chests, and collect coin arcs. Watch out for spike balls and clouds!",
+  },
+  {
     id: "2026-11-19-word-explorer-verb-forms",
     date: "2026-11-19",
     icon: "🔤",

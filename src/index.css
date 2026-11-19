@@ -12941,3 +12941,4 @@ body.calm-games .me-burst { display: none; }
 .mode-switch .btn { border-radius: 0; }
 .mode-switch .btn:first-child { border-radius: 10px 0 0 10px; }
 .mode-switch .btn:last-child { border-radius: 0 10px 10px 0; margin-left: -1px; }
+.rc-hud .rc-pow { background: rgba(214,140,20,0.9); }

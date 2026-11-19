@@ -94,12 +94,50 @@ const PAINT_HEX: Record<string, string> = { red: '#d93a3a', blue: '#3a6fd0', gre
 const jetImg = (id: string, paint: string) => `rockets/${id}-${paint}`;
 // Gems to catch in the sky (her Mobile Casual Game Kit): steering with the jetpack has a reason.
 const GEMS: { c: string; coins: number }[] = [{ c: 'green', coins: 10 }, { c: 'blue', coins: 15 }, { c: 'purple', coins: 25 }, { c: 'orange', coins: 40 }];
+// Build Queue 759 (her words: "improve the rocket chicken game to have more power ups, obstacles, things to crash into",
+// with her Kenney physics, jumper, mini dungeon and mini skate packs; the 3D dungeon and skate models are rendered to
+// side view pictures): power ups float in the sky, coins come in arcs, and the ground and sky are full of things to
+// crash into. Nothing gets hurt: flyers flutter away, aliens pop off happily, spike balls just bonk.
+type TK = 'fuel' | 'wings' | 'bubble' | 'bunny' | 'turbo' | 'potion' | 'coin' | 'star' | 'spring' | 'ramp' | 'halfpipe' | 'spike' | 'cloud' | 'flyer' | 'barrel' | 'chest' | 'pot' | 'pallet' | 'rocks';
+const POWERS: { k: TK; name: string; how: string }[] = [
+  { k: 'fuel', name: 'Fuel Tank', how: 'fills the jetpack back up' },
+  { k: 'wings', name: 'Wings', how: 'float for 5 seconds' },
+  { k: 'bubble', name: 'Bubble Shield', how: 'crash through the next 3 things at full speed' },
+  { k: 'bunny', name: 'Bunny Bounce', how: 'the next 3 bounces on the ground go sky high' },
+  { k: 'turbo', name: 'Turbo Rockets', how: 'a big push forward for 2 seconds' },
+  { k: 'potion', name: 'Mega Potion', how: 'a giant chicken for 5 seconds that smashes everything' },
+];
+const THING_IMG: Record<TK, string> = { fuel: 'fuel', wings: 'wings', bubble: 'bubble', bunny: 'bunny', turbo: 'turbo', potion: 'potion', coin: 'coin-gold', star: 'star', spring: 'spring', ramp: 'ramp', halfpipe: 'halfpipe', spike: 'spikeball', cloud: 'cloud', flyer: 'flyman', barrel: 'barrel', chest: 'chest', pot: 'pot', pallet: 'pallet', rocks: 'rocks' };
+interface Thing { k: TK; x: number; y: number; w: number; h: number; im: string; alive: boolean; coins: number; t: number }
+interface Fly { im: string; x: number; y: number; vx: number; vy: number; rot: number; vr: number; life: number; w: number; h: number }
+function makeThings(seed: number, blocks: Block[]): Thing[] {
+  const r = rng(seed * 13 + 5); const out: Thing[] = [];
+  const t = (k: TK, x: number, y: number, w: number, h: number, coins = 0, im = THING_IMG[k]): Thing => ({ k, x, y, w, h, im: `x/${im}`, alive: true, coins, t: 0 });
+  const clear = (x: number, wd: number) => !blocks.some((b) => b.x + BLOCK > x - 6 && b.x < x + wd + 6);
+  // on the ground: springs, ramps, barrels, pots, pallets, rocks and treasure chests
+  const GROUND: [TK, number, number][] = [['spring', 7, 3.7], ['ramp', 12, 5], ['halfpipe', 12, 6.2], ['barrel', 4.5, 5], ['pot', 5, 4.6], ['pallet', 7, 4], ['rocks', 7, 4.5], ['chest', 5.5, 4.9]];
+  for (let x = 90 + r() * 60; x < 6000; x += 70 + r() * 130) {
+    const [k, wd, h] = GROUND[Math.floor(r() * GROUND.length)];
+    if (clear(x, wd)) out.push(t(k, x, 0, wd, h, k === 'chest' ? 50 : 0));
+  }
+  // in the sky: power ups, coin arcs, stars, spike balls, clouds and flyers
+  for (let x = 200 + r() * 100; x < 6000; x += 90 + r() * 160) {
+    const top = Math.min(380, 50 + x / 7); const y = 18 + r() * top; const roll = r();
+    if (roll < 0.28) { const p = POWERS[Math.floor(r() * POWERS.length)]; out.push(t(p.k, x, y, 4.2, 4.2)); }
+    else if (roll < 0.5) { const n = 5 + Math.floor(r() * 4); for (let i = 0; i < n; i++) { const c = r() < 0.15 ? ['coin-gold', 10] : r() < 0.5 ? ['coin-silver', 5] : ['coin-bronze', 3]; out.push(t('coin', x + i * 5, y + Math.sin((i / (n - 1)) * Math.PI) * 9, 2.6, 2.6, c[1] as number, c[0] as string)); } }
+    else if (roll < 0.58) out.push(t('star', x, y, 3, 3, 25));
+    else if (roll < 0.74) out.push(t('spike', x, y, 5, 5));
+    else if (roll < 0.87) out.push(t('cloud', x, y, 14, 7));
+    else out.push(t('flyer', x, y, 6, 6, 15, r() < 0.5 ? 'flyman' : r() < 0.5 ? 'wingman1' : 'wingman2'));
+  }
+  return out;
+}
 const upCost = (id: UpId, lvl: number) => Math.round(UPS.find((u) => u.id === id)!.base * 1.55 ** lvl);
 
 interface Save { coins: number; day: number; round: number; up: Record<UpId, number>; cannons: string[]; cannon: string; chickens: string[]; chicken: string; jets: string[]; jet: string; paint: string; gliders: string[]; glider: string; gear: 'jet' | 'glider'; best: number; gfx: Gfx; at: string }
 const fresh = (): Save => ({ coins: 0, day: 1, round: 1, up: { power: 0, fuel: 0, rocket: 0, helmet: 0 }, cannons: ['farm'], cannon: 'farm', chickens: ['rooster'], chicken: 'rooster', jets: ['rocket3'], jet: 'rocket3', paint: 'red', gliders: ['paper'], glider: 'paper', gear: 'jet', best: 0, gfx: 'medium', at: '' });
 
-interface Block { x: number; col: number; row: number; y: number; mat: 'crate' | 'stone' | 'target'; hp: number; alive: boolean }
+interface Block { x: number; col: number; row: number; y: number; mat: 'crate' | 'stone' | 'target' | 'tnt' | 'alien'; hp: number; alive: boolean }
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; color: string; s: number }
 interface Gem { x: number; y: number; c: string; coins: number; got: boolean }
 interface Report { round: number; day: number; dist: number; alt: number; mph: number; broke: number; targets: number; gems: number; coins: { dist: number; alt: number; mph: number; broke: number; gems: number }; total: number; dayEnd: boolean }
@@ -118,10 +156,10 @@ function makeWorld(seed: number): Block[] {
     for (let c = 0; c < cols; c++) {
       const h = 1 + Math.floor(r() * (2 + far * 4));
       for (let row = 0; row < h; row++) {
-        const mat = r() < 0.25 + far * 0.45 ? 'stone' : 'crate';
+        const mat = r() < 0.1 ? 'tnt' : r() < 0.25 + far * 0.45 ? 'stone' : 'crate';
         out.push({ x: x + c * BLOCK, col: Math.round(x / BLOCK) + c, row, y: row * BLOCK, mat, hp: mat === 'stone' ? 3 : 1, alive: true });
       }
-      if (r() < 0.35) out.push({ x: x + c * BLOCK, col: Math.round(x / BLOCK) + c, row: h, y: h * BLOCK, mat: 'target', hp: 1, alive: true });
+      if (r() < 0.45) out.push({ x: x + c * BLOCK, col: Math.round(x / BLOCK) + c, row: h, y: h * BLOCK, mat: r() < 0.55 ? 'alien' : 'target', hp: 1, alive: true });
     }
     x += 120 + r() * 170 + far * 120;
   }
@@ -193,6 +231,7 @@ export default function RocketChickens() {
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const W = useRef({
+    things: [] as Thing[], flies: [] as Fly[], wings: 0, shield: 0, bunny: 0, turbo: 0, smash: 0, bonus: 0, bonusN: 0,
     firing: false, jetHold: false, pitch: 0, blocks: [] as Block[], gems: [] as Gem[], gemCoins: 0, gemN: 0, stick: 0, bits: [] as Bit[], x: 0, y: 4, vx: 0, vy: 0, aim: 0.75, aimed: false, flying: false, rest: 0,
     fuel: 0, boost: 0, boostDir: 1, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, scale: 8, camX: -20, groundY: 0, shake: 0, landed: false, t: 0,
   });
@@ -205,7 +244,8 @@ export default function RocketChickens() {
   const newRound = () => {
     const w = W.current;
     const seed = (sRef.current.day * 97 + sRef.current.round * 13 + 7) | 0;
-    w.blocks = makeWorld(seed); w.gems = makeGems(seed); w.bits = [];
+    w.blocks = makeWorld(seed); w.gems = makeGems(seed); w.bits = []; w.things = makeThings(seed, w.blocks); w.flies = [];
+    Object.assign(w, { wings: 0, shield: 0, bunny: 0, turbo: 0, smash: 0, bonus: 0, bonusN: 0 });
     Object.assign(w, { x: 0, y: 4, vx: 0, vy: 0, aimed: false, flying: false, rest: 0, fuel: fuelMax, boost: 0, stick: 0, gemCoins: 0, gemN: 0, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, landed: false, t: 0 }); // 704: the flight clock starts again every round
     setHud({ mph: 0, dist: 0, alt: 0, fuel: fuelMax }); setLaunchMsg('');
   };
@@ -232,16 +272,19 @@ export default function RocketChickens() {
   const endRound = () => {
     const w = W.current; const s = sRef.current;
     const dist = Math.max(0, Math.round(w.x)), alt = Math.round(w.maxAlt), mph = Math.round(w.maxMph * MPH);
-    const coins = { dist: Math.round(dist / 8), alt: Math.round(alt / 6), mph: Math.round(mph / 3), broke: w.broke * 4 + w.targets * 15, gems: w.gemCoins };
+    const coins = { dist: Math.round(dist / 8), alt: Math.round(alt / 6), mph: Math.round(mph / 3), broke: w.broke * 4 + w.targets * 15, gems: w.gemCoins + w.bonus };
     const total = coins.dist + coins.alt + coins.mph + coins.broke + coins.gems;
     const dayEnd = false; // 660: no days any more, every round is the next world
     if (dist > s.best && studentId) recordBestGame(studentId, 'rocketChickens', dist, `${alt} ft high, ${mph} MPH`);
     put({ coins: s.coins + total, best: Math.max(s.best, dist), round: s.round + 1 });
-    setReport({ round: s.round, day: s.day, dist, alt, mph, broke: w.broke + w.targets, targets: w.targets, gems: w.gemN, coins, total, dayEnd });
+    setReport({ round: s.round, day: s.day, dist, alt, mph, broke: w.broke + w.targets, targets: w.targets, gems: w.gemN + w.bonusN, coins, total, dayEnd });
     setPhase('report'); sfx.coin();
     if (timeUpRef.current) { timeUpRef.current = false; setLaunchMsg('What a flight! Flights end after 15 minutes in the air.'); window.setTimeout(() => setLaunchMsg(''), 6000); }
   };
   const endRef = useRef(endRound); endRef.current = endRound;
+  const toastT = useRef(0);
+  const [powers, setPowers] = useState<string[]>([]);
+  const powKey = useRef('');
   const timeUpRef = useRef(false);
 
   // The game loop: physics in feet, drawn on a canvas.
@@ -252,6 +295,17 @@ export default function RocketChickens() {
     const ctx = cv.getContext('2d'); if (!ctx) return;
     WORLDS.forEach((wd) => { if (wd.id === worldOf(sRef.current.round).id) wd.layers.forEach((l) => img(l)); }); CHICKENS.forEach((c) => img(c.id)); ['crate', 'stone', 'target', 'earth', ...GEMS.map((g) => `gem-${g.c}`)].forEach(img);
     img(jetImg(sRef.current.jet, sRef.current.paint));
+    [...Object.values(THING_IMG), 'coin-silver', 'coin-bronze', 'wingman1', 'wingman2', 'spring-out', 'shield', 'wing-l', 'wing-r', 'tnt', 'alien-blue', 'alien-green', 'alien-pink', 'alien-yellow', 'alien-beige'].forEach((n) => img(`x/${n}`));
+    const fuelFull = (JETPACKS.find((j) => j.id === sRef.current.jet) ?? JETPACKS[0]).fuel + 0.5 * sRef.current.up.fuel;
+    const toast = (m: string) => { setLaunchMsg(m); window.clearTimeout(toastT.current); toastT.current = window.setTimeout(() => setLaunchMsg(''), 2200); };
+    const poofBits = (x: number, y: number, n: number, colors: string[]) => { if (gfx === 'low') return; for (let i = 0; i < (gfx === 'high' ? n : Math.ceil(n / 2)); i++) W.current.bits.push({ x, y, vx: (Math.random() - 0.3) * 45, vy: Math.random() * 45, life: 1, color: colors[i % colors.length], s: 0.6 + Math.random() }); };
+    const flyOff = (im: string, x: number, y: number, wd: number, h: number, vx: number) => { W.current.flies.push({ im, x, y, vx: vx * 0.5 + 10, vy: 60 + Math.random() * 30, rot: 0, vr: (Math.random() < 0.5 ? -1 : 1) * 6, life: 2.5, w: wd, h }); };
+    const blast = (x: number, y: number) => {
+      const w = W.current; sfx.thud(); sfx.bonk(); w.shake = calm ? 0 : 12;
+      poofBits(x, y, 26, ['#ffd23f', '#ff8a1f', '#fff3a8', '#9aa6ad']);
+      for (const o of w.blocks) if (o.alive && Math.hypot(o.x + BLOCK / 2 - x, o.y + BLOCK / 2 - y) < 13) { o.alive = false; if (o.mat === 'target' || o.mat === 'alien') w.targets += 1; else w.broke += 1; if (o.mat === 'alien') flyOff(`x/alien-${['blue', 'green', 'pink', 'yellow', 'beige'][o.col % 5]}`, o.x + BLOCK / 2, o.y + BLOCK / 2, BLOCK, BLOCK, 20); }
+      w.vx += 28; w.vy = Math.max(w.vy, 48);
+    };
     let raf = 0; let last = performance.now(); let hudT = 0;
     const dpr = gfx === 'low' ? 1 : gfx === 'medium' ? Math.min(1.5, window.devicePixelRatio || 1) : Math.min(2, window.devicePixelRatio || 1);
     const size = () => { const r = cv.getBoundingClientRect(); cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr); };
@@ -276,6 +330,10 @@ export default function RocketChickens() {
       const w = W.current; if (!w.flying) return;
       w.t += dt;
       let ax = 0, ay = -G;
+      const rr = w.smash > 0 ? R * 1.7 : R;
+      if (w.wings > 0) { w.wings -= dt; ay += G * 0.9; ax += 6; }
+      if (w.turbo > 0) { w.turbo -= dt; ax += 110; if (gfx !== 'low' && Math.random() < 0.7) w.bits.push({ x: w.x - 2, y: w.y, vx: -40, vy: (Math.random() - 0.5) * 10, life: 0.4, color: Math.random() < 0.5 ? '#7fd0ff' : '#ffffff', s: 1 }); }
+      if (w.smash > 0) w.smash -= dt;
       // jetpack on: a tap burst or the joystick held; fuel is seconds of thrust
       const dir = w.boost > 0 ? w.boostDir : Math.abs(w.stick) > 0.25 ? Math.sign(w.stick) : 0;
       if (w.boost > 0) w.boost -= dt;
@@ -307,25 +365,62 @@ export default function RocketChickens() {
       w.vx += ax * dt; w.vy += ay * dt; w.x += w.vx * dt; w.y += w.vy * dt;
       // blocks
       for (const b of w.blocks) {
-        if (!b.alive || Math.abs(b.x + BLOCK / 2 - w.x) > BLOCK + R) continue;
+        if (!b.alive || Math.abs(b.x + BLOCK / 2 - w.x) > BLOCK + rr) continue;
         const cx = Math.max(b.x, Math.min(w.x, b.x + BLOCK)), cy = Math.max(b.y, Math.min(w.y, b.y + BLOCK));
         const dx = w.x - cx, dy = w.y - cy, d = Math.hypot(dx, dy);
-        if (d >= R) continue;
+        if (d >= rr) continue;
         const speed = Math.hypot(w.vx, w.vy);
-        if (b.mat === 'target' || speed * helmet > b.hp * 32) {
-          b.alive = false; if (b.mat === 'target') { w.targets += 1; sfx.coin(); } else { w.broke += 1; sfx.bonk(); }
-          const keep = b.mat === 'target' ? 0.97 : Math.max(0.5, 1 - b.hp * 0.13); w.vx *= keep; w.vy *= keep;
+        if (b.mat === 'tnt') { b.alive = false; w.broke += 1; blast(b.x + BLOCK / 2, b.y + BLOCK / 2); toast('BOOM! TNT blast!'); continue; }
+        const free = w.smash > 0 || w.shield > 0;
+        if (b.mat === 'target' || b.mat === 'alien' || free || speed * helmet > b.hp * 32) {
+          b.alive = false; if (b.mat === 'target' || b.mat === 'alien') { w.targets += 1; sfx.coin(); } else { w.broke += 1; sfx.bonk(); }
+          if (b.mat === 'alien') { flyOff(`x/alien-${['blue', 'green', 'pink', 'yellow', 'beige'][b.col % 5]}`, b.x + BLOCK / 2, b.y + BLOCK / 2, BLOCK, BLOCK, w.vx); sfx.boing(); }
+          if (w.shield > 0 && w.smash <= 0 && b.mat !== 'target' && b.mat !== 'alien') { w.shield -= 1; if (w.shield === 0) toast('The bubble popped!'); }
+          const keep = b.mat === 'target' || b.mat === 'alien' || free ? 0.98 : Math.max(0.5, 1 - b.hp * 0.13); w.vx *= keep; w.vy *= keep;
           if (gfx !== 'low') for (let i = 0; i < (gfx === 'high' ? 14 : 6); i++) w.bits.push({ x: b.x + BLOCK / 2, y: b.y + BLOCK / 2, vx: (Math.random() - 0.3) * 40, vy: Math.random() * 40, life: 1.2, color: b.mat === 'stone' ? '#8fa3a8' : b.mat === 'target' ? '#ffd23f' : '#b97a3c', s: 0.7 + Math.random() });
           w.shake = calm ? 0 : Math.max(w.shake, b.mat === 'stone' ? 6 : 3);
         } else {
           const nx = d > 0.001 ? dx / d : -1, ny = d > 0.001 ? dy / d : 0;
-          w.x = cx + nx * R; w.y = cy + ny * R;
+          w.x = cx + nx * rr; w.y = cy + ny * rr;
           const vn = w.vx * nx + w.vy * ny;
           if (vn < 0) { w.vx -= 1.4 * vn * nx; w.vy -= 1.4 * vn * ny; w.vx *= 0.7; w.vy *= 0.7; sfx.thud(); }
         }
       }
       // gems
       for (const g of w.gems) { if (!g.got && Math.abs(g.x - w.x) < R + 2 && Math.abs(g.y - w.y) < R + 2) { g.got = true; w.gemCoins += g.coins; w.gemN += 1; sfx.coin(); if (gfx !== 'low') for (let i = 0; i < 8; i++) w.bits.push({ x: g.x, y: g.y, vx: (Math.random() - 0.5) * 30, vy: Math.random() * 30, life: 0.6, color: '#fff3a8', s: 0.6 }); } }
+      // Build Queue 759: power ups, coins and things to crash into
+      for (const o of w.things) {
+        if (!o.alive) { o.t = Math.max(0, o.t - dt); continue; }
+        if (o.x - w.x > rr + 2 || w.x - (o.x + o.w) > rr + 2) continue;
+        const near = w.x + rr > o.x && w.x - rr < o.x + o.w && w.y + rr > o.y && w.y - rr < o.y + o.h;
+        if (!near) continue;
+        const sp = Math.hypot(w.vx, w.vy); const mid = o.x + o.w / 2, midY = o.y + o.h / 2;
+        const P = POWERS.find((q) => q.k === o.k);
+        if (P) {
+          o.alive = false; sfx.chime(); poofBits(mid, midY, 12, ['#7fd0ff', '#ffffff', '#ffd23f']); toast(`${P.name}: ${P.how}!`);
+          if (o.k === 'fuel') w.fuel = fuelFull; else if (o.k === 'wings') w.wings = 5; else if (o.k === 'bubble') w.shield = 3; else if (o.k === 'bunny') w.bunny = 3; else if (o.k === 'turbo') w.turbo = 2; else w.smash = 5;
+        } else if (o.k === 'coin' || o.k === 'star') { o.alive = false; w.bonus += o.coins; w.bonusN += 1; sfx.coin(); poofBits(mid, midY, 5, ['#fff3a8']); }
+        else if (o.k === 'spring') { if (w.vy <= 5 && w.y > o.y) { w.vy = Math.max(-w.vy * 0.6, 95); w.vx = Math.max(w.vx, 30); o.t = 0.4; sfx.boing(); toast('Boing!'); } }
+        else if (o.k === 'ramp' || o.k === 'halfpipe') { if (w.vx > 8 && w.vy <= 10) { const lift = o.k === 'halfpipe' ? 1.05 : 0.75; w.vy = Math.max(w.vy, w.vx * lift, 35); w.vx *= o.k === 'halfpipe' ? 0.8 : 0.95; sfx.whoosh(); toast(o.k === 'halfpipe' ? 'Half pipe launch!' : 'Ramp jump!'); } }
+        else if (o.k === 'cloud') { o.alive = false; if (!w.shield && !w.smash) { w.vx *= 0.88; w.vy *= 0.88; } sfx.whoosh(); poofBits(mid, midY, 16, ['#ffffff', '#e8f1ff']); }
+        else if (o.k === 'flyer') { o.alive = false; w.bonus += o.coins; w.bonusN += 1; w.vy = Math.max(w.vy, 30); sfx.boing(); flyOff(o.im, mid, midY, o.w, o.h, w.vx); }
+        else if (o.k === 'spike') {
+          if (w.shield > 0 || w.smash > 0) { o.alive = false; if (w.smash <= 0) { w.shield -= 1; if (w.shield === 0) toast('The bubble popped!'); } sfx.bonk(); poofBits(mid, midY, 12, ['#9aa6ad', '#dfe5ea']); }
+          else { const dx = w.x - mid, dy = w.y - midY, d = Math.hypot(dx, dy) || 1; w.vx = Math.max(-20, (dx / d) * sp * 0.55); w.vy = (dy / d) * sp * 0.55; w.x = mid + (dx / d) * (o.w / 2 + rr + 0.2); w.y = midY + (dy / d) * (o.h / 2 + rr + 0.2); w.shake = calm ? 0 : 5; sfx.bonk(); toast('Bonk! A spike ball.'); }
+        } else {
+          // barrels, pots, pallets, chests and rocks on the ground
+          const hard = o.k === 'rocks' ? 130 : 22;
+          if (w.smash > 0 || w.shield > 0 || sp * helmet > hard) {
+            o.alive = false; w.broke += 1; if (o.coins) { w.bonus += o.coins; w.bonusN += 1; sfx.chime(); toast(`Treasure chest! ${o.coins} coins`); } else sfx.bonk();
+            if (w.shield > 0 && w.smash <= 0) { w.shield -= 1; if (w.shield === 0) toast('The bubble popped!'); }
+            poofBits(mid, midY, 14, o.k === 'rocks' ? ['#8a8f98', '#5a5f68'] : o.k === 'chest' ? ['#ffd23f', '#c07a3a', '#fff3a8'] : ['#c07a3a', '#8f5a2a', '#a8b0d8']);
+            const keep = w.smash > 0 || w.shield > 0 ? 0.98 : o.k === 'rocks' ? 0.55 : 0.85; w.vx *= keep; w.vy *= keep; w.shake = calm ? 0 : Math.max(w.shake, 4);
+          } else if (w.x < o.x) { w.x = o.x - rr; w.vx = -Math.abs(w.vx) * 0.3; sfx.thud(); }
+          else if (w.y > o.y + o.h - 1) { w.y = o.y + o.h + rr; if (w.vy < 0) w.vy = -w.vy * 0.4; }
+        }
+      }
+      for (const f of w.flies) { f.vy -= G * 0.6 * dt; f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vr * dt; f.life -= dt; }
+      w.flies = w.flies.filter((f) => f.life > 0);
       // blocks above a broken one drop down
       for (const b of w.blocks) {
         if (!b.alive) continue;
@@ -334,14 +429,15 @@ export default function RocketChickens() {
         if (b.y > target) b.y = Math.max(target, b.y - 40 * dt);
       }
       // ground
-      if (w.y < R) {
-        w.y = R;
-        if (w.vy < 0) { if (w.vy < -25) { sfx.thud(); w.shake = calm ? 0 : 3; } w.vy = -w.vy * 0.42; w.vx *= 0.72; if (w.vy < 4) w.vy = 0; }
+      if (w.y < rr) {
+        w.y = rr;
+        if (w.vy < 0 && w.bunny > 0 && w.vx > 5) { w.bunny -= 1; w.vy = Math.max(-w.vy * 0.95, 70); sfx.boing(); if (w.bunny === 0) toast('Last bunny bounce!'); }
+        else if (w.vy < 0) { if (w.vy < -25) { sfx.thud(); w.shake = calm ? 0 : 3; } w.vy = -w.vy * 0.42; w.vx *= 0.72; if (w.vy < 4) w.vy = 0; }
         w.vx *= 1 - 1.6 * dt;
         w.landed = Math.abs(w.vy) < 1;
       } else w.landed = false;
-      w.maxAlt = Math.max(w.maxAlt, w.y - R); w.maxMph = Math.max(w.maxMph, Math.hypot(w.vx, w.vy));
-      if (Math.hypot(w.vx, w.vy) < 5 && w.y < R + 0.5) { w.rest += dt; if (w.rest > 0.7) { w.flying = false; window.setTimeout(() => endRef.current(), 500); } } else w.rest = 0;
+      w.maxAlt = Math.max(w.maxAlt, w.y - rr); w.maxMph = Math.max(w.maxMph, Math.hypot(w.vx, w.vy));
+      if (Math.hypot(w.vx, w.vy) < 5 && w.y < rr + 0.5) { w.rest += dt; if (w.rest > 0.7) { w.flying = false; window.setTimeout(() => endRef.current(), 500); } } else w.rest = 0;
       // Build Queue 704 (her words: "it has a glitch where it randomly stops you at 7 miles, no explanation"): flights used to
       // end after 2 minutes in the air (about 7 miles at top speed). Now only a 15 minute safety stop, and it says why.
       if (w.t > 900) { w.flying = false; timeUpRef.current = true; endRef.current(); }
@@ -395,10 +491,26 @@ export default function RocketChickens() {
       // blocks
       for (const b of w.blocks) {
         if (!b.alive || X(b.x + BLOCK) < 0 || X(b.x) > Wd) continue;
-        const im = img(b.mat); const s = BLOCK * sc;
+        const im = img(b.mat === 'tnt' ? 'x/tnt' : b.mat === 'alien' ? `x/alien-${['blue', 'green', 'pink', 'yellow', 'beige'][b.col % 5]}` : b.mat); const s = BLOCK * sc;
         if (ready(im)) { if (b.mat === 'stone') ctx.drawImage(im, 0, 0, 128, 128, X(b.x), Y(b.y + BLOCK), s, s); else ctx.drawImage(im, X(b.x), Y(b.y + BLOCK), s, s); }
         else { ctx.fillStyle = b.mat === 'stone' ? '#8fa3a8' : '#b97a3c'; ctx.fillRect(X(b.x), Y(b.y + BLOCK), s, s); }
       }
+      // Build Queue 759: things on the ground and in the sky, and the friends who flutter off
+      for (const o of w.things) {
+        if (X(o.x + o.w) < -20 || X(o.x) > Wd + 20) continue;
+        if (!o.alive) continue;
+        const isP = POWERS.some((q) => q.k === o.k); const bob = isP || o.k === 'coin' || o.k === 'star' || o.k === 'flyer' ? Math.sin(w.t * 3 + o.x) * 0.6 : 0;
+        const im = img(o.k === 'spring' && o.t > 0 ? 'x/spring-out' : o.im);
+        if (isP) { ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.arc(X(o.x + o.w / 2), Y(o.y + o.h / 2 + bob), o.w * 0.75 * sc, 0, Math.PI * 2); ctx.fill(); }
+        if (!ready(im)) continue;
+        const ar = im.naturalWidth / im.naturalHeight; let dw = o.w * sc, dh = o.h * sc;
+        if (ar > o.w / o.h) dh = dw / ar; else dw = dh * ar;
+        const sx = o.k === 'coin' ? Math.abs(Math.cos(w.t * 4 + o.x)) * 0.8 + 0.2 : 1;
+        ctx.save(); ctx.translate(X(o.x + o.w / 2), Y(o.y + bob) - dh / 2); if (o.k === 'spike') ctx.rotate(w.t * 2); ctx.scale(sx, 1);
+        ctx.drawImage(im, -dw / 2, -dh / 2 + (o.k === 'spike' || isP || o.k === 'coin' || o.k === 'star' || o.k === 'cloud' || o.k === 'flyer' ? -(o.h * sc - dh) / 2 : 0), dw, dh); ctx.restore();
+      }
+      for (const f of w.flies) { const im = img(f.im); if (!ready(im)) continue; ctx.save(); ctx.globalAlpha = Math.min(1, f.life); ctx.translate(X(f.x), Y(f.y)); ctx.rotate(f.rot); ctx.drawImage(im, -f.w * sc / 2, -f.h * sc / 2, f.w * sc, f.h * sc); ctx.restore(); }
+      ctx.globalAlpha = 1;
       // cannon
       const cx = X(0), cy = Y(4); const cs = sc;
       ctx.save(); ctx.translate(cx, cy); ctx.rotate(-w.aim);
@@ -420,8 +532,10 @@ export default function RocketChickens() {
       ctx.globalAlpha = 1;
       // chicken (with its rocket pack)
       if (w.flying || w.x > 0) {
-        const ch = img(sRef.current.chicken); const hs = R * 2.6 * sc;
+        const ch = img(sRef.current.chicken); const hs = (w.smash > 0 ? R * 1.7 : R) * 2.6 * sc;
         ctx.save(); ctx.translate(X(w.x), Y(w.y));
+        if (w.shield > 0 || w.smash > 0) { const sh = img('x/shield'); const rs = hs * 0.75; if (w.smash > 0) { ctx.fillStyle = 'rgba(255,210,63,0.35)'; ctx.beginPath(); ctx.arc(0, 0, rs, 0, Math.PI * 2); ctx.fill(); } else if (ready(sh)) ctx.drawImage(sh, -rs, -rs, rs * 2, rs * 2); }
+        if (w.wings > 0) { for (const sd of [-1, 1]) { const wg = img(sd < 0 ? "x/wing-l" : "x/wing-r"); if (ready(wg)) ctx.drawImage(wg, sd < 0 ? -hs * 0.95 : hs * 0.05, -hs * 0.7 + Math.sin(w.t * 18) * hs * 0.06, hs * 0.9, hs * 0.75); } }
         const ang = w.landed ? 0 : Math.atan2(w.vy, Math.max(1, w.vx)) * 0.5; ctx.rotate(-ang);
         drawJetpack(ctx, hs, w.firing ? (gearRef === 'glider' ? 1 : w.boost > 0 ? w.boostDir : Math.sign(w.stick)) : 0, dpr);
         if (gearRef === 'glider') { ctx.save(); ctx.rotate(-w.pitch * 0.25); drawGlider(ctx, hs, glider.id, dpr); ctx.restore(); }
@@ -441,7 +555,7 @@ export default function RocketChickens() {
       const sub = 6; for (let i = 0; i < sub; i++) step(dt / sub);
       draw();
       hudT += dt;
-      if (hudT > 0.1) { hudT = 0; const w = W.current; if (w.flying) setHud({ mph: Math.round(Math.hypot(w.vx, w.vy) * MPH), dist: Math.max(0, Math.round(w.x)), alt: Math.max(0, Math.round(w.y - R)), fuel: w.fuel }); }
+      if (hudT > 0.1) { hudT = 0; const w = W.current; if (w.flying) setHud({ mph: Math.round(Math.hypot(w.vx, w.vy) * MPH), dist: Math.max(0, Math.round(w.x)), alt: Math.max(0, Math.round(w.y - R)), fuel: w.fuel }); const pw: string[] = []; if (w.wings > 0) pw.push(`Wings ${Math.ceil(w.wings)}s`); if (w.shield > 0) pw.push(`Bubble x${w.shield}`); if (w.bunny > 0) pw.push(`Bunny x${w.bunny}`); if (w.turbo > 0) pw.push('Turbo'); if (w.smash > 0) pw.push(`Mega ${Math.ceil(w.smash)}s`); const k = pw.join('|'); if (k !== powKey.current) { powKey.current = k; setPowers(pw); } }
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
@@ -536,9 +650,9 @@ export default function RocketChickens() {
   };
   const canAfford = useMemo(() => UPS.some((u) => S.up[u.id] < u.max && S.coins >= upCost(u.id, S.up[u.id])) || CANNONS.some((c) => !S.cannons.includes(c.id) && S.coins >= c.cost) || JETPACKS.some((j) => !S.jets.includes(j.id) && S.coins >= j.cost) || GLIDERS.some((g) => !S.gliders.includes(g.id) && S.coins >= g.cost), [S]);
 
-  const reportWords = (r: Report) => `Round ${r.round}, ${worldOf(r.round).name}. Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
+  const reportWords = (r: Report) => `Round ${r.round}, ${worldOf(r.round).name}. Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems and coins ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
   const menu = useMemo(() => [{ id: 'rc-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
-  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack (with a glider on too, the stick swoops with no fuel: dive for speed, pull up to climb, and hold the Jetpack button for a push), or down to dive (or tap above or below the chicken). The jetpack uses fuel. On a computer: move the mouse to aim and click to fire (or use the up and down arrows and Space). In the air, hold the mouse button above the chicken to fly up or below it to dive (or hold the up or down arrow; Space is the jetpack). Catch gems for bonus coins. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
+  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack (with a glider on too, the stick swoops with no fuel: dive for speed, pull up to climb, and hold the Jetpack button for a push), or down to dive (or tap above or below the chicken). The jetpack uses fuel. On a computer: move the mouse to aim and click to fire (or use the up and down arrows and Space). In the air, hold the mouse button above the chicken to fly up or below it to dive (or hold the up or down arrow; Space is the jetpack). Catch gems and coins for bonus coins. Grab power ups in the sky: Fuel Tank fills the jetpack, Wings float for 5 seconds, Bubble Shield crashes through 3 things at full speed, Bunny Bounce makes 3 sky high bounces, Turbo Rockets push you forward, and the Mega Potion makes a giant chicken that smashes everything. Bounce on springs, jump off ramps and half pipes, blow up TNT for a big blast forward, and smash barrels, pots and treasure chests. Spike balls bonk you back and clouds slow you down a little. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
 
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
@@ -580,6 +694,7 @@ export default function RocketChickens() {
             <span><small>Distance</small><b>{hud.dist.toLocaleString()}</b> ft</span>
             <span><small>Altitude</small><b>{hud.alt.toLocaleString()}</b> ft</span>
             {S.gear === 'glider' && <span><small>Glider</small><b>No fuel</b></span>}
+            {powers.map((p) => <span key={p} className="rc-pow"><small>Power up</small><b>{p}</b></span>)}
             {<span><small>Jetpack fuel</small><b className="rc-fuel"><i style={{ width: `${Math.round((hud.fuel / fuelMax) * 100)}%` }} /></b></span>}
           </div>
         )}
@@ -596,7 +711,7 @@ export default function RocketChickens() {
             <div className="rc-row alt"><span>Altitude</span><b>{report.alt.toLocaleString()} ft</b><em>{report.coins.alt}</em></div>
             <div className="rc-row spd"><span>Speed</span><b>{report.mph} MPH</b><em>{report.coins.mph}</em></div>
             <div className="rc-row dst"><span>Destruction</span><b>{report.broke}</b><em>{report.coins.broke}</em></div>
-            {report.gems > 0 && <div className="rc-row gem"><span>Gems</span><b>{report.gems}</b><em>{report.coins.gems}</em></div>}
+            {report.gems > 0 && <div className="rc-row gem"><span>Gems and coins</span><b>{report.gems}</b><em>{report.coins.gems}</em></div>}
             <div className="rc-row last"><span className="rc-day">{`Round ${report.round}`}<small className="rc-world">{worldOf(report.round).name}{` · next: ${worldOf(report.round + 1).name}`}</small></span><span className="rc-total">Total <i className="rc-coin" aria-hidden />{report.total}</span></div>
             <button type="button" className="btn rc-say" onClick={() => speak(reportWords(report), student.ttsSettings)} aria-label="Read the report aloud">🔊</button>
           </div>
