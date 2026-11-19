@@ -11,7 +11,7 @@ import {
 } from '../../lib/gameBuilder/model';
 import { deleteProject, logRequest, markUndone, saveProject, useProjects, type BuildRequest } from '../../lib/gameBuilder/store';
 import { applyAnswer, askAzalea } from '../../lib/gameBuilder/azalea';
-import { STAGES, STAGE_NAMES, anotherRound, buildRequest, currentTask, tasksFor, type Task } from '../../lib/gameBuilder/checklist';
+import { STAGES, STAGE_NAMES, anotherRound, buildRequest, currentTask, gameSig, tasksFor, type Task } from '../../lib/gameBuilder/checklist';
 import { createWorkspace, loadRules, readRules, SB, setExtraSounds, toolbox, usesOnlyStarter } from '../../games/gameBuilder/blocks';
 import { PictureLibrary } from './GameBuilderLibrary';
 import DevLogView from './GameBuilderDevLog';
@@ -162,7 +162,9 @@ const LS = { get: (k: string, d: number) => { try { const v = Number(localStorag
 
 function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; studentId: string; tts: Parameters<typeof speak>[1]; onClose: () => void }) {
   const [p, setP] = useState<GameProject>(initial);
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlayingRaw] = useState(false);
+  const playOpened = useRef(0);
+  const setPlaying = (v: boolean) => { if (v) playOpened.current = Date.now(); setPlayingRaw(v); };
   const [loose, setLoose] = useState(0);
   const [lastReq, setLastReq] = useState<BuildRequest | null>(null);
   const [tools, setTools] = useState<ToolTab | null>(null);
@@ -175,7 +177,7 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   useEffect(() => { const t = window.setTimeout(() => saveProject(studentId, latest.current), 600); return () => window.clearTimeout(t); }, [p, studentId]);
   useEffect(() => () => saveProject(studentId, latest.current), [studentId]);
   const update = (f: (q: GameProject) => GameProject) => setP((q) => f(q));
-  const sendRef = useRef<(text: string) => void>(() => {});
+  const sendRef = useRef<(text: string, system?: boolean) => void>(() => {});
   // Undo and Redo for every change to the game (687): blocks, design, settings and Azalea's changes.
   type Snap = Pick<GameProject, 'rules' | 'settings' | 'design' | 'code'> & { reqId?: string };
   const snapOf = (q: GameProject): Snap => ({ rules: q.rules, settings: q.settings, design: q.design, code: q.code });
@@ -204,15 +206,25 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
 
   // The dev log (679): changes are written down a moment after they happen, as the student's or Azalea's.
   const logged = useRef(initial);
+  // 693: "after play testing" only marks changes made while testing and fixing (or after the checklist), the
+  // going back the teacher tracks; and the log is written out right away when the student leaves.
+  const stageRef = useRef('');
+  const flushLog = () => {
+    const testing = latest.current.plays > 0 && (stageRef.current === 'Try' || stageRef.current === 'Test' || stageRef.current === '');
+    const entries = diffLog(logged.current, latest.current, Date.now() < azaleaUntil.current ? 'azalea' : 'student').map((e) => (testing ? { ...e, text: `${e.text} (after play testing)` } : e));
+    logged.current = latest.current;
+    if (!entries.length) return;
+    const n = withLog(latest.current, entries); logged.current = n; latest.current = n;
+    setP((q) => withLog(q, entries));
+  };
+  useEffect(() => () => { flushLog(); saveProject(studentId, latest.current); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const azaleaUntil = useRef(0);
   const [showLog, setShowLog] = useState(false);
   useEffect(() => {
     const t = window.setTimeout(() => {
-      const entries = diffLog(logged.current, latest.current, Date.now() < azaleaUntil.current ? 'azalea' : 'student').map((e) => (latest.current.plays > 0 ? { ...e, text: `${e.text} (after play testing)` } : e));
-      logged.current = latest.current;
-      if (entries.length) setP((q) => { const n = withLog(q, entries); logged.current = n; return n; });
+      flushLog();
     }, 1200);
-    return () => window.clearTimeout(t);
+    return () => { window.clearTimeout(t); };
   }, [p.design, p.rules, p.settings, p.code]);
 
   const tasks = tasksFor(p);
@@ -222,7 +234,7 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   // Azalea's walk through this step: one instruction at a time (task analysis).
   const [walk, setWalk] = useState(0);
   const praise = useRef('');
-  useEffect(() => { setWalk(0); }, [task?.id]);
+  useEffect(() => { setWalk(0); stageRef.current = task?.stage ?? ''; if (task) setP((q) => (q.stepSnap?.id === task.id ? q : { ...q, stepSnap: { id: task.id, sig: gameSig(q) } })); }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!task) return;
     const line = task.walk[Math.min(walk, task.walk.length - 1)];
@@ -237,7 +249,9 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   }, [task?.id, walk]); // eslint-disable-line react-hooks/exhaustive-deps
   // Least-to-most prompting: if nothing happens for 20 seconds, Azalea offers tap-in answers.
   const [help, setHelp] = useState(false);
-  useEffect(() => { setHelp(false); const t = window.setTimeout(() => setHelp(true), 20000); return () => window.clearTimeout(t); }, [task?.id, walk, p.chat.length]);
+  const studentSaid = p.chat.filter((m) => m.from === 'student').length;
+  useEffect(() => { setHelp(false); const t = window.setTimeout(() => setHelp(true), 20000); return () => window.clearTimeout(t); }, [task?.id, walk, studentSaid]);
+  useEffect(() => { if (help && task?.help?.length && !task.ready(latest.current)) setP((q) => withLog(q, [{ kind: 'prompt', by: 'azalea', text: `Offered help answers for: ${task.label}` }])); }, [help]); // eslint-disable-line react-hooks/exhaustive-deps
   // Read Azalea's newest message aloud (not old ones on opening).
   const said = useRef(new Set<string>(initial.chat.map((m) => m.id)));
   useEffect(() => {
@@ -309,20 +323,21 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
               <small>{STAGE_NAMES[task.stage]} · step {idx + 1} of {tasks.length}</small>
               <h2>Now: {task.label}{task.optional ? ' (if you want)' : ''}</h2>
               {nextTask && <small className="gbx-then">Then: {nextTask.label}</small>}
+              <div className="gbx-walkline"><p>{task.walk[Math.min(walk, task.walk.length - 1)]}</p><button type="button" className="gbx-listen" onClick={() => speak(task.walk[Math.min(walk, task.walk.length - 1)], tts, undefined, VOICE)}><Speaker /> Listen</button></div>
             </div>
-            <div className="gbx-taskbody"><TaskWork p={p} task={task} update={update} setLoose={setLoose} onPlay={() => setPlaying(true)} onBuild={() => sendRef.current(buildRequest(p))} /></div>
+            <div className="gbx-taskbody"><TaskWork p={p} task={task} update={update} setLoose={setLoose} onPlay={() => setPlaying(true)} onBuild={() => sendRef.current(buildRequest(p), true)} /></div>
             <div className="gbx-taskfoot">
               <span className="gbx-dots" aria-label={`Instruction ${walk + 1} of ${task.walk.length}`}>{task.walk.map((_, i) => <i key={i} className={i <= walk ? 'on' : ''} />)}</span>
               <span className="gbx-grow" />
               {task.optional && <button type="button" className="gbx-link" onClick={finishTask}>Skip this step</button>}
-              {!lastStep && !task.ready(p)
-                ? <button type="button" className="gbx-btn gbx-primary gbx-big" onClick={() => setWalk((w) => w + 1)}>I did it</button>
+              {!lastStep
+                ? <button type="button" className="gbx-btn gbx-primary gbx-big" onClick={() => { update((q) => withLog(q, [{ kind: 'prompt', by: 'student', text: `I did it: ${task.walk[walk]}` }])); setWalk((w) => w + 1); }}>I did it</button>
                 : <button type="button" className="gbx-btn gbx-primary gbx-big" disabled={!task.ready(p)} onClick={finishTask}>{task.ready(p) ? 'Next' : task.tool === 'play' ? 'Play first' : task.tool === 'chat' ? 'Answer Azalea first' : task.tool === 'build' ? 'Build it first' : task.tool === 'ready' ? 'Pick one above' : 'Next'}</button>}
             </div>
           </>}
         </section>
         <div className="gbx-resize-v" onPointerDown={dragWork} role="separator" aria-orientation="vertical" aria-label="Drag to resize the work area" />
-        <LivePreview p={p} />
+        <LivePreview p={p} onPlayed={(r) => update((q) => withLog({ ...q, plays: q.plays + 1 }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1} in the live game: ${r === 'win' ? 'won' : 'game over'}` }]))} />
         <div className="gbx-resize-v" onPointerDown={dragSide} role="separator" aria-orientation="vertical" aria-label="Drag to resize the checklist" />
         <aside className="gbx-side" aria-label="Your checklist">
           {sideOpen
@@ -332,11 +347,13 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
       </div>
       <div className="gbx-bottom">
         <ChatBar p={p} setP={setP} studentId={studentId} task={task} loose={loose} lastReq={lastReq} setLastReq={setLastReq} help={help} tts={tts}
-          voiceOn={voiceOn} setVoiceOn={setVoiceOn} history={history} setHistory={setHistory} sendRef={sendRef} onAzalea={(reqId) => { azaleaUntil.current = Date.now() + 2500; hist.current.reqId = reqId; }} />
+          voiceOn={voiceOn} setVoiceOn={setVoiceOn} history={history} setHistory={setHistory} sendRef={sendRef} onAzalea={(reqId) => { azaleaUntil.current = Date.now() + 2500; hist.current.reqId = reqId || undefined; }} />
         <img className="gbx-az-corner" src={AZ_IMG} alt="Azalea the cat" />
       </div>
       {playing && <Player p={p} onClose={(result) => {
         setPlaying(false);
+        // 693: a play test counts when the game ended, or after at least 5 seconds of playing.
+        if (!result && Date.now() - playOpened.current < 5000) return;
         update((q) => withLog({ ...q, plays: q.plays + 1,
           chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: result === 'win' ? 'You won! Great testing. Was it too easy, too hard, or just right?' : result === 'lose' ? 'Game over. Good testing. What felt too hard?' : 'Thanks for testing. What did you notice?' }] }, [{ kind: 'test', by: 'student', text: `Play test ${q.plays + 1}: ${result === 'win' ? 'won' : result === 'lose' ? 'game over' : 'stopped before the end'}` }]));
       }} />}
@@ -402,8 +419,8 @@ function TaskWork({ p, task, update, setLoose, onPlay, onBuild }: { p: GameProje
     <div className="gbx-center-box">
       <button type="button" className="gbx-btn gbx-huge" onClick={onPlay}>Play it again</button>
       <div className="gbx-row">
-        <button type="button" className="gbx-btn gbx-primary gbx-huge" onClick={() => update((q) => ({ ...q, finished: true }))}>Yes, it is ready</button>
-        <button type="button" className="gbx-btn gbx-huge" onClick={() => update((q) => withLog({ ...anotherRound(q), chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay! Let\'s test and fix one more time.' }] }, [{ kind: 'step', by: 'student', text: 'Not ready yet: another test round' }]))}>Not yet, change more</button>
+        <button type="button" className="gbx-btn gbx-primary gbx-huge" onClick={() => update((q) => withLog({ ...q, finished: true }, [{ kind: 'decision', by: 'student', text: 'My game is ready' }]))}>Yes, it is ready</button>
+        <button type="button" className="gbx-btn gbx-huge" onClick={() => update((q) => withLog({ ...anotherRound(q), chat: [...q.chat, { id: newId(), from: 'azalea', at: new Date().toISOString(), text: 'Okay! Let\'s test and fix one more time.' }] }, [{ kind: 'decision', by: 'student', text: 'Not ready yet: another test and fix round' }]))}>Not yet, change more</button>
       </div>
     </div>
   );
@@ -496,7 +513,7 @@ function ToolsView({ p, update, tab, setTab, setLoose, onChecklist }: { p: GameP
 function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzalea, help, tts, voiceOn, setVoiceOn, history, setHistory, sendRef }: {
   p: GameProject; setP: React.Dispatch<React.SetStateAction<GameProject>>; studentId: string; task: Task | null; loose: number;
   lastReq: BuildRequest | null; setLastReq: (r: BuildRequest | null) => void; onAzalea: (reqId: string) => void; help: boolean; tts: Parameters<typeof speak>[1];
-  voiceOn: boolean; setVoiceOn: (f: (v: boolean) => boolean) => void; history: boolean; setHistory: (f: (v: boolean) => boolean) => void; sendRef: React.MutableRefObject<(text: string) => void>;
+  voiceOn: boolean; setVoiceOn: (f: (v: boolean) => boolean) => void; history: boolean; setHistory: (f: (v: boolean) => boolean) => void; sendRef: React.MutableRefObject<(text: string, system?: boolean) => void>;
 }) {
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
@@ -508,34 +525,46 @@ function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzale
   // 689: what the microphone heard is kept as the transcript, beside what was finally sent (written).
   const heardRef = useRef('');
   const voice = useVoiceToText((heard) => { setVoiced(true); heardRef.current = heardRef.current ? `${heardRef.current} ${heard}` : heard; setDraft((d) => (d ? `${d} ${heard}` : heard)); }, { continuous: false });
-  const putDraft = (t: string) => { setDraft(t); setUsedFrame(true); window.setTimeout(() => taRef.current?.focus(), 0); };
+  const putDraft = (t: string) => { heardRef.current = ''; setVoiced(false); setDraft(t); setUsedFrame(true); window.setTimeout(() => taRef.current?.focus(), 0); };
+  const busyRef = useRef(false);
   const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
   const ownChoices = lastAz && lastAz === p.chat[p.chat.length - 1] ? lastAz.choices : undefined;
   const choices = ownChoices ?? (help && task?.help?.length && !task.ready(p) ? task.help : undefined);
 
-  const send = async (raw?: string) => {
-    const text = (raw ?? draft).trim(); if (!text || busy) return;
+  const send = async (raw?: string, system = false) => {
+    const text = (raw ?? draft).trim(); if (!text || busy || busyRef.current) return;
+    busyRef.current = true;
     voice.stop();
+    // 693: the Build button sends Azalea the student's own answers; it is not a new student request.
+    if (system) {
+      setP((q) => withLog(q, [{ kind: 'step', by: 'student', text: 'Tapped Build my game (Azalea used my answers)' }])); setBusy(true);
+      const ans = await askAzalea(p, text, loose);
+      onAzalea('');
+      setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, chat: [...next.chat, { id: newId(), from: 'azalea', text: next.code ? 'I built your game! Look at the live game, then tap Next.' : (ans.reply || 'I could not build it this time. Tap Build my game again.'), at: new Date().toISOString() }] }; });
+      setBusy(false); busyRef.current = false; return;
+    }
     const prompt = lastAz?.text ?? '';
     const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: voiced };
     const tid = task?.id ?? 'free';
-    const transcript = voiced ? heardRef.current.trim() : '';
+    const heardNow = heardRef.current.trim();
+    const transcript = voiced && heardNow && text.toLowerCase().includes(heardNow.split(' ')[0].toLowerCase()) ? heardNow : '';
     heardRef.current = '';
-    const after = p.plays > 0 ? ' (after play testing)' : '';
+    const after = p.plays > 0 && (task?.stage === 'Try' || task?.stage === 'Test' || !task) ? ' (after play testing)' : '';
+    const helpNote = usedFrame ? ' (tapped a help answer)' : '';
     setP((q) => withLog({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }, [
-      transcript ? { kind: 'request', by: 'student', text: `Said${after} (transcript): "${transcript}"${transcript !== text ? `. Sent (written): "${text}"` : ''}` } : { kind: 'request', by: 'student', text: `Wrote${after}: "${text}"` },
+      transcript ? { kind: 'request', by: 'student', text: `Said${after} (transcript): "${transcript}"${transcript !== text ? `. Sent (written): "${text}"` : ''}` } : { kind: 'request', by: 'student', text: `Wrote${after}${helpNote}: "${text}"` },
     ]));
     setDraft(''); setBusy(true);
     const ans = await askAzalea(p, text, loose);
     const changes = ans.changes.length ? ans.changes : ans.ops.length || ans.code ? ['Changed the game'] : [];
     const prevId = lastReq?.projectId === p.id ? lastReq.id : p.lastReqId;
-    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame: usedFrame || !!raw, prompt: prompt.slice(0, 300), transcript: transcript || undefined, afterTest: p.plays > 0 });
+    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame: usedFrame || !!raw, prompt: prompt.slice(0, 300), transcript: transcript || undefined, afterTest: !!after });
     setLastReq(req);
     onAzalea(req.id);
     setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay.', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
-    setBusy(false); setVoiced(false); setUsedFrame(false);
+    setBusy(false); setVoiced(false); setUsedFrame(false); busyRef.current = false;
   };
-  sendRef.current = (t) => { void send(t); };
+  sendRef.current = (t, system) => { void send(t, system); };
   const dragMsg = (e: React.PointerEvent) => {
     e.preventDefault(); const y0 = e.clientY, h0 = msgH;
     const move = (ev: PointerEvent) => { const h = Math.max(48, Math.min(320, h0 + (y0 - ev.clientY))); setMsgH(h); LS.set('gbx-msg-h', h); };
@@ -559,7 +588,7 @@ function ChatBar({ p, setP, studentId, task, loose, lastReq, setLastReq, onAzale
           <div className="gbx-choices">{choices.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>
         ) : null}
         <div className="gbx-compose">
-          <textarea ref={taRef} value={draft} onChange={(e) => setDraft(e.target.value)} rows={1} placeholder="Type to Azalea here"
+          <textarea ref={taRef} value={draft} onChange={(e) => { setDraft(e.target.value); if (!e.target.value.trim()) { heardRef.current = ''; setVoiced(false); setUsedFrame(false); } }} rows={1} placeholder="Type to Azalea here"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} aria-label="Message to Azalea" />
           {voice.supported && <button type="button" className={`gbx-iconbtn gbx-round ${voice.listening ? 'gbx-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }} aria-label={voice.listening ? 'Stop talking' : 'Talk to Azalea'} aria-pressed={voice.listening}><MicIcon /></button>}
           <button type="button" className="gbx-iconbtn gbx-round gbx-send" disabled={!draft.trim() || busy} onClick={() => void send()} aria-label="Send to Azalea"><SendIcon /></button>

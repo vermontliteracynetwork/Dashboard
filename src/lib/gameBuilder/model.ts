@@ -48,8 +48,9 @@ export interface GameProject {
   code?: string;          // custom games: the game Azalea wrote
   chat: ChatMsg[];
   plays: number;          // how many times it was play tested
-  devlog?: { at: string; kind: 'request' | 'change' | 'rule' | 'design' | 'art' | 'sound' | 'step' | 'test'; by: 'student' | 'azalea'; text: string }[]; // Build Queue 679
+  devlog?: { at: string; kind: 'request' | 'change' | 'rule' | 'design' | 'art' | 'sound' | 'step' | 'test' | 'prompt' | 'decision'; by: 'student' | 'azalea'; text: string }[]; // Build Queue 679
   doneTasks?: string[];
+  stepSnap?: { id: string; sig: string }; // the game as it was when the current step opened (693)
   testRound?: number;     // plays counted before this play test round (684: repeat until ready)
   finished?: boolean;     // the student said the game is ready
   taskReplies?: Record<string, number>; // messages the student sent while each task was on screen   // checklist tasks the student finished (Build Queue 673)

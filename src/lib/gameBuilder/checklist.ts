@@ -36,6 +36,10 @@ export interface Task {
 export const STAGES = ['Game', 'Rules', 'Try', 'Theme', 'Better', 'Test'];
 export const STAGE_NAMES: Record<string, string> = { Game: 'Plan the game', Rules: 'Game rules', Try: 'Test it now', Theme: 'Theme and assets', Better: 'Make it better', Test: 'Play test until ready' };
 const answered = (q: GameProject, id: string) => (q.taskReplies?.[id] ?? 0) > 0;
+// 693 (Claudia's review): a step is done when the student really changed something while it was open, not because
+// the starter game already had it.
+export const gameSig = (q: GameProject) => JSON.stringify([q.rules, q.settings, q.design.hero, q.design.theme, q.design.style, q.design.music, q.design.sprites, q.design.pictures, q.code]);
+const changed = (q: GameProject, id: string) => q.stepSnap?.id === id && q.stepSnap.sig !== gameSig(q);
 const acts = (p: GameProject) => p.rules.flatMap((r) => r.actions.map((a) => a.do));
 
 function gameStage(p: GameProject): Task[] {
@@ -75,7 +79,7 @@ function rulesStage(p: GameProject): Task[] {
       : [`Look at the blocks on the left. Find the yellow block that says "when the hero touches ${thing}".`, 'Under it is an orange block: "change score by". Tap its number.', `Type how many points a ${thing} gives, like 5. Then tap I did it.`];
   return [
     { id: 'points', stage: 'Rules', label: 'Make a way to score', tool: 'blocks', walk: scoreWalk,
-      praise: 'Great job! Now players can earn points.', ready: (q) => acts(q).includes('addScore') },
+      praise: 'Great job! Now players can earn points.', ready: (q) => acts(q).includes('addScore') && changed(q, 'points') },
     { id: 'danger', stage: 'Rules', label: 'Make a challenge', tool: k === 'match3' ? 'settings' : 'blocks',
       walk: k === 'match3'
         ? ['A challenge makes a game exciting. Your challenge is the timer.', 'Slide the "timer seconds" bar to how long a player gets, like 60.']
@@ -83,7 +87,7 @@ function rulesStage(p: GameProject): Task[] {
           ? ['Upgrades are the challenge: players save points to buy them.', 'Find the block that says "this upgrade costs 10". Tap the 10.', 'Type a new price, like 25. Then tap I did it.']
           : [`A challenge makes a game exciting. Find the yellow block that says "when the hero touches ${k === 'maze' ? 'ghost' : 'enemy'}".`, 'Under it is "lose a life". That is the challenge. Leave it there.', 'Tap I did it.'],
       praise: 'Nice! Your game has a challenge now.',
-      ready: (q) => k === 'clicker' ? acts(q).includes('cost') : k === 'match3' ? q.settings.timer > 0 : acts(q).includes('loseLife') || acts(q).includes('lose') },
+      ready: (q) => k === 'clicker' ? acts(q).includes('cost') && changed(q, 'danger') : k === 'match3' ? q.settings.timer > 0 && changed(q, 'danger') : acts(q).includes('loseLife') || acts(q).includes('lose') },
     { id: 'win', stage: 'Rules', label: 'Make a way to win', tool: 'blocks',
       walk: ['Every game needs a way to win. Find the block that says "win the game".', 'It must be snapped under a yellow "when" block, or it never happens.', 'If you see it snapped in, tap I did it.'],
       praise: 'Awesome! Now players can win.', ready: (q) => acts(q).includes('win') },
@@ -120,12 +124,12 @@ function themeStage(p: GameProject): Task[] {
 function tryStage(): Task[] {
   return [
     { id: 'try', stage: 'Try', label: 'Play your game', tool: 'play',
-      walk: ['Your rules are ready. Let\'s test them right now! Tap Play your game, or play in the live preview.', 'Try to win. Notice anything that is too hard, too easy, or broken.'],
+      walk: ['Your rules are ready. Let\'s test them right now! Tap Play your game, or tap Test it on the live game.', 'Try to win. Notice anything that is too hard, too easy, or broken.'],
       praise: 'Great testing! That is what real game designers do.', ready: (q) => q.plays > 0 },
     { id: 'tryfix', stage: 'Try', label: 'Change one thing', tool: 'chat',
       walk: ['What was too hard, too easy, or broken?', 'Tell me one thing to change, and how much. For example: Make the enemy speed 3.'],
       help: ['Make the enemy speed 3.', 'Make the hero speed 8.', 'Make a coin worth 5 points.'],
-      praise: 'Smart change! Going back to fix things is how games get good.', ready: (q) => answered(q, 'tryfix') },
+      praise: 'Smart change! Going back to fix things is how games get good.', ready: (q) => answered(q, 'tryfix') && changed(q, 'tryfix') },
   ];
 }
 
@@ -137,7 +141,7 @@ function testStage(): Task[] {
     { id: 'fix', stage: 'Test', label: 'Change one thing', tool: 'chat',
       walk: ['What was too hard, too easy, or broken?', 'Tell me one thing to change, and how much. For example: Make the enemy speed 3.'],
       help: ['Make the enemy speed 3.', 'Make the hero speed 8.', 'Make a coin worth 5 points.'],
-      praise: 'Smart change! Real game designers fix one thing at a time.', ready: (q) => answered(q, 'fix') },
+      praise: 'Smart change! Real game designers fix one thing at a time.', ready: (q) => answered(q, 'fix') && changed(q, 'fix') },
     { id: 'ready', stage: 'Test', label: 'Is it ready?', tool: 'ready',
       walk: ['Play it again with your change. Then decide: is your game ready?', 'Tap "Yes, it is ready" or "Not yet, change more".'],
       praise: 'Your game is finished!', ready: (q) => !!q.finished },
@@ -161,7 +165,7 @@ export function currentTask(p: GameProject): Task | null {
 
 // "Not yet, change more": the play test steps start again (repeat until ready).
 export function anotherRound(p: GameProject): GameProject {
-  return { ...p, testRound: p.plays, doneTasks: (p.doneTasks ?? []).filter((id) => !['play1', 'fix', 'ready'].includes(id)), taskReplies: { ...(p.taskReplies ?? {}), fix: 0 } };
+  return { ...p, finished: false, testRound: p.plays, doneTasks: (p.doneTasks ?? []).filter((id) => !['play1', 'fix', 'ready'].includes(id)), taskReplies: { ...(p.taskReplies ?? {}), fix: 0 } };
 }
 
 // Custom games: the request Azalea builds from the student's own answers.

@@ -398,3 +398,8 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
   .gbx-main { grid-template-rows: 230px 1fr auto; }
   .gbx-side { max-height: 150px; }
 }
+/* 693 */
+.gbx-walkline { display: flex; align-items: center; gap: 12px; margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); }
+.gbx-walkline p { margin: 0; flex: 1; font-size: 1.2rem; font-weight: 700; line-height: 1.35; }
+.gbp-end { background: rgba(20, 18, 44, 0.55); }
+.gbx-card > .gbx-link { padding: 6px 10px; }

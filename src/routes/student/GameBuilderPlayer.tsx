@@ -86,48 +86,59 @@ export function Player({ p, onClose }: { p: GameProject; onClose: (r: 'win' | 'l
 }
 
 // The live game preview (Build Queue 688, her words 2026-11-18: "have the main screen be a game preview of what they
-// currently have created so it is always most updated on what they can see and interact with"). The student's game
-// running beside the work, restarting a moment after every change, playable right there. Sound starts off.
-export function LivePreview({ p }: { p: GameProject }) {
+// currently have created so it is always most updated on what they can see and interact with"). It always shows the
+// newest version of the game, but (693, Claudia's review: no autoplay, low stimulation) it waits on a still picture
+// until the student taps Test it. After a change it goes back to the still picture with "Changed". A game that ends
+// counts as a play test.
+export function LivePreview({ p, onPlayed }: { p: GameProject; onPlayed?: (r: 'win' | 'lose') => void }) {
   const cv = useRef<HTMLCanvasElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const h = useRef<RunHandle | null>(null);
   const [end, setEnd] = useState<'win' | 'lose' | null>(null);
+  const [running, setRunning] = useState(false);
   const [round, setRound] = useState(0);
   const [sound, setSound] = useState(false);
+  const [changed, setChanged] = useState(false);
   const [pp, setPp] = useState(p);
-  // Restart the preview a moment after the game changes (not on every keystroke).
+  const played = useRef(onPlayed); played.current = onPlayed;
   const sig = JSON.stringify([p.rules, p.settings, p.design, p.code]);
-  useEffect(() => { const t = window.setTimeout(() => setPp(p), 500); return () => window.clearTimeout(t); }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
+  const first = useRef(true);
+  useEffect(() => {
+    const t = window.setTimeout(() => { setPp(p); if (first.current) { first.current = false; return; } setRunning(false); setChanged(true); }, 500);
+    return () => window.clearTimeout(t);
+  }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (pp.kind === 'custom' || !cv.current) return;
     setEnd(null);
-    const handle = runGame(cv.current, pp, { sound, onEnd: (r) => setEnd(r) }); h.current = handle;
+    const handle = runGame(cv.current, pp, { sound: running && sound, onEnd: (r) => { setEnd(r); played.current?.(r); } }); h.current = handle;
+    if (!running) { const t = window.setTimeout(() => handle.stop(), 120); return () => { window.clearTimeout(t); handle.stop(); }; }
     return () => handle.stop();
-  }, [pp, round, sound]);
+  }, [pp, round, sound, running]);
+  const start = () => { setChanged(false); setEnd(null); setRunning(true); setRound((r) => r + 1); window.setTimeout(() => box.current?.focus(), 0); };
   const keyMap: Record<string, string> = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: pp.kind === 'platformer' ? 'jump' : 'up', ArrowDown: 'down', ' ': 'jump' };
   const hold = (k: string) => ({
     onPointerDown: (e: React.PointerEvent) => { e.preventDefault(); box.current?.focus(); h.current?.press(k, true); },
     onPointerUp: () => h.current?.press(k, false), onPointerLeave: () => h.current?.press(k, false), onPointerCancel: () => h.current?.press(k, false),
   });
   return (
-    <div className="gbp" ref={box} tabIndex={0} aria-label="Live preview of your game"
-      onKeyDown={(e) => { const k = keyMap[e.key]; if (k) { e.preventDefault(); h.current?.press(k, true); } }}
+    <div className="gbp" ref={box} tabIndex={0} aria-label="Live game"
+      onKeyDown={(e) => { const k = keyMap[e.key]; if (k && running) { e.preventDefault(); h.current?.press(k, true); } }}
       onKeyUp={(e) => { const k = keyMap[e.key]; if (k) h.current?.press(k, false); }}>
       <div className="gbp-head">
-        <b>Live preview</b>
+        <b>Live game</b>
         <span className="gbp-grow" />
-        {pp.kind !== 'custom' && <button type="button" className="gbx-link" onClick={() => setSound((s) => !s)}>{sound ? 'Sound on' : 'Sound off'}</button>}
-        <button type="button" className="gbx-link" onClick={() => setRound((r) => r + 1)}>Restart</button>
+        {running && pp.kind !== 'custom' && <button type="button" className="gbx-link" onClick={() => setSound((s) => !s)}>{sound ? 'Sound on' : 'Sound off'}</button>}
+        {running && <button type="button" className="gbx-link" onClick={() => { setRunning(false); }}>Stop</button>}
       </div>
       <div className="gbp-stage">
         {pp.kind === 'custom'
-          ? (pp.code ? <iframe key={round} title="Live preview" sandbox="allow-scripts" srcDoc={pp.code} className="gbp-frame" /> : <p className="gbp-empty">Your game shows up here after Azalea builds it.</p>)
-          : <canvas ref={cv} width={960} height={540} onPointerDown={(e) => { box.current?.focus(); const c = cv.current; if (!c || !h.current) return; const b = c.getBoundingClientRect(); const k = Math.min(b.width / c.width, b.height / c.height); const ox = (b.width - c.width * k) / 2, oy = (b.height - c.height * k) / 2; h.current.tap((e.clientX - b.left - ox) / k, (e.clientY - b.top - oy) / k); }} />}
-        {end && <div className="gbp-end"><b>{end === 'win' ? 'You won!' : 'Game over'}</b><button type="button" className="gbx-btn gbx-primary" onClick={() => setRound((r) => r + 1)}>Play again</button></div>}
+          ? (pp.code ? (running ? <iframe key={round} title="Live game" sandbox="allow-scripts" srcDoc={pp.code} className="gbp-frame" /> : null) : <p className="gbp-empty">Your game shows up here after Azalea builds it.</p>)
+          : <canvas ref={cv} width={960} height={540} onPointerDown={(e) => { if (!running) return; box.current?.focus(); const c = cv.current; if (!c || !h.current) return; const b = c.getBoundingClientRect(); const k = Math.min(b.width / c.width, b.height / c.height); const ox = (b.width - c.width * k) / 2, oy = (b.height - c.height * k) / 2; h.current.tap((e.clientX - b.left - ox) / k, (e.clientY - b.top - oy) / k); }} />}
+        {!running && (pp.kind !== 'custom' || pp.code) && <div className="gbp-end"><b>{changed ? 'Changed! Test it to see your change.' : 'Your game'}</b><button type="button" className="gbx-btn gbx-primary gbx-big" onClick={start}>Test it</button></div>}
+        {running && end && <div className="gbp-end"><b>{end === 'win' ? 'You won!' : 'Game over'}</b><button type="button" className="gbx-btn gbx-primary" onClick={start}>Test it again</button></div>}
       </div>
-      {pp.kind === 'platformer' && <div className="gbp-pad"><button type="button" {...hold('left')} aria-label="Left">◀</button><button type="button" {...hold('right')} aria-label="Right">▶</button><span className="gbp-grow" /><button type="button" {...hold('jump')}>Jump</button></div>}
-      {pp.kind === 'maze' && <div className="gbp-pad"><button type="button" {...hold('left')} aria-label="Left">◀</button><button type="button" {...hold('up')} aria-label="Up">▲</button><button type="button" {...hold('down')} aria-label="Down">▼</button><button type="button" {...hold('right')} aria-label="Right">▶</button></div>}
+      {running && pp.kind === 'platformer' && <div className="gbp-pad"><button type="button" {...hold('left')} aria-label="Left">Left</button><button type="button" {...hold('right')} aria-label="Right">Right</button><span className="gbp-grow" /><button type="button" {...hold('jump')}>Jump</button></div>}
+      {running && pp.kind === 'maze' && <div className="gbp-pad"><button type="button" {...hold('left')}>Left</button><button type="button" {...hold('up')}>Up</button><button type="button" {...hold('down')}>Down</button><button type="button" {...hold('right')}>Right</button></div>}
     </div>
   );
 }

@@ -33,7 +33,7 @@ export default function SoundPanel({ p, update }: { p: GameProject; update: Upda
         <button type="button" className={`gb-btn ${m.kind === 'none' ? 'gb-primary' : ''}`} onClick={() => { setListening(false); setM({ kind: 'none' }); }}>No music</button>
         <button type="button" className={`gb-btn ${m.kind === 'tune' ? 'gb-primary' : ''}`} onClick={() => setM({ kind: 'tune', notes, tempo: m.tempo ?? PRESET_TUNES[0].tempo, wave: m.wave ?? PRESET_TUNES[0].wave })}>Make a tune</button>
         {tracks.length > 0 && <button type="button" className={`gb-btn ${m.kind === 'song' ? 'gb-primary' : ''}`} onClick={() => setM({ kind: 'song', songUrl: m.songUrl ?? tracks[0].url, songTitle: m.songTitle ?? tracks[0].title })}>Class song</button>}
-        {m.kind !== 'none' && <button type="button" className="gb-btn" onClick={() => setListening((l) => !l)}>{listening ? '■ Stop' : '▶ Listen'}</button>}
+        {m.kind !== 'none' && <button type="button" className="gb-btn" onClick={() => setListening((l) => !l)}>{listening ? 'Stop' : 'Listen'}</button>}
       </div>
       {m.kind === 'tune' && <>
         <p className="gb-muted">Start from a tune, then tap squares to add or take away notes. Each column is one beat.</p>

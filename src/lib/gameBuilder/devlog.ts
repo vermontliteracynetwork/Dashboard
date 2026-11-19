@@ -5,9 +5,9 @@ import { ruleText, type GameProject } from './model';
 // newest last: what the student asked Azalea, what changed (and who changed it), the rules added or changed, design
 // choices, drawings, sounds, finished checklist steps and play tests. Kept on the project (last 600 entries).
 
-export type DevKind = 'request' | 'change' | 'rule' | 'design' | 'art' | 'sound' | 'step' | 'test';
+export type DevKind = 'request' | 'change' | 'rule' | 'design' | 'art' | 'sound' | 'step' | 'test' | 'prompt' | 'decision';
 export interface DevEntry { at: string; kind: DevKind; by: 'student' | 'azalea'; text: string }
-const KEEP = 600;
+const KEEP = 3000; // 693: the first requests are the speech goal baseline, so keep a long history
 
 export function withLog(q: GameProject, entries: Omit<DevEntry, 'at'>[]): GameProject {
   if (!entries.length) return q;
@@ -43,4 +43,4 @@ export function diffLog(a: GameProject, b: GameProject, by: 'student' | 'azalea'
   return out;
 }
 
-export const DEV_LABEL: Record<DevKind, string> = { request: 'Asked Azalea', change: 'Change', rule: 'Rules', design: 'Design', art: 'Art', sound: 'Sound', step: 'Checklist', test: 'Play test' };
+export const DEV_LABEL: Record<DevKind, string> = { request: 'Asked Azalea', change: 'Change', rule: 'Rules', design: 'Design', art: 'Art', sound: 'Sound', step: 'Checklist', test: 'Play test', prompt: 'Azalea prompt', decision: 'Decision' };
