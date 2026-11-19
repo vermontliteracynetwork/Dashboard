@@ -30,6 +30,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "In Literacy Manipulatives on the Computer, Word Explorer now shows what every word means, even words like pushes, they and crunchy. Words with a picture show the picture on their card.",
   },
   {
+    id: "2026-11-19-yoga-next-question",
+    date: "2026-11-19",
+    icon: "🐕",
+    title: "Yoga's Revenge: a new question after a miss",
+    body: "In Yoga's Revenge, if you miss a question you get a new question right away. You stay in your level and keep playing.",
+  },
+  {
     id: "2026-11-19-rocket-chickens-computers",
     date: "2026-11-19",
     icon: "🐔",

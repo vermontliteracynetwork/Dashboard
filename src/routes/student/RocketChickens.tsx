@@ -206,7 +206,7 @@ export default function RocketChickens() {
     const w = W.current;
     const seed = (sRef.current.day * 97 + sRef.current.round * 13 + 7) | 0;
     w.blocks = makeWorld(seed); w.gems = makeGems(seed); w.bits = [];
-    Object.assign(w, { x: 0, y: 4, vx: 0, vy: 0, aimed: false, flying: false, rest: 0, fuel: fuelMax, boost: 0, stick: 0, gemCoins: 0, gemN: 0, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, landed: false });
+    Object.assign(w, { x: 0, y: 4, vx: 0, vy: 0, aimed: false, flying: false, rest: 0, fuel: fuelMax, boost: 0, stick: 0, gemCoins: 0, gemN: 0, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, landed: false, t: 0 }); // 704: the flight clock starts again every round
     setHud({ mph: 0, dist: 0, alt: 0, fuel: fuelMax }); setLaunchMsg('');
   };
   const loadCannon = () => {
