@@ -34,7 +34,7 @@ export function useGameQuestions(gameId: NativeGameId) {
   }, [student, rotations, progress, gameId]);
   const [finished, setFinished] = useState<string | null>(null);
   // Learn mode or Play mode for this game (Build Queue 645); an assignment keeps Learn on.
-  const lp = useLearnPlay(!!assignment);
+  const lp = useLearnPlay(!!assignment, gameId === 'creaturemon');
   // The student's own Reduce motion setting (the same one Shape Dash and Bubble Shooter use) stills
   // these games' decorative animations; see body.calm-games in index.css.
   const calm = !!student?.worldReduceMotion;

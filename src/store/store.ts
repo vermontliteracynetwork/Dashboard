@@ -3434,6 +3434,28 @@ export const useStore = create<AppState>()(
         set((s) => ({ planTemplates: s.planTemplates.map((t) => (t.id === id ? { ...t, ...patch } : t)) }));
         const updated = get().planTemplates.find((t) => t.id === id);
         if (updated) pushTemplate(updated);
+        // Build Queue 720 (her words: "make sure my settings stay correct to what the student is seeing. for example, if
+        // i press any game, they should choose the game, not quiz mode unless selected"): an edited assignment used to
+        // change only the saved plan; a student who already had today's copy kept the old settings (so a set changed to
+        // "Student picks the game" still opened as Quiz Mode). Now every student with this assignment open today gets the
+        // edits in their own copy too, keeping each activity's id (and so their progress).
+        if (!updated || !patch.activities) return;
+        const today = todayISO();
+        const rows = get().assignments.filter((a) => a.templateId === id && !a.deletedAt && a.startDate <= today && today <= a.endDate);
+        for (const row of rows) {
+          const rot = get().rotations[row.studentId]?.[updated.subject];
+          if (!rot?.length) continue;
+          const used = new Set<string>();
+          const next = updated.activities.map((a) => {
+            const m = rot.find((t) => !used.has(t.id) && t.type === a.type && t.title === a.title);
+            if (m) used.add(m.id);
+            return m ? { ...a, id: m.id } : { ...a, id: makeId() };
+          });
+          // only a plan that really is this assignment's copy (most of its activities match)
+          if (used.size === 0 || used.size < Math.ceil(rot.length / 2)) continue;
+          set((s) => ({ rotations: { ...s.rotations, [row.studentId]: { ...(s.rotations[row.studentId] ?? { math: [], literacy: [] }), [updated.subject]: next } } }));
+          pushRotation(row.studentId, updated.subject, next);
+        }
       },
 
       duplicateTemplate: (id) => {

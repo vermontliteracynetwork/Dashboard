@@ -16,6 +16,27 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-play-mode",
+    date: "2026-11-19",
+    icon: "🐉",
+    title: "Creaturemon: Play mode any time",
+    body: "In Creaturemon you can pick Learn mode or Play mode any time, even during school time. Open the settings to switch.",
+  },
+  {
+    id: "2026-11-19-word-explorer-meanings",
+    date: "2026-11-19",
+    icon: "📖",
+    title: "Word Explorer: a meaning for every word",
+    body: "In Literacy Manipulatives on the Computer, Word Explorer now shows what every word means, even words like pushes, they and crunchy. Words with a picture show the picture on their card.",
+  },
+  {
+    id: "2026-11-19-yoga-next-question",
+    date: "2026-11-19",
+    icon: "🐕",
+    title: "Yoga's Revenge: a new question after a miss",
+    body: "In Yoga's Revenge, if you miss a question you get a new question right away. You stay in your level and keep playing.",
+  },
+  {
     id: "2026-11-19-rocket-chickens-computers",
     date: "2026-11-19",
     icon: "🐔",
