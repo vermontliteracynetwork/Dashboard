@@ -11,7 +11,7 @@ import Versus from '../../games/creaturemon/Versus';
 import Explore from '../../games/creaturemon/Explore';
 import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
 import { AbilityScene, EvoScene, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
-import { ABILITIES, FORMS, abName, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
+import { ABILITIES, FORMS, abName, HABITAT_NAME, IMG, LINES, STARTERS, STRONG, TYPE_COLOR, displayName, form, line, nextForm, statsAt, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
 
 // Creaturemon on the Computer (Build Queue 710 to 712, then 725 to 730, 2026-11-19). Her 725 words: "instead of
 // creating a new world, lets have it so the creaturemon is like a pokemon go style game ... if they've clicked on the
@@ -181,18 +181,25 @@ export default function Creaturemon() {
 
       {panel === 'cards' && (
         <Panel title={`My cards: ${S.caught.length} of ${FORMS.length}`} onClose={() => setPanel('')} wide>
-          <p className="cm-note">Every evolution has its own card. Catch a creature or evolve one to fill its card.</p>
+          <div className="cm-progress"><span><i style={{ width: `${(S.caught.length / FORMS.length) * 100}%` }} /></span><b>{S.caught.length} of {FORMS.length} cards</b></div>
+          <p className="cm-note">Every evolution has its own card. Catch a creature or evolve one to fill its card. Tap a card to see it big.</p>
           <div className="cm-lines">
-            {LINES.map((l) => (
-              <div key={l.id} className="cm-line">
-                {l.forms.map((f, i) => (
-                  <div key={f.id} className="cm-line-step">
-                    {i > 0 && <span className="cm-arrow" aria-label={`evolves at level ${l.forms[i - 1].evolvesAt}`}>Lv {l.forms[i - 1].evolvesAt} ▶</span>}
-                    <CreatureCard f={f} scale={0.62} state={caughtSet.has(f.id) ? 'caught' : seenSet.has(f.id) ? 'seen' : 'unknown'} onClick={() => caughtSet.has(f.id) && setCardOpen(f.id)} />
+            {LINES.map((l) => {
+              const got = l.forms.filter((f) => caughtSet.has(f.id)).length;
+              return (
+                <section key={l.id} className="cm-line" style={{ ['--tc' as string]: TYPE_COLOR[l.type] }}>
+                  <header className="cm-line-head"><span className="cm-line-type">{l.type}</span><b>{caughtSet.has(l.forms[0].id) || seenSet.has(l.forms[0].id) ? `${l.forms[0].name} family` : 'Unknown family'}</b><small>{HABITAT_NAME[l.habitat]} · {got} of {l.forms.length}</small></header>
+                  <div className="cm-line-cards">
+                    {l.forms.map((f, i) => (
+                      <div key={f.id} className="cm-line-step">
+                        {i > 0 && <span className="cm-arrow" aria-label={`evolves at level ${l.forms[i - 1].evolvesAt}`}><small>Lv</small>{l.forms[i - 1].evolvesAt}</span>}
+                        <CreatureCard f={f} scale={0.7} state={caughtSet.has(f.id) ? 'caught' : seenSet.has(f.id) ? 'seen' : 'unknown'} onClick={() => caughtSet.has(f.id) && setCardOpen(f.id)} />
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ))}
+                </section>
+              );
+            })}
           </div>
         </Panel>
       )}
@@ -235,26 +242,40 @@ function Panel({ title, onClose, children, wide }: { title: string; onClose: () 
 }
 
 function CardView({ f, onClose, tts, level }: { f: Form; onClose: () => void; tts: Parameters<typeof speak>[1]; level: number }) {
-  const [flip, setFlip] = useState(false); const l = line(f.id);
+  const l = line(f.id); const st = statsAt(f, level); const top = statsAt(l.forms[l.forms.length - 1], 50);
   const words = `${f.name}. ${l.type} type, stage ${f.stage} of ${l.forms.length}. ${f.desc} Its name comes from ${f.nameFrom}. Its special move is ${l.special.name}.`;
+  const bar = (label: string, icon: string, v: number, max: number) => (
+    <div className="cm-stat"><img src={`${IMG}cards/${icon}.png`} alt="" /><span>{label}</span><i><b style={{ width: `${Math.min(100, (v / max) * 100)}%` }} /></i><em>{v}</em></div>
+  );
   return (
-    <div className="pf-overlay" onClick={onClose}>
-      <div className="cm-cardview" onClick={(e) => e.stopPropagation()}>
-        <div className={`cm-flip${flip ? ' back' : ''}`} onClick={() => setFlip((x) => !x)}>
-          {flip ? (
-            <div className="cm-card-backside">
-              <h3>{f.name}</h3>
-              <p>{f.desc}</p>
-              <p><b>Name:</b> {f.nameFrom}.</p>
-              <p><b>Special move:</b> {l.special.name}</p>
-              <p><b>Lives in:</b> {HABITAT_NAME[l.habitat]}</p>
-            </div>
-          ) : <CreatureCard f={f} scale={1.5} level={level} />}
-        </div>
-        <div className="cm-row">
-          <button type="button" className="btn" onClick={() => speak(words, tts)} aria-label="Listen">🔊</button>
-          <button type="button" className="btn" onClick={() => setFlip((x) => !x)}>Flip card</button>
-          <button type="button" className="btn btn-primary" onClick={onClose}>Done</button>
+    <div className="pf-overlay cm-dark-overlay" onClick={onClose}>
+      <div className="cm-cardview" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`${f.name} card`}>
+        <CreatureCard f={f} scale={1.45} level={level} />
+        <div className="cm-cv-info" style={{ ['--tc' as string]: TYPE_COLOR[l.type] }}>
+          <div className="cm-cv-head">
+            <h2>{f.name}</h2>
+            <button type="button" className="btn" onClick={() => speak(words, tts)} aria-label="Listen">🔊</button>
+          </div>
+          <p className="cm-cv-tags"><span className="cm-line-type">{l.type}</span><span>Stage {f.stage} of {l.forms.length}</span><span>{HABITAT_NAME[l.habitat]}</span><span>Lv {level}</span></p>
+          <p className="cm-cv-desc">{f.desc}</p>
+          <p className="cm-cv-name"><b>Its name:</b> {f.nameFrom}.</p>
+          <div className="cm-cv-stats">
+            {bar('Health', 'sym_heart', st.hp, top.hp)}
+            {bar('Attack', 'sym_sword', st.atk, top.atk)}
+            {bar('Defense', 'sym_shield', st.def, top.def)}
+            {bar('Speed', 'sym_energy', st.spd, top.spd)}
+          </div>
+          <p className="cm-cv-move"><b>Special move:</b> {l.special.name} <small>({l.type} move, strong against {STRONG[l.type].join(' and ')})</small></p>
+          <div className="cm-cv-chain" aria-label="Evolution line">
+            {l.forms.map((x, i) => (
+              <span key={x.id} className={`cm-cv-step${x.id === f.id ? ' on' : ''}`}>
+                {i > 0 && <small className="cm-cv-lv">Lv {l.forms[i - 1].evolvesAt}</small>}
+                <Sprite f={x} px={40} fitW={56} />
+                <small>{x.name}</small>
+              </span>
+            ))}
+          </div>
+          <button type="button" className="btn btn-primary btn-lg" onClick={onClose}>Done</button>
         </div>
       </div>
     </div>

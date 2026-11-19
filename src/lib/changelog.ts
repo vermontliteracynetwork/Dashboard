@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-new-cards",
+    date: "2026-11-19",
+    icon: "🃏",
+    title: "Creaturemon: brand new cards",
+    body: "Creaturemon cards got a makeover: big creatures, easy to read stats, and stars for each stage. In My cards, every family has its own row. Tap a card to see it big, with its story, its stats and its whole evolution line.",
+  },
+  {
     id: "2026-11-19-creaturemon-world-back",
     date: "2026-11-19",
     icon: "🌄",
