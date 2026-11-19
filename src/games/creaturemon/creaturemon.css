@@ -168,10 +168,10 @@
 .cmb-round { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(29,34,56,0.85); color: #fff; padding: 4px 14px; border-radius: 999px; font-family: 'Pixel Lorebook', system-ui, sans-serif; z-index: 3; }
 /* zoomed in (731): the creatures stand big and close, foe up and right, yours down and left, like the classic battles */
 .cmb-side { position: absolute; display: flex; flex-direction: column; align-items: center; }
-.cmb-side.foe { right: 20%; top: 9%; }
-.cmb-side.me { left: 20%; bottom: 31%; }
+.cmb-side.side-foe { right: 20%; top: 9%; }
+.cmb-side.side-me { left: 20%; bottom: 31%; }
 .cmb-stand { position: relative; display: flex; align-items: flex-end; justify-content: center; min-width: 220px; min-height: 180px; transform: scale(1.35); transform-origin: 50% 100%; }
-.cmb-side.me .cmb-stand { transform: scale(1.6); }
+.cmb-side.side-me .cmb-stand { transform: scale(1.6); }
 .cmb-stand > .cm-sprite, .cmb-back { position: relative; z-index: 2; image-rendering: pixelated; animation: cmbBob 2.2s ease-in-out infinite; }
 .cmb-plat { position: absolute; left: 50%; bottom: -10px; width: 220px; height: 44px; margin-left: -110px; border-radius: 50%; background: radial-gradient(ellipse at center, #8fd16a 0 55%, #5ea83c 56% 70%, transparent 72%); z-index: 1; }
 .cmb-side.hit .cm-sprite, .cmb-side.hit .cmb-back { animation: cmbShake 0.3s linear 3; filter: brightness(1.8); }
@@ -182,8 +182,8 @@
 .cmb-shot { animation: cmbShot 0.85s ease-in forwards; }
 @keyframes cmbShot { from { transform: translate(0, 0) scale(0.6); } to { transform: translate(var(--dx), var(--dy)) scale(1.4); } }
 /* a Tackle lunges forward, toward the other creature (733) */
-.cmb-side.me.lunge .cmb-stand { translate: 70px -40px; transition: translate 0.18s ease-out; }
-.cmb-side.foe.lunge .cmb-stand { translate: -60px 40px; transition: translate 0.18s ease-out; }
+.cmb-side.side-me.lunge .cmb-stand { translate: 70px -40px; transition: translate 0.18s ease-out; }
+.cmb-side.side-foe.lunge .cmb-stand { translate: -60px 40px; transition: translate 0.18s ease-out; }
 .cmb-fxat { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); z-index: 4; pointer-events: none; }
 .cmb-tuft { position: absolute; bottom: 14px; width: 54px; image-rendering: pixelated; }
 .cmb-tuft.l { left: 22px; } .cmb-tuft.r { right: 26px; }
@@ -192,8 +192,8 @@
 @keyframes cmbSpark { from { transform: scale(0.3); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
 /* hearts (729): your meter on the left, the opponent's on the right */
 .cmb-meter { position: absolute; top: 56px; z-index: 5; width: 168px; display: flex; flex-direction: column; gap: 4px; padding: 10px; background: rgba(29,34,56,0.88); color: #fff; border: 4px solid #888; border-radius: 16px; }
-.cmb-meter.me { left: max(12px, env(safe-area-inset-left)); }
-.cmb-meter.foe { right: max(12px, env(safe-area-inset-right)); }
+.cmb-meter.side-me { left: max(12px, env(safe-area-inset-left)); }
+.cmb-meter.side-foe { right: max(12px, env(safe-area-inset-right)); }
 .cmb-meter b { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.1rem; }
 .cmb-hearts { display: grid; grid-template-columns: repeat(4, 32px); gap: 4px; }
 .cmb-hearts.hit { animation: cmbShake 0.3s linear 2; }
@@ -215,7 +215,7 @@
 .cmb-done { position: absolute; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 7; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 20px; border-radius: 20px; background: rgba(255,255,255,0.97); text-align: center; }
 .cmb-banner { width: 320px; height: 72px; background-size: 100% 100%; image-rendering: pixelated; display: grid; place-items: center; }
 .cmb-banner h2 { margin: 0; font-family: 'Pixel Lorebook', system-ui, sans-serif; color: #fff; text-shadow: 0 3px 0 #1d2238; }
-@media (max-width: 1000px) { .cmb-log { width: calc(100vw - 32px); bottom: 228px; } .cmb-moves { grid-template-columns: repeat(2, 1fr); } .cmb-side.me { bottom: 42%; left: 26%; } .cmb-meter { top: 50px; width: 150px; } .cmb-hearts { grid-template-columns: repeat(3, 32px); } }
+@media (max-width: 1000px) { .cmb-log { width: calc(100vw - 32px); bottom: 228px; } .cmb-moves { grid-template-columns: repeat(2, 1fr); } .cmb-side.side-me { bottom: 42%; left: 26%; } .cmb-meter { top: 50px; width: 150px; } .cmb-hearts { grid-template-columns: repeat(3, 32px); } }
 @media (prefers-reduced-motion: reduce) { .cmb-stand > .cm-sprite, .cmb-back, .cmb-shot, .cmb-spark { animation: none !important; } }
 
 /* her effect packs (732) */
@@ -340,17 +340,17 @@
 /* 742: battles back on the floating island, both creatures standing on it; small life meters in the top corners */
 .cmb-island { position: absolute; inset: 0; z-index: 0; }
 .cmb-island canvas { image-rendering: pixelated; }
-.cmb-side.foe { right: 21%; top: auto; bottom: 37%; }
-.cmb-side.me { left: 21%; bottom: 37%; }
+.cmb-side.side-foe { right: 21%; top: auto; bottom: 37%; }
+.cmb-side.side-me { left: 21%; bottom: 37%; }
 .cmb-stand { transform: scale(1.45); }
-.cmb-side.me .cmb-stand { transform: scale(1.45); }
+.cmb-side.side-me .cmb-stand { transform: scale(1.45); }
 .cmb-plat { display: none; }
-.cmb-side.me.lunge .cmb-stand { translate: 80px 0; }
-.cmb-side.foe.lunge .cmb-stand { translate: -80px 0; }
+.cmb-side.side-me.lunge .cmb-stand { translate: 80px 0; }
+.cmb-side.side-foe.lunge .cmb-stand { translate: -80px 0; }
 .cmb-meter { display: none; }
 .cmb-life { position: absolute; top: 10px; z-index: 6; width: 200px; display: flex; flex-direction: column; gap: 3px; padding: 7px 10px 8px; background: rgba(20,24,48,0.86); color: #fff; border: 3px solid #888; border-radius: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.35); }
-.cmb-life.me { left: max(10px, env(safe-area-inset-left)); }
-.cmb-life.foe { right: max(10px, env(safe-area-inset-right)); }
+.cmb-life.side-me { left: max(10px, env(safe-area-inset-left)); }
+.cmb-life.side-foe { right: max(10px, env(safe-area-inset-right)); }
 .cmb-life-top { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
 .cmb-life-top b { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cmb-life-top small, .cmb-life-sub { font-weight: 800; font-size: 0.75rem; color: #c9c3e8; }
@@ -366,21 +366,21 @@
 .cmb-life-xp { display: flex; align-items: center; gap: 5px; font-size: 0.7rem; }
 .cmb-life-xp .cm-xp { flex: 1; height: 6px; }
 .cmb-round { top: 12px; }
-@media (max-width: 1000px) { .cmb-side.me, .cmb-side.foe { bottom: 44%; } .cmb-life { width: 170px; } }
+@media (max-width: 1000px) { .cmb-side.side-me, .cmb-side.side-foe { bottom: 44%; } .cmb-life { width: 170px; } }
 
 /* 743: fighting game menus (her reference screenshots) */
 .cmb-life { display: none; }
 .cmb-round { display: none; }
 .fh { position: absolute; left: 0; right: 0; top: 0; z-index: 7; display: flex; align-items: flex-start; gap: 10px; padding: 10px max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left)); pointer-events: none; }
 .fh-half { flex: 1; display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
-.fh-half.foe { flex-direction: row-reverse; }
+.fh-half.side-foe { flex-direction: row-reverse; }
 .fh-face { flex: none; width: 66px; height: 66px; border: 4px solid #fff; border-radius: 12px; display: grid; place-items: end center; overflow: hidden; box-shadow: 0 3px 0 rgba(0,0,0,0.5); }
 .fh-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .fh-bar { display: block; height: 22px; border: 3px solid #1d2238; border-radius: 4px; background: #3a1414; box-shadow: 0 0 0 2px #ffd23f, 0 3px 0 rgba(0,0,0,0.5); overflow: hidden; transform: skewX(-14deg); }
-.fh-half.foe .fh-bar { transform: skewX(14deg); direction: rtl; }
+.fh-half.side-foe .fh-bar { transform: skewX(14deg); direction: rtl; }
 .fh-bar i { display: block; height: 100%; transition: width 0.45s ease; box-shadow: inset 0 4px 0 rgba(255,255,255,0.35); }
 .fh-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.fh-half.foe .fh-row { flex-direction: row-reverse; }
+.fh-half.side-foe .fh-row { flex-direction: row-reverse; }
 .fh-name { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.05rem; color: #fff; text-shadow: 0 2px 0 #000, 2px 0 0 #000, -2px 0 0 #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fh-hearts { display: flex; gap: 2px; }
 .fh-hearts .cmb-heart { width: 22px; height: 22px; background-size: 110px 44px; }
@@ -414,7 +414,7 @@
 .fb-btn:disabled { filter: grayscale(0.7) brightness(0.7); }
 .fb-btn.chosen { box-shadow: 0 0 0 5px #fff, 0 5px 0 rgba(0,0,0,0.45); }
 .cmb-moves { display: none; }
-.cmb-side.foe, .cmb-side.me { bottom: 34%; }
+.cmb-side.side-foe, .cmb-side.side-me { bottom: 34%; }
 /* the loadout (743) */
 .lo { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(250px, 1fr) minmax(260px, 1.2fr) minmax(280px, 1fr); gap: 16px; padding: 16px; background: radial-gradient(circle at 50% 40%, #3a2f6a, #141830 75%); color: #fff; overflow: auto; }
 .lo-modes { display: flex; gap: 6px; margin-bottom: 8px; }
@@ -456,7 +456,7 @@
   .lo { grid-template-columns: 1fr 1fr; } .lo-hero { grid-row: 1; grid-column: 1 / -1; min-height: 220px; }
   .fh-face { width: 52px; height: 52px; } .fh-mid { width: 56px; height: 56px; } .fh-xp { bottom: 120px; width: 170px; }
   .fb-btn { width: 78px; height: 78px; } .fb-btn.tackle { width: 104px; height: 104px; } .fb-btn.berry { width: 66px; height: 66px; }
-  .cmb-side.foe, .cmb-side.me { bottom: 40%; }
+  .cmb-side.side-foe, .cmb-side.side-me { bottom: 40%; }
 }
 
 /* 745: no scrolling anywhere; everything sized to the screen */
@@ -592,14 +592,17 @@
 .isl-tuft.t1 { left: 6%; } .isl-tuft.t2 { left: 42%; } .isl-tuft.t3 { right: 8%; } .isl-tuft.t4 { left: 60%; width: 30px; top: -18px; }
 .isl-top { position: absolute; left: 0; right: 0; top: 9%; height: 0; }
 .isl-top .cmb-side { position: absolute; top: auto; bottom: 0; transform: none; }
-.isl-top .cmb-side.me { left: 16%; right: auto; }
-.isl-top .cmb-side.foe { right: 16%; left: auto; }
+.isl-top .cmb-side.side-me { left: 16%; right: auto; }
+.isl-top .cmb-side.side-foe { right: 16%; left: auto; }
 .isl-top .cmb-stand { transform: scale(1.4); transform-origin: 50% 100%; }
 /* falling off the island loses a heart: slide off the edge, fall, then drop back on */
-.isl-top .cmb-side.me.falling { animation: islFallL 1.5s ease-in forwards; }
-.isl-top .cmb-side.foe.falling { animation: islFallR 1.5s ease-in forwards; }
+.isl-top .cmb-side.side-me.falling { animation: islFallL 1.5s ease-in forwards; }
+.isl-top .cmb-side.side-foe.falling { animation: islFallR 1.5s ease-in forwards; }
 @keyframes islFallL { 0% { translate: 0 0; rotate: 0deg; opacity: 1; } 30% { translate: -18vw 0; rotate: -20deg; } 55% { translate: -26vw 60vh; rotate: -80deg; opacity: 1; } 56% { opacity: 0; translate: 0 -60vh; rotate: 0deg; } 100% { opacity: 1; translate: 0 0; } }
 @keyframes islFallR { 0% { translate: 0 0; rotate: 0deg; opacity: 1; } 30% { translate: 18vw 0; rotate: 20deg; } 55% { translate: 26vw 60vh; rotate: 80deg; opacity: 1; } 56% { opacity: 0; translate: 0 -60vh; rotate: 0deg; } 100% { opacity: 1; translate: 0 0; } }
 .isl-stage.calm .isl, .isl-stage.calm .isl-cloud { animation: none; }
 @media (prefers-reduced-motion: reduce) { .isl, .isl-cloud { animation: none !important; } .isl-top .cmb-side.falling { animation-duration: 0.6s; } }
 @media (max-width: 1000px) { .isl { bottom: 22%; height: 24%; } .isl-top .cmb-stand { transform: scale(1.15); } }
+
+/* Merge 'Em styles a bare .me class (a full screen brick wall); Creaturemon names its sides side-me and side-foe so the
+   two never clash (this was the blank blue battle screen). */

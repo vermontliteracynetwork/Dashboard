@@ -250,7 +250,7 @@ export default function Battle({ cm, wildFoe, ask, onClose, learn = true }: {
   const side = (f: F, s: 'me' | 'foe') => {
     const ff = form(f.formId); const back = s === 'me' && !!ff.sprite.back;
     return (
-      <div className={`cmb-side ${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}${lunge === s ? ' lunge' : ''}${falling[s] ? ' falling' : ''}`}>
+      <div className={`cmb-side side-${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}${lunge === s ? ' lunge' : ''}${falling[s] ? ' falling' : ''}`}>
         <div className="cmb-stand" ref={s === 'me' ? meRef : foeRef}>
           {back ? <img className="cmb-back" src={`${IMG}forms/${ff.id}_back.png`} alt="" style={{ height: Math.min(170, ff.sprite.fh * Math.max(1, Math.floor(150 / ff.sprite.fh))) }} />
             : <Sprite f={ff} px={Math.min(150, 60 + ff.stage * 26)} anim={fx?.side === s && fx.hit ? 'hurt' : 'idle'} style={s === 'me' ? { transform: 'scaleX(-1)' } : undefined} />}

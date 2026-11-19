@@ -81,7 +81,7 @@ export function LifeMeter({ name, sub, level, type, hp, max, guard, abs, side, s
   const cur = hp <= 0 ? 0 : hp - (lives - 1) * per; const pct = Math.max(0, Math.min(1, cur / per));
   const col = pct < 0.3 ? '#e0482a' : pct < 0.6 ? '#f2a33a' : '#4caf50';
   return (
-    <div className={`cmb-life ${side}`} style={{ borderColor: TYPE_COLOR[type] }} aria-label={`${name}: ${lives} of 3 lives`}>
+    <div className={`cmb-life side-${side}`} style={{ borderColor: TYPE_COLOR[type] }} aria-label={`${name}: ${lives} of 3 lives`}>
       <div className="cmb-life-top"><b>{name}</b><small>Lv {level}</small></div>
       {sub && <small className="cmb-life-sub">{sub}</small>}
       <div className="cmb-life-hearts">
@@ -115,7 +115,7 @@ function HudHalf({ s, side }: { s: HudSide; side: 'me' | 'foe' }) {
   const col = pct < 0.3 ? 'linear-gradient(#ff7a5a, #c02a10)' : pct < 0.6 ? 'linear-gradient(#ffd36a, #e08a10)' : 'linear-gradient(#8ff06a, #2f9e2a)';
   const f = formOf(s.formId);
   return (
-    <div className={`fh-half ${side}`} aria-label={`${s.name}: ${lives} of 3 lives`}>
+    <div className={`fh-half side-${side}`} aria-label={`${s.name}: ${lives} of 3 lives`}>
       <span className="fh-face" style={{ borderColor: TYPE_COLOR[s.type], background: `radial-gradient(circle at 50% 70%, ${TYPE_COLOR[s.type]}, #141830)` }}>
         <Sprite f={f} px={40} fitW={50} style={side === 'me' ? { transform: 'scaleX(-1)' } : undefined} />
       </span>

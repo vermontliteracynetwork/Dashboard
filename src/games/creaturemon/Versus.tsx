@@ -147,7 +147,7 @@ export default function Versus({ cm, ask, onClose, learn = true }: { cm: CmApi; 
   const stand = (sd: Side, who: 'me' | 'foe', idx: 0 | 1) => {
     const f = form(sd.team[sd.idx].formId); const fx = st?.fx?.find((x) => x.side === idx);
     return (
-      <div className={`cmb-side ${who}${fallSide === idx ? ' falling' : ''}`}>
+      <div className={`cmb-side side-${who}${fallSide === idx ? ' falling' : ''}`}>
         <div className="cmb-stand">
           <Sprite f={f} px={Math.min(150, 60 + f.stage * 26)} style={who === 'me' ? { transform: 'scaleX(-1)' } : undefined} />
           <span className="cmb-plat"><img src={`${UI}grass_basic_01.png`} alt="" className="cmb-tuft l" /><img src={`${UI}grass_basic_03.png`} alt="" className="cmb-tuft r" /></span>
