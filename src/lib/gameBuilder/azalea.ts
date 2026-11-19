@@ -86,7 +86,7 @@ function thingIn(p: GameProject, s: string): string | null {
   return null;
 }
 
-export function guideAnswer(p: GameProject, said: string, history: { from: string; text: string }[]): AzaleaAnswer {
+export function guideAnswer(p: GameProject, said: string, history: { from: string; text: string }[], short = false): AzaleaAnswer {
   const s = said.toLowerCase();
   const ans: AzaleaAnswer = { reply: '', specificity: 'vague', details: [], missing: [], changes: [], ops: [], design: {}, revision: false, next_step: '', code: '', source: 'guide' };
   const n = firstNum(s);
@@ -211,17 +211,18 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   else if (next?.id === 'design' && stepIdx < 1 && (p.design.idea || ans.design.idea)) ans.next_step = 'design';
   if (p.kind === 'custom' && !ans.changes.length) ans.choices = undefined;
   if (p.kind === 'custom' && !ans.changes.length) say.splice(0, say.length, 'For a game from blank, I need my thinking cap, and your teacher turns it on. Until then, tell me your idea, your hero and how you win, and I will save the plan.');
-  ans.reply = say.slice(0, 4).join(' ');
+  // Short and helpful (697): 3 sentences at most, 2 in voice mode.
+  ans.reply = say.slice(0, short ? 2 : 3).join(' ');
   return ans;
 }
 
-export async function askAzalea(p: GameProject, said: string, loose: number): Promise<AzaleaAnswer> {
+export async function askAzalea(p: GameProject, said: string, loose: number, short = false): Promise<AzaleaAnswer> {
   const history = p.chat.slice(-16).map((m) => ({ from: m.from, text: m.text }));
   const slim = { ...p, chat: undefined, code: p.code ? p.code.slice(0, 40000) : '' };
   try {
     const ctl = new AbortController(); const t = window.setTimeout(() => ctl.abort(), p.kind === 'custom' ? 110000 : 20000);
     const r = await fetch('/api/game-builder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal,
-      body: JSON.stringify({ message: said, history, project: JSON.stringify(slim), catalog: catalogText(p), problems: problems(p, loose).join('\n') }) });
+      body: JSON.stringify({ message: said, history, project: JSON.stringify(slim), catalog: catalogText(p), problems: problems(p, loose).join('\n'), short }) });
     window.clearTimeout(t);
     if (r.ok) {
       const j = await r.json() as Partial<AzaleaAnswer> & { refusal?: boolean };
@@ -229,5 +230,5 @@ export async function askAzalea(p: GameProject, said: string, loose: number): Pr
       if (typeof j.reply === 'string') return { specificity: 'partly', details: [], missing: [], changes: [], ops: [], design: {}, revision: false, next_step: '', code: '', ...j, source: 'ai' } as AzaleaAnswer;
     }
   } catch { /* fall back to the guide */ }
-  return guideAnswer(p, said, history);
+  return guideAnswer(p, said, history, short);
 }

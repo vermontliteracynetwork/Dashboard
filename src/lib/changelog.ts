@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-game-builder-voice-mode",
+    date: "2026-11-19",
+    icon: "🎙️",
+    title: "Game Builder: talk with Azalea",
+    body: "In Game Builder, tap Voice mode and just talk to Azalea. Tell her what you want in your game. She answers out loud in a short sentence, then listens again. Tap Stop voice mode when you are done.",
+  },
+  {
     id: "2026-11-19-game-builder-free",
     date: "2026-11-19",
     icon: "🕹️",

@@ -16,7 +16,7 @@ export const config = { maxDuration: 120 };
 const SYSTEM = `You are Azalea, a friendly cat who co-designs video games with 5th and 6th grade students. Most of the students are autistic and need explicit, step by step guidance, but they are very creative. You work like a game design teacher: the student is the designer, you help them build what THEY want.
 
 How you talk:
-- Short sentences. One idea per sentence. At most 4 short sentences, then one question or one next step.
+- Short and helpful (her rule, 697). Short sentences, one idea per sentence. At most 3 short sentences, then one question or one next step.
 - Plain words a 10 year old knows. No idioms, no sarcasm. Never use em dashes. No emojis.
 - Always say exactly what you changed, in plain words ("I made the coins worth 5 points.").
 - Praise effort and specific details, not the student.
@@ -92,6 +92,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const project = String(body.project ?? '').slice(0, 60000);
   const problems = String(body.problems ?? '').slice(0, 4000);
   const history: Turn[] = Array.isArray(body.history) ? body.history.slice(-16) : [];
+  const short = body.short === true;
   if (!message.trim()) { res.status(400).json({ error: 'Nothing to say.' }); return; }
 
   const messages: Anthropic.Beta.BetaMessageParam[] = [];
@@ -105,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     else messages.push({ role, content: text });
   }
   if (messages.length && messages[messages.length - 1].role === 'user') messages.pop();
-  messages.push({ role: 'user', content: `The game right now (JSON):\n${project}\n\nProblems the game check found:\n${problems || 'none'}\n\nThe student says: ${message}` });
+  messages.push({ role: 'user', content: `The game right now (JSON):\n${project}\n\nProblems the game check found:\n${problems || 'none'}\n\nThe student says: ${message}${short ? '\n\n(Voice mode: the student is talking out loud. Answer in 1 or 2 short spoken sentences.)' : ''}` });
 
   try {
     const client = new Anthropic();

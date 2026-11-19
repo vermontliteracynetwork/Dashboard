@@ -241,7 +241,13 @@ function Editor({ initial, studentId, tts, onClose }: { initial: GameProject; st
   const said = useRef(new Set<string>(initial.chat.map((m) => m.id)));
   useEffect(() => {
     const last = p.chat[p.chat.length - 1];
-    if (last?.from === 'azalea' && !said.current.has(last.id)) { said.current.add(last.id); speak(last.text, tts, undefined, VOICE); }
+    if (last?.from === 'azalea' && !said.current.has(last.id)) {
+      said.current.add(last.id);
+      // Voice mode (697) listens again when Azalea has finished talking.
+      const done = () => window.dispatchEvent(new Event('gb-az-spoken'));
+      const u = speak(last.text, tts, undefined, VOICE);
+      if (u) { const prev = u.onend; u.onend = (ev) => { if (prev) prev.call(u, ev); done(); }; } else done();
+    }
   }, [p.chat, tts]);
   // Help answers after 20 seconds without the student sending anything.
   const [help, setHelp] = useState(false);
@@ -376,14 +382,45 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
   const taRef = useRef<HTMLTextAreaElement>(null);
   // 689: what the microphone heard is kept as the transcript, beside what was finally sent (written).
   const heardRef = useRef('');
-  const voice = useVoiceToText((heard) => { setVoiced(true); heardRef.current = heardRef.current ? `${heardRef.current} ${heard}` : heard; setDraft((d) => (d ? `${d} ${heard}` : heard)); }, { continuous: false });
+  // Voice mode (697, her words: "allow students to talk in a voice mode with azalea. azalea should keep her
+  // responses short and helpful"): a hands-free talk. The student speaks, it sends by itself, Azalea answers in 1 or
+  // 2 short sentences out loud, then she listens again. Every turn is logged with the microphone transcript.
+  const [voiceMode, setVoiceMode] = useState(false);
+  const vmRef = useRef(false); vmRef.current = voiceMode;
+  const silences = useRef(0);
+  const voice = useVoiceToText((heard) => {
+    if (vmRef.current) { silences.current = 0; void sendRef2.current(heard, false, true); return; }
+    setVoiced(true); heardRef.current = heardRef.current ? `${heardRef.current} ${heard}` : heard; setDraft((d) => (d ? `${d} ${heard}` : heard));
+  }, { continuous: false });
+  const sendRef2 = useRef<(t: string, system: boolean, fromVoice: boolean) => Promise<void>>(async () => {});
+  const listenRef = useRef(() => {});
+  listenRef.current = () => { if (vmRef.current && !voice.listening && !busyRef.current) voice.toggle(); };
+  useEffect(() => { const h = () => { if (vmRef.current) window.setTimeout(() => listenRef.current(), 350); }; window.addEventListener('gb-az-spoken', h); return () => window.removeEventListener('gb-az-spoken', h); }, []);
+  useEffect(() => {
+    if (!voiceMode || voice.listening || !voice.error) return;
+    if (voice.error === 'denied') { setVoiceMode(false); return; }
+    silences.current += 1;
+    if (silences.current >= 3) { setVoiceMode(false); silences.current = 0; return; }
+    const t = window.setTimeout(() => listenRef.current(), 1200); return () => window.clearTimeout(t);
+  }, [voice.error, voice.listening, voiceMode]);
+  // If the device never says Azalea finished talking, listen again after about as long as her words take.
+  const lastAzId = [...p.chat].reverse().find((m) => m.from === 'azalea')?.id;
+  useEffect(() => {
+    if (!voiceMode || busy) return;
+    const words = ([...latestP.current.chat].reverse().find((m) => m.from === 'azalea')?.text ?? '').split(/\s+/).length;
+    const t = window.setTimeout(() => listenRef.current(), Math.min(20000, 2500 + words * 420));
+    return () => window.clearTimeout(t);
+  }, [lastAzId, voiceMode, busy]);
+  const startVoiceMode = () => { window.speechSynthesis?.cancel(); silences.current = 0; setVoiceMode(true); setP((q) => withLog(q, [{ kind: 'prompt', by: 'student', text: 'Started voice mode' }])); window.setTimeout(() => listenRef.current(), 150); };
+  const stopVoiceMode = () => { setVoiceMode(false); voice.stop(); setP((q) => withLog(q, [{ kind: 'prompt', by: 'student', text: 'Stopped voice mode' }])); };
   const putDraft = (t: string) => { heardRef.current = ''; setVoiced(false); setDraft(t); setUsedFrame(true); window.setTimeout(() => taRef.current?.focus(), 0); };
   const busyRef = useRef(false);
+  const latestP = useRef(p); latestP.current = p;
   const lastAz = [...p.chat].reverse().find((m) => m.from === 'azalea');
   const ownChoices = lastAz && lastAz === p.chat[p.chat.length - 1] ? lastAz.choices : undefined;
   const choices = ownChoices ?? (help && idea?.help?.length ? idea.help : undefined);
 
-  const send = async (raw?: string, system = false) => {
+  const send = async (raw?: string, system = false, fromVoice = false) => {
     const text = (raw ?? draft).trim(); if (!text || busy || busyRef.current) return;
     busyRef.current = true;
     voice.stop();
@@ -396,27 +433,29 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
       setBusy(false); busyRef.current = false; return;
     }
     const prompt = lastAz?.text ?? '';
-    const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: voiced };
+    const isVoice = fromVoice || voiced;
+    const msg: ChatMsg = { id: newId(), from: 'student', text, at: new Date().toISOString(), voice: isVoice };
     const tid = task?.id ?? 'free';
-    const heardNow = heardRef.current.trim();
-    const transcript = voiced && heardNow && text.toLowerCase().includes(heardNow.split(' ')[0].toLowerCase()) ? heardNow : '';
+    const heardNow = fromVoice ? text : heardRef.current.trim();
+    const transcript = isVoice && heardNow && text.toLowerCase().includes(heardNow.split(' ')[0].toLowerCase()) ? heardNow : '';
     heardRef.current = '';
     const after = p.plays > 0 ? ' (after play testing)' : '';
-    const helpNote = usedFrame ? ' (tapped a help answer)' : '';
+    const helpNote = fromVoice ? ' (voice mode)' : usedFrame ? ' (tapped a help answer)' : '';
     setP((q) => withLog({ ...q, chat: [...q.chat, msg], taskReplies: { ...(q.taskReplies ?? {}), [tid]: (q.taskReplies?.[tid] ?? 0) + 1 } }, [
-      transcript ? { kind: 'request', by: 'student', text: `Said${after} (transcript): "${transcript}"${transcript !== text ? `. Sent (written): "${text}"` : ''}` } : { kind: 'request', by: 'student', text: `Wrote${after}${helpNote}: "${text}"` },
+      transcript ? { kind: 'request', by: 'student', text: `Said${after}${helpNote} (transcript): "${transcript}"${transcript !== text ? `. Sent (written): "${text}"` : ''}` } : { kind: 'request', by: 'student', text: `Wrote${after}${helpNote}: "${text}"` },
     ]));
     setDraft(''); setBusy(true);
-    const ans = await askAzalea(p, text, loose);
+    const ans = await askAzalea(latestP.current, text, loose, fromVoice);
     const changes = ans.changes.length ? ans.changes : ans.ops.length || ans.code ? ['Changed the game'] : [];
     const prevId = lastReq?.projectId === p.id ? lastReq.id : p.lastReqId;
-    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: voiced, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame: usedFrame || !!raw, prompt: prompt.slice(0, 300), transcript: transcript || undefined, afterTest: !!after });
+    const req = logRequest(studentId, { projectId: p.id, projectName: p.name, kind: p.kind, step: p.step, said: text, voice: isVoice, reply: ans.reply, changes, specificity: ans.specificity, details: ans.details, missing: ans.missing, revisionOf: ans.revision ? prevId : undefined, source: ans.source, usedFrame: !fromVoice && (usedFrame || !!raw), prompt: prompt.slice(0, 300), transcript: transcript || undefined, afterTest: !!after });
     setLastReq(req);
     onAzalea(req.id);
     setP((q) => { const next = applyAnswer(q, { ...ans, next_step: '' }); return { ...next, lastReqId: req.id, chat: [...next.chat, { id: newId(), from: 'azalea', text: ans.reply || 'Okay.', at: new Date().toISOString(), choices: ans.choices }], bugsFixed: next.bugsFixed + (q.step === 'playtest' && changes.length ? 1 : 0) }; });
     setBusy(false); setVoiced(false); setUsedFrame(false); busyRef.current = false;
   };
   sendRef.current = (t, system) => { void send(t, system); };
+  sendRef2.current = send;
   const dragMsg = (e: React.PointerEvent) => {
     e.preventDefault(); const y0 = e.clientY, h0 = msgH;
     const move = (ev: PointerEvent) => { const h = Math.max(48, Math.min(320, h0 + (y0 - ev.clientY))); setMsgH(h); LS.set('gbx-msg-h', h); };
@@ -438,12 +477,23 @@ function ChatBar({ p, setP, studentId, task, idea, loose, lastReq, setLastReq, o
         {!busy && choices?.length ? (
           <div className="gbx-choices">{choices.slice(0, 3).map((c) => <button key={c} type="button" onClick={() => putDraft(c)}>{c}</button>)}</div>
         ) : null}
+        {voiceMode ? (
+          <div className="gbx-voicemode" role="status">
+            <span className={`gbx-vm-dot ${voice.listening ? 'on' : ''}`} aria-hidden />
+            <b>{busy ? 'Azalea is thinking...' : voice.listening ? 'Azalea is listening. Talk now.' : 'Azalea is talking...'}</b>
+            <span className="gbx-grow" />
+            {!voice.listening && !busy && <button type="button" className="gbx-btn" onClick={() => listenRef.current()}>Talk now</button>}
+            <button type="button" className="gbx-btn gbx-primary" onClick={stopVoiceMode}>Stop voice mode</button>
+          </div>
+        ) : (
         <div className="gbx-compose">
           <textarea ref={taRef} value={draft} onChange={(e) => { setDraft(e.target.value); if (!e.target.value.trim()) { heardRef.current = ''; setVoiced(false); setUsedFrame(false); } }} rows={1} placeholder="Tell Azalea anything you want in your game"
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }} aria-label="Message to Azalea" />
           {voice.supported && <button type="button" className={`gbx-iconbtn gbx-round ${voice.listening ? 'gbx-rec' : ''}`} onClick={() => { window.speechSynthesis?.cancel(); voice.toggle(); }} aria-label={voice.listening ? 'Stop talking' : 'Talk to Azalea'} aria-pressed={voice.listening}><MicIcon /></button>}
           <button type="button" className="gbx-iconbtn gbx-round gbx-send" disabled={!draft.trim() || busy} onClick={() => void send()} aria-label="Send to Azalea"><SendIcon /></button>
+          {voice.supported && <button type="button" className="gbx-btn gbx-vm-btn" onClick={startVoiceMode}><MicIcon /> Voice mode</button>}
         </div>
+        )}
       </>}
     </footer>
   );

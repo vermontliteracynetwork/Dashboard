@@ -405,3 +405,11 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
 .gbx-card > .gbx-link { padding: 6px 10px; }
 .gba-photo { display: inline-flex; align-items: center; cursor: pointer; } .gba-photo.busy { opacity: 0.6; }
 .gbp-updated { font-weight: 700; color: #3b7a57; } .gbx-ideas { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; } .gbx-ideas button { width: 100%; display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 10px; background: none; font: inherit; font-weight: 600; color: var(--ink); text-align: left; cursor: pointer; } .gbx-ideas button.next { background: var(--accent-soft); font-weight: 800; } .gbx-ideas button.done { color: var(--soft); } .gbx-ideas button.done .gbx-mark { background: #3b7a57; border-color: #3b7a57; } .gbx-small { font-size: 0.9rem; margin: 2px 0; }
+/* 697: voice mode */
+.gbx-voicemode { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 6px 12px; border-radius: 12px; background: var(--accent-soft); font-size: 1.1rem; }
+.gbx-vm-dot { width: 18px; height: 18px; border-radius: 50%; background: #c9c9d8; flex: none; }
+.gbx-vm-dot.on { background: #b3261e; animation: gbx-pulse 1s ease-in-out infinite; }
+@keyframes gbx-pulse { 50% { transform: scale(1.35); opacity: 0.6; } }
+@media (prefers-reduced-motion: reduce) { .gbx-vm-dot.on { animation: none; } }
+.gbx-vm-btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.gbp-head { flex-wrap: nowrap; white-space: nowrap; }
