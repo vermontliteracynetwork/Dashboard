@@ -443,6 +443,11 @@ export default function StudentHome() {
           <span className="widget-icon">⚗️</span>
           <span className="widget-label">Alchemy</span>
         </button>
+        {/* Creaturemon (Build Queue 712, her words 2026-11-19: "Tbis should be called Creaturemon in the app on the computer"). */}
+        <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/creaturemon')} aria-label="Creaturemon">
+          <span className="widget-icon"><img src="/games/creaturemon/forms/kindlit.png" alt="" className="widget-icon-img" style={{ imageRendering: 'pixelated' }} /></span>
+          <span className="widget-label">Creaturemon</span>
+        </button>
         {/* Game Builder (Build Queue 658, her words 2026-11-18: "I want to have a defined app in the kids computer ... This will be called "Game Builder.""). */}
         <button className="widget-card widget-icon-card widget-grammar-gus" onClick={() => navigate('/student/game-builder')} aria-label="Game Builder">
           <span className="widget-icon">🕹️</span>

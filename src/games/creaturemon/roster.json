@@ -1,0 +1,1681 @@
+{
+ "lines": [
+  {
+   "id": "kindlit",
+   "type": "Fire",
+   "habitat": "meadow",
+   "src": {
+    "pack": "ec",
+    "name": "Ember_Puff",
+    "key": "ember_puff"
+   },
+   "special": {
+    "name": "Puff Flare",
+    "kind": "shot"
+   },
+   "forms": [
+    {
+     "id": "kindlit",
+     "name": "Kindlit",
+     "stage": 1,
+     "nameFrom": "kindle + lit: a tiny round puff, like a spark that just caught",
+     "desc": "A round little puff of warm fluff. When it is happy, the top of its head glows like a match that just lit.",
+     "stats": {
+      "hp": 38,
+      "atk": 11,
+      "def": 7,
+      "spd": 11
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 15,
+      "fh": 16
+     }
+    },
+    {
+     "id": "fluffurn",
+     "name": "Fluffurn",
+     "stage": 2,
+     "nameFrom": "fluff + burn: the puff grows a fluffy curled tail that glows",
+     "desc": "Its fluffy tail curls up and glows pink at the tip. It hops so fast it leaves a warm trail in the grass.",
+     "stats": {
+      "hp": 56,
+      "atk": 16,
+      "def": 11,
+      "spd": 14
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 23,
+      "fh": 20
+     }
+    },
+    {
+     "id": "blazeplume",
+     "name": "Blazeplume",
+     "stage": 3,
+     "nameFrom": "blaze + plume: a big puff with a crest of fiery feathers",
+     "desc": "A big, proud puff with a plume of flame colored fur on top. It fluffs up to twice its size when it battles.",
+     "stats": {
+      "hp": 78,
+      "atk": 22,
+      "def": 16,
+      "spd": 17
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 27,
+      "fh": 24
+     }
+    }
+   ]
+  },
+  {
+   "id": "driftlet",
+   "type": "Frost",
+   "habitat": "snow",
+   "src": {
+    "pack": "ec",
+    "name": "Snow_Puff",
+    "key": "snow_puff"
+   },
+   "special": {
+    "name": "Snow Swirl",
+    "kind": "burst"
+   },
+   "forms": [
+    {
+     "id": "driftlet",
+     "name": "Driftlet",
+     "stage": 1,
+     "nameFrom": "snow drift + little: a small pointed pile of snow with a face",
+     "desc": "A small pile of snow that wiggles. It hides in snow drifts and pops out to say hello.",
+     "stats": {
+      "hp": 38,
+      "atk": 10,
+      "def": 8,
+      "spd": 11
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 18,
+      "fh": 15
+     }
+    },
+    {
+     "id": "frostkit",
+     "name": "Frostkit",
+     "stage": 2,
+     "nameFrom": "frost + kit (a baby cat): the snow pile grows cat ears and paws",
+     "desc": "The snow pile grows two pointy ears and four paws. It purrs, and the air around it turns cold.",
+     "stats": {
+      "hp": 56,
+      "atk": 15,
+      "def": 12,
+      "spd": 14
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 23,
+      "fh": 20
+     }
+    },
+    {
+     "id": "blizzlynx",
+     "name": "Blizzlynx",
+     "stage": 3,
+     "nameFrom": "blizzard + lynx: a big snow cat with a huge fluffy tail",
+     "desc": "A big snow cat with tufted ears and a tail like a snow cloud. One swish of its tail makes a tiny blizzard.",
+     "stats": {
+      "hp": 78,
+      "atk": 21,
+      "def": 17,
+      "spd": 17
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 30,
+      "fh": 24
+     }
+    }
+   ]
+  },
+  {
+   "id": "sprotato",
+   "type": "Leaf",
+   "habitat": "forest",
+   "src": {
+    "pack": "ec",
+    "name": "Leaf_Kid",
+    "key": "leaf_kid"
+   },
+   "special": {
+    "name": "Leaf Spin",
+    "kind": "dash"
+   },
+   "forms": [
+    {
+     "id": "sprotato",
+     "name": "Sprotato",
+     "stage": 1,
+     "nameFrom": "sprout + potato: a round tater body with a sprout on top",
+     "desc": "A round little tater with a sprout on its head. It sunbathes all day to make its sprout grow.",
+     "stats": {
+      "hp": 41,
+      "atk": 9,
+      "def": 10,
+      "spd": 9
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "idle": 6,
+      "move": 4,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 16,
+      "fh": 17
+     }
+    },
+    {
+     "id": "shrubtato",
+     "name": "Shrubtato",
+     "stage": 2,
+     "nameFrom": "shrub + potato: the sprout grows into a leafy shrub",
+     "desc": "Its sprout has grown into a bushy shrub. Little birds like to rest in its leaves.",
+     "stats": {
+      "hp": 59,
+      "atk": 14,
+      "def": 14,
+      "spd": 12
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "idle": 6,
+      "move": 4,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 22,
+      "fh": 22
+     }
+    },
+    {
+     "id": "grovetato",
+     "name": "Grovetato",
+     "stage": 3,
+     "nameFrom": "grove + potato: a big tater with a whole grove of leaves",
+     "desc": "A strong tater with a crown of big leaves, like a small grove of trees. It stomps to wake up sleepy seeds.",
+     "stats": {
+      "hp": 81,
+      "atk": 20,
+      "def": 19,
+      "spd": 15
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "idle": 6,
+      "move": 4,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 29,
+      "fh": 28
+     }
+    }
+   ]
+  },
+  {
+   "id": "gloomochi",
+   "type": "Shadow",
+   "habitat": "night",
+   "src": {
+    "pack": "ec",
+    "name": "Gloom_Bun",
+    "key": "gloom_bun"
+   },
+   "special": {
+    "name": "Dusk Bounce",
+    "kind": "slam"
+   },
+   "forms": [
+    {
+     "id": "gloomochi",
+     "name": "Gloomochi",
+     "stage": 1,
+     "nameFrom": "gloom + mochi (a round rice cake): a round, squishy purple ball",
+     "desc": "A round, squishy ball that only comes out after the sun goes down. It bounces when it giggles.",
+     "stats": {
+      "hp": 38,
+      "atk": 10,
+      "def": 7,
+      "spd": 12
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "idle": 6,
+      "move": 4,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 16,
+      "fh": 17
+     }
+    },
+    {
+     "id": "duskmochi",
+     "name": "Duskmochi",
+     "stage": 2,
+     "nameFrom": "dusk + mochi: the squishy ball grows round bunny ears",
+     "desc": "The squishy ball grows two round ears. It can hear a leaf fall from across the field.",
+     "stats": {
+      "hp": 56,
+      "atk": 15,
+      "def": 11,
+      "spd": 15
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "idle": 6,
+      "move": 4,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 20,
+      "fh": 20
+     }
+    },
+    {
+     "id": "nightmochi",
+     "name": "Nightmochi",
+     "stage": 3,
+     "nameFrom": "night + mochi: a big round night bear with a pale belly",
+     "desc": "A big, round night bear with a soft pale belly. It gives the best hugs in the whole night grove.",
+     "stats": {
+      "hp": 78,
+      "atk": 21,
+      "def": 16,
+      "spd": 18
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "idle": 6,
+      "move": 4,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 24,
+      "fh": 23
+     }
+    }
+   ]
+  },
+  {
+   "id": "cubbloop",
+   "type": "Water",
+   "habitat": "lake",
+   "src": {
+    "pack": "ec",
+    "name": "Gel_Slime",
+    "key": "gel_slime"
+   },
+   "special": {
+    "name": "Bubble Jet",
+    "kind": "shot"
+   },
+   "forms": [
+    {
+     "id": "cubbloop",
+     "name": "Cubbloop",
+     "stage": 1,
+     "nameFrom": "cube + bloop: a little square blob of water jelly",
+     "desc": "A little square of water jelly. You can see bubbles floating inside it.",
+     "stats": {
+      "hp": 42,
+      "atk": 9,
+      "def": 9,
+      "spd": 9
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 16,
+      "fh": 15
+     }
+    },
+    {
+     "id": "gloopillar",
+     "name": "Gloopillar",
+     "stage": 2,
+     "nameFrom": "gloop + pillar: the jelly stretches up tall like a pillar",
+     "desc": "The jelly stretches up tall like a pillar. It can squeeze through any crack.",
+     "stats": {
+      "hp": 60,
+      "atk": 14,
+      "def": 13,
+      "spd": 12
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 17,
+      "fh": 22
+     }
+    },
+    {
+     "id": "gelossus",
+     "name": "Gelossus",
+     "stage": 3,
+     "nameFrom": "gel + colossus (a giant): a giant, wobbly jelly",
+     "desc": "A giant, wobbly jelly as big as a pond. Fish sometimes swim right through it.",
+     "stats": {
+      "hp": 82,
+      "atk": 20,
+      "def": 18,
+      "spd": 15
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "idle": 8,
+      "move": 10,
+      "hurt": 4,
+      "w": 52,
+      "h": 60,
+      "fw": 21,
+      "fh": 25
+     }
+    }
+   ]
+  },
+  {
+   "id": "cindrakit",
+   "type": "Fire",
+   "habitat": "ember",
+   "src": {
+    "pack": "mp",
+    "row": 0,
+    "side": 0
+   },
+   "special": {
+    "name": "Dragon Breath",
+    "kind": "shot"
+   },
+   "forms": [
+    {
+     "id": "cindrakit",
+     "name": "Cindrakit",
+     "stage": 1,
+     "nameFrom": "cinder + drake (a dragon) + kit: a baby dragon the size of a kitten",
+     "desc": "A baby dragon the size of a kitten. It practices breathing fire, but only makes little puffs of smoke.",
+     "stats": {
+      "hp": 36,
+      "atk": 11,
+      "def": 6,
+      "spd": 11
+     },
+     "evolvesAt": 8,
+     "sprite": {
+      "w": 22,
+      "h": 26,
+      "idle": 1,
+      "fw": 20,
+      "fh": 24,
+      "back": 1
+     }
+    },
+    {
+     "id": "cindracub",
+     "name": "Cindracub",
+     "stage": 2,
+     "nameFrom": "cinder + drake + cub: a bigger dragon cub with a flame tail",
+     "desc": "A dragon cub with a flame on its tail. It sits up tall to look bigger.",
+     "stats": {
+      "hp": 50,
+      "atk": 15,
+      "def": 10,
+      "spd": 13
+     },
+     "evolvesAt": 18,
+     "sprite": {
+      "w": 35,
+      "h": 40,
+      "idle": 1,
+      "fw": 33,
+      "fh": 38,
+      "back": 1
+     }
+    },
+    {
+     "id": "cindrake",
+     "name": "Cindrake",
+     "stage": 3,
+     "nameFrom": "cinder + drake: a young dragon with horns and claws",
+     "desc": "A young dragon with strong horns and a flame tipped tail. It guards its friends.",
+     "stats": {
+      "hp": 66,
+      "atk": 19,
+      "def": 13,
+      "spd": 15
+     },
+     "evolvesAt": 30,
+     "sprite": {
+      "w": 53,
+      "h": 60,
+      "idle": 1,
+      "fw": 51,
+      "fh": 58,
+      "back": 1
+     }
+    },
+    {
+     "id": "infernadrake",
+     "name": "Infernadrake",
+     "stage": 4,
+     "nameFrom": "inferno + drake: a huge winged dragon wrapped in flame",
+     "desc": "A huge dragon with wide wings and a crown of horns. Its flames glow like a sunset.",
+     "stats": {
+      "hp": 84,
+      "atk": 24,
+      "def": 17,
+      "spd": 17
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 113,
+      "h": 103,
+      "idle": 1,
+      "fw": 111,
+      "fh": 101,
+      "back": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "sandlet",
+   "type": "Stone",
+   "habitat": "ember",
+   "src": {
+    "pack": "mp",
+    "row": 0,
+    "side": 1
+   },
+   "special": {
+    "name": "Sand Coil",
+    "kind": "dash"
+   },
+   "forms": [
+    {
+     "id": "sandlet",
+     "name": "Sandlet",
+     "stage": 1,
+     "nameFrom": "sand + little: a tiny round ball of sand with eyes",
+     "desc": "A tiny ball of sand with big eyes. It rolls across the dunes when the wind blows.",
+     "stats": {
+      "hp": 41,
+      "atk": 10,
+      "def": 10,
+      "spd": 8
+     },
+     "evolvesAt": 8,
+     "sprite": {
+      "w": 21,
+      "h": 24,
+      "idle": 1,
+      "fw": 19,
+      "fh": 22,
+      "back": 1
+     }
+    },
+    {
+     "id": "siltcoil",
+     "name": "Siltcoil",
+     "stage": 2,
+     "nameFrom": "silt (fine sand) + coil: the sand ball stretches into a short coiled snake",
+     "desc": "The sand ball stretches out into a short, coiled snake. It wiggles to dig little tunnels.",
+     "stats": {
+      "hp": 55,
+      "atk": 14,
+      "def": 14,
+      "spd": 10
+     },
+     "evolvesAt": 18,
+     "sprite": {
+      "w": 37,
+      "h": 38,
+      "idle": 1,
+      "fw": 35,
+      "fh": 36,
+      "back": 1
+     }
+    },
+    {
+     "id": "dunecoil",
+     "name": "Dunecoil",
+     "stage": 3,
+     "nameFrom": "dune + coil: a long sand snake coiled up like a sand dune",
+     "desc": "A long sand snake that coils into a pile as tall as a dune. It naps in warm sand.",
+     "stats": {
+      "hp": 71,
+      "atk": 18,
+      "def": 17,
+      "spd": 12
+     },
+     "evolvesAt": 30,
+     "sprite": {
+      "w": 58,
+      "h": 54,
+      "idle": 1,
+      "fw": 56,
+      "fh": 52,
+      "back": 1
+     }
+    },
+    {
+     "id": "spinecoil",
+     "name": "Spinecoil",
+     "stage": 4,
+     "nameFrom": "spine + coil: a giant coiled snake with a mane of sand spikes",
+     "desc": "A giant coiled snake with a mane of sharp sand spikes. When it shakes, it makes a sandstorm.",
+     "stats": {
+      "hp": 89,
+      "atk": 23,
+      "def": 21,
+      "spd": 14
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 108,
+      "h": 99,
+      "idle": 1,
+      "fw": 106,
+      "fh": 97,
+      "back": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "mosslet",
+   "type": "Stone",
+   "habitat": "forest",
+   "src": {
+    "pack": "mp",
+    "row": 1,
+    "side": 0
+   },
+   "special": {
+    "name": "Rock Stomp",
+    "kind": "slam"
+   },
+   "forms": [
+    {
+     "id": "mosslet",
+     "name": "Mosslet",
+     "stage": 1,
+     "nameFrom": "moss + little: a small horned stone with moss on its belly",
+     "desc": "A small horned stone with soft moss on its belly. It sits so still that bugs think it is a rock.",
+     "stats": {
+      "hp": 41,
+      "atk": 10,
+      "def": 10,
+      "spd": 8
+     },
+     "evolvesAt": 8,
+     "sprite": {
+      "w": 24,
+      "h": 25,
+      "idle": 1,
+      "fw": 22,
+      "fh": 23,
+      "back": 1
+     }
+    },
+    {
+     "id": "mosshorn",
+     "name": "Mosshorn",
+     "stage": 2,
+     "nameFrom": "moss + horn: the stone grows two big horns and a leafy tail",
+     "desc": "The stone grows two big horns. A tuft of leaves sprouts from its back.",
+     "stats": {
+      "hp": 55,
+      "atk": 14,
+      "def": 14,
+      "spd": 10
+     },
+     "evolvesAt": 18,
+     "sprite": {
+      "w": 38,
+      "h": 42,
+      "idle": 1,
+      "fw": 36,
+      "fh": 40,
+      "back": 1
+     }
+    },
+    {
+     "id": "mossbrick",
+     "name": "Mossbrick",
+     "stage": 3,
+     "nameFrom": "moss + brick: a strong body made of brick shaped stones",
+     "desc": "Its body is made of brick shaped stones held together with moss. It loves to build.",
+     "stats": {
+      "hp": 71,
+      "atk": 18,
+      "def": 17,
+      "spd": 12
+     },
+     "evolvesAt": 30,
+     "sprite": {
+      "w": 58,
+      "h": 62,
+      "idle": 1,
+      "fw": 56,
+      "fh": 60,
+      "back": 1
+     }
+    },
+    {
+     "id": "mossgolith",
+     "name": "Mossgolith",
+     "stage": 4,
+     "nameFrom": "moss + golem + monolith (a giant stone): a giant stone giant with leaves",
+     "desc": "A giant made of stone blocks and leafy vines. It can carry a whole tree on its back.",
+     "stats": {
+      "hp": 89,
+      "atk": 23,
+      "def": 21,
+      "spd": 14
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 110,
+      "h": 104,
+      "idle": 1,
+      "fw": 108,
+      "fh": 102,
+      "back": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "wispling",
+   "type": "Light",
+   "habitat": "night",
+   "src": {
+    "pack": "mp",
+    "row": 1,
+    "side": 1
+   },
+   "special": {
+    "name": "Halo Ring",
+    "kind": "burst"
+   },
+   "forms": [
+    {
+     "id": "wispling",
+     "name": "Wispling",
+     "stage": 1,
+     "nameFrom": "wisp (a little glow) + ling: a tiny glowing white blob",
+     "desc": "A tiny white blob that glows like a night light. It follows lost travelers home.",
+     "stats": {
+      "hp": 38,
+      "atk": 9,
+      "def": 8,
+      "spd": 11
+     },
+     "evolvesAt": 8,
+     "sprite": {
+      "w": 20,
+      "h": 27,
+      "idle": 1,
+      "fw": 18,
+      "fh": 25,
+      "back": 1
+     }
+    },
+    {
+     "id": "halopod",
+     "name": "Halopod",
+     "stage": 2,
+     "nameFrom": "halo + cephalopod (an octopus or squid): a small ghost squid with a golden halo",
+     "desc": "A small white squid with a golden halo over its head. Its halo hums softly.",
+     "stats": {
+      "hp": 52,
+      "atk": 13,
+      "def": 12,
+      "spd": 13
+     },
+     "evolvesAt": 18,
+     "sprite": {
+      "w": 26,
+      "h": 45,
+      "idle": 1,
+      "fw": 24,
+      "fh": 43,
+      "back": 1
+     }
+    },
+    {
+     "id": "seraphopod",
+     "name": "Seraphopod",
+     "stage": 3,
+     "nameFrom": "seraph (an angel) + cephalopod: a squid with angel wing fins",
+     "desc": "A squid with wing shaped fins and a bright halo. It floats in the air like it is swimming.",
+     "stats": {
+      "hp": 68,
+      "atk": 17,
+      "def": 15,
+      "spd": 15
+     },
+     "evolvesAt": 30,
+     "sprite": {
+      "w": 52,
+      "h": 62,
+      "idle": 1,
+      "fw": 50,
+      "fh": 60,
+      "back": 1
+     }
+    },
+    {
+     "id": "celestopod",
+     "name": "Celestopod",
+     "stage": 4,
+     "nameFrom": "celestial (of the sky and stars) + cephalopod: a huge starlit squid with a crown halo",
+     "desc": "A huge, shining squid with a crown shaped halo and sparkles all around it. It lights up the whole night.",
+     "stats": {
+      "hp": 86,
+      "atk": 22,
+      "def": 19,
+      "spd": 17
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 102,
+      "h": 107,
+      "idle": 1,
+      "fw": 100,
+      "fh": 105,
+      "back": 1
+     }
+    }
+   ]
+  },
+  {
+   "id": "plumpup",
+   "type": "Water",
+   "habitat": "lake",
+   "src": {
+    "pack": "pm",
+    "images": [
+     0,
+     2,
+     1
+    ]
+   },
+   "special": {
+    "name": "Tusk Wave",
+    "kind": "dash"
+   },
+   "forms": [
+    {
+     "id": "plumpup",
+     "name": "Plumpup",
+     "stage": 1,
+     "nameFrom": "plume (a big feather) + pup: a chubby pup with a fan of peacock feathers",
+     "desc": "A chubby pup with a fan of purple feathers on its back. It shows off its fan to make friends.",
+     "stats": {
+      "hp": 42,
+      "atk": 9,
+      "def": 9,
+      "spd": 9
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 55,
+      "h": 47,
+      "idle": 4,
+      "fw": 52,
+      "fh": 43
+     }
+    },
+    {
+     "id": "plumrus",
+     "name": "Plumrus",
+     "stage": 2,
+     "nameFrom": "plume + walrus: a walrus with tusks and a feather fan",
+     "desc": "A walrus with two little tusks and a big feather fan. It flaps its fan to cool off in the sun.",
+     "stats": {
+      "hp": 60,
+      "atk": 14,
+      "def": 13,
+      "spd": 12
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 70,
+      "h": 69,
+      "idle": 4,
+      "fw": 68,
+      "fh": 67
+     }
+    },
+    {
+     "id": "tuskplume",
+     "name": "Tuskplume",
+     "stage": 3,
+     "nameFrom": "tusk + plume: a huge dark walrus with long tusks and a giant fan",
+     "desc": "A huge walrus with long tusks and a giant fan of feathers. When it spreads its fan, every eye on it seems to stare.",
+     "stats": {
+      "hp": 82,
+      "atk": 20,
+      "def": 18,
+      "spd": 15
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 77,
+      "h": 81,
+      "idle": 4,
+      "fw": 74,
+      "fh": 76
+     }
+    }
+   ]
+  },
+  {
+   "id": "chamelet",
+   "type": "Spark",
+   "habitat": "meadow",
+   "src": {
+    "pack": "pm",
+    "images": [
+     3,
+     4,
+     5
+    ]
+   },
+   "special": {
+    "name": "Crest Zap",
+    "kind": "shot"
+   },
+   "forms": [
+    {
+     "id": "chamelet",
+     "name": "Chamelet",
+     "stage": 1,
+     "nameFrom": "chameleon + little: a baby lizard with a curly tail and a pink crest",
+     "desc": "A baby lizard with a curly tail and a fuzzy pink crest. Its crest crackles when it gets excited.",
+     "stats": {
+      "hp": 36,
+      "atk": 11,
+      "def": 7,
+      "spd": 13
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 47,
+      "h": 48,
+      "idle": 4,
+      "fw": 45,
+      "fh": 46
+     }
+    },
+    {
+     "id": "chamohawk",
+     "name": "Chamohawk",
+     "stage": 2,
+     "nameFrom": "chameleon + mohawk: the crest grows into a tall spiky mohawk",
+     "desc": "Its crest has grown into a tall, spiky mohawk that sparks like a toy plasma ball.",
+     "stats": {
+      "hp": 54,
+      "atk": 16,
+      "def": 11,
+      "spd": 16
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 66,
+      "h": 67,
+      "idle": 4,
+      "fw": 62,
+      "fh": 62
+     }
+    },
+    {
+     "id": "chamoroar",
+     "name": "Chamoroar",
+     "stage": 3,
+     "nameFrom": "chameleon + roar: a big dark lizard with a wild glowing crest",
+     "desc": "A big lizard that turns dark when it battles. Its glowing crest crackles when it roars.",
+     "stats": {
+      "hp": 76,
+      "atk": 22,
+      "def": 16,
+      "spd": 19
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 98,
+      "h": 104,
+      "idle": 6,
+      "fw": 94,
+      "fh": 102
+     }
+    }
+   ]
+  },
+  {
+   "id": "toucapus",
+   "type": "Sky",
+   "habitat": "lake",
+   "src": {
+    "pack": "pm",
+    "images": [
+     6,
+     8
+    ]
+   },
+   "special": {
+    "name": "Beak Dive",
+    "kind": "dash"
+   },
+   "forms": [
+    {
+     "id": "toucapus",
+     "name": "Toucapus",
+     "stage": 1,
+     "nameFrom": "toucan + octopus: a toucan beak on a little octopus body",
+     "desc": "A little octopus with a big toucan beak. It flaps its arms like wings to fly over the lake.",
+     "stats": {
+      "hp": 38,
+      "atk": 11,
+      "def": 7,
+      "spd": 13
+     },
+     "evolvesAt": 14,
+     "sprite": {
+      "w": 49,
+      "h": 52,
+      "idle": 4,
+      "fw": 47,
+      "fh": 49
+     }
+    },
+    {
+     "id": "krakeucan",
+     "name": "Krakeucan",
+     "stage": 2,
+     "nameFrom": "kraken (a giant sea monster) + toucan: a giant beaked sea creature with many arms",
+     "desc": "A giant sea creature with a toucan beak and long curling arms. It can swim and fly.",
+     "stats": {
+      "hp": 68,
+      "atk": 19,
+      "def": 14,
+      "spd": 18
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 113,
+      "h": 117,
+      "idle": 8,
+      "fw": 104,
+      "fh": 113
+     }
+    }
+   ]
+  },
+  {
+   "id": "quillit",
+   "type": "Fire",
+   "habitat": "ember",
+   "src": {
+    "pack": "pm",
+    "images": [
+     9,
+     10,
+     11
+    ]
+   },
+   "special": {
+    "name": "Quill Roll",
+    "kind": "dash"
+   },
+   "forms": [
+    {
+     "id": "quillit",
+     "name": "Quillit",
+     "stage": 1,
+     "nameFrom": "quill (a spine) + little: a red fox pup with a little shell and spines",
+     "desc": "A red pup with a small turtle shell on its back and soft spines. It curls up when it is shy.",
+     "stats": {
+      "hp": 38,
+      "atk": 11,
+      "def": 7,
+      "spd": 11
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 53,
+      "h": 47,
+      "idle": 5,
+      "fw": 51,
+      "fh": 44
+     }
+    },
+    {
+     "id": "shellquill",
+     "name": "Shellquill",
+     "stage": 2,
+     "nameFrom": "shell + quill: a bigger shell with long spines",
+     "desc": "Its shell grows bigger and its spines grow longer. Its back is always warm, like a heater.",
+     "stats": {
+      "hp": 56,
+      "atk": 16,
+      "def": 11,
+      "spd": 14
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 61,
+      "h": 58,
+      "idle": 4,
+      "fw": 59,
+      "fh": 56
+     }
+    },
+    {
+     "id": "magmaquill",
+     "name": "Magmaquill",
+     "stage": 3,
+     "nameFrom": "magma (hot melted rock) + quill: a dark spiky ball that rolls like a hot rock",
+     "desc": "Dark spikes cover its whole back. It curls into a hot, spiky ball and rolls into battle.",
+     "stats": {
+      "hp": 78,
+      "atk": 22,
+      "def": 16,
+      "spd": 17
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 56,
+      "h": 56,
+      "idle": 2,
+      "fw": 54,
+      "fh": 54
+     }
+    }
+   ]
+  },
+  {
+   "id": "puffawn",
+   "type": "Water",
+   "habitat": "lake",
+   "src": {
+    "pack": "pm",
+    "images": [
+     13,
+     12,
+     14
+    ]
+   },
+   "special": {
+    "name": "Puff Splash",
+    "kind": "burst"
+   },
+   "forms": [
+    {
+     "id": "puffawn",
+     "name": "Puffawn",
+     "stage": 1,
+     "nameFrom": "puffer fish + fawn (a baby deer): a round puffer fish with little antlers",
+     "desc": "A round puffer fish with tiny antlers, like a baby deer. It puffs up when it giggles.",
+     "stats": {
+      "hp": 42,
+      "atk": 9,
+      "def": 9,
+      "spd": 9
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 65,
+      "h": 66,
+      "idle": 4,
+      "fw": 63,
+      "fh": 64
+     }
+    },
+    {
+     "id": "pufflope",
+     "name": "Pufflope",
+     "stage": 2,
+     "nameFrom": "puffer fish + antelope: a puffer with legs and bigger antlers",
+     "desc": "It grows strong legs and bigger antlers. It runs along the shore and splashes in the waves.",
+     "stats": {
+      "hp": 60,
+      "atk": 14,
+      "def": 13,
+      "spd": 12
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 74,
+      "h": 83,
+      "idle": 2,
+      "fw": 72,
+      "fh": 81
+     }
+    },
+    {
+     "id": "puffstag",
+     "name": "Puffstag",
+     "stage": 3,
+     "nameFrom": "puffer fish + stag (a grown deer): a big spiky puffer with huge antlers",
+     "desc": "A big, spiky puffer with huge antlers. It opens its mouth wide to give a mighty splash.",
+     "stats": {
+      "hp": 82,
+      "atk": 20,
+      "def": 18,
+      "spd": 15
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 95,
+      "h": 94,
+      "idle": 3,
+      "fw": 89,
+      "fh": 90
+     }
+    }
+   ]
+  },
+  {
+   "id": "pinchmur",
+   "type": "Stone",
+   "habitat": "forest",
+   "src": {
+    "pack": "pm",
+    "images": [
+     16,
+     15,
+     28
+    ]
+   },
+   "special": {
+    "name": "Claw Snap",
+    "kind": "slam"
+   },
+   "forms": [
+    {
+     "id": "pinchmur",
+     "name": "Pinchmur",
+     "stage": 1,
+     "nameFrom": "pinch + lemur: a lemur with a striped tail and little red crab claws",
+     "desc": "A lemur with a striped tail and two little red crab claws. It pinches leaves off trees to snack on.",
+     "stats": {
+      "hp": 43,
+      "atk": 10,
+      "def": 11,
+      "spd": 8
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 64,
+      "h": 59,
+      "idle": 4,
+      "fw": 60,
+      "fh": 57
+     }
+    },
+    {
+     "id": "clawmur",
+     "name": "Clawmur",
+     "stage": 2,
+     "nameFrom": "claw + lemur: bigger claws and a red crab shell on its head",
+     "desc": "Its claws grow big and it wears a red crab shell like a helmet.",
+     "stats": {
+      "hp": 61,
+      "atk": 15,
+      "def": 15,
+      "spd": 11
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 65,
+      "h": 63,
+      "idle": 3,
+      "fw": 63,
+      "fh": 57
+     }
+    },
+    {
+     "id": "crushmur",
+     "name": "Crushmur",
+     "stage": 3,
+     "nameFrom": "crush + lemur: a huge lemur with giant crab claws",
+     "desc": "A huge lemur with giant crab claws. It can crack open a coconut with one snap.",
+     "stats": {
+      "hp": 83,
+      "atk": 21,
+      "def": 20,
+      "spd": 14
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 89,
+      "h": 85,
+      "idle": 4,
+      "fw": 79,
+      "fh": 83
+     }
+    }
+   ]
+  },
+  {
+   "id": "whalump",
+   "type": "Water",
+   "habitat": "lake",
+   "src": {
+    "pack": "pm",
+    "images": [
+     17,
+     18,
+     19
+    ]
+   },
+   "special": {
+    "name": "Spout Blast",
+    "kind": "burst"
+   },
+   "forms": [
+    {
+     "id": "whalump",
+     "name": "Whalump",
+     "stage": 1,
+     "nameFrom": "whale + lump: a round little whale lump with a water spout",
+     "desc": "A round little whale that sits on the beach like a lump. It sprays water from its spout to say hi.",
+     "stats": {
+      "hp": 42,
+      "atk": 9,
+      "def": 9,
+      "spd": 9
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 64,
+      "h": 63,
+      "idle": 5,
+      "fw": 60,
+      "fh": 56
+     }
+    },
+    {
+     "id": "spoutump",
+     "name": "Spoutump",
+     "stage": 2,
+     "nameFrom": "spout + lump: a bigger whale lump with a strong spout",
+     "desc": "A bigger whale with a strong spout. Kids splash in the fountain it makes.",
+     "stats": {
+      "hp": 60,
+      "atk": 14,
+      "def": 13,
+      "spd": 12
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 81,
+      "h": 80,
+      "idle": 6,
+      "fw": 75,
+      "fh": 69
+     }
+    },
+    {
+     "id": "leviathump",
+     "name": "Leviathump",
+     "stage": 3,
+     "nameFrom": "leviathan (a giant sea creature) + lump: a giant whale with many legs",
+     "desc": "A giant whale that walks on many legs. Its big mouth can gulp a whole wave.",
+     "stats": {
+      "hp": 82,
+      "atk": 20,
+      "def": 18,
+      "spd": 15
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 111,
+      "h": 106,
+      "idle": 4,
+      "fw": 105,
+      "fh": 104
+     }
+    }
+   ]
+  },
+  {
+   "id": "flutteroo",
+   "type": "Sky",
+   "habitat": "meadow",
+   "src": {
+    "pack": "pm",
+    "images": [
+     29,
+     30,
+     31
+    ]
+   },
+   "special": {
+    "name": "Wing Gust",
+    "kind": "shot"
+   },
+   "forms": [
+    {
+     "id": "flutteroo",
+     "name": "Flutteroo",
+     "stage": 1,
+     "nameFrom": "flutter + kangaroo: a little hopping roo with butterfly wings",
+     "desc": "A little roo with butterfly wings. It hops and flutters at the same time.",
+     "stats": {
+      "hp": 36,
+      "atk": 10,
+      "def": 7,
+      "spd": 13
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 53,
+      "h": 60,
+      "idle": 2,
+      "fw": 46,
+      "fh": 58
+     }
+    },
+    {
+     "id": "mothroo",
+     "name": "Mothroo",
+     "stage": 2,
+     "nameFrom": "moth + kangaroo: a fuzzy roo with big moth wings and antennae",
+     "desc": "A fuzzy roo with big moth wings and feathery antennae. It glides from hill to hill.",
+     "stats": {
+      "hp": 54,
+      "atk": 15,
+      "def": 11,
+      "spd": 16
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 68,
+      "h": 80,
+      "idle": 3,
+      "fw": 62,
+      "fh": 78
+     }
+    },
+    {
+     "id": "mothdrake",
+     "name": "Mothdrake",
+     "stage": 3,
+     "nameFrom": "moth + drake (a dragon): a dragon shaped roo with moth wings",
+     "desc": "It grows a long dragon tail and strong legs, and its moth wings carry it high above the clouds.",
+     "stats": {
+      "hp": 76,
+      "atk": 21,
+      "def": 16,
+      "spd": 19
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 78,
+      "h": 90,
+      "idle": 5,
+      "fw": 76,
+      "fh": 87
+     }
+    }
+   ]
+  },
+  {
+   "id": "crabitty",
+   "type": "Shadow",
+   "habitat": "night",
+   "src": {
+    "pack": "pm",
+    "images": [
+     21,
+     22,
+     32
+    ]
+   },
+   "special": {
+    "name": "Pincer Swoop",
+    "kind": "dash"
+   },
+   "forms": [
+    {
+     "id": "crabitty",
+     "name": "Crabitty",
+     "stage": 1,
+     "nameFrom": "crab + bitty: a tiny pink critter with crab claws and bat wings",
+     "desc": "A tiny pink critter with crab claws and little bat wings. It snips the air to say hello.",
+     "stats": {
+      "hp": 38,
+      "atk": 10,
+      "def": 7,
+      "spd": 12
+     },
+     "evolvesAt": 10,
+     "sprite": {
+      "w": 63,
+      "h": 62,
+      "idle": 4,
+      "fw": 57,
+      "fh": 60
+     }
+    },
+    {
+     "id": "crabat",
+     "name": "Crabat",
+     "stage": 2,
+     "nameFrom": "crab + bat: long legs, bat wings and crab claws",
+     "desc": "It stands on long legs, flaps its bat wings and snaps its crab claws to keep a beat.",
+     "stats": {
+      "hp": 56,
+      "atk": 15,
+      "def": 11,
+      "spd": 15
+     },
+     "evolvesAt": 22,
+     "sprite": {
+      "w": 78,
+      "h": 77,
+      "idle": 3,
+      "fw": 74,
+      "fh": 75
+     }
+    },
+    {
+     "id": "crabatross",
+     "name": "Crabatross",
+     "stage": 3,
+     "nameFrom": "crab + bat + albatross (a giant sea bird): a big winged crab bat",
+     "desc": "A big crab bat with wide wings like an albatross. It glides over the night sea for hours.",
+     "stats": {
+      "hp": 78,
+      "atk": 21,
+      "def": 16,
+      "spd": 18
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 108,
+      "h": 97,
+      "idle": 4,
+      "fw": 102,
+      "fh": 95
+     }
+    }
+   ]
+  },
+  {
+   "id": "snailark",
+   "type": "Leaf",
+   "habitat": "forest",
+   "src": {
+    "pack": "pm",
+    "images": [
+     23,
+     24
+    ]
+   },
+   "special": {
+    "name": "Shell Spiral",
+    "kind": "burst"
+   },
+   "forms": [
+    {
+     "id": "snailark",
+     "name": "Snailark",
+     "stage": 1,
+     "nameFrom": "snail + lark (a songbird): a little bird with a snail shell on its back",
+     "desc": "A little songbird with a snail shell on its back. It sings slow, sleepy songs.",
+     "stats": {
+      "hp": 43,
+      "atk": 10,
+      "def": 10,
+      "spd": 9
+     },
+     "evolvesAt": 14,
+     "sprite": {
+      "w": 53,
+      "h": 58,
+      "idle": 5,
+      "fw": 51,
+      "fh": 56
+     }
+    },
+    {
+     "id": "spiralhawk",
+     "name": "Spiralhawk",
+     "stage": 2,
+     "nameFrom": "spiral + hawk: a hawk with spiral shell wings",
+     "desc": "A hawk with wings shaped like spiral shells. It spins as it dives.",
+     "stats": {
+      "hp": 73,
+      "atk": 18,
+      "def": 17,
+      "spd": 14
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 100,
+      "h": 104,
+      "idle": 6,
+      "fw": 85,
+      "fh": 76
+     }
+    }
+   ]
+  },
+  {
+   "id": "kittowl",
+   "type": "Shadow",
+   "habitat": "night",
+   "src": {
+    "pack": "pm",
+    "images": [
+     25,
+     26
+    ]
+   },
+   "special": {
+    "name": "Hoot Blast",
+    "kind": "shot"
+   },
+   "forms": [
+    {
+     "id": "kittowl",
+     "name": "Kittowl",
+     "stage": 1,
+     "nameFrom": "kitten + owl: a round black kitten with owl ears and big eyes",
+     "desc": "A round black kitten with owl tufts and big golden eyes. It sleeps all day and plays all night.",
+     "stats": {
+      "hp": 40,
+      "atk": 11,
+      "def": 7,
+      "spd": 12
+     },
+     "evolvesAt": 14,
+     "sprite": {
+      "w": 46,
+      "h": 50,
+      "idle": 2,
+      "fw": 44,
+      "fh": 48
+     }
+    },
+    {
+     "id": "shadowl",
+     "name": "Shadowl",
+     "stage": 2,
+     "nameFrom": "shadow + owl: a tall shadow owl cat with wide wings",
+     "desc": "A tall shadow owl with wide wings. It glides so quietly that nobody hears it coming.",
+     "stats": {
+      "hp": 70,
+      "atk": 19,
+      "def": 14,
+      "spd": 17
+     },
+     "evolvesAt": null,
+     "sprite": {
+      "w": 69,
+      "h": 63,
+      "idle": 2,
+      "fw": 66,
+      "fh": 58
+     }
+    }
+   ]
+  }
+ ]
+}

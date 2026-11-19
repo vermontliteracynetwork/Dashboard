@@ -23,11 +23,18 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "In Yoga's Revenge, if you miss a question you get a new question right away. You stay in your level and keep playing.",
   },
   {
-    id: "2026-11-19-rocket-chickens-keys",
+    id: "2026-11-19-rocket-chickens-computers",
     date: "2026-11-19",
     icon: "🐔",
-    title: "Rocket Chickens: play on a computer, and no more surprise stops",
-    body: "On a computer you can aim with the arrow keys or by dragging on the sky, and press Space to fire. In the air, hold Up to fly up and Down to dive. Long flights no longer stop by surprise, and the report tells you why each round ended. Gems now go much farther too.",
+    title: "Rocket Chickens on computers, and longer flights",
+    body: "On a computer, move the mouse to aim and click to fire. In the air, hold the mouse button above the chicken to fly up, or below it to dive. The arrow keys and Space work too. And no more stopping at 7 miles: fly as far as you can!",
+  },
+  {
+    id: "2026-11-19-creaturemon",
+    date: "2026-11-19",
+    icon: "🐉",
+    title: "Creaturemon: catch, battle and evolve",
+    body: "Open Creaturemon on the Computer or in the Arcade. Pick your partner, then explore a 3D pixel world with six places to find creatures. Walk up to a wild creature and tap Throw orb to catch it, or Battle it first. In battles, knock the other creature off the island to win! Train your creatures to level up, and watch them evolve. Every evolution is a new card for your collection. There are 61 cards to find.",
   },
   {
     id: "2026-11-19-game-builder-windows",

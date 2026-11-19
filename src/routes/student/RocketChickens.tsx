@@ -102,12 +102,12 @@ const fresh = (): Save => ({ coins: 0, day: 1, round: 1, up: { power: 0, fuel: 0
 interface Block { x: number; col: number; row: number; y: number; mat: 'crate' | 'stone' | 'target'; hp: number; alive: boolean }
 interface Bit { x: number; y: number; vx: number; vy: number; life: number; color: string; s: number }
 interface Gem { x: number; y: number; c: string; coins: number; got: boolean }
-interface Report { round: number; day: number; dist: number; alt: number; mph: number; broke: number; targets: number; gems: number; coins: { dist: number; alt: number; mph: number; broke: number; gems: number }; total: number; dayEnd: boolean; why: string }
+interface Report { round: number; day: number; dist: number; alt: number; mph: number; broke: number; targets: number; gems: number; coins: { dist: number; alt: number; mph: number; broke: number; gems: number }; total: number; dayEnd: boolean }
 
 function rng(seed: number) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s ^= s >>> 17; s ^= s << 5; return ((s >>> 0) % 100000) / 100000; }; }
 function makeGems(seed: number): Gem[] {
   const r = rng(seed * 7 + 3); const out: Gem[] = [];
-  for (let x = 160 + r() * 80; x < 60000; x += 60 + r() * 140) { const g = GEMS[Math.min(3, Math.floor(r() * r() * 4 + x / 3000))]; out.push({ x, y: 25 + r() * Math.min(420, 60 + x / 6), c: g.c, coins: g.coins, got: false }); }
+  for (let x = 160 + r() * 80; x < 6000; x += 60 + r() * 140) { const g = GEMS[Math.min(3, Math.floor(r() * r() * 4 + x / 3000))]; out.push({ x, y: 25 + r() * Math.min(420, 60 + x / 6), c: g.c, coins: g.coins, got: false }); }
   return out;
 }
 function makeWorld(seed: number): Block[] {
@@ -194,7 +194,7 @@ export default function RocketChickens() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const W = useRef({
     firing: false, jetHold: false, pitch: 0, blocks: [] as Block[], gems: [] as Gem[], gemCoins: 0, gemN: 0, stick: 0, bits: [] as Bit[], x: 0, y: 4, vx: 0, vy: 0, aim: 0.75, aimed: false, flying: false, rest: 0,
-    fuel: 0, boost: 0, boostDir: 1, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, scale: 8, camX: -20, groundY: 0, shake: 0, landed: false, t: 0, why: '',
+    fuel: 0, boost: 0, boostDir: 1, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, scale: 8, camX: -20, groundY: 0, shake: 0, landed: false, t: 0,
   });
 
   const cannon = CANNONS.find((c) => c.id === S.cannon) ?? CANNONS[0];
@@ -206,7 +206,7 @@ export default function RocketChickens() {
     const w = W.current;
     const seed = (sRef.current.day * 97 + sRef.current.round * 13 + 7) | 0;
     w.blocks = makeWorld(seed); w.gems = makeGems(seed); w.bits = [];
-    Object.assign(w, { x: 0, y: 4, vx: 0, vy: 0, aimed: false, flying: false, rest: 0, fuel: fuelMax, boost: 0, stick: 0, gemCoins: 0, gemN: 0, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, landed: false, t: 0, why: '' });
+    Object.assign(w, { x: 0, y: 4, vx: 0, vy: 0, aimed: false, flying: false, rest: 0, fuel: fuelMax, boost: 0, stick: 0, gemCoins: 0, gemN: 0, maxAlt: 0, maxMph: 0, broke: 0, targets: 0, landed: false, t: 0 }); // 704: the flight clock starts again every round
     setHud({ mph: 0, dist: 0, alt: 0, fuel: fuelMax }); setLaunchMsg('');
   };
   const loadCannon = () => {
@@ -237,10 +237,12 @@ export default function RocketChickens() {
     const dayEnd = false; // 660: no days any more, every round is the next world
     if (dist > s.best && studentId) recordBestGame(studentId, 'rocketChickens', dist, `${alt} ft high, ${mph} MPH`);
     put({ coins: s.coins + total, best: Math.max(s.best, dist), round: s.round + 1 });
-    setReport({ round: s.round, day: s.day, dist, alt, mph, broke: w.broke + w.targets, targets: w.targets, gems: w.gemN, coins, total, dayEnd, why: w.why });
+    setReport({ round: s.round, day: s.day, dist, alt, mph, broke: w.broke + w.targets, targets: w.targets, gems: w.gemN, coins, total, dayEnd });
     setPhase('report'); sfx.coin();
+    if (timeUpRef.current) { timeUpRef.current = false; setLaunchMsg('What a flight! Flights end after 15 minutes in the air.'); window.setTimeout(() => setLaunchMsg(''), 6000); }
   };
   const endRef = useRef(endRound); endRef.current = endRound;
+  const timeUpRef = useRef(false);
 
   // The game loop: physics in feet, drawn on a canvas.
   const gfx = S.gfx;
@@ -339,11 +341,10 @@ export default function RocketChickens() {
         w.landed = Math.abs(w.vy) < 1;
       } else w.landed = false;
       w.maxAlt = Math.max(w.maxAlt, w.y - R); w.maxMph = Math.max(w.maxMph, Math.hypot(w.vx, w.vy));
-      if (Math.hypot(w.vx, w.vy) < 5 && w.y < R + 0.5) { w.rest += dt; if (w.rest > 0.7) { w.flying = false; w.why = 'Your chicken slowed down and stopped on the ground.'; window.setTimeout(() => endRef.current(), 500); } } else w.rest = 0;
-      // Build Queue 704 (her words: "it has a glitch where it randomly stops you at 7 miles, no explanation"): a fast glider
-      // used to hit a hidden 2 minute flight limit (about 7 miles) and the round just ended. Now a flight can last 10 minutes,
-      // and the report always says why the round ended.
-      if (w.t > 600) { w.flying = false; w.why = 'Wow, 10 minutes in the air! That is the longest a flight can go, so the round ends here.'; endRef.current(); }
+      if (Math.hypot(w.vx, w.vy) < 5 && w.y < R + 0.5) { w.rest += dt; if (w.rest > 0.7) { w.flying = false; window.setTimeout(() => endRef.current(), 500); } } else w.rest = 0;
+      // Build Queue 704 (her words: "it has a glitch where it randomly stops you at 7 miles, no explanation"): flights used to
+      // end after 2 minutes in the air (about 7 miles at top speed). Now only a 15 minute safety stop, and it says why.
+      if (w.t > 900) { w.flying = false; timeUpRef.current = true; endRef.current(); }
       for (const p of w.bits) { p.vy -= G * dt; p.x += p.vx * dt; p.y += p.vy * dt; if (p.y < 0) { p.y = 0; p.vy *= -0.3; p.vx *= 0.6; } p.life -= dt; }
       w.bits = w.bits.filter((p) => p.life > 0);
     };
@@ -451,6 +452,7 @@ export default function RocketChickens() {
   // The world shown this round (660): read by the drawing loop, so a new round changes the scenery straight away.
   const roundRef = useRef(S.round); if (phase !== 'report') roundRef.current = S.round;
   const launchSpeedRef = useRef(launchSpeed); launchSpeedRef.current = launchSpeed;
+  const fireRef = useRef(fire); fireRef.current = fire;
   const aimAt = useRef<{ x: number; y: number } | null>(null);
 
   // Build Queue 646 (her words: "make the rocket chicken game easier to click to direct/aim/move. right now it selects
@@ -458,6 +460,30 @@ export default function RocketChickens() {
   // finger), then tap anywhere near the aim or the big FIRE button; in the air, big Boost up and Dive buttons as well as
   // tapping above or below the chicken.
   const aiming = useRef(false);
+  const mouseHold = useRef(false);
+  // 703: keys for computers: arrows or W and S aim before launch and steer in the air, Space or Enter fires, Space holds
+  // the jetpack with a glider on.
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase(); const w = W.current; const ph = phaseRef.current;
+      if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      if (ph === 'aim') {
+        if (k === 'arrowup' || k === 'w') { w.aim = Math.min(1.45, w.aim + 0.05); w.aimed = true; setAimed(true); e.preventDefault(); }
+        else if (k === 'arrowdown' || k === 's') { w.aim = Math.max(0.08, w.aim - 0.05); w.aimed = true; setAimed(true); e.preventDefault(); }
+        else if (k === ' ' || k === 'enter') { e.preventDefault(); aimAt.current = null; setAimed(false); w.aimed = true; fireRef.current(); }
+      } else if (ph === 'fly') {
+        if (k === 'arrowup' || k === 'w') { w.stick = 1; e.preventDefault(); }
+        else if (k === 'arrowdown' || k === 's') { w.stick = -1; e.preventDefault(); }
+        else if (k === ' ') { w.jetHold = true; if (sRef.current.gear !== 'glider') w.stick = 1; e.preventDefault(); }
+      }
+    };
+    const up = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase(); const w = W.current;
+      if (['arrowup', 'w', 'arrowdown', 's', ' '].includes(k)) { w.stick = 0; w.jetHold = false; }
+    };
+    window.addEventListener('keydown', down); window.addEventListener('keyup', up);
+    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
+  }, []);
   const [aimed, setAimed] = useState(false);
   const aimTo = (clientX: number, clientY: number) => {
     const cv = canvasRef.current; if (!cv) return;
@@ -467,6 +493,19 @@ export default function RocketChickens() {
   };
   const onTap = (e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    // Build Queue 703 (her words: "allow students on computers to use aim and rocket (currently not able, only mobile)"):
+    // with a mouse, the aim follows the pointer and one click fires; in the air, holding the button above or below the
+    // chicken keeps the jetpack on (up or dive) until it is let go.
+    if (e.pointerType === 'mouse') {
+      const w0 = W.current;
+      if (phase === 'aim') { aimTo(e.clientX, e.clientY); aimAt.current = null; setAimed(false); w0.aimed = true; fire(); return; }
+      if (phase === 'fly') {
+        const cv0 = canvasRef.current; if (!cv0) return; const r0 = cv0.getBoundingClientRect(); const k0 = cv0.width / r0.width;
+        const up = (e.clientY - r0.top) * k0 < w0.groundY - w0.y * w0.scale;
+        try { cv0.setPointerCapture(e.pointerId); } catch { /* fine */ }
+        mouseHold.current = true; w0.stick = up ? 1 : -1; if (sRef.current.gear === 'glider' && up) w0.jetHold = true; sfx.whoosh(); return;
+      }
+    }
     const cv = canvasRef.current; if (!cv) return;
     const r = cv.getBoundingClientRect(); const k = cv.width / r.width;
     const py = (e.clientY - r.top) * k;
@@ -482,48 +521,8 @@ export default function RocketChickens() {
     if (phase === 'fly') {
       const chY = w.groundY - w.y * w.scale;
       boost(py < chY);
-      // 703: with a mouse, holding the button keeps the jetpack on (up above the chicken, down below it)
-      if (e.pointerType === 'mouse') { try { cv.setPointerCapture(e.pointerId); } catch { /* fine */ } mouseHold.current = true; w.stick = py < chY ? 1 : -1; if (sRef.current.gear === 'glider') w.jetHold = py < chY; }
     }
   };
-  const mouseHold = useRef(false);
-  const fireRef = useRef(fire); fireRef.current = fire;
-
-  // Build Queue 703 (her words: "allow students on computers to use aim and rocket (currently not able, only mobile)"):
-  // keyboard controls as well as the mouse. Aim: arrow keys (or W and S). Fire: Space or Enter. In the air: hold Up or W to
-  // fly up, Down or S to dive, and with a glider hold Space for the jetpack.
-  useEffect(() => {
-    if (!started) return;
-    const held = new Set<string>();
-    const isTyping = (t: EventTarget | null) => t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
-    const keyOf = (k: string) => (k === 'ArrowUp' || k === 'w' || k === 'W' || k === 'ArrowLeft' ? 'up' : k === 'ArrowDown' || k === 's' || k === 'S' || k === 'ArrowRight' ? 'down' : k === ' ' || k === 'Enter' ? 'go' : '');
-    const applyFly = () => {
-      const w = W.current; const glide = sRef.current.gear === 'glider';
-      w.stick = held.has('up') ? 1 : held.has('down') ? -1 : 0;
-      w.jetHold = glide ? held.has('go') : false;
-      if (!glide && held.has('go') && !held.has('down')) w.stick = 1;
-    };
-    const down = (e: KeyboardEvent) => {
-      if (isTyping(e.target) || document.querySelector('[role="dialog"][aria-modal="true"]')) return;
-      const k = keyOf(e.key); if (!k) return;
-      const ph = phaseRef.current; const w = W.current;
-      if (ph === 'aim') {
-        e.preventDefault();
-        if (k === 'go') { if (e.repeat) return; aimAt.current = null; setAimed(false); w.aimed = true; fireRef.current(); return; }
-        w.aim = Math.max(0.08, Math.min(1.45, w.aim + (k === 'up' ? 0.03 : -0.03)));
-        if (!w.aimed) { w.aimed = true; setAimed(true); }
-        return;
-      }
-      if (ph === 'fly') { e.preventDefault(); held.add(k); applyFly(); }
-    };
-    const up = (e: KeyboardEvent) => {
-      const k = keyOf(e.key); if (!k) return;
-      if (held.has(k)) { e.preventDefault(); held.delete(k); applyFly(); }
-    };
-    window.addEventListener('keydown', down); window.addEventListener('keyup', up);
-    return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up); };
-  }, [started]);
-  const fine = typeof window !== 'undefined' && !!window.matchMedia?.('(pointer: fine)').matches;
 
   const buy = (kind: 'up' | 'cannon' | 'chicken' | 'jet' | 'paint' | 'glider', id: string) => {
     const s = sRef.current;
@@ -537,9 +536,9 @@ export default function RocketChickens() {
   };
   const canAfford = useMemo(() => UPS.some((u) => S.up[u.id] < u.max && S.coins >= upCost(u.id, S.up[u.id])) || CANNONS.some((c) => !S.cannons.includes(c.id) && S.coins >= c.cost) || JETPACKS.some((j) => !S.jets.includes(j.id) && S.coins >= j.cost) || GLIDERS.some((g) => !S.gliders.includes(g.id) && S.coins >= g.cost), [S]);
 
-  const reportWords = (r: Report) => `${r.why} Round ${r.round}, ${worldOf(r.round).name}. Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
+  const reportWords = (r: Report) => `Round ${r.round}, ${worldOf(r.round).name}. Distance ${r.dist} feet, ${r.coins.dist} coins. Altitude ${r.alt} feet, ${r.coins.alt} coins. Speed ${r.mph} miles per hour, ${r.coins.mph} coins. Destruction ${r.broke} blocks, ${r.coins.broke} coins.${r.gems ? ` Gems ${r.gems}, ${r.coins.gems} coins.` : ''} Total ${r.total} coins.`;
   const menu = useMemo(() => [{ id: 'rc-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setHelp(true) }], []);
-  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack (with a glider on too, the stick swoops with no fuel: dive for speed, pull up to climb, and hold the Jetpack button for a push), or down to dive (or tap above or below the chicken). The jetpack uses fuel. Catch gems for bonus coins. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop. On a computer, click and drag on the sky or use the arrow keys to aim, press Space to fire, and hold Up or Down to fly.';
+  const howTo = 'In Learn mode, answer a question to load the cannon. Touch the sky and slide to aim: the white dots show where the chicken will fly. Tap FIRE to launch. In the air, push the blue stick up to fly up with the jetpack (with a glider on too, the stick swoops with no fuel: dive for speed, pull up to climb, and hold the Jetpack button for a push), or down to dive (or tap above or below the chicken). The jetpack uses fuel. On a computer: move the mouse to aim and click to fire (or use the up and down arrows and Space). In the air, hold the mouse button above the chicken to fly up or below it to dive (or hold the up or down arrow; Space is the jetpack). Catch gems for bonus coins. Fly far, fly high, go fast and break crates and stones to earn coins, then spend them in the shop.';
 
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
@@ -562,7 +561,7 @@ export default function RocketChickens() {
       <div className="rc-stage">
         <canvas ref={canvasRef} className="rc-canvas" onPointerDown={onTap} onContextMenu={(e) => e.preventDefault()}
           onPointerMove={(e) => {
-            if (mouseHold.current && phase === 'fly') { const cv = canvasRef.current; if (!cv) return; const r = cv.getBoundingClientRect(); const w = W.current; const upNow = (e.clientY - r.top) * (cv.width / r.width) < w.groundY - w.y * w.scale; w.stick = upNow ? 1 : -1; if (sRef.current.gear === 'glider') w.jetHold = upNow; return; }
+            if (e.pointerType === 'mouse' && phase === 'aim') { aimTo(e.clientX, e.clientY); if (!W.current.aimed) { W.current.aimed = true; setAimed(true); } return; }
             if (!aiming.current || phase !== 'aim') return; aimTo(e.clientX, e.clientY); aimAt.current = { x: e.clientX, y: e.clientY };
           }}
           onPointerUp={() => { aiming.current = false; if (mouseHold.current) { mouseHold.current = false; W.current.stick = 0; W.current.jetHold = false; } }}
@@ -585,15 +584,14 @@ export default function RocketChickens() {
           </div>
         )}
         {launchMsg && <div className="rc-launch" role="status">{launchMsg}</div>}
-        {phase === 'aim' && <div className="rc-tip">{aimed ? 'Change the aim with the red stick or by sliding on the sky. Tap FIRE to launch.' : 'Aim with the red stick, or touch the sky and slide.'}{fine && <small className="rc-keys">On a computer: click and drag on the sky, or use the arrow keys. Press Space to fire.</small>}</div>}
-        {phase === 'fly' && (S.gear === 'glider' ? <div className="rc-tip small">Swoop with the blue stick: dive for speed, then pull up to climb. Hold Jetpack for a push.{fine && <small className="rc-keys">Keys: Up and Down to swoop, hold Space for the jetpack.</small>}</div> : hud.fuel > 0 && <div className="rc-tip small">Push the blue stick up to fly up, down to dive. Catch the gems!{fine && <small className="rc-keys">Keys: hold Up to fly up, Down to dive. Or hold the mouse above or below the chicken.</small>}</div>)}
+        {phase === 'aim' && <div className="rc-tip">{aimed ? 'Change the aim with the red stick or by sliding on the sky. Tap FIRE to launch.' : 'Aim with the red stick, or touch the sky and slide.'}</div>}
+        {phase === 'fly' && (S.gear === 'glider' ? <div className="rc-tip small">Swoop with the blue stick: dive for speed, then pull up to climb. Hold Jetpack for a push.</div> : hud.fuel > 0 && <div className="rc-tip small">Push the blue stick up to fly up, down to dive. Catch the gems!</div>)}
         {phase === 'ready' && started && !asking && (
           <div className="rc-center"><button type="button" className="btn btn-primary btn-lg" onClick={loadCannon}>Load the cannon</button></div>
         )}
       {report && phase === 'report' && (
         <div className="rc-report-wrap">
           <div className="rc-report" role="dialog" aria-label="Round report">
-            {report.why && <p className="rc-why">{report.why}</p>}
             <div className="rc-row dist"><span>Distance</span><b>{report.dist.toLocaleString()} ft</b><em>{report.coins.dist}</em></div>
             <div className="rc-row alt"><span>Altitude</span><b>{report.alt.toLocaleString()} ft</b><em>{report.coins.alt}</em></div>
             <div className="rc-row spd"><span>Speed</span><b>{report.mph} MPH</b><em>{report.coins.mph}</em></div>
