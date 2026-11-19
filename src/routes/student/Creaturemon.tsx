@@ -177,7 +177,8 @@ export default function Creaturemon() {
       {panel === 'train' && (
         <Panel title="Who will train?" onClose={() => setPanel('')}>
           <p className="cm-note">{learn ? 'Answer, then tap the berries for XP.' : 'Tap the berries for XP.'}</p>
-          <div className="cm-team">
+          {/* 752: this list scrolls, so every creature can be picked */}
+          <div className="cm-team cm-scroll">
             {team.map((m) => (
               <button key={m.uid} type="button" className="cm-mon pick" style={{ borderColor: TYPE_COLOR[line(m.formId).type] }} onClick={() => startTraining(m.uid)}>
                 <Sprite f={form(m.formId)} px={56} />

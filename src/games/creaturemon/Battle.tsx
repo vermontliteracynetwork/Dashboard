@@ -302,7 +302,7 @@ export default function Battle({ cm, wildFoe, ask, onClose, learn = true }: {
               </div>
             </div>
             <div className="lo-hero">
-              {sf && selM && (<><span className="lo-glow" style={{ background: `radial-gradient(circle, ${TYPE_COLOR[line(sf.id).type]}aa, transparent 65%)` }} /><Sprite f={sf} px={210} fitW={300} anim="move" /><span className="lo-ground" /><p className="lo-type"><span className="cm-line-type" style={{ ['--tc' as string]: TYPE_COLOR[line(sf.id).type] }}>{line(sf.id).type}</span> Stage {sf.stage} of {line(sf.id).forms.length}</p></>)}
+              {sf && selM && (<><span className="lo-glow" style={{ background: `radial-gradient(circle, ${TYPE_COLOR[line(sf.id).type]}aa, transparent 65%)` }} /><Sprite f={sf} px={200} fitW={260} anim="move" /><span className="lo-ground" /><p className="lo-type"><span className="cm-line-type" style={{ ['--tc' as string]: TYPE_COLOR[line(sf.id).type] }}>{line(sf.id).type}</span> Stage {sf.stage} of {line(sf.id).forms.length}</p></>)}
             </div>
             <div className="lo-right">
               {sf && selM && sst && top && (
