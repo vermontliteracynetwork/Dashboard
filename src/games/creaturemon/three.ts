@@ -1,5 +1,5 @@
 // Creaturemon 3D helpers: crisp pixel textures and flat pixel sprites standing in the 3D world (billboards), used for the
-// wild creatures in Town Square (Build Queue 715).
+// wild creatures in Town Square (Build Queue 725).
 import * as THREE from 'three';
 import { formImg, form, type Form } from './data';
 

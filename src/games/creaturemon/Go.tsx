@@ -1,4 +1,4 @@
-// Creaturemon in the live world (Build Queue 715, her words: "instead of creating a new world, lets have it so the
+// Creaturemon in the live world (Build Queue 725, her words: "instead of creating a new world, lets have it so the
 // creaturemon is like a pokemon go style game. students should walk around in the main live mode open world game, if
 // they've clicked on the creaturemon app on their computer ... they should see a border around their regular world
 // view. then, they have activated the creaturemon"). Turned on from the Computer app: Town Square gets a Creaturemon
@@ -99,8 +99,6 @@ export function CreaturemonWilds({ playerPosRef, wildsRef, clamp, avgLevel = 4 }
 
 export function CreaturemonGoOverlay({ playerPosRef, wildsRef }: { playerPosRef: React.RefObject<THREE.Vector3>; wildsRef: React.MutableRefObject<GoWild[]> }) {
   const cm = useCmSave(); const navigate = useNavigate();
-  const { ask, element, pay } = useAsk('Creaturemon', '🐉', 'creaturemon', { startCard: false });
-  useEffect(() => () => pay(), [pay]);
   const [near, setNear] = useState<GoWild | null>(null);
   const [catching, setCatching] = useState<{ w?: GoWild; formId: string; level: number; ok: boolean; shakes: number } | null>(null);
   const [reveal, setReveal] = useState<{ formId: string; isNew: boolean; title: string } | null>(null);
@@ -172,9 +170,16 @@ export function CreaturemonGoOverlay({ playerPosRef, wildsRef }: { playerPosRef:
       {toast && <div className="cmgo-toast" role="status">{toast}</div>}
       {catching && <CatchScene shakes={catching.shakes} onDone={caught} />}
       {reveal && <RevealScene formId={reveal.formId} isNew={reveal.isNew} title={reveal.title} onClose={() => setReveal(null)} tts={tts} />}
-      {battle && <div className="cmb-host"><Battle cm={cm} wildFoe={{ formId: battle.formId, level: battle.level }} ask={ask} onClose={endBattle} /></div>}
+      {battle && <GoBattle cm={cm} foe={{ formId: battle.formId, level: battle.level }} onClose={endBattle} />}
       <EvoScene cm={cm} />
-      {element}
     </>
   );
+}
+
+// The battle with its questions. The question plumbing (and the Learn or Play switch) is only on while a battle is
+// open, so it never changes anything else in Town Square.
+function GoBattle({ cm, foe, onClose }: { cm: ReturnType<typeof useCmSave>; foe: { formId: string; level: number }; onClose: (r: BattleEnd) => void }) {
+  const { ask, element, pay } = useAsk('Creaturemon', '🐉', 'creaturemon', { startCard: false });
+  useEffect(() => () => pay(), [pay]);
+  return <div className="cmb-host"><Battle cm={cm} wildFoe={foe} ask={ask} onClose={onClose} />{element}</div>;
 }

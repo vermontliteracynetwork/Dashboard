@@ -12,12 +12,12 @@ import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
 import { EvoScene, RevealScene, XpBar, useCmSave } from '../../games/creaturemon/shared';
 import { FORMS, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form } from '../../games/creaturemon/data';
 
-// Creaturemon on the Computer (Build Queue 710 to 712, then 715 to 718, 2026-11-19). Her 715 words: "instead of
+// Creaturemon on the Computer (Build Queue 710 to 712, then 725 to 730, 2026-11-19). Her 725 words: "instead of
 // creating a new world, lets have it so the creaturemon is like a pokemon go style game ... if they've clicked on the
 // creaturemon app on their computer, they should see a menu with seeing all their collected cards or like a pokemon
 // go style where they should see a border around their regular world view." This app is that menu: turn Creaturemon on
 // (Town Square then gets the border and wild creatures, see src/games/creaturemon/Go.tsx), see every card, the team,
-// battles (turn based like the pet battles, fueled by questions in Learn mode, 718), training and orbs. 61 creatures
+// battles (turn based like the pet battles, fueled by questions in Learn mode, 728), training and orbs. 61 creatures
 // in 20 evolution lines, each named from its body shape (711), each evolution with its own card (712).
 const UI = `${IMG}ui/`;
 

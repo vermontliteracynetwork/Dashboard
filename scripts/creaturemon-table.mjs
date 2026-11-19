@@ -9,7 +9,7 @@ import { createRequire } from 'node:module';
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const roster = JSON.parse(fs.readFileSync(path.join(root, 'src/games/creaturemon/roster.json'), 'utf8'));
 const HAB = { meadow: 'Sunny Meadow', forest: 'Whisper Woods', lake: 'Splash Lake', snow: 'Frost Ridge', night: 'Night Grove', ember: 'Ember Rocks' };
-const KIND = { shot: 'shoots across the island', dash: 'dashes forward', burst: 'bursts all around it', slam: 'jumps and slams down' };
+const KIND = { shot: 'a type move', dash: 'a type move', burst: 'a type move', slam: 'a type move' };
 const SRC = { ec: 'Evolving Creatures (MEKAI GAMES)', mp: 'Pixel Art Monster Evolution Pack', pm: 'PoMoRe (her upload)' };
 const lines = roster.lines;
 const forms = lines.flatMap((l) => l.forms.map((f) => ({ ...f, l })));

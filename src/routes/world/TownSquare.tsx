@@ -3381,7 +3381,7 @@ export default function TownSquare() {
   const regionName = regionAt(regions, playerPos.x, playerPos.z);
   const playerPosRef = useRef(playerPos);
   playerPosRef.current = playerPos;
-  // Creaturemon, Pokemon GO style (Build Queue 715): turned on from the Computer app, wild creatures appear around the
+  // Creaturemon, Pokemon GO style (Build Queue 725): turned on from the Computer app, wild creatures appear around the
   // student here and the view gets a Creaturemon border.
   const creaturemonOn = useCreaturemonActive();
   const creaturemonWilds = useRef<GoWild[]>([]);

@@ -8638,9 +8638,11 @@ button.sn-tile:focus-visible { outline: none; box-shadow: inset 0 -6px 0 #241f45
 .sb-side { position: absolute; z-index: 3; bottom: 150px; width: 300px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .sb-side.me { left: 40px; } .sb-side.foe { right: 40px; }
 .sb-side.foe .sb-mon { transform: scaleX(-1); }
-.sb-stand { position: relative; width: 256px; height: 210px; }
-.sb-plat { position: absolute; left: 0; bottom: 0; width: 256px; image-rendering: pixelated; }
-.sb-mon { position: absolute; left: 50%; bottom: 46px; width: 150px; height: 150px; margin-left: -75px; object-fit: contain; image-rendering: pixelated; animation: snBob 2.4s ease-in-out infinite; }
+/* Build Queue 731 (her words: "zoom in on the pet battle view s they can see the creatures closer"): creatures and
+   platforms about 1.6 times bigger. */
+.sb-stand { position: relative; width: min(400px, 42vw); height: min(330px, 36vw); }
+.sb-plat { position: absolute; left: 0; bottom: 0; width: 100%; image-rendering: pixelated; }
+.sb-mon { position: absolute; left: 50%; bottom: 18%; width: 62%; height: 74%; margin-left: -31%; object-fit: contain; image-rendering: pixelated; animation: snBob 2.4s ease-in-out infinite; }
 .sb-side.foe .sb-mon { animation: none; }
 .sb-side.hit .sb-mon { animation: snShake 0.35s linear 2; filter: brightness(1.6); }
 .sb-side.miss .sb-mon { translate: 0 -16px; transition: translate 0.2s; }
@@ -12931,3 +12933,9 @@ body.calm-games .me-burst { display: none; }
 .gbl-vague td:nth-child(6) b { color: #b91c1c; }
 @media print { .gbl-bar, .teacher-nav, .cm-inbox-head, .az-log-tabs { display: none !important; } .gbl th { position: static; } }
 .rc-world { display: block; font-size: 0.55em; opacity: 0.9; margin-top: 2px; }
+
+/* Build Queue 730: the Learn / Play switch on Live Class Overview, two halves joined */
+.mode-switch { display: inline-flex; }
+.mode-switch .btn { border-radius: 0; }
+.mode-switch .btn:first-child { border-radius: 10px 0 0 10px; }
+.mode-switch .btn:last-child { border-radius: 0 10px 10px 0; margin-left: -1px; }

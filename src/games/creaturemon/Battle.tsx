@@ -1,10 +1,10 @@
-// Creaturemon battles (Build Queue 715, her words: "the students have requested separate battles for their
+// Creaturemon battles (Build Queue 725, her words: "the students have requested separate battles for their
 // creaturemons, similar to pokemon battles and similar to our pet battle format"). Turn based, in the same steps as the
 // Supernature creature battles: 1 pick your creature, 2 pick an opponent (two cards; a wild creature is already
 // picked), 3 battle. Each round: tap one move, answer a question to fuel it, then the other creature answers with its own
-// move (Learn mode, 718). One clear "do this now" line at the top, read aloud, with a Listen. Nobody gets hurt: the
+// move (Learn mode, 728). One clear "do this now" line at the top, read aloud, with a Listen. Nobody gets hurt: the
 // creature that runs out of health taps out and gets a high five. Health bars, buttons, banners and icons are from
-// her Pixel UI pack 3 and IconGodotNode packs (716).
+// her Pixel UI pack 3 and IconGodotNode packs (726).
 import { useEffect, useRef, useState } from 'react';
 import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
@@ -86,7 +86,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
     sfx.chime();
     say(iWon ? `${b.name} taps out. ${a.name} wins! High fives! ${a.name} gets ${gain} XP.${wildFoe ? ' It is tired now. Throw an orb!' : ''}` : `${a.name} taps out. ${b.name} wins this time. That is okay, every battle is practice. ${a.name} still gets ${gain} XP.`);
   };
-  // Build Queue 718 (her words: "creaturemon, battles should be fueled by questions in learn mode"): in Learn mode every
+  // Build Queue 728 (her words: "creaturemon, battles should be fueled by questions in learn mode"): in Learn mode every
   // move starts with a question. A right answer fuels the move to full power; skipping it makes a weak move. Play mode
   // skips the questions.
   const act = (m: MoveId) => {
@@ -136,7 +136,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
     : 'Answer the question to fuel your move.';
   useEffect(() => { if (phase === 'pick' || phase === 'foe') say(doNow); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [phase]);
 
-  // Build Queue 719 (her words: "battles should be heart related and xp bar. show health meters on left and right sides.
+  // Build Queue 729 (her words: "battles should be heart related and xp bar. show health meters on left and right sides.
   // left for the player, right for the opponent"): health is a column of her AXIALE hearts on each side of the screen,
   // each heart filling in quarters; the student's side also shows the XP bar to the next level.
   const meter = (f: F, s: 'me' | 'foe') => {
