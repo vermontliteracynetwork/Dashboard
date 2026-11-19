@@ -9,16 +9,20 @@ import { useEffect, useRef, useState } from 'react';
 import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { CreatureCard, Sprite } from './Card';
-import { XpBar, type CmApi } from './shared';
-import { IMG, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, statsAt, typeMult, type CType, type Mon } from './data';
+import { Fx, XpBar, uiSound, type CmApi } from './shared';
+import { ABILITIES, IMG, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, rollAbility, statsAt, typeMult, type AbilityId, type CType, type Mon } from './data';
 
 type MoveId = 'tackle' | 'special' | 'guard' | 'berry';
-interface F { name: string; formId: string; level: number; type: CType; hp: number; max: number; atk: number; def: number; guard: boolean; berry: boolean }
+interface F { name: string; formId: string; level: number; type: CType; hp: number; max: number; atk: number; def: number; guard: boolean; berry: boolean; abs: AbilityId[] }
 const UI = `${IMG}ui/`;
-const fighter = (formId: string, level: number, name: string): F => {
+const fighter = (formId: string, level: number, name: string, abs: AbilityId[] = []): F => {
   const s = statsAt(form(formId), level); const max = Math.round(s.hp * 1.5);
-  return { name, formId, level, type: line(formId).type, hp: max, max, atk: s.atk, def: s.def, guard: false, berry: true };
+  return { name, formId, level, type: line(formId).type, hp: max, max, atk: s.atk, def: s.def, guard: false, berry: true, abs };
 };
+const has = (f: F, a: AbilityId) => f.abs.includes(a);
+const fxOf = (t: CType) => t.toLowerCase();
+// Her battle song (733): "cinematic battle song" by theojt (Freesound).
+const SONG = `${IMG}battle-song.mp3`;
 // An opponent about the student's level, in the right evolution stage for that level.
 export function foeAt(level: number) {
   const l = LINES[Math.floor(Math.random() * LINES.length)]; const lv = Math.max(1, level + Math.floor(Math.random() * 3) - 1);
@@ -45,8 +49,32 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const [round, setRound] = useState(1);
   const focusRef = useRef(0.6);
   const [lines, setLines] = useState<string[]>([]);
-  const [fx, setFx] = useState<{ side: 'me' | 'foe'; hit: boolean; type: CType } | null>(null);
-  const [shot, setShot] = useState<{ from: 'me' | 'foe'; type: CType } | null>(null);
+  const [fx, setFx] = useState<{ side: 'me' | 'foe'; hit: boolean; type: CType; name?: string } | null>(null);
+  const [glow, setGlow] = useState<{ side: 'me' | 'foe'; name: string; key: number } | null>(null);
+  const [shot, setShot] = useState<{ from: 'me' | 'foe'; type: CType; x: number; y: number; dx: number; dy: number } | null>(null);
+  const [lunge, setLunge] = useState<'me' | 'foe' | null>(null);
+  const dealt = useRef(0); const taken = useRef(0);
+  const arenaRef = useRef<HTMLDivElement>(null); const meRef = useRef<HTMLDivElement>(null); const foeRef = useRef<HTMLDivElement>(null);
+  const showGlow = (side: 'me' | 'foe', name: string) => { setGlow({ side, name, key: Date.now() }); window.setTimeout(() => setGlow((g) => (g?.name === name ? null : g)), 1300); };
+  // Build Queue 733 (her words: "attacks should always come from the front of the player"): a special move leaves from the
+  // front edge of the creature using it (yours faces right, toward the other creature; theirs faces left) and flies to
+  // the other one; a Tackle lunges forward.
+  const fire = (from: 'me' | 'foe', type: CType) => {
+    const ar = arenaRef.current?.getBoundingClientRect(); const a = (from === 'me' ? meRef : foeRef).current?.getBoundingClientRect(); const b = (from === 'me' ? foeRef : meRef).current?.getBoundingClientRect();
+    if (!ar || !a || !b) return;
+    const x = (from === 'me' ? a.right - a.width * 0.12 : a.left + a.width * 0.12) - ar.left, y = a.top + a.height * 0.55 - ar.top;
+    const tx = b.left + b.width / 2 - ar.left, ty = b.top + b.height * 0.55 - ar.top;
+    setShot({ from, type, x, y, dx: tx - x, dy: ty - y });
+  };
+  // the battle song, while the battle is on
+  const [music, setMusic] = useState(() => { try { return localStorage.getItem('cm-music') !== '0'; } catch { return true; } });
+  const song = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    if (phase !== 'fight' || !music) { song.current?.pause(); return; }
+    if (!song.current) { song.current = new Audio(SONG); song.current.loop = true; song.current.volume = 0.32; }
+    void song.current.play().catch(() => {});
+  }, [phase, music]);
+  useEffect(() => () => { song.current?.pause(); song.current = null; }, []);
   const [won, setWon] = useState<boolean | null>(null);
   const [xp, setXp] = useState(0);
   const timer = useRef(0);
@@ -55,33 +83,57 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const add = (t: string, read = true) => { setLines((l) => [...l.slice(-2), t]); if (read) say(t); };
 
   const begin = (m: Mon, f: { formId: string; level: number }) => {
-    const a = fighter(m.formId, m.level, displayName(m)), b = fighter(f.formId, f.level, `${wildFoe ? 'Wild ' : ''}${form(f.formId).name}`);
-    setMe(a); setFoe(b); setPhase('fight'); setStage('choose'); setRound(1); focusRef.current = 0.6; sfx.chime();
-    add(`${a.name} faces ${b.name}! Round 1. Tap one move for ${a.name}.`);
+    const fresh = cm.sRef.current.mons.find((x) => x.uid === m.uid) ?? m;
+    const foeAb = Math.random() < 0.35 ? [rollAbility({})!].filter(Boolean) : [];
+    const a = fighter(fresh.formId, fresh.level, displayName(fresh), fresh.abilities ?? []), b = fighter(f.formId, f.level, `${wildFoe ? 'Wild ' : ''}${form(f.formId).name}`, foeAb);
+    setMe(a); setFoe(b); setPhase('fight'); setStage('choose'); setRound(1); focusRef.current = 0.6; sfx.chime(); dealt.current = 0; taken.current = 0;
+    const abWords = a.abs.length ? ` ${a.name} is ${a.abs.map((x) => ABILITIES[x].name).join(' and ')}.` : '';
+    add(`${a.name} faces ${b.name}!${abWords} Round 1. Tap one move for ${a.name}.`);
   };
-  const pickMine = (m: Mon) => { setMine(m); sfx.pop(); if (foePick) begin(m, foePick); else setPhase('foe'); };
+  const pickMine = (m: Mon) => { setMine(m); uiSound('cursor-1'); if (foePick) begin(m, foePick); else setPhase('foe'); };
   const pickFoe = (f: { formId: string; level: number }) => { setFoePick(f); if (mine) begin(mine, f); };
 
   const moveName = (f: F, m: MoveId) => (m === 'special' ? line(f.formId).special.name : m === 'tackle' ? 'Tackle' : m === 'guard' ? 'Guard' : 'Berry snack');
-  // One move. Hits: power, type, focus (right answers), the other creature's guard, a little luck.
+  // One move. Hits: power, type, focus (right answers), the other creature's guard, its abilities (732), a little luck.
   const doMove = (a: F, d: F, m: MoveId, side: 'me' | 'foe', foc: number): { a: F; d: F; text: string } => {
-    if (m === 'guard') { sfx.tick(); return { a: { ...a, guard: true, hp: Math.min(a.max, a.hp + Math.round(a.max * 0.06)) }, d, text: `${a.name} uses Guard! It gets ready to block.` }; }
-    if (m === 'berry') { sfx.coin(); return { a: { ...a, berry: false, hp: Math.min(a.max, a.hp + Math.round(a.max * 0.4)) }, d, text: `${a.name} eats a berry and gets health back!` }; }
-    const special = m === 'special'; const other = side === 'me' ? 'foe' : 'me';
-    const miss = Math.random() > (special ? 0.88 : 0.96);
-    setFx({ side: other, hit: !miss, type: a.type }); window.setTimeout(() => setFx(null), 900);
-    if (miss) { sfx.boing(); return { a, d: { ...d, guard: false }, text: `${a.name} uses ${moveName(a, m)}, but ${d.name} dodges!` }; }
+    const other = side === 'me' ? 'foe' : 'me';
+    if (m === 'guard') { sfx.tick(); showGlow(side, 'guard'); return { a: { ...a, guard: true, hp: Math.min(a.max, a.hp + Math.round(a.max * 0.06)) }, d, text: `${a.name} uses Guard! It gets ready to block.` }; }
+    if (m === 'berry') { sfx.coin(); showGlow(side, 'heal'); return { a: { ...a, berry: false, hp: Math.min(a.max, a.hp + Math.round(a.max * (has(a, 'snacky') ? 0.55 : 0.4))) }, d, text: `${a.name} eats a berry and gets health back!${has(a, 'snacky') ? ' Snacky: extra health!' : ''}` }; }
+    const special = m === 'special';
+    const miss = Math.random() > (special ? 0.88 : 0.96) - (has(d, 'speedy') ? 0.08 : 0);
+    setFx({ side: other, hit: !miss, type: a.type, name: special ? fxOf(a.type) : 'stone' }); window.setTimeout(() => setFx(null), 1000);
+    if (miss) { sfx.boing(); return { a, d: { ...d, guard: false }, text: `${a.name} uses ${moveName(a, m)}, but ${d.name} dodges!${has(d, 'speedy') ? ' So speedy!' : ''}` }; }
     const mult = special ? typeMult(a.type, d.type) : 1;
     let dmg = (special ? 1.45 : 1) * a.atk * mult * (0.75 + 0.5 * foc) * (9 / (d.def + 9)) * (0.85 + Math.random() * 0.3) * 1.3;
-    if (d.guard) dmg *= 0.45;
-    const n = Math.max(1, Math.round(dmg)); sfx.bonk();
+    const notes: string[] = [];
+    if (has(a, 'brave') && a.hp < a.max / 2) { dmg *= 1.3; notes.push(`${a.name} is Brave!`); }
+    if (has(a, 'focused') && foc >= 1) dmg *= 1.15;
+    if (has(d, 'tough')) dmg *= 0.85;
+    if (d.guard) dmg *= has(d, 'zen') ? 0.3 : 0.45;
+    let n = Math.max(1, Math.round(dmg));
+    if (has(a, 'lucky') && Math.random() < 0.15) { n *= 2; notes.push('A lucky double hit!'); }
+    sfx.bonk();
     const extra = mult > 1 ? ' It is super strong!' : mult < 1 ? ' It is not very strong.' : '';
-    return { a, d: { ...d, hp: Math.max(0, d.hp - n), guard: false }, text: `${a.name} uses ${moveName(a, m)}!${extra} ${d.name} loses ${n} health.` };
+    let na = a;
+    if (has(d, 'spiky')) { const poke = Math.max(1, Math.ceil(n * 0.25)); na = { ...a, hp: Math.max(1, a.hp - poke) }; notes.push(`Ouch, Spiky! ${a.name} gets poked and loses ${poke}.`); window.setTimeout(() => showGlow(side, 'stone'), 400); if (side === 'me') taken.current += poke; else dealt.current += poke; }
+    if (side === 'me') dealt.current += n; else taken.current += n;
+    return { a: na, d: { ...d, hp: Math.max(0, d.hp - n), guard: false }, text: `${a.name} uses ${moveName(a, m)}!${extra} ${d.name} loses ${n} health.${notes.length ? ` ${notes.join(' ')}` : ''}` };
+  };
+  // Lazy (732): after its move, a tired creature sometimes takes a nap and gets health back.
+  const nap = (f: F, side: 'me' | 'foe'): F => {
+    if (!has(f, 'lazy') || f.hp >= f.max * 0.6 || f.hp <= 0 || Math.random() > 0.35) return f;
+    showGlow(side, 'heal'); add(`${f.name} is Lazy and takes a quick nap. Zzz. It gets health back!`, true);
+    return { ...f, hp: Math.min(f.max, f.hp + Math.round(f.max * 0.15)) };
   };
   const finish = (iWon: boolean, a: F, b: F) => {
     setWon(iWon); setPhase('done'); setShot(null);
-    const gain = battleXp(b.level, iWon); setXp(gain);
-    if (mine) cm.train(mine.uid, gain);
+    const gain = Math.round(battleXp(b.level, iWon) * (has(a, 'cheerful') ? 1.2 : 1)); setXp(gain);
+    if (mine) {
+      cm.train(mine.uid, gain);
+      cm.stat(mine.uid, (st) => ({ ...st, battles: st.battles + 1, wins: st.wins + (iWon ? 1 : 0), losses: st.losses + (iWon ? 0 : 1), dealt: st.dealt + dealt.current, taken: st.taken + taken.current }));
+      // a win sometimes teaches a new ability (732)
+      if (iWon && Math.random() < 0.3) window.setTimeout(() => cm.learn(mine.uid, 'in battle'), 2500);
+    }
     cm.put({ wins: cm.sRef.current.wins + (iWon ? 1 : 0), orbs: cm.sRef.current.orbs + (iWon ? 2 : 0) });
     sfx.chime();
     say(iWon ? `${b.name} taps out. ${a.name} wins! High fives! ${a.name} gets ${gain} XP.${wildFoe ? ' It is tired now. Throw an orb!' : ''}` : `${a.name} taps out. ${b.name} wins this time. That is okay, every battle is practice. ${a.name} still gets ${gain} XP.`);
@@ -91,32 +143,36 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   // skips the questions.
   const act = (m: MoveId) => {
     if (stage !== 'choose' || !me || !foe || (m === 'berry' && !me.berry)) return;
-    setStage('power'); sfx.pop();
+    setStage('power'); uiSound('select-1');
     ask(`Creaturemon: answer to fuel ${moveName(me, m)}`, () => { focusRef.current = 1; perform(m, true); }, () => { focusRef.current = 0.35; perform(m, false); });
   };
   const perform = (m: MoveId, fueled: boolean) => {
     if (!me || !foe) return;
     setStage('mine');
     if (!fueled && m !== 'guard' && m !== 'berry') add(`${me.name} has no fuel, so the move is weak.`, false);
-    if (m === 'special') setShot({ from: 'me', type: me.type });
+    if (fueled && m !== 'guard' && m !== 'berry') showGlow('me', 'power');
+    if (m === 'special') fire('me', me.type); if (m === 'tackle') setLunge('me');
     wait(m === 'special' ? 900 : 500, () => {
-      setShot(null);
+      setShot(null); setLunge(null);
       const r = doMove({ ...me, guard: false }, foe, m, 'me', focusRef.current);
       setMe(r.a); setFoe(r.d); add(r.text);
       if (r.d.hp <= 0) { wait(1300, () => finish(true, r.a, r.d)); return; }
-      wait(1800, () => foeTurn(r.a, r.d));
+      const rested = nap(r.a, 'me'); if (rested !== r.a) setMe(rested);
+      wait(1800, () => foeTurn(rested, r.d));
     });
   };
   const foeTurn = (a: F, b: F) => {
     setStage('theirs');
     const strong = typeMult(b.type, a.type) > 1;
     const m: MoveId = b.hp < b.max * 0.35 && b.berry && Math.random() < 0.5 ? 'berry' : Math.random() < 0.12 ? 'guard' : strong || Math.random() < 0.5 ? 'special' : 'tackle';
-    if (m === 'special') setShot({ from: 'foe', type: b.type });
+    if (m === 'special') fire('foe', b.type); if (m === 'tackle') setLunge('foe');
     wait(m === 'special' ? 900 : 500, () => {
-      setShot(null);
+      setShot(null); setLunge(null);
       const r = doMove({ ...b, guard: false }, a, m, 'foe', 0.55);
       setFoe(r.a); setMe(r.d); add(r.text);
       if (r.d.hp <= 0) { wait(1300, () => finish(false, r.d, r.a)); return; }
+      if (r.a.hp <= 0) { wait(1300, () => finish(true, r.d, r.a)); return; }
+      const rested = nap(r.a, 'foe'); if (rested !== r.a) setFoe(rested);
       wait(1800, () => next(r.d));
     });
   };
@@ -146,6 +202,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
     return (
       <div className={`cmb-meter ${s}`} style={{ borderColor: TYPE_COLOR[f.type] }} aria-label={`${f.name}: ${f.hp} of ${f.max} health`}>
         <b>{f.name}</b><small>Lv {f.level} · {f.type}{f.guard ? ' · guarding' : ''}</small>
+        {f.abs.length > 0 && <span className="cm-abs">{f.abs.map((x) => <span key={x} className="cm-ab" title={ABILITIES[x].how}>{ABILITIES[x].name}</span>)}</span>}
         <div className={`cmb-hearts${hitNow ? ' hit' : ''}`}>
           {Array.from({ length: hearts }, (_, i) => {
             const left = Math.max(0, Math.min(1, (f.hp - i * per) / per)); const q = Math.ceil(left * 4); // 0 to 4 quarters
@@ -161,13 +218,14 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   const side = (f: F, s: 'me' | 'foe') => {
     const ff = form(f.formId); const back = s === 'me' && !!ff.sprite.back;
     return (
-      <div className={`cmb-side ${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}`}>
-        <div className="cmb-stand">
+      <div className={`cmb-side ${s}${fx?.side === s ? (fx.hit ? ' hit' : ' miss') : ''}${lunge === s ? ' lunge' : ''}`}>
+        <div className="cmb-stand" ref={s === 'me' ? meRef : foeRef}>
           {back ? <img className="cmb-back" src={`${IMG}forms/${ff.id}_back.png`} alt="" style={{ height: Math.min(170, ff.sprite.fh * Math.max(1, Math.floor(150 / ff.sprite.fh))) }} />
             : <Sprite f={ff} px={Math.min(150, 60 + ff.stage * 26)} anim={fx?.side === s && fx.hit ? 'hurt' : 'idle'} style={s === 'me' ? { transform: 'scaleX(-1)' } : undefined} />}
-          <span className="cmb-plat" />
+          <span className="cmb-plat"><img src={`${UI}grass_basic_01.png`} alt="" className="cmb-tuft l" /><img src={`${UI}grass_basic_03.png`} alt="" className="cmb-tuft r" /></span>
           {fx?.side === s && !fx.hit && <span className="cmb-boom">Dodged!</span>}
-          {fx?.side === s && fx.hit && <span className="cmb-spark" style={{ color: TYPE_COLOR[fx.type] }} />}
+          {fx?.side === s && fx.hit && <span className="cmb-fxat"><Fx name={fx.name ?? fxOf(fx.type)} size={170} /></span>}
+          {glow?.side === s && <span className="cmb-fxat" key={glow.key}><Fx name={glow.name} size={190} /></span>}
         </div>
       </div>
     );
@@ -188,6 +246,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
         <p className="cmb-now">{doNow}</p>
         <button type="button" className="btn" onClick={() => speak(doNow, tts)} aria-label="Listen">🔊</button>
         <button type="button" className="btn" onClick={() => setReadOn((x) => !x)}>{readOn ? 'Read aloud: on' : 'Read aloud: off'}</button>
+        <button type="button" className="btn" onClick={() => setMusic((x) => { const n = !x; try { localStorage.setItem('cm-music', n ? '1' : '0'); } catch { /* fine */ } return n; })}>{music ? 'Music: on' : 'Music: off'}</button>
         {phase !== 'fight' && <button type="button" className="btn" onClick={() => onClose(won === null || !foePick ? null : { won, foe: foePick })}>{phase === 'done' ? 'Done' : 'Leave'}</button>}
       </div>
 
@@ -215,13 +274,13 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
         </div>
       )}
       {(phase === 'fight' || phase === 'done') && me && foe && (
-        <div className="cmb-arena" style={{ backgroundImage: `url(${IMG}sky/demo01.png)` }}>
+        <div className="cmb-arena" ref={arenaRef} style={{ backgroundImage: `url(${IMG}sky/demo01.png)` }}>
           <span className="cmb-round">Round {round}</span>
           {meter(me, 'me')}
           {meter(foe, 'foe')}
           {side(foe, 'foe')}
           {side(me, 'me')}
-          {shot && <span className={`cmb-shot from-${shot.from}`} style={{ background: TYPE_COLOR[shot.type], boxShadow: `0 0 24px ${TYPE_COLOR[shot.type]}` }} />}
+          {shot && <span className="cmb-shot" style={{ left: shot.x - 23, top: shot.y - 23, background: TYPE_COLOR[shot.type], boxShadow: `0 0 24px ${TYPE_COLOR[shot.type]}`, ['--dx' as string]: `${shot.dx}px`, ['--dy' as string]: `${shot.dy}px` } as React.CSSProperties} />}
           <div className="cmb-log" aria-live="polite">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>
           {phase === 'fight' && (
             <div className="cmb-moves">

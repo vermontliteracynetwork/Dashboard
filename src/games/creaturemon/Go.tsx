@@ -16,10 +16,10 @@ import { heightAt, isTerrainWater } from '../../routes/world/terrain';
 import { CreatureSprite } from './three';
 import { Sprite } from './Card';
 import Battle, { type BattleEnd } from './Battle';
-import { CM_EVENT, CatchScene, EvoScene, RevealScene, useCmSave } from './shared';
+import { AbilityScene, CM_EVENT, CatchScene, EvoScene, Fx, RevealScene, uiSound, useCmSave } from './shared';
 import { IMG, LINES, TYPE_COLOR, catchChance, form, line } from './data';
 
-export interface GoWild { id: string; formId: string; level: number; x: number; z: number; dir: number; t: number; gone: boolean; flee: number; spr?: CreatureSprite; ring?: THREE.Mesh }
+export interface GoWild { id: string; formId: string; level: number; x: number; z: number; dir: number; t: number; gone: boolean; flee: number; zen?: boolean; spr?: CreatureSprite; ring?: THREE.Mesh }
 type Clamp = (x: number, z: number) => [number, number];
 
 // Is Creaturemon on for the student on this iPad? (The Computer app turns it on.)
@@ -64,9 +64,10 @@ export function CreaturemonWilds({ playerPosRef, wildsRef, clamp, avgLevel = 4 }
         const [x, z] = clamp(p.x + Math.cos(a) * r, p.z + Math.sin(a) * r);
         if (Math.hypot(x - p.x, z - p.z) < 6 || isTerrainWater(x, z)) continue;
         const pk = pickWild(avgLevel); n.current += 1;
-        const w: GoWild = { id: `g${n.current}`, ...pk, x, z, dir: Math.random() * 6.28, t: 2, gone: false, flee: 0 };
+        // some sit and meditate (732): zen, peaceful, and they join you if you sit with them
+        const w: GoWild = { id: `g${n.current}`, ...pk, x, z, dir: Math.random() * 6.28, t: 2, gone: false, flee: 0, zen: Math.random() < 0.18 };
         w.spr = new CreatureSprite(w.formId); scene.add(w.spr.mesh);
-        w.ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: TYPE_COLOR[line(w.formId).type], transparent: true, opacity: 0.75, depthWrite: false })); scene.add(w.ring);
+        w.ring = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({ color: w.zen ? '#ffffff' : TYPE_COLOR[line(w.formId).type], transparent: true, opacity: 0.75, depthWrite: false })); scene.add(w.ring);
         wildsRef.current = [...wildsRef.current.filter((q) => !q.gone || q.spr), w];
         sfx.tick();
         break;
@@ -82,7 +83,7 @@ export function CreaturemonWilds({ playerPosRef, wildsRef, clamp, avgLevel = 4 }
       w.t -= dt; let moving = false; const px = w.x, pz = w.z;
       if (w.flee > 0) w.flee -= dt;
       if (w.t < 0) { w.t = 2 + Math.random() * 3; w.dir += (Math.random() - 0.5) * 2.4; }
-      if (w.flee > 0 || w.t > 2.6) {
+      if (!w.zen && (w.flee > 0 || w.t > 2.6)) {
         const sp = w.flee > 0 ? 4.5 : 1.1;
         const [nx, nz] = clamp(w.x + Math.sin(w.dir) * sp * dt, w.z + Math.cos(w.dir) * sp * dt);
         if (isTerrainWater(nx, nz) || (Math.abs(nx - w.x) < 1e-4 && Math.abs(nz - w.z) < 1e-4)) w.dir += Math.PI * 0.6; else { w.x = nx; w.z = nz; moving = true; }
@@ -90,9 +91,38 @@ export function CreaturemonWilds({ playerPosRef, wildsRef, clamp, avgLevel = 4 }
       const y = heightAt(w.x, w.z);
       w.spr.mesh.position.set(w.x, y + 0.02, w.z); w.spr.mesh.visible = true;
       w.ring.position.set(w.x, y + 0.04, w.z); w.ring.visible = true; w.ring.rotation.y += dt;
+      if (w.zen) { const k = 1 + Math.sin(performance.now() / 700) * 0.18; w.ring.scale.set(k, 1, k); w.spr.mesh.position.y += 0.25 + Math.sin(performance.now() / 900) * 0.12; }
       w.spr.set(moving ? 'move' : 'idle'); w.spr.tick(dt);
       w.spr.face(camYaw, (w.x - px) * right.x + (w.z - pz) * right.z > 0);
     }
+  });
+  return <Followers playerPosRef={playerPosRef} />;
+}
+
+// Her "creaturemons can follow players like pets" (732): the creatures marked Follow (the leader when none are) walk
+// behind the student in Town Square, up to two.
+function Followers({ playerPosRef }: { playerPosRef: React.RefObject<THREE.Vector3> }) {
+  const cm = useCmSave(); const { scene, camera } = useThree();
+  const list = (cm.team.filter((m) => m.follow).length ? cm.team.filter((m) => m.follow) : cm.team.slice(0, 1)).slice(0, 2);
+  const key = list.map((m) => m.formId).join(',');
+  const sprites = useMemo(() => list.map((m) => new CreatureSprite(m.formId)), [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pos = useRef<THREE.Vector3[]>([]);
+  useEffect(() => { sprites.forEach((sp) => scene.add(sp.mesh)); return () => sprites.forEach((sp) => { scene.remove(sp.mesh); sp.dispose(); }); }, [sprites, scene]);
+  const last = useRef(new THREE.Vector3());
+  useFrame((_, dtRaw) => {
+    const p = playerPosRef.current; if (!p) return; const dt = Math.min(0.05, dtRaw);
+    const mv = p.clone().sub(last.current); if (mv.lengthSq() > 0.0004) last.current.copy(p);
+    const camYaw = Math.atan2(camera.matrixWorld.elements[8], camera.matrixWorld.elements[10]);
+    const right = new THREE.Vector3(Math.cos(camYaw), 0, -Math.sin(camYaw));
+    sprites.forEach((sp, i) => {
+      const want = new THREE.Vector3(p.x + (i === 0 ? 1.4 : -1.4), 0, p.z + 1.6);
+      const cur = pos.current[i] ?? (pos.current[i] = want.clone());
+      if (cur.distanceTo(want) > 14) cur.copy(want);
+      const before = cur.clone(); cur.lerp(want, Math.min(1, dt * 2.5));
+      const step = cur.clone().sub(before); const moving = step.lengthSq() > 0.00005;
+      sp.mesh.position.set(cur.x, heightAt(cur.x, cur.z) + 0.02, cur.z);
+      sp.set(moving ? 'move' : 'idle'); sp.tick(dt); sp.face(camYaw, step.dot(right) > 0);
+    });
   });
   return null;
 }
@@ -103,6 +133,7 @@ export function CreaturemonGoOverlay({ playerPosRef, wildsRef }: { playerPosRef:
   const [catching, setCatching] = useState<{ w?: GoWild; formId: string; level: number; ok: boolean; shakes: number } | null>(null);
   const [reveal, setReveal] = useState<{ formId: string; isNew: boolean; title: string } | null>(null);
   const [battle, setBattle] = useState<GoWild | null>(null);
+  const [zen, setZen] = useState<GoWild | null>(null);
   const [toast, setToast] = useState('');
   const tts = cm.student?.ttsSettings;
   const say = (t: string) => { setToast(t); window.setTimeout(() => setToast((x) => (x === t ? '' : x)), 2800); };
@@ -119,8 +150,8 @@ export function CreaturemonGoOverlay({ playerPosRef, wildsRef }: { playerPosRef:
   useEffect(() => { if (near) cm.see(near.formId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [near?.id]);
 
   const throwOrb = (w: GoWild, tired = false) => {
-    if (cm.sRef.current.orbs <= 0) { say('Out of orbs! Make more in the Creaturemon app on your Computer.'); sfx.click(); return; }
-    cm.put({ orbs: cm.sRef.current.orbs - 1 }); sfx.whoosh();
+    if (cm.sRef.current.orbs <= 0) { say('Out of orbs! Make more in the Creaturemon app on your Computer.'); uiSound('error-1'); return; }
+    cm.put({ orbs: cm.sRef.current.orbs - 1 }); sfx.whoosh(); uiSound('select-1');
     const p = playerPosRef.current; const behind = p ? Math.abs(((Math.atan2(p.x - w.x, p.z - w.z) - w.dir + Math.PI * 3) % (Math.PI * 2)) - Math.PI) < 1.2 : false;
     const ok = Math.random() < catchChance(form(w.formId), w.level, tired, behind);
     w.gone = true;
@@ -133,6 +164,16 @@ export function CreaturemonGoOverlay({ playerPosRef, wildsRef }: { playerPosRef:
       setReveal({ formId: c.formId, isNew: r.isNew, title: `You caught ${nm}!` });
       speak(`You caught ${nm}!${r.isNew ? ' A new card for your collection!' : ''}`, tts);
     } else if (c.w) { c.w.gone = false; c.w.flee = 1.6; sfx.boing(); say(`${form(c.formId).name} popped out! Try again, or battle it first.`); }
+  };
+  // Sit with a meditating creature (732): three slow breaths together, then it joins you, Zen.
+  const joined = (w: GoWild) => {
+    setZen(null); w.gone = true;
+    const r = cm.addMon(w.formId, w.level, 'meditation', ['zen']);
+    cm.stat(r.mon.uid, (st) => ({ ...st, meditations: st.meditations + 1 }));
+    const lead = cm.team[0]; if (lead) { cm.stat(lead.uid, (st) => ({ ...st, meditations: st.meditations + 1 })); if (Math.random() < 0.5) window.setTimeout(() => cm.learn(lead.uid, 'by meditating', 'zen'), 2600); }
+    sfx.chime(); const nm = form(w.formId).name;
+    setReveal({ formId: w.formId, isNew: r.isNew, title: `${nm} joined you!` });
+    speak(`${nm} feels calm and peaceful with you. ${nm} joined you!`, tts);
   };
   const endBattle = (r: BattleEnd) => {
     const w = battle; setBattle(null);
@@ -154,7 +195,20 @@ export function CreaturemonGoOverlay({ playerPosRef, wildsRef }: { playerPosRef:
         <button type="button" className="btn" onClick={() => { cm.put({ active: false }); sfx.click(); }}>Turn off</button>
       </div>
       {!near && !battle && !catching && <p className="cmgo-hint">Walk around to find creatures. They stand on glowing rings.</p>}
-      {near && f && !battle && !catching && !reveal && (
+      {near && f && near.zen && !battle && !catching && !reveal && !zen && (
+        <div className="cmgo-target zen">
+          <Sprite f={f} px={56} />
+          <div className="cm-target-txt">
+            <b>{seenIt ? f.name : 'A wild creature'}</b>
+            <small>It is meditating. It looks calm and peaceful.</small>
+          </div>
+          <div className="cmgo-acts">
+            <button type="button" className="cm-big fight" onClick={() => { uiSound('popup-open-1'); setZen(near); }}>Sit with it</button>
+          </div>
+        </div>
+      )}
+      {zen && <Meditate formId={zen.formId} calm={cm.calm} tts={tts} onDone={() => joined(zen)} onStop={() => setZen(null)} />}
+      {near && f && !near.zen && !battle && !catching && !reveal && (
         <div className="cmgo-target" style={{ borderColor: TYPE_COLOR[line(f.id).type] }}>
           <Sprite f={f} px={56} />
           <div className="cm-target-txt">
@@ -172,6 +226,7 @@ export function CreaturemonGoOverlay({ playerPosRef, wildsRef }: { playerPosRef:
       {reveal && <RevealScene formId={reveal.formId} isNew={reveal.isNew} title={reveal.title} onClose={() => setReveal(null)} tts={tts} />}
       {battle && <GoBattle cm={cm} foe={{ formId: battle.formId, level: battle.level }} onClose={endBattle} />}
       <EvoScene cm={cm} />
+      <AbilityScene cm={cm} />
     </>
   );
 }
@@ -182,4 +237,33 @@ function GoBattle({ cm, foe, onClose }: { cm: ReturnType<typeof useCmSave>; foe:
   const { ask, element, pay } = useAsk('Creaturemon', '🐉', 'creaturemon', { startCard: false });
   useEffect(() => () => pay(), [pay]);
   return <div className="cmb-host"><Battle cm={cm} wildFoe={foe} ask={ask} onClose={onClose} />{element}</div>;
+}
+
+// Three slow breaths with the creature (an SEL calm down routine), then it joins.
+function Meditate({ formId, calm, tts, onDone, onStop }: { formId: string; calm: boolean; tts?: Parameters<typeof speak>[1]; onDone: () => void; onStop: () => void }) {
+  const [step, setStep] = useState(0); // 0..5: in, out, in, out, in, out
+  const [go, setGo] = useState(false);
+  useEffect(() => { const t = window.setTimeout(() => setGo(true), 60); return () => window.clearTimeout(t); }, []);
+  const len = calm ? 3000 : 4000;
+  useEffect(() => {
+    if (step >= 6) { onDone(); return; }
+    speak(step % 2 === 0 ? 'Breathe in' : 'Breathe out', tts);
+    const t = window.setTimeout(() => setStep((x) => x + 1), len); return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
+  const f = form(formId);
+  return (
+    <div className="cm-over cm-zen">
+      <h2>Sit with {f.name}</h2>
+      <p>Breathe slowly together. Watch the circle.</p>
+      <div className="cm-zen-stage">
+        <span className={`cm-zen-ring ${go && step % 2 === 0 ? 'in' : 'out'}`} style={{ transitionDuration: `${len}ms` }} />
+        <Fx name="sparkle" size={220} loop />
+        <Sprite f={f} px={110} />
+      </div>
+      <b className="cm-zen-word">{step >= 6 ? 'So calm!' : step % 2 === 0 ? 'Breathe in...' : 'Breathe out...'}</b>
+      <small>Breath {Math.min(3, Math.floor(step / 2) + 1)} of 3</small>
+      <button type="button" className="btn" onClick={onStop}>Stop</button>
+    </div>
+  );
 }

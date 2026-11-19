@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-abilities",
+    date: "2026-11-19",
+    icon: "🐉",
+    title: "Creaturemon: abilities, meditation and followers",
+    body: "Every creature can learn up to 3 abilities, like Lazy (naps to get health back) or Spiky (pokes anyone who hits it). They learn them in battles, when they evolve, and by meditating. Some wild creatures in Town Square sit and meditate: tap Sit with it, breathe slowly together, and it joins you! Tap Follow me in My team to have creatures walk with you. Battles have their own music now too.",
+  },
+  {
     id: "2026-11-19-creaturemon-town",
     date: "2026-11-19",
     icon: "🐉",

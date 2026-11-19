@@ -93,6 +93,10 @@ Types and what they beat (special moves only; a strong hit does 1.5 times the da
 - **Leaf, Whisper Woods:** Snailark ▸ (Lv 14) Spiralhawk
 - **Shadow, Night Grove:** Kittowl ▸ (Lv 14) Shadowl
 
+## Abilities (each creature, up to 3 of its own)
+
+Lazy: naps in battle to get health back. Spiky: anyone who hits it gets poked back. Speedy: dodges more. Brave: hits harder with low hearts. Lucky: sometimes a double hit. Tough: takes less from every hit. Cheerful: more XP. Focused: moves fueled by right answers hit harder. Zen: Guard blocks more (from meditating). Snacky: berries heal more. Learned by winning battles, by every evolution and by meditating.
+
 ## Art credits
 
-Creatures: Evolving Creatures by MEKAI GAMES; Pixel Art Monster Evolution Pack (free); her PoMoRe pack. Cards: NPC Quest TCG Cards (CraftPix) and Pixel Cards & Deckbuilder Kit Lite by Willosuna. World: Pixel Assets JAN2022 by Stamper; Pixel Skies by Digital Moons (https://digitalmoons.itch.io/pixel-skies, credit required); the Pixel Lorebook font from the 3D Pixel Art Kit Lite by Julius Schmidt.
+Creatures: Evolving Creatures by MEKAI GAMES; Pixel Art Monster Evolution Pack (free); her PoMoRe pack. Cards: NPC Quest TCG Cards (CraftPix) and Pixel Cards & Deckbuilder Kit Lite by Willosuna. World: Pixel Assets JAN2022 by Stamper; Pixel Skies by Digital Moons (https://digitalmoons.itch.io/pixel-skies, credit required); the Pixel Lorebook font from the 3D Pixel Art Kit Lite by Julius Schmidt. Battle and Town Square effects: Super Pixel Effects Gigapack, Will Tice / unTied Games. UI sounds: JDSherbert Pixel UI SFX Pack. Hearts: AXIALE hearts. Battle song: cinematic battle song by theojt. UI: Pixel UI pack 3 and IconGodotNode. Grass tufts: BinbunGrass.

@@ -6,7 +6,7 @@ import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { recordBestGame } from '../../lib/personalBoard';
 import { CreatureCard, Sprite } from './Card';
-import { FORMS, IMG, form, freshSave, giveXp, uid, xpToNext, type Mon, type Save } from './data';
+import { ABILITIES, FORMS, IMG, displayName, form, freshSave, freshStats, giveXp, rollAbility, uid, xpToNext, type AbilityId, type Mon, type MonStats, type Save } from './data';
 import './creaturemon.css';
 
 export interface CmSave extends Save { active?: boolean }
@@ -51,8 +51,12 @@ export function useCmSave() {
 
   const [evoQ, setEvoQ] = useState<Evo[]>([]);
   const record = (caught: string[]) => { if (studentId) recordBestGame(studentId, 'creaturemon', caught.length, `${caught.length} of ${FORMS.length} cards`); };
-  const addMon = (formId: string, level: number): { mon: Mon; isNew: boolean } => {
-    const s = sRef.current; const m: Mon = { uid: uid(), formId, level, xp: 0, caughtAt: new Date().toISOString() };
+  // A new ability to show (732): "Kindlit learned Lazy!"
+  const [abQ, setAbQ] = useState<{ uid: string; ab: AbilityId; why: string }[]>([]);
+  const addMon = (formId: string, level: number, how: MonStats['how'] = 'orb', abilities: AbilityId[] = []): { mon: Mon; isNew: boolean } => {
+    // a wild creature sometimes already knows one ability (each individual is different)
+    const abs = [...abilities]; if (how === 'orb' && Math.random() < 0.25) { const a = rollAbility({ abilities: abs }); if (a) abs.push(a); }
+    const s = sRef.current; const m: Mon = { uid: uid(), formId, level, xp: 0, caughtAt: new Date().toISOString(), abilities: abs, stats: freshStats(how) };
     const isNew = !s.caught.includes(formId);
     const caught = isNew ? [...s.caught, formId] : s.caught; const seen = s.seen.includes(formId) ? s.seen : [...s.seen, formId];
     put({ mons: [...s.mons, m], team: s.team.length < 6 ? [...s.team, m.uid] : s.team, caught, seen });
@@ -71,11 +75,26 @@ export function useCmSave() {
     const s = sRef.current; const m = s.mons.find((x) => x.uid === e.uid); if (!m) return;
     const isNew = !s.caught.includes(e.to);
     const caught = isNew ? [...s.caught, e.to] : s.caught; const seen = s.seen.includes(e.to) ? s.seen : [...s.seen, e.to];
-    put({ mons: s.mons.map((x) => (x.uid === m.uid ? { ...x, formId: e.to } : x)), caught, seen });
+    // every evolution teaches one new ability while there is room (732)
+    const ab = rollAbility(m);
+    const st = { ...(m.stats ?? freshStats('orb')), evolutions: (m.stats?.evolutions ?? 0) + 1 };
+    put({ mons: s.mons.map((x) => (x.uid === m.uid ? { ...x, formId: e.to, stats: st, abilities: ab ? [...(x.abilities ?? []), ab] : x.abilities } : x)), caught, seen });
+    if (ab) setAbQ((q) => [...q, { uid: m.uid, ab, why: 'by evolving' }]);
     if (isNew) record(caught);
   };
+  // Stats for one creature (732), and a chance to learn an ability.
+  const stat = (monUid: string, f: (st: MonStats) => MonStats) => {
+    const s = sRef.current; put({ mons: s.mons.map((x) => (x.uid === monUid ? { ...x, stats: f(x.stats ?? freshStats('orb')) } : x)) });
+  };
+  const learn = (monUid: string, why: string, prefer?: AbilityId) => {
+    const s = sRef.current; const m = s.mons.find((x) => x.uid === monUid); if (!m) return null;
+    const ab = rollAbility(m, prefer); if (!ab) return null;
+    put({ mons: s.mons.map((x) => (x.uid === m.uid ? { ...x, abilities: [...(x.abilities ?? []), ab] } : x)) });
+    setAbQ((q) => [...q, { uid: m.uid, ab, why }]);
+    return ab;
+  };
   const team = S.team.map((u) => S.mons.find((m) => m.uid === u)).filter(Boolean) as Mon[];
-  return { S, sRef, put, addMon, see, train, team, evoQ, popEvo: () => setEvoQ((q) => q.slice(1)), applyEvo, student, calm: !!student?.worldReduceMotion };
+  return { S, sRef, put, addMon, see, train, team, evoQ, popEvo: () => setEvoQ((q) => q.slice(1)), applyEvo, stat, learn, abQ, popAb: () => setAbQ((q) => q.slice(1)), student, calm: !!student?.worldReduceMotion };
 }
 export type CmApi = ReturnType<typeof useCmSave>;
 
@@ -135,6 +154,35 @@ export function EvoScene({ cm }: { cm: CmApi }) {
         {step === 'glow' ? (<><Sprite f={form(evo.from)} px={120} className="cm-evo-a" /><Sprite f={form(evo.to)} px={120} className="cm-evo-b" /></>) : <CreatureCard f={form(evo.to)} scale={1.3} />}
       </div>
       {step === 'done' && <button type="button" className="btn btn-primary btn-lg" onClick={() => cm.popEvo()}>Awesome!</button>}
+    </div>
+  );
+}
+
+// Her effect packs (732): Super Pixel Effects Gigapack by Will Tice / unTied Games, played once as a sprite strip.
+export const FX: Record<string, [number, number, number]> = { fire: [96, 96, 9], water: [128, 128, 24], leaf: [96, 96, 10], stone: [96, 96, 8], spark: [64, 64, 8], light: [256, 144, 9], shadow: [64, 64, 21], frost: [96, 96, 7], sky: [64, 64, 14], heal: [128, 128, 16], guard: [128, 128, 18], power: [128, 128, 18], sparkle: [96, 96, 24], hearts: [128, 128, 23], coins: [128, 128, 24], poof: [64, 64, 21] };
+export function Fx({ name, size = 160, loop = false, style }: { name: string; size?: number; loop?: boolean; style?: React.CSSProperties }) {
+  const m = FX[name] ?? FX.sparkle; const [w, h, n] = m; const k = size / Math.max(w, h);
+  return <span className={`cm-fx${loop ? ' loop' : ''}`} aria-hidden style={{ width: w * k, height: h * k, backgroundImage: `url(${IMG}fx/${name}.png)`, backgroundSize: `${w * k * n}px ${h * k}px`, ['--fx-end' as string]: `${-w * k * n}px`, ['--fx-n' as string]: n, animationDuration: `${n * 55}ms`, ...style } as React.CSSProperties} />;
+}
+// Her JDSherbert Pixel UI SFX pack (732).
+const sfxCache: Record<string, HTMLAudioElement> = {};
+export function uiSound(name: 'select-1' | 'cursor-1' | 'popup-open-1' | 'popup-close-1' | 'cancel-1' | 'error-1') {
+  try { if (localStorage.getItem('mini-sfx') === '0') return; } catch { /* fine */ }
+  try { const a = sfxCache[name] ?? (sfxCache[name] = new Audio(`${IMG}sfx/${name}.mp3`)); a.volume = 0.5; a.currentTime = 0; void a.play().catch(() => {}); } catch { /* fine */ }
+}
+// "Kindlit learned Lazy!"
+export function AbilityScene({ cm }: { cm: CmApi }) {
+  const a = cm.abQ[0]; const m = a ? cm.S.mons.find((x) => x.uid === a.uid) : null;
+  useEffect(() => { if (a && m) speak(`${displayName(m)} learned ${ABILITIES[a.ab].name} ${a.why}! ${ABILITIES[a.ab].how}`, cm.student?.ttsSettings); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [a?.uid, a?.ab]);
+  if (!a || !m || cm.evoQ.length) return null;
+  return (
+    <div className="cm-over" onClick={() => cm.popAb()}>
+      <div className="cm-reveal">
+        <h2>{displayName(m)} learned {ABILITIES[a.ab].name}!</h2>
+        <div className="cm-ab-stage"><Fx name={ABILITIES[a.ab].fx} size={220} loop /><Sprite f={form(m.formId)} px={110} anim="move" /></div>
+        <p className="cm-ab-how">{ABILITIES[a.ab].how} <small>(learned {a.why})</small></p>
+        <button type="button" className="btn btn-primary btn-lg" onClick={() => cm.popAb()}>Cool!</button>
+      </div>
     </div>
   );
 }

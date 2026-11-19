@@ -9,8 +9,8 @@ import { MyBest } from '../../components/MyBest';
 import { MenuItems } from '../../lib/mainMenu';
 import Battle from '../../games/creaturemon/Battle';
 import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
-import { EvoScene, RevealScene, XpBar, useCmSave } from '../../games/creaturemon/shared';
-import { FORMS, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form } from '../../games/creaturemon/data';
+import { AbilityScene, EvoScene, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
+import { ABILITIES, FORMS, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
 
 // Creaturemon on the Computer (Build Queue 710 to 712, then 725 to 730, 2026-11-19). Her 725 words: "instead of
 // creating a new world, lets have it so the creaturemon is like a pokemon go style game ... if they've clicked on the
@@ -32,7 +32,7 @@ export default function Creaturemon() {
   const [trainRun, setTrainRun] = useState<{ uid: string; left: number; hits: number; spot: number } | null>(null);
   const say = (t: string) => { setToast(t); window.setTimeout(() => setToast((x) => (x === t ? '' : x)), 2600); };
 
-  const goCatch = () => { cm.put({ active: true }); sfx.chime(); speak('Creaturemon is on! Walk around Town Square to find creatures.', student?.ttsSettings); navigate('/world/town'); };
+  const goCatch = () => { uiSound('popup-open-1'); cm.put({ active: true }); sfx.chime(); speak('Creaturemon is on! Walk around Town Square to find creatures.', student?.ttsSettings); navigate('/world/town'); };
   const turnOff = () => { cm.put({ active: false }); sfx.click(); say('Creaturemon is off.'); };
   const startTraining = (uid: string) => {
     setPanel(''); const m = S.mons.find((x) => x.uid === uid); if (!m) return;
@@ -46,11 +46,11 @@ export default function Creaturemon() {
     setTrainRun(null);
     const m = S.mons.find((x) => x.uid === t.uid); if (!m) return;
     const xp = Math.round(xpToNext(m.level) * (0.35 + n.hits * 0.09));
-    const r = cm.train(m.uid, xp); say(`${displayName(m)} got ${xp} XP${r?.levels ? ` and grew ${r.levels} level${r.levels > 1 ? 's' : ''}` : ''}!`);
+    const r = cm.train(m.uid, xp); cm.stat(m.uid, (st) => ({ ...st, trainings: st.trainings + 1 })); say(`${displayName(m)} got ${xp} XP${r?.levels ? ` and grew ${r.levels} level${r.levels > 1 ? 's' : ''}` : ''}!`);
   };
   const makeOrbs = () => ask('Creaturemon: answer to make 3 orbs', () => { cm.put({ orbs: cm.sRef.current.orbs + 3 }); sfx.coin(); say('3 new orbs!'); });
   const pickStarter = (formId: string) => {
-    const r = cm.addMon(formId, 5); cm.put({ starterPicked: true, team: [r.mon.uid] });
+    const r = cm.addMon(formId, 5, 'starter'); cm.put({ starterPicked: true, team: [r.mon.uid] });
     setReveal({ formId, isNew: true, title: `${form(formId).name} is your partner!` });
     speak(`${form(formId).name} is your partner! Turn on Creaturemon and walk around Town Square to catch more.`, student?.ttsSettings);
   };
@@ -130,7 +130,7 @@ export default function Creaturemon() {
 
       {panel === 'team' && (
         <Panel title="My team" onClose={() => setPanel('')} wide>
-          <p className="cm-note">Your first creature is the leader. Up to 6 on your team; the rest wait in the box.</p>
+          <p className="cm-note">Your first creature is the leader. Up to 6 on your team; the rest wait in the box. Tap Follow me to have a creature walk with you in Town Square. Each creature can learn up to 3 abilities in battles, by evolving and by meditating.</p>
           <div className="cm-team">
             {[...team, ...S.mons.filter((m) => !S.team.includes(m.uid))].map((m) => {
               const f = form(m.formId); const inTeam = S.team.includes(m.uid); const nx = nextForm(m.formId);
@@ -141,11 +141,15 @@ export default function Creaturemon() {
                     <b>{displayName(m)}</b><small>Lv {m.level} · {line(f.id).type}{S.team[0] === m.uid ? ' · Leader' : ''}</small>
                     <XpBar m={m} />
                     <small>{nx ? `Evolves into ? ? ? at Lv ${f.evolvesAt}` : 'Final form'}</small>
+                    <Abilities m={m} />
+                    <MonStatsLine m={m} />
                   </div>
                   <div className="cm-mon-btns">
                     {inTeam && S.team[0] !== m.uid && <button type="button" className="btn" onClick={() => cm.put({ team: [m.uid, ...S.team.filter((u) => u !== m.uid)] })}>Lead</button>}
                     {inTeam && S.team.length > 1 && <button type="button" className="btn" onClick={() => cm.put({ team: S.team.filter((u) => u !== m.uid) })}>To box</button>}
                     {!inTeam && S.team.length < 6 && <button type="button" className="btn" onClick={() => cm.put({ team: [...S.team, m.uid] })}>To team</button>}
+                    {inTeam && <button type="button" className={`btn${m.follow ? ' btn-primary' : ''}`} title="Walk with you in Town Square (up to 2)"
+                      onClick={() => { const on = !m.follow; if (on && S.mons.filter((x) => x.follow).length >= 2) { say('Two creatures can follow you at a time.'); uiSound('error-1'); return; } cm.put({ mons: S.mons.map((x) => (x.uid === m.uid ? { ...x, follow: on } : x)) }); uiSound('select-1'); }}>{m.follow ? 'Following' : 'Follow me'}</button>}
                     <button type="button" className="btn" onClick={() => setCardOpen(m.formId)}>Card</button>
                   </div>
                 </div>
@@ -208,6 +212,7 @@ export default function Creaturemon() {
       )}
       {reveal && <RevealScene formId={reveal.formId} isNew={reveal.isNew} title={reveal.title} onClose={() => setReveal(null)} tts={student.ttsSettings} />}
       <EvoScene cm={cm} />
+      <AbilityScene cm={cm} />
       {element}
     </div>
   );
@@ -248,5 +253,27 @@ function CardView({ f, onClose, tts, level }: { f: Form; onClose: () => void; tt
         </div>
       </div>
     </div>
+  );
+}
+
+// Up to 3 abilities for this one creature (732).
+function Abilities({ m }: { m: Mon }) {
+  const abs = m.abilities ?? [];
+  if (!abs.length) return <small className="cm-note" style={{ margin: 0 }}>No abilities yet (up to 3)</small>;
+  return <span className="cm-abs">{abs.map((a) => <span key={a} className="cm-ab" title={ABILITIES[a].how}>{ABILITIES[a].name}</span>)}</span>;
+}
+// Her "stats should be kept track of for each individual" (732).
+function MonStatsLine({ m }: { m: Mon }) {
+  const st = m.stats; if (!st) return null;
+  const how = st.how === 'starter' ? 'Your partner' : st.how === 'meditation' ? 'Joined by meditating' : 'Caught with an orb';
+  return (
+    <span className="cm-statgrid">
+      <span>Battles</span><b>{st.battles} ({st.wins} won)</b>
+      <span>Damage given</span><b>{st.dealt}</b>
+      <span>Evolved</span><b>{st.evolutions} times</b>
+      <span>Meditated</span><b>{st.meditations} times</b>
+      <span>Trained</span><b>{st.trainings} times</b>
+      <span>Joined</span><b>{how}, {new Date(m.caughtAt).toLocaleDateString()}</b>
+    </span>
   );
 }

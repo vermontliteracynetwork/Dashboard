@@ -35,8 +35,36 @@ export const STRONG: Record<CType, CType[]> = {
 export const typeMult = (a: CType, d: CType) => (STRONG[a].includes(d) ? 1.5 : STRONG[d].includes(a) ? 0.7 : 1);
 export const HABITAT_NAME: Record<Habitat, string> = { meadow: 'Sunny Meadow', forest: 'Whisper Woods', lake: 'Splash Lake', snow: 'Frost Ridge', night: 'Night Grove', ember: 'Ember Rocks' };
 
+// Build Queue 732 (her words: "allow each to have up to three special abilities like lazy (sleep to regain health),
+// spikey (if someone attacks you they get damage). random individual (not species) can gain up to three abilities
+// through battle, evolution, meditation"): abilities belong to one creature, not its kind, up to 3 each.
+export type AbilityId = 'lazy' | 'spiky' | 'speedy' | 'brave' | 'lucky' | 'tough' | 'cheerful' | 'focused' | 'zen' | 'snacky';
+export const ABILITIES: Record<AbilityId, { name: string; how: string; fx: string }> = {
+  lazy: { name: 'Lazy', how: 'Sometimes takes a nap in battle to get health back.', fx: 'heal' },
+  spiky: { name: 'Spiky', how: 'Anyone who hits it gets poked back.', fx: 'stone' },
+  speedy: { name: 'Speedy', how: 'Dodges more often.', fx: 'sky' },
+  brave: { name: 'Brave', how: 'Hits harder when its hearts are low.', fx: 'power' },
+  lucky: { name: 'Lucky', how: 'Sometimes lands a lucky double hit.', fx: 'sparkle' },
+  tough: { name: 'Tough', how: 'Takes a little less from every hit.', fx: 'guard' },
+  cheerful: { name: 'Cheerful', how: 'Gets more XP after every battle.', fx: 'hearts' },
+  focused: { name: 'Focused', how: 'Moves fueled by right answers hit even harder.', fx: 'power' },
+  zen: { name: 'Zen', how: 'Calm and peaceful: Guard blocks even more.', fx: 'sparkle' },
+  snacky: { name: 'Snacky', how: 'Berry snacks give back more health.', fx: 'heal' },
+};
+export const MAX_ABILITIES = 3;
+export const hasAb = (m: { abilities?: AbilityId[] } | null | undefined, a: AbilityId) => !!m?.abilities?.includes(a);
+// A new ability this creature does not have yet (or null when it has 3).
+export function rollAbility(m: { abilities?: AbilityId[] }, prefer?: AbilityId): AbilityId | null {
+  const have = m.abilities ?? []; if (have.length >= MAX_ABILITIES) return null;
+  if (prefer && !have.includes(prefer)) return prefer;
+  const left = (Object.keys(ABILITIES) as AbilityId[]).filter((a) => !have.includes(a) && a !== 'zen');
+  return left[Math.floor(Math.random() * left.length)] ?? null;
+}
+// Her "stats should be kept track of for each individual".
+export interface MonStats { battles: number; wins: number; losses: number; dealt: number; taken: number; evolutions: number; meditations: number; trainings: number; how: 'starter' | 'orb' | 'meditation' }
+export const freshStats = (how: MonStats['how']): MonStats => ({ battles: 0, wins: 0, losses: 0, dealt: 0, taken: 0, evolutions: 0, meditations: 0, trainings: 0, how });
 // One caught creature on the student's team or in the box.
-export interface Mon { uid: string; formId: string; level: number; xp: number; nick?: string; caughtAt: string }
+export interface Mon { uid: string; formId: string; level: number; xp: number; nick?: string; caughtAt: string; abilities?: AbilityId[]; stats?: MonStats; follow?: boolean }
 export interface Save {
   v: 1; mons: Mon[]; team: string[]; seen: string[]; caught: string[]; orbs: number; berries: number; wins: number; at?: string; starterPicked: boolean;
 }
