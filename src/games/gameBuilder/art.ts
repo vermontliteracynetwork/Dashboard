@@ -125,6 +125,13 @@ export function makeArtist(p: GameProject): Artist {
     g.fillStyle = '#000'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.font = `${size}px ${EMOJI_FONT}`; g.fillText(emoji, cx, cy);
   }
   const sky: Artist['sky'] = (g, W, H, cam = 0) => {
+    // A background picture from the gallery or a photo (695), covering the screen and sliding slowly.
+    const bgIm = p.design.bg ? picture(p.design.bg) : null;
+    if (bgIm) {
+      const k = Math.max(W / bgIm.naturalWidth, H / bgIm.naturalHeight); const w = bgIm.naturalWidth * k, h = bgIm.naturalHeight * k;
+      const off = w > W ? -((cam * 0.2) % (w - W)) : (W - w) / 2;
+      g.imageSmoothingEnabled = bgIm.naturalWidth > 128; g.drawImage(bgIm, off, (H - h) / 2, w, h); return;
+    }
     if (style === 'lowpoly') {
       const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, shade(colors.sky, -30)); gr.addColorStop(1, shade(colors.sky, 25)); g.fillStyle = gr; g.fillRect(0, 0, W, H);
       // Far mountains made of triangles, sliding slower than the camera.

@@ -10,6 +10,28 @@ interface Lib { pictures: Pack[]; sounds: Pack[] }
 let cache: Promise<Lib> | null = null;
 const loadLib = () => (cache ??= fetch('/game-builder/library.json').then((r) => r.json() as Promise<Lib>).catch(() => ({ pictures: [], sounds: [] })));
 
+// A photo from the camera or the photo library (695, her words: "ability to add from camera role"), made small
+// (at most `max` pixels) and saved to the app's picture storage, or kept in the game itself if storage is not on.
+export async function photoToUrl(file: File, max = 256): Promise<string> {
+  const img = await new Promise<HTMLImageElement>((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); });
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+  const blob = await new Promise<Blob | null>((res) => c.toBlob(res, 'image/png'));
+  try { if (blob) { const { uploadImage } = await import('../../lib/upload'); return await uploadImage(blob); } } catch { /* fall back below */ }
+  return c.toDataURL('image/png');
+}
+
+export function PhotoButton({ onPhoto, label = 'Add a photo', max }: { onPhoto: (url: string) => void; label?: string; max?: number }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <label className={`gb-btn gba-photo ${busy ? 'busy' : ''}`}>
+      {busy ? 'Adding...' : label}
+      <input type="file" accept="image/*" hidden onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ''; if (!f) return; setBusy(true); try { onPhoto(await photoToUrl(f, max)); } catch { /* not a picture */ } setBusy(false); }} />
+    </label>
+  );
+}
+
 export const packName = (p: string) => p.split('/').filter((x) => x !== 'games' && x !== 'sounds' && x !== 'PNG' && x !== 'Audio').map((x) => x.replace(/[-_]/g, ' ')).join(', ').replace(/\b\w/g, (c) => c.toUpperCase()) || 'Other';
 export const soundName = (url: string) => decodeURIComponent(url.split('/').pop() ?? '').replace(/\.\w+$/, '').replace(/[-_]+/g, ' ').replace(/\s+\d+$/, (m) => m);
 

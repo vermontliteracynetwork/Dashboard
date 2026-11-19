@@ -95,7 +95,9 @@ export function LivePreview({ p, onPlayed }: { p: GameProject; onPlayed?: (r: 'w
   const box = useRef<HTMLDivElement>(null);
   const h = useRef<RunHandle | null>(null);
   const [end, setEnd] = useState<'win' | 'lose' | null>(null);
-  const [running, setRunning] = useState(false);
+  // 695 (her words: "preview should always be most up to date with exactly what the student has added"): it runs
+  // and restarts with every change, so students always see what their inputs did.
+  const [running, setRunning] = useState(true);
   const [round, setRound] = useState(0);
   const [sound, setSound] = useState(false);
   const [changed, setChanged] = useState(false);
@@ -104,7 +106,7 @@ export function LivePreview({ p, onPlayed }: { p: GameProject; onPlayed?: (r: 'w
   const sig = JSON.stringify([p.rules, p.settings, p.design, p.code]);
   const first = useRef(true);
   useEffect(() => {
-    const t = window.setTimeout(() => { setPp(p); if (first.current) { first.current = false; return; } setRunning(false); setChanged(true); }, 500);
+    const t = window.setTimeout(() => { setPp(p); if (first.current) { first.current = false; return; } setChanged(true); window.setTimeout(() => setChanged(false), 1500); }, 400);
     return () => window.clearTimeout(t);
   }, [sig]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -128,13 +130,15 @@ export function LivePreview({ p, onPlayed }: { p: GameProject; onPlayed?: (r: 'w
         <b>Live game</b>
         <span className="gbp-grow" />
         {running && pp.kind !== 'custom' && <button type="button" className="gbx-link" onClick={() => setSound((s) => !s)}>{sound ? 'Sound on' : 'Sound off'}</button>}
-        {running && <button type="button" className="gbx-link" onClick={() => { setRunning(false); }}>Stop</button>}
+        {changed && running && <span className="gbp-updated">Updated</span>}
+        {running ? <button type="button" className="gbx-link" onClick={() => { setRunning(false); }}>Pause</button> : null}
+        <button type="button" className="gbx-link" onClick={start}>Restart</button>
       </div>
       <div className="gbp-stage">
         {pp.kind === 'custom'
           ? (pp.code ? (running ? <iframe key={round} title="Live game" sandbox="allow-scripts" srcDoc={pp.code} className="gbp-frame" /> : null) : <p className="gbp-empty">Your game shows up here after Azalea builds it.</p>)
           : <canvas ref={cv} width={960} height={540} onPointerDown={(e) => { if (!running) return; box.current?.focus(); const c = cv.current; if (!c || !h.current) return; const b = c.getBoundingClientRect(); const k = Math.min(b.width / c.width, b.height / c.height); const ox = (b.width - c.width * k) / 2, oy = (b.height - c.height * k) / 2; h.current.tap((e.clientX - b.left - ox) / k, (e.clientY - b.top - oy) / k); }} />}
-        {!running && (pp.kind !== 'custom' || pp.code) && <div className="gbp-end"><b>{changed ? 'Changed! Test it to see your change.' : 'Your game'}</b><button type="button" className="gbx-btn gbx-primary gbx-big" onClick={start}>Test it</button></div>}
+        {!running && (pp.kind !== 'custom' || pp.code) && <div className="gbp-end"><b>Paused</b><button type="button" className="gbx-btn gbx-primary gbx-big" onClick={start}>Keep playing</button></div>}
         {running && end && <div className="gbp-end"><b>{end === 'win' ? 'You won!' : 'Game over'}</b><button type="button" className="gbx-btn gbx-primary" onClick={start}>Test it again</button></div>}
       </div>
       {running && pp.kind === 'platformer' && <div className="gbp-pad"><button type="button" {...hold('left')} aria-label="Left">Left</button><button type="button" {...hold('right')} aria-label="Right">Right</button><span className="gbp-grow" /><button type="button" {...hold('jump')}>Jump</button></div>}

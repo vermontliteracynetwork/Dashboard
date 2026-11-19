@@ -26,6 +26,8 @@ export interface Design {
   style?: string;     // art style: classic, pixel, lowpoly (Build Queue 664)
   colors?: { sky?: string; ground?: string; ink?: string; accent?: string }; // the student's own colors
   sprites?: Record<string, string[]>; // sprites they drew: 'hero' or a thing id -> 16 rows of palette digits
+  bg?: string;                       // a background picture (gallery or a photo) behind the game (695)
+  blank?: boolean;
   pictures?: Record<string, string>; // a picture from the library for a sprite (Build Queue 677)
   mySounds?: string[];               // sounds picked from the library for the play sound block
   anim?: Record<string, string>;      // a preset move for a sprite: bounce, spin, pulse, wiggle, float
@@ -178,13 +180,14 @@ export function starterRules(kind: GameKind): Rule[] {
 
 export const DEFAULT_SETTINGS: Settings = { heroSpeed: 5, jumpHeight: 5, gravity: 5, enemySpeed: 3, lives: 3, timer: 0, level: 2, tileColors: 4 };
 
-export function newProject(kind: GameKind, name: string): GameProject {
+export function newProject(kind: GameKind, name: string, blank = false): GameProject {
   const now = new Date().toISOString();
+  const fallback = blank ? 'My Custom Game' : `My ${KIND_INFO[kind].label}`;
   return {
-    id: rid(), name: name.trim() || `My ${KIND_INFO[kind].label}`, kind, createdAt: now, updatedAt: now, step: 'idea',
-    design: { title: name.trim() || `My ${KIND_INFO[kind].label}`, hero: kind === 'clicker' ? 'cookie' : kind === 'maze' ? 'ghost' : 'cat', heroColor: '#ffcc33', theme: kind === 'maze' ? 'space' : 'meadow', idea: '', goal: '', style: 'pixel' },
+    id: rid(), name: name.trim() || fallback, kind, createdAt: now, updatedAt: now, step: 'idea',
+    design: { blank, title: name.trim() || fallback, hero: kind === 'clicker' ? 'cookie' : kind === 'maze' ? 'ghost' : 'cat', heroColor: '#ffcc33', theme: kind === 'maze' ? 'space' : 'meadow', idea: '', goal: '', style: 'pixel' },
     settings: { ...DEFAULT_SETTINGS, timer: kind === 'match3' ? 90 : 0 },
-    rules: starterRules(kind), chat: [], plays: 0, bugsFixed: 0,
+    rules: blank ? [] : starterRules(kind), chat: [], plays: 0, bugsFixed: 0,
   };
 }
 

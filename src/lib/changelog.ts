@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-game-builder-free",
+    date: "2026-11-19",
+    icon: "🕹️",
+    title: "Game Builder: build it your way",
+    body: "Game Builder is now open: use Blocks, Look, Sound and Settings any time, in any order. Your game runs live in the middle and changes the moment you do. Tell Azalea anything you want. Add your own photos or pick from thousands of pictures, and add a background picture. Want to start from nothing? Tap Custom and build every rule yourself.",
+  },
+  {
     id: "2026-11-19-silly-stories",
     date: "2026-11-19",
     icon: "📚",
