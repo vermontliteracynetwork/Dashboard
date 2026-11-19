@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-fight-look",
+    date: "2026-11-19",
+    icon: "🥊",
+    title: "Creaturemon battles look like a real fighting game",
+    body: "Battles are back on the floating island! Each creature has 3 heart lives: when its bar empties, it loses a heart. Your health bar is at the top left and your opponent's at the top right. Tap the big round buttons to Tackle, use your special move, Guard or eat a berry. Before a battle, pick your fighter or your team on the new loadout screen and tap Confirm. The Creaturemon world has lots of grass now too.",
+  },
+  {
     id: "2026-11-19-creaturemon-new-cards",
     date: "2026-11-19",
     icon: "🃏",

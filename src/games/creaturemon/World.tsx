@@ -110,6 +110,28 @@ class Safe extends Component<{ children: ReactNode }, { bad: boolean }> {
   render() { return this.state.bad ? null : this.props.children; }
 }
 
+// Build Queue 742 (her words: "improve the rendering of the creaturemon world"): thousands of her BinbunGrass tufts
+// (crossed pixel quads, two draw calls each) over the grassy habitats, and soft round shadows under everyone.
+function Grass() {
+  const meshes = useMemo(() => {
+    const r = rng(777); const out: THREE.InstancedMesh[] = [];
+    for (let k = 1; k <= 4; k++) {
+      const mat = new THREE.MeshLambertMaterial({ map: pixelTex(`${IMG}ui/grass_basic_0${k}.png`), transparent: true, alphaTest: 0.45, side: THREE.DoubleSide });
+      const geo = new THREE.PlaneGeometry(1.1, 0.9); geo.translate(0, 0.45, 0);
+      const n = 900; const im = new THREE.InstancedMesh(geo, mat, n * 2); let c = 0; const m = new THREE.Matrix4(); const q = new THREE.Quaternion(); const e = new THREE.Euler();
+      for (let i = 0; i < n * 6 && c < n * 2; i++) {
+        const x = (r() * 2 - 1) * (R - 10), z = (r() * 2 - 1) * (R - 10); const hab = habitatAt(x, z);
+        if (hab === 'snow' || hab === 'ember') continue; const h = heightAt(x, z); if (h < WATER + 0.5) continue;
+        const sc = 0.7 + r() * 0.9; const yaw = r() * Math.PI;
+        for (const add of [0, Math.PI / 2]) { e.set(0, yaw + add, 0); q.setFromEuler(e); m.compose(new THREE.Vector3(x, h - 0.05, z), q, new THREE.Vector3(sc, sc, sc)); im.setMatrixAt(c++, m); }
+      }
+      im.count = c; out.push(im);
+    }
+    return out;
+  }, []);
+  return <>{meshes.map((m, i) => <primitive key={i} object={m} />)}</>;
+}
+
 function Sky({ which }: { which: string }) {
   const { scene } = useThree();
   useEffect(() => { const t = pixelTex(`${IMG}sky/${which}.png`); scene.background = t; return () => { scene.background = null; }; }, [scene, which]);
@@ -211,6 +233,7 @@ function Player({ ctl, lead, wilds, onTarget, onHabitat, calm }: {
   return (
     <>
       <group ref={body}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 0]}><circleGeometry args={[0.55, 12]} /><meshBasicMaterial color="#000" transparent opacity={0.28} depthWrite={false} /></mesh>
         {/* a blocky explorer: hat, head, backpack, body, legs */}
         <mesh position={[0, 1.95, 0]} castShadow><boxGeometry args={[0.62, 0.22, 0.62]} /><meshLambertMaterial color="#d8402c" flatShading /></mesh>
         <mesh position={[0, 2.02, 0.3]}><boxGeometry args={[0.5, 0.08, 0.3]} /><meshLambertMaterial color="#d8402c" /></mesh>
@@ -296,11 +319,13 @@ export default function World({ ctl, lead, wilds, avgLevel, onTarget, onHabitat,
         camera={{ fov: 55, near: 0.3, far: 260, position: [0, 6, 14] }} shadows={false}>
         <Sky which={sky} />
         <fog attach="fog" args={[FOG[sky] ?? '#bcd6ef', 50, 190]} />
-        <hemisphereLight args={['#fff4e0', '#5a7a4a', 0.9]} />
-        <directionalLight position={[30, 60, 20]} intensity={1.6} />
+        <hemisphereLight args={['#fff1d6', '#4a6a5a', 1.05]} />
+        <directionalLight position={[30, 60, 20]} intensity={1.5} color="#fff2dc" />
+        <directionalLight position={[-20, 25, -30]} intensity={0.35} color="#9fc4ff" />
         <Terrain />
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, WATER, 0]}><planeGeometry args={[R * 2, R * 2]} /><meshLambertMaterial color="#3d8fd8" transparent opacity={0.78} /></mesh>
         <Safe><Suspense fallback={null}><Plants /></Suspense></Safe>
+        <Grass />
         <Wilds wilds={wilds} avgLevel={avgLevel} />
         <Player ctl={ctl} lead={lead} wilds={wilds} onTarget={onTarget} onHabitat={onHabitat} calm={calm} />
       </Canvas>

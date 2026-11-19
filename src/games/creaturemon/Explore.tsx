@@ -13,7 +13,7 @@ import { CatchScene, Fx, RevealScene, uiSound, type CmApi } from './shared';
 import { HABITAT_NAME, TYPE_COLOR, catchChance, form, line, type Habitat } from './data';
 
 type Gfx = 'low' | 'medium' | 'high';
-const PIXEL: Record<Gfx, number> = { low: 0.3, medium: 0.4, high: 0.55 };
+const PIXEL: Record<Gfx, number> = { low: 0.35, medium: 0.5, high: 0.7 };
 
 export default function Explore({ cm, ask, gfx, onClose }: { cm: CmApi; ask: (label: string, onRight: () => void, onCancel?: () => void) => void; gfx: Gfx; onClose: () => void }) {
   const tts = cm.student?.ttsSettings; const S = cm.S;

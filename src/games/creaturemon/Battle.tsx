@@ -10,7 +10,8 @@ import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { CreatureCard, Sprite } from './Card';
 import { Fx, XpBar, uiSound, type CmApi } from './shared';
-import { ABILITIES, IMG, abName, abv, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, rollAbility, statsAt, typeMult, type AbilityId, type CType, type Mon } from './data';
+import { FightHud, IslandBg } from './Island';
+import { IMG, abName, abv, LINES, STRONG, TYPE_COLOR, battleXp, displayName, form, line, rollAbility, statsAt, typeMult, type AbilityId, type CType, type Mon } from './data';
 
 type MoveId = 'tackle' | 'special' | 'guard' | 'berry';
 interface F { name: string; formId: string; level: number; type: CType; hp: number; max: number; atk: number; def: number; guard: boolean; berry: boolean; abs: AbilityId[] }
@@ -86,6 +87,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   // Team battles (735, her words: "team battles where they would have multiple battles in a row ... (one at a time)"):
   // up to 3 creatures on each side; when one taps out, the next one comes in.
   const [teamMode, setTeamMode] = useState(false);
+  const [sel, setSel] = useState<Mon | null>(null);
   const [picks, setPicks] = useState<Mon[]>([]);
   const myQ = useRef<Mon[]>([]); const foeQ = useRef<{ formId: string; level: number }[]>([]); const used = useRef<Mon[]>([]);
   const foeAbs = () => (Math.random() < 0.35 ? [rollAbility({})!].filter(Boolean) : []);
@@ -228,26 +230,6 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
   // Build Queue 729 (her words: "battles should be heart related and xp bar. show health meters on left and right sides.
   // left for the player, right for the opponent"): health is a column of her AXIALE hearts on each side of the screen,
   // each heart filling in quarters; the student's side also shows the XP bar to the next level.
-  const meter = (f: F, s: 'me' | 'foe') => {
-    const hearts = Math.max(4, Math.min(10, Math.round(f.max / 12))); const per = f.max / hearts;
-    const hitNow = fx?.side === s && fx.hit;
-    const mon = s === 'me' && mine ? cm.sRef.current.mons.find((m) => m.uid === mine.uid) ?? mine : null;
-    return (
-      <div className={`cmb-meter ${s}`} style={{ borderColor: TYPE_COLOR[f.type] }} aria-label={`${f.name}: ${f.hp} of ${f.max} health`}>
-        <b>{f.name}</b><small>Lv {f.level} · {f.type}{f.guard ? ' · guarding' : ''}</small>
-        {f.abs.length > 0 && <span className="cm-abs">{f.abs.map((x) => <span key={x} className="cm-ab" title={ABILITIES[x].how}>{abName(x, stg(f))}</span>)}</span>}
-        <div className={`cmb-hearts${hitNow ? ' hit' : ''}`}>
-          {Array.from({ length: hearts }, (_, i) => {
-            const left = Math.max(0, Math.min(1, (f.hp - i * per) / per)); const q = Math.ceil(left * 4); // 0 to 4 quarters
-            const col = q >= 4 ? 0 : q === 3 ? 3 : q === 2 ? 1 : q === 1 ? 2 : 4; // her sheet: full, half, quarter, three quarters, empty
-            return <i key={i} className="cmb-heart" style={{ backgroundImage: `url(${UI}heart_spritesheet_32x32.png)`, backgroundPosition: `${-col * 32}px 0` }} />;
-          })}
-        </div>
-        <small className="cmb-hpnum">{f.hp} / {f.max}</small>
-        {mon && <span className="cmb-xp"><small>XP</small><XpBar m={mon} /></span>}
-      </div>
-    );
-  };
   const side = (f: F, s: 'me' | 'foe') => {
     const ff = form(f.formId); const back = s === 'me' && !!ff.sprite.back;
     return (
@@ -272,7 +254,7 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
 
   return (
     <div className="cmb" role="dialog" aria-label="Creaturemon battle">
-      <div className="cmb-guide" role="status">
+      <div className={`cmb-guide${phase === 'fight' || phase === 'done' ? ' mini' : ''}`} role="status">
         <ol className="cmb-steps" aria-label={`Step ${step} of 3`}>
           {['Your creature', 'Opponent', 'Battle'].map((t, i) => <li key={t} className={i + 1 === step ? 'on' : i + 1 < step ? 'done' : ''}>{i + 1 < step ? '✓' : i + 1}<span>{t}</span></li>)}
         </ol>
@@ -283,25 +265,57 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
         {phase !== 'fight' && <button type="button" className="btn" onClick={() => onClose(won === null || !foePick ? null : { won, foe: foePick })}>{phase === 'done' ? 'Done' : 'Leave'}</button>}
       </div>
 
-      {phase === 'pick' && (
-        <div className="cmb-pick">
-          {!cm.team.length && <p className="cmb-empty">Catch a creature first! Turn on Creaturemon and walk around Town Square.</p>}
-          {!wildFoe && cm.team.length > 1 && (
-            <div className="cmv-modes" role="radiogroup" aria-label="Battle kind">
-              <button type="button" role="radio" aria-checked={!teamMode} className={`btn btn-lg${!teamMode ? ' btn-primary' : ''}`} onClick={() => { setTeamMode(false); setPicks([]); }}>One creature</button>
-              <button type="button" role="radio" aria-checked={teamMode} className={`btn btn-lg${teamMode ? ' btn-primary' : ''}`} onClick={() => { setTeamMode(true); setPicks([]); }}>Team battle (up to 3)</button>
+      {phase === 'pick' && (() => {
+        // 743: a loadout screen like her reference: the team on the left, the picked creature big in the middle, its
+        // stats, special move and abilities on the right, and one big Confirm.
+        const selM = sel ?? (teamMode ? picks[picks.length - 1] : null) ?? cm.team[0] ?? null;
+        const sf = selM ? form(selM.formId) : null; const sst = sf && selM ? statsAt(sf, selM.level) : null; const top = sf ? statsAt(line(sf.id).forms[line(sf.id).forms.length - 1], 50) : null;
+        const tap = (m: Mon) => { uiSound('cursor-1'); setSel(m); if (teamMode) setPicks((p) => (p.some((x) => x.uid === m.uid) ? p.filter((x) => x.uid !== m.uid) : p.length < 3 ? [...p, m] : p)); };
+        const confirm = () => { if (teamMode) { if (!picks.length) return; const lv = Math.max(...picks.map((p) => p.level)); beginTeam(picks, Array.from({ length: Math.max(2, picks.length) }, () => foeAt(lv))); } else if (selM) pickMine(selM); };
+        return (
+          <div className="lo">
+            <div className="lo-left">
+              {!wildFoe && cm.team.length > 1 && (
+                <div className="lo-modes" role="radiogroup" aria-label="Battle kind">
+                  <button type="button" role="radio" aria-checked={!teamMode} className={!teamMode ? 'on' : ''} onClick={() => { setTeamMode(false); setPicks([]); }}>One creature</button>
+                  <button type="button" role="radio" aria-checked={teamMode} className={teamMode ? 'on' : ''} onClick={() => { setTeamMode(true); setPicks([]); }}>Team (up to 3)</button>
+                </div>
+              )}
+              <h3 className="lo-title">{teamMode ? 'Pick your team' : 'Pick your fighter'}</h3>
+              {!cm.team.length && <p className="cmb-empty">Catch a creature first! Tap Explore in the menu.</p>}
+              <div className="lo-grid">
+                {cm.team.map((m) => {
+                  const n = picks.findIndex((p) => p.uid === m.uid);
+                  return (
+                    <button key={m.uid} type="button" className={`lo-tile${selM?.uid === m.uid ? ' sel' : ''}${n >= 0 ? ' picked' : ''}`} style={{ ['--tc' as string]: TYPE_COLOR[line(m.formId).type] }} onClick={() => tap(m)} aria-pressed={selM?.uid === m.uid}>
+                      <Sprite f={form(m.formId)} px={56} fitW={80} />
+                      <b>{displayName(m)}</b><small>Lv {m.level}</small>
+                      {teamMode && n >= 0 && <span className="lo-num">{n + 1}</span>}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          )}
-          {cm.team.map((m) => (
-            <button key={m.uid} type="button" className={`cm-mon pick${picks.some((p) => p.uid === m.uid) ? ' on' : ''}`} style={{ borderColor: TYPE_COLOR[line(m.formId).type] }}
-              onClick={() => (teamMode ? setPicks((p) => (p.some((x) => x.uid === m.uid) ? p.filter((x) => x.uid !== m.uid) : p.length < 3 ? [...p, m] : p)) : pickMine(m))}>
-              <Sprite f={form(m.formId)} px={64} />
-              <div className="cm-mon-txt"><b>{displayName(m)}{teamMode && picks.some((p) => p.uid === m.uid) ? ` (${picks.findIndex((p) => p.uid === m.uid) + 1})` : ''}</b><small>Lv {m.level} · {line(m.formId).type} · {line(m.formId).special.name}</small><XpBar m={m} /></div>
-            </button>
-          ))}
-          {teamMode && <button type="button" className="cm-big fight" disabled={!picks.length} onClick={() => { const lv = Math.max(...picks.map((p) => p.level)); beginTeam(picks, Array.from({ length: Math.max(2, picks.length) }, () => foeAt(lv))); }}>Start team battle</button>}
-        </div>
-      )}
+            <div className="lo-hero">
+              {sf && selM && (<><span className="lo-glow" style={{ background: `radial-gradient(circle, ${TYPE_COLOR[line(sf.id).type]}aa, transparent 65%)` }} /><Sprite f={sf} px={210} fitW={300} anim="move" /><span className="lo-ground" /><p className="lo-type"><span className="cm-line-type" style={{ ['--tc' as string]: TYPE_COLOR[line(sf.id).type] }}>{line(sf.id).type}</span> Stage {sf.stage} of {line(sf.id).forms.length}</p></>)}
+            </div>
+            <div className="lo-right">
+              {sf && selM && sst && top && (
+                <>
+                  <h2 className="lo-name">{displayName(selM)}</h2>
+                  {([['Health', 'sym_heart', sst.hp, top.hp, '#4caf50'], ['Attack', 'sym_sword', sst.atk, top.atk, '#e0482a'], ['Defense', 'sym_shield', sst.def, top.def, '#2f8fe0'], ['Speed', 'sym_energy', sst.spd, top.spd, '#ffd23f']] as [string, string, number, number, string][]).map(([lab, ic, v, mx, c]) => (
+                    <div key={lab} className="lo-stat"><img src={`${IMG}cards/${ic}.png`} alt="" /><span className="lo-bar"><i style={{ width: `${Math.min(100, (v / mx) * 100)}%`, background: c }} /></span><b>{v}</b><small>{lab}</small></div>
+                  ))}
+                  <div className="lo-skill"><img src={`${UI}i_thunder.png`} alt="" /><span><small>Special move</small><b>{line(sf.id).special.name}</b><em>Strong vs {STRONG[line(sf.id).type].join(' and ')}</em></span></div>
+                  <div className="lo-abs">{(selM.abilities ?? []).length ? (selM.abilities ?? []).map((a) => <span key={a} className="cm-ab">{abName(a, sf.stage)}</span>) : <small>No abilities yet</small>}</div>
+                  <span className="lo-xp"><small>XP to Lv {selM.level + 1}</small><XpBar m={selM} /></span>
+                  <button type="button" className="lo-go" disabled={teamMode ? !picks.length : false} onClick={confirm}>{teamMode ? `Confirm team (${picks.length})` : 'Confirm'}</button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+      })()}
       {phase === 'foe' && (
         <div className="cmb-foes">
           {cards.map((c, i) => (
@@ -315,23 +329,35 @@ export default function Battle({ cm, wildFoe, ask, onClose }: {
         </div>
       )}
       {(phase === 'fight' || phase === 'done') && me && foe && (
-        <div className="cmb-arena" ref={arenaRef} style={{ backgroundImage: `url(${IMG}sky/demo01.png)` }}>
-          <span className="cmb-round">Round {round}</span>
-          {meter(me, 'me')}
-          {meter(foe, 'foe')}
+        <div className="cmb-arena" ref={arenaRef}>
+          <IslandBg calm={cm.calm} />
+          <FightHud round={round} left={{ name: me.name, level: me.level, type: me.type, hp: me.hp, max: me.max, guard: me.guard, abs: me.abs, stage: stg(me), formId: me.formId, sub: myQ.current.length ? `${myQ.current.length} more` : undefined }}
+            right={{ name: foe.name, level: foe.level, type: foe.type, hp: foe.hp, max: foe.max, guard: foe.guard, abs: foe.abs, stage: stg(foe), formId: foe.formId, sub: foeQ.current.length ? `${foeQ.current.length} more` : undefined }} />
+          {mine && <span className="fh-xp"><img src={`${UI}i_star.png`} alt="" /><small>XP</small><XpBar m={cm.sRef.current.mons.find((m) => m.uid === mine.uid) ?? mine} /></span>}
           {side(foe, 'foe')}
           {side(me, 'me')}
           {shot && <span className="cmb-shot" style={{ left: shot.x - 23, top: shot.y - 23, background: TYPE_COLOR[shot.type], boxShadow: `0 0 24px ${TYPE_COLOR[shot.type]}`, ['--dx' as string]: `${shot.dx}px`, ['--dy' as string]: `${shot.dy}px` } as React.CSSProperties} />}
           <div className="cmb-log" aria-live="polite">{lines.map((l, i) => <p key={i}>{l}</p>)}</div>
           {phase === 'fight' && (
-            <div className="cmb-moves">
-              {MOVES.map((mv) => (
-                <button key={mv.id} type="button" className={`cmb-move ${mv.cls}`} disabled={stage !== 'choose' || (mv.id === 'berry' && !me.berry)} onClick={() => act(mv.id)}
-                  style={mv.id === 'special' ? { background: TYPE_COLOR[me.type] } : undefined}>
-                  <img src={`${UI}i_${mv.icon}.png`} alt="" /><span><b>{mv.name(me)}</b><small>{mv.how(me)}</small></span>
-                </button>
-              ))}
-            </div>
+            <>
+              {/* 743: round action buttons in the bottom corners, like her mobile fighter: Guard and Berry on the left,
+                  the special move and a big Tackle on the right */}
+              <div className="fb fb-left">
+                {MOVES.filter((mv) => mv.id === 'guard' || mv.id === 'berry').map((mv) => (
+                  <button key={mv.id} type="button" className={`fb-btn ${mv.id}`} disabled={stage !== 'choose' || (mv.id === 'berry' && !me.berry)} onClick={() => act(mv.id)} title={mv.how(me)} aria-label={`${mv.name(me)}: ${mv.how(me)}`}>
+                    <img src={`${UI}i_${mv.icon}.png`} alt="" /><small>{mv.name(me)}</small>
+                  </button>
+                ))}
+              </div>
+              <div className="fb fb-right">
+                {MOVES.filter((mv) => mv.id === 'special' || mv.id === 'tackle').map((mv) => (
+                  <button key={mv.id} type="button" className={`fb-btn ${mv.id}`} disabled={stage !== 'choose'} onClick={() => act(mv.id)} title={mv.how(me)} aria-label={`${mv.name(me)}: ${mv.how(me)}`}
+                    style={mv.id === 'special' ? { background: `radial-gradient(circle at 35% 30%, #fff8, ${TYPE_COLOR[me.type]} 55%, #1d2238)` } : undefined}>
+                    <img src={`${UI}i_${mv.icon}.png`} alt="" /><small>{mv.name(me)}</small>
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           {phase === 'done' && (
             <div className="cmb-done">

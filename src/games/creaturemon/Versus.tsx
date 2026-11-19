@@ -12,7 +12,8 @@ import { speak } from '../../components/ReadAloud';
 import { sfx } from '../../lib/miniSfx';
 import { Sprite } from './Card';
 import { Fx, XpBar, uiSound, type CmApi } from './shared';
-import { IMG, STRONG, TYPE_COLOR, battleXp, displayName, form, line, type AbilityId, type Mon } from './data';
+import { FightHud, IslandBg } from './Island';
+import { IMG, TYPE_COLOR, battleXp, displayName, form, line, type AbilityId, type Mon } from './data';
 import { makeBF, nap, resolveMove, moveName, type BF, type MoveId } from './engine';
 
 const UI = `${IMG}ui/`;
@@ -129,17 +130,7 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
     : step === 'wait' ? (role === 'host' && !friend ? `Waiting for your friend. Your code is ${code}.` : 'Waiting for your friend to be ready...')
     : st?.done != null ? (st.done === me ? 'You won! Tap Done.' : 'Good try! Tap Done.') : myMove ? `Waiting for ${friend || 'your friend'} to pick a move...` : 'Pick a move!';
 
-  const meter = (sd: Side, who: 'me' | 'foe') => {
-    const f = sd.team[sd.idx]; const hearts = Math.max(4, Math.min(10, Math.round(f.max / 12))); const per = f.max / hearts;
-    return (
-      <div className={`cmb-meter ${who}`} style={{ borderColor: TYPE_COLOR[f.type] }}>
-        <b>{sd.name}</b><small>{f.name} · Lv {f.level} · {f.type}</small>
-        <div className="cmb-hearts">{Array.from({ length: hearts }, (_, i) => { const q = Math.ceil(Math.max(0, Math.min(1, (f.hp - i * per) / per)) * 4); const col = q >= 4 ? 0 : q === 3 ? 3 : q === 2 ? 1 : q === 1 ? 2 : 4; return <i key={i} className="cmb-heart" style={{ backgroundImage: `url(${UI}heart_spritesheet_32x32.png)`, backgroundPosition: `${-col * 32}px 0` }} />; })}</div>
-        <small className="cmb-hpnum">{f.hp} / {f.max}</small>
-        {sd.team.length > 1 && <small>Team: {sd.team.map((_, i) => (i < sd.idx ? '○' : '●')).join(' ')}</small>}
-      </div>
-    );
-  };
+  const hud = (sd: Side) => { const f = sd.team[sd.idx]; return { name: sd.name, sub: `${f.name}${sd.team.length > 1 ? `, ${sd.team.length - sd.idx} left` : ''}`, level: f.level, type: f.type, hp: f.hp, max: f.max, guard: f.guard, abs: f.abs, stage: form(f.formId).stage, formId: f.formId }; };
   const stand = (sd: Side, who: 'me' | 'foe', idx: 0 | 1) => {
     const f = form(sd.team[sd.idx].formId); const fx = st?.fx?.find((x) => x.side === idx);
     return (
@@ -156,7 +147,7 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
 
   return (
     <div className="cmb" role="dialog" aria-label="Battle a friend">
-      <div className="cmb-guide" role="status">
+      <div className={`cmb-guide${step === 'fight' ? ' mini' : ''}`} role="status">
         <p className="cmb-now">{doNow}</p>
         <button type="button" className="btn" onClick={() => speak(doNow, tts)} aria-label="Listen">🔊</button>
         {(step !== 'fight' || st?.done != null) && <button type="button" className="btn" onClick={() => { uiSound('popup-close-1'); onClose(); }}>{st?.done != null ? 'Done' : 'Leave'}</button>}
@@ -196,22 +187,29 @@ export default function Versus({ cm, ask, onClose }: { cm: CmApi; ask: (label: s
         </div>
       )}
       {step === 'fight' && st && mineNow && (
-        <div className="cmb-arena" style={{ backgroundImage: `url(${IMG}sky/demo06.png)` }}>
-          <span className="cmb-round">Round {st.round}</span>
-          {meter(st.sides[me], 'me')}
-          {meter(st.sides[1 - me], 'foe')}
+        <div className="cmb-arena">
+          <IslandBg sky="demo06" calm={cm.calm} />
+          <FightHud round={st.round} left={hud(st.sides[me])} right={hud(st.sides[1 - me])} />
           {stand(st.sides[1 - me], 'foe', (1 - me) as 0 | 1)}
           {stand(st.sides[me], 'me', me)}
           <div className="cmb-log" aria-live="polite">{st.log.slice(-3).map((l, i) => <p key={i}>{l}</p>)}</div>
           {st.done == null ? (
-            <div className="cmb-moves">
-              {([['tackle', 'sword', 'Tackle', 'A strong bump'], ['special', 'thunder', line(mineNow.formId).special.name, `${mineNow.type} move. Strong vs ${STRONG[mineNow.type].join(' and ')}`], ['guard', 'shield', 'Guard', 'Block most of the next hit'], ['berry', 'meat', 'Berry snack', mineNow.berry ? 'Get health back (once)' : 'Eaten']] as [MoveId, string, string, string][]).map(([id, icon, name, how]) => (
-                <button key={id} type="button" className={`cmb-move ${id === 'tackle' ? 'blue' : 'grey'}${myMove === id ? ' chosen' : ''}`} style={id === 'special' ? { background: TYPE_COLOR[mineNow.type] } : undefined}
-                  disabled={!!myMove || (id === 'berry' && !mineNow.berry)} onClick={() => pick(id)}>
-                  <img src={`${UI}i_${icon}.png`} alt="" /><span><b>{name}</b><small>{how}</small></span>
-                </button>
+            <>
+              {([['left', ['guard', 'berry']], ['right', ['special', 'tackle']]] as [string, MoveId[]][]).map(([side, ids]) => (
+                <div key={side} className={`fb fb-${side}`}>
+                  {ids.map((id) => {
+                    const icon = id === 'tackle' ? 'sword' : id === 'special' ? 'thunder' : id === 'guard' ? 'shield' : 'meat';
+                    const name = id === 'special' ? line(mineNow.formId).special.name : id === 'tackle' ? 'Tackle' : id === 'guard' ? 'Guard' : 'Berry';
+                    return (
+                      <button key={id} type="button" className={`fb-btn ${id}${myMove === id ? ' chosen' : ''}`} disabled={!!myMove || (id === 'berry' && !mineNow.berry)} onClick={() => pick(id)} aria-label={name}
+                        style={id === 'special' ? { background: `radial-gradient(circle at 35% 30%, #fff8, ${TYPE_COLOR[mineNow.type]} 55%, #1d2238)` } : undefined}>
+                        <img src={`${UI}i_${icon}.png`} alt="" /><small>{name}</small>
+                      </button>
+                    );
+                  })}
+                </div>
               ))}
-            </div>
+            </>
           ) : (
             <div className="cmb-done">
               <div className="cmb-banner" style={{ backgroundImage: `url(${UI}${st.done === me ? 'wing_blue' : 'wing_silver'}.png)` }}><h2>{st.done === me ? 'You won!' : 'Good try!'}</h2></div>
