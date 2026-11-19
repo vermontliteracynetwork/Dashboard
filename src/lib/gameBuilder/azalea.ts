@@ -1,5 +1,5 @@
 import {
-  ACTIONS, HERO_LOOKS, KEYS, KIND_INFO, POWERS, SETTING_INFO, SOUNDS, STEPS, THEMES, THINGS, TRIGGERS,
+  ACTIONS, ANIMS, HERO_LOOKS, KEYS, KIND_INFO, POWERS, SETTING_INFO, SOUNDS, STEPS, THEMES, THINGS, TRIGGERS,
   gameCheck, newId, ruleText, type BuildStep, type GameProject, type Rule, type Settings,
 } from './model';
 import type { Specificity } from './store';
@@ -17,6 +17,88 @@ export interface AzaleaAnswer {
   ops: Op[]; design: Partial<Record<'title' | 'hero' | 'theme' | 'idea' | 'goal' | 'style', string>>; music?: string; revision: boolean; next_step: '' | BuildStep; code: string;
   source: 'ai' | 'guide';
   choices?: string[]; // tap-in answers to Azalea's question (Claudia's review, Build Queue 668)
+  look?: Partial<Look>; // 717: how the game looks, so every request shows in the live game
+  picUrls?: Record<string, string>; bgUrl?: string; // the library pictures her picture searches found
+}
+
+// Build Queue 717 (her words: "Azlea in the game builder, needs to act as the main game logic person and also the person
+// who will support hte student to get the game to work. all requests to azalea should render in the preview as best as
+// possible"). Azalea can change how the game looks as well as its rules: the art style, colors, a library picture for
+// the hero or any thing, a background picture, a move for any sprite, and the music. Pictures are found by words
+// ("dragon", "donut") in the Game Builder gallery.
+export interface Look {
+  style: string; heroColor: string; sky: string; ground: string; accent: string; music: string;
+  anims: { who: string; move: string }[]; pictures: { who: string; search: string }[]; background: string;
+}
+const COLOR_WORDS: Record<string, string> = {
+  red: '#e53935', orange: '#fb8c00', yellow: '#fdd835', gold: '#ffc107', green: '#43a047', lime: '#9ccc65', blue: '#1e88e5', 'light blue': '#81d4fa', navy: '#1a237e',
+  purple: '#8e24aa', violet: '#8e24aa', pink: '#f06292', brown: '#8d6e63', black: '#222222', white: '#ffffff', gray: '#9e9e9e', grey: '#9e9e9e', teal: '#00897b', aqua: '#4dd0e1',
+};
+export const colorOf = (v: string) => { const t = v.trim().toLowerCase(); return /^#[0-9a-f]{6}$/.test(t) ? t : COLOR_WORDS[t] ?? ''; };
+const whoIds = (p: GameProject) => ['hero', ...THINGS[p.kind].map(([id]) => id).filter((id) => id !== 'any')];
+
+// The Game Builder gallery, searched by words.
+let libP: Promise<string[]> | null = null;
+const libPics = () => (libP ??= fetch('/game-builder/library.json').then((r) => r.json()).then((j: { pictures: { items: string[] }[] }) => j.pictures.flatMap((g) => g.items)).catch(() => { libP = null; return [] as string[]; }));
+const stem = (w: string) => w.toLowerCase().replace(/(ies)$/, 'y').replace(/(es|s)$/, '');
+const BG_PATH = /(\/bg|bg-|sky\/|space\.png|textures\/|background)/i;
+const SKIP_PATH = /(\/ui\/|pixel-ui|quiz-themes|emote|btn|button|icon_|\/icons?\/|slider|panel|border|cursor|checkbox|card-default)/i;
+export async function findPicture(search: string, bg = false): Promise<string> {
+  const words = search.toLowerCase().split(/[^a-z]+/).filter((w) => w.length > 2 && !['the', 'and', 'with', 'picture', 'background'].includes(w)).map(stem);
+  if (!words.length) return '';
+  const all = await libPics();
+  let best = '', score = 0;
+  for (const u of all) {
+    if (bg ? !BG_PATH.test(u) : SKIP_PATH.test(u)) continue;
+    const name = u.split('/').pop()!.replace(/\.[a-z]+$/, '');
+    const toks = name.toLowerCase().split(/[^a-z]+/).filter(Boolean).map(stem);
+    const pathToks = u.toLowerCase().split(/[^a-z]+/).map(stem);
+    let sc = 0;
+    for (const w of words) { if (toks.includes(w)) sc += 3; else if (toks.some((t) => t.startsWith(w) || w.startsWith(t) && t.length > 3)) sc += 1; else if (pathToks.includes(w)) sc += 1; }
+    if (sc > score || (sc === score && sc > 0 && u.length < best.length)) { best = u; score = sc; }
+  }
+  return score >= 2 ? best : '';
+}
+// Turn her picture searches into real pictures, and say plainly when one was not found (702: always explain).
+async function resolveLook(p: GameProject, a: AzaleaAnswer): Promise<AzaleaAnswer> {
+  const lk = a.look; if (!lk) return a;
+  const picUrls: Record<string, string> = {}; const missed: string[] = [];
+  for (const pc of lk.pictures ?? []) {
+    if (!pc?.search || !whoIds(p).includes(pc.who)) continue;
+    const u = await findPicture(pc.search); if (u) picUrls[pc.who] = u; else missed.push(pc.search);
+  }
+  let bgUrl = '';
+  if (lk.background) { bgUrl = await findPicture(lk.background, true); if (!bgUrl) bgUrl = await findPicture(lk.background); if (!bgUrl) missed.push(`${lk.background} background`); }
+  const out = { ...a, picUrls, bgUrl };
+  if (missed.length) {
+    out.changes = out.changes.filter((c) => !missed.some((m) => c.toLowerCase().includes(m.toLowerCase())));
+    const hit = (t: string) => missed.some((m) => t.toLowerCase().includes(m.toLowerCase()));
+    let sents = out.reply.split(/(?<=[.!?])\s+/).filter((t) => !hit(t));
+    if (!out.changes.length && !out.ops.length) sents = sents.filter((t) => t !== 'I did it!' && !/^(That was specific|I guessed|Next time|You told me)/.test(t));
+    out.reply = `${sents.join(' ')} I could not find a ${missed[0]} picture in the gallery, so I kept the old look. You can draw one in Look, or pick one from the gallery.`.trim();
+  }
+  return out;
+}
+
+// What Azalea can fix by herself when the game is not working (717: she is the one who gets the game to work).
+export function fixOps(p: GameProject): { ops: Op[]; changes: string[]; cant: string[] } {
+  const ops: Op[] = []; const changes: string[] = []; const cant: string[] = [];
+  const op = (o: Partial<Op>): Op => ({ op: 'add', ruleId: '', when: '', whenArg: '', whenNum: 0, actions: [], key: '', value: 0, ...o });
+  if (p.kind === 'custom') return { ops, changes, cant };
+  for (const r of p.rules) if (!r.actions.length) { ops.push(op({ op: 'remove', ruleId: r.id })); changes.push(`I took away the empty rule "${ruleText(p.kind, r)}", because it had nothing to do`); }
+  if (!p.rules.some((r) => r.actions.some((a) => a.do === 'win'))) {
+    const w = p.kind === 'platformer' ? op({ when: 'touch', whenArg: 'flag', actions: [{ do: 'win', arg: '', num: 0 }] })
+      : p.kind === 'maze' ? op({ when: 'allgone', whenArg: 'dot', actions: [{ do: 'win', arg: '', num: 0 }] })
+      : op({ when: 'score', whenNum: p.kind === 'clicker' ? 1000 : 300, actions: [{ do: 'win', arg: '', num: 0 }] });
+    ops.push(w); changes.push(p.kind === 'platformer' ? 'I added a way to win: touch the flag' : p.kind === 'maze' ? 'I added a way to win: eat every dot' : `I added a way to win: get ${w.whenNum} points`);
+  }
+  for (const r of p.rules) {
+    if (r.when === 'score' && r.whenNum <= 0) { ops.push(op({ op: 'replace', ruleId: r.id, when: r.when, whenArg: r.whenArg, whenNum: 100, actions: r.actions })); changes.push('A score rule was set to 0, so I set it to 100 points'); }
+    if (r.when === 'every' && r.whenNum <= 0) { ops.push(op({ op: 'replace', ruleId: r.id, when: r.when, whenArg: r.whenArg, whenNum: 3, actions: r.actions })); changes.push('An "every" rule was set to 0 seconds, so I set it to 3 seconds'); }
+    if (p.kind === 'clicker' && r.when === 'tap' && r.whenArg.startsWith('up') && !r.actions.some((a) => a.do === 'cost')) { ops.push(op({ op: 'replace', ruleId: r.id, when: r.when, whenArg: r.whenArg, whenNum: 0, actions: [{ do: 'cost', arg: '', num: 25 }, ...r.actions] })); changes.push('An upgrade was free forever, so I made it cost 25 points'); }
+  }
+  if (p.kind === 'platformer' && p.settings.jumpHeight <= 1) { ops.push(op({ op: 'setting', key: 'jumpHeight', value: 5 })); changes.push('The jump was too low, so I set the jump height to 5'); }
+  return { ops, changes, cant };
 }
 
 export function catalogText(p: GameProject): string {
@@ -31,6 +113,7 @@ export function catalogText(p: GameProject): string {
     `Settings (key, range): ${(Object.keys(SETTING_INFO) as (keyof Settings)[]).filter((s) => SETTING_INFO[s].kinds.includes(k)).map((s) => `${s} ${SETTING_INFO[s].min}-${SETTING_INFO[s].max}`).join(', ')}`,
     `Heroes: ${HERO_LOOKS.map(([id]) => id).join(', ')}. Themes: ${THEMES.map((t) => t.id).join(', ')}.`,
     k === 'clicker' ? 'Clicker notes: tap on up1/up2/up3 is an upgrade button; its "cost" action is the price, the other actions are what it gives. Tap on big is the main button.' : '',
+    `Looks (the "look" field): style classic, pixel or lowpoly; colors as #rrggbb or a color word for heroColor, sky, ground, accent; moves for anims: ${ANIMS.filter(([id]) => id).map(([id]) => id).join(', ')}; "who" is hero or a thing id (${whoIds(p).join(', ')}); pictures: a few plain words to search the gallery (for example "dragon", "donut", "shark"); background: words for a background picture (for example "space", "castle", "forest"); music: ${PRESET_TUNES.map((t) => t.id).join(', ')} or "none".`,
     k === 'custom' ? 'Custom: no rules or blocks; write the whole game in "code".' : '',
   ].filter(Boolean).join('\n');
 }
@@ -49,7 +132,7 @@ export function problems(p: GameProject, loose = 0): string[] {
   return out;
 }
 
-export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'design' | 'next_step' | 'code' | 'music'>): GameProject {
+export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'design' | 'next_step' | 'code' | 'music'> & Partial<Pick<AzaleaAnswer, 'look' | 'picUrls' | 'bgUrl' | 'changes'>>): GameProject {
   let rules = [...p.rules];
   const settings = { ...p.settings };
   const okRule = (o: Op): Rule | null => {
@@ -69,9 +152,22 @@ export function applyAnswer(p: GameProject, a: Pick<AzaleaAnswer, 'ops' | 'desig
     if (k === 'style' && !['classic', 'pixel', 'lowpoly'].includes(v)) continue;
     (d as unknown as Record<string, string>)[k] = v;
   }
-  const tuneP = a.music ? PRESET_TUNES.find((t) => t.id === a.music) : undefined;
+  const lk = a.look ?? {};
+  if (lk.style && ['classic', 'pixel', 'lowpoly'].includes(lk.style)) d.style = lk.style;
+  const hc = colorOf(lk.heroColor ?? ''); if (hc) d.heroColor = hc;
+  const cols = { ...(d.colors ?? {}) }; let colChanged = false;
+  for (const k of ['sky', 'ground', 'accent'] as const) { const c = colorOf(lk[k] ?? ''); if (c) { cols[k] = c; colChanged = true; } }
+  if (colChanged) d.colors = cols;
+  const who = ['hero', ...THINGS[p.kind].map(([id]) => id)];
+  for (const m of lk.anims ?? []) if (who.includes(m.who) && ANIMS.some(([id]) => id === m.move)) d.anim = { ...(d.anim ?? {}), [m.who]: m.move };
+  for (const [k, u] of Object.entries(a.picUrls ?? {})) if (u && who.includes(k)) d.pictures = { ...(d.pictures ?? {}), [k]: u };
+  if (a.bgUrl) d.bg = a.bgUrl;
+  const musicId = a.music || lk.music;
+  if (musicId === 'none') d.music = { kind: 'none' };
+  const tuneP = musicId ? PRESET_TUNES.find((t) => t.id === musicId) : undefined;
   if (tuneP) d.music = { kind: 'tune', notes: tuneP.notes, tempo: tuneP.tempo, wave: tuneP.wave };
-  return { ...p, rules, settings, design: d, step: a.next_step || p.step, code: a.code ? a.code : p.code, name: d.title && p.name.startsWith('My ') ? d.title : p.name };
+  const azNote = a.changes?.length ? { at: Date.now(), text: a.changes.slice(0, 3).join('. ') } : p.azNote;
+  return { ...p, azNote, rules, settings, design: d, step: a.next_step || p.step, code: a.code ? a.code : p.code, name: d.title && p.name.startsWith('My ') ? d.title : p.name };
 }
 
 // ---------- the built-in guide (no AI key needed) ----------
@@ -112,6 +208,47 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   if (tuneWord) { ans.music = tuneWord.id; ans.changes.push(`The music is now the ${tuneWord.label} tune`); ans.details.push('the music'); }
   const named = said1.match(/\b(?:call it|call the game|name it|name the game|the title is)\s+["']?([^"'.!?]{2,40})/i);
   if (named) { ans.design.title = named[1].trim(); ans.changes.push(`The game is named "${named[1].trim()}"`); ans.details.push('the name'); }
+
+  // 717: looks, so the request shows in the live game.
+  const look: Partial<Look> = {}; const things = whoIds(p);
+  const whoIn = (t: string) => /\b(hero|player|me|character)\b/.test(t) ? 'hero' : thingIn(p, t);
+  const colorWord = Object.keys(COLOR_WORDS).sort((a, b) => b.length - a.length).find((c) => new RegExp(`\\b${c}\\b`).test(s));
+  if (colorWord) {
+    if (/\b(sky|background)\b/.test(s) && !/\bpicture\b/.test(s)) { look.sky = colorWord; ans.changes.push(`The sky is now ${colorWord}`); }
+    else if (/\b(ground|floor|grass|walls?)\b/.test(s)) { look.ground = colorWord; ans.changes.push(`The ground is now ${colorWord}`); }
+    else if (whoIn(s) === 'hero') { look.heroColor = colorWord; ans.changes.push(`The hero is now ${colorWord}`); }
+    if (look.sky || look.ground || look.heroColor) ans.details.push('the color');
+  }
+  const moveWord = ANIMS.find(([id, label]) => id && (new RegExp(`\\b${id}`).test(s) || s.includes(label)));
+  const mover = whoIn(s);
+  if (moveWord && mover && !/\b(jump|faster|slower|speed)\b/.test(s)) { look.anims = [{ who: mover, move: moveWord[0] }]; ans.changes.push(`The ${mover} now does a ${moveWord[1]} move`); ans.details.push('how it moves'); }
+  const turn = s.match(/\b(hero|player|enemy|enemies|coins?|spikes?|stars?|flag|dots?|ghosts?|fruits?|big button|button)\b\s+(?:is|be|looks like|into|to be|should be|as)\s+(?:a |an |some )?([a-z ]{3,30}?)(?:[.!?,]|$| and | that | who | with )/);
+  if (turn) {
+    const w = whoIn(turn[1]) ?? (turn[1].startsWith('button') || turn[1] === 'big button' ? 'big' : null);
+    const what = turn[2].trim();
+    if (w && things.includes(w) && !COLOR_WORDS[what] && !THEMES.some((t) => what.includes(t.id))) {
+      if (w === 'hero' && HERO_LOOKS.some(([id]) => id === what.replace(/s$/, ''))) { /* the hero look above handles it */ }
+      else { look.pictures = [{ who: w, search: what }]; ans.changes.push(`The ${w} is now ${an(what)}`); ans.details.push('what it looks like'); }
+    }
+  }
+  const bgm = s.match(/\bbackground\b(?:\s+(?:is|be|of|to|should be|picture of|like|into))*\s+(?:a |an |the )?([a-z ]{3,30}?)(?:[.!?,]|$| and )/);
+  if (bgm && !colorWord && !THEMES.some((t) => bgm[1].includes(t.id))) { look.background = bgm[1].trim(); ans.changes.push(`The background is now ${an(bgm[1].trim())}`); ans.details.push('the background'); }
+  if (/\b(no music|stop the music|music off|turn off the music)\b/.test(s)) { look.music = 'none'; ans.changes.push('The music is off'); }
+  if (Object.keys(look).length) ans.look = look;
+
+  // 717: "it does not work" or "fix it": Azalea finds what is wrong and fixes what she can, and explains the rest.
+  const wantsFix = /\b(not working|doesn'?t work|does not work|won'?t work|broken|is broke|fix|bug|glitch|stuck|can'?t win|cannot win|nothing happens)\b/.test(s);
+  if (wantsFix) {
+    const fx = fixOps(p);
+    if (fx.ops.length) { ans.ops.push(...fx.ops); ans.changes.push(...fx.changes); ans.details.push('what is not working'); }
+    else {
+      const left = problems(p);
+      ans.reply = left.length ? `I checked your game. ${left[0]} I cannot fix that one by myself. Look at your blocks and I will help.` : 'I checked your game and every rule works. What happens that you do not want? Tell me what you did and what happened.';
+      ans.choices = p.kind === 'platformer' ? ['The hero cannot jump high enough.', 'The enemies are too fast.', 'Nothing happens when I touch a coin.'] : p.kind === 'maze' ? ['The ghosts are too fast.', 'Nothing happens when I eat a dot.'] : p.kind === 'clicker' ? ['Tapping does not give points.', 'The upgrade does not work.'] : ['Matches do not give points.', 'The timer is too short.'];
+      ans.specificity = /\b(when|after|if)\b/.test(s) ? 'partly' : 'vague'; ans.missing.push('what happened and what you wanted');
+      return ans;
+    }
+  }
 
   // Settings.
   const setting = (key: keyof Settings, dir: number) => {
@@ -166,7 +303,7 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   const describes = /\b(my game is about|the game is about|it is about|it's about|my idea is|a game where|my game has)\b/.test(s);
   const unsure = /\b(i (do not|don't|dont) know|not sure|idk|nothing)\b/.test(s);
   const command = /^(please\s+)?(make|add|change|set|give|put|remove|take|let|can you|could you|i want|turn)\b/.test(s);
-  if (!unsure && !ans.ops.length && (describes || (!p.design.idea && p.step === 'idea' && words >= 5 && !command))) { ans.design.idea = said1; ans.details.push('what the game is about'); ans.changes.push('Saved your idea'); }
+  if (!unsure && !ans.ops.length && !ans.look && (describes || (!p.design.idea && p.step === 'idea' && words >= 5 && !command))) { ans.design.idea = said1; ans.details.push('what the game is about'); ans.changes.push('Saved your idea'); }
   const onlyIdea = ans.changes.length > 0 && ans.changes.every((c) => c === 'Saved your idea' || c === 'Saved how you win');
   // Specificity: "specific" only when something really changed and the student gave how much or when.
   if (thing) ans.details.push(`what: the ${thing}`); else if (ans.ops.length) ans.details.push('what to change');
@@ -174,7 +311,7 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   if (hasWhen) ans.details.push('when it happens');
   const did = ans.changes.length > 0;
   const what = !!thing || did;
-  const exact = n !== null || hasWhen || !!(ans.design.hero || ans.design.theme || ans.design.title || ans.music) || (onlyIdea && words >= 6);
+  const exact = n !== null || hasWhen || !!ans.look || !!(ans.design.hero || ans.design.theme || ans.design.title || ans.music) || (onlyIdea && words >= 6);
   ans.specificity = did && exact ? 'specific' : what || hasHow ? 'partly' : 'vague';
   if (!what) ans.missing.push('what should change');
   if (what && n === null && !hasWhen && !onlyIdea) ans.missing.push(did ? 'how much' : 'what should happen and how much');
@@ -225,8 +362,8 @@ export async function askAzalea(p: GameProject, said: string, loose: number, sho
     if (r.ok) {
       const j = await r.json() as Partial<AzaleaAnswer> & { refusal?: boolean };
       if (j.refusal) return { ...guideAnswer(p, '', history), reply: 'Let us keep our game friendly and kind. What is another idea we could try?', ops: [], changes: [], source: 'ai' };
-      if (typeof j.reply === 'string') return { specificity: 'partly', details: [], missing: [], changes: [], ops: [], design: {}, revision: false, next_step: '', code: '', ...j, source: 'ai' } as AzaleaAnswer;
+      if (typeof j.reply === 'string') return resolveLook(p, { specificity: 'partly', details: [], missing: [], changes: [], ops: [], design: {}, revision: false, next_step: '', code: '', ...j, source: 'ai' } as AzaleaAnswer);
     }
   } catch { /* fall back to the guide */ }
-  return guideAnswer(p, said, history, short);
+  return resolveLook(p, guideAnswer(p, said, history, short));
 }

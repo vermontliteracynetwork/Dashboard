@@ -59,6 +59,7 @@ export interface GameProject {
   moreBlocks?: boolean;   // the full block shelf is open (Build Queue 670)
   lastReqId?: string;     // the student's last logged request, so revisions link across visits
   bugsFixed: number;
+  azNote?: { at: number; text: string }; // 717: what Azalea last changed, shown on the live game
 }
 
 export const KIND_INFO: Record<GameKind, { label: string; icon: string; blurb: string }> = {

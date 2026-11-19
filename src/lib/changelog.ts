@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-azalea-game-logic",
+    date: "2026-11-19",
+    icon: "🐱",
+    title: "Game Builder: Azalea builds what you ask, and you see it",
+    body: "Tell Azalea how your game should look or work and you see it in the live game right away. Try \"my enemy is a shark\", \"make the coins spin\", \"make the sky purple\" or \"make the background a castle\". If your game is not working, tell her \"fix it\". She checks your game, fixes what she can, and tells you what was wrong.",
+  },
+  {
     id: "2026-11-19-rocket-chickens-power-ups",
     date: "2026-11-19",
     icon: "🐔",

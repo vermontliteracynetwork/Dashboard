@@ -102,6 +102,12 @@ export function LivePreview({ p, onPlayed, bare }: { p: GameProject; onPlayed?: 
   const [sound, setSound] = useState(false);
   const [changed, setChanged] = useState(false);
   const [pp, setPp] = useState(p);
+  // 717: what Azalea just changed is shown on the live game for a few seconds, so the student sees their request in it.
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    const n = p.azNote; if (!n || Date.now() - n.at > 8000) return;
+    setNote(n.text); const t = window.setTimeout(() => setNote(''), 6000); return () => window.clearTimeout(t);
+  }, [p.azNote?.at]); // eslint-disable-line react-hooks/exhaustive-deps
   const played = useRef(onPlayed); played.current = onPlayed;
   const sig = JSON.stringify([p.rules, p.settings, p.design, p.code]);
   const first = useRef(true);
@@ -135,6 +141,7 @@ export function LivePreview({ p, onPlayed, bare }: { p: GameProject; onPlayed?: 
         <button type="button" className="gbx-link" onClick={start}>Restart</button>
       </div>
       <div className="gbp-stage">
+        {note && <div className="gbp-aznote" role="status"><b>Azalea changed:</b> {note}</div>}
         {pp.kind === 'custom'
           ? (pp.code ? (running ? <iframe key={round} title="Live game" sandbox="allow-scripts" srcDoc={pp.code} className="gbp-frame" /> : null) : <p className="gbp-empty">Your game shows up here after Azalea builds it.</p>)
           : <canvas ref={cv} width={960} height={540} onPointerDown={(e) => { if (!running) return; box.current?.focus(); const c = cv.current; if (!c || !h.current) return; const b = c.getBoundingClientRect(); const k = Math.min(b.width / c.width, b.height / c.height); const ox = (b.width - c.width * k) / 2, oy = (b.height - c.height * k) / 2; h.current.tap((e.clientX - b.left - ox) / k, (e.clientY - b.top - oy) / k); }} />}

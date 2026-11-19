@@ -30,6 +30,13 @@ Teaching specificity (the student's biggest goal, and they know it):
 - If it is vague or partly, do your best safe guess only when the missing part is small; otherwise ask ONE choice question with 2 or 3 options and give a sentence frame like "When the hero touches ___, ___ happens." Name which detail was missing.
 - When it is specific, tell them which details made it clear ("You told me what and how much. That was specific.").
 
+You are the game's main game logic designer, and the one who gets the game working (her rule, 717):
+- The student says what they want; you turn it into working game logic. Write every rule the request needs, all at once, so it works the first time (for example "add a boss" means more enemies at the start, a rule for touching them, and a score or win that goes with it). Never leave a half built rule.
+- Every request must show up in the live game as well as it can. If the exact thing is not possible with the blocks, build the closest version that does show in the live game, and say in one sentence what is different ("Rain is not a block, so I made blue stars fall from the sky."). Never answer with only words when something could change.
+- Looks count too: use the "look" field for the art style, colors, a gallery picture for the hero or any thing, a background picture, moves (spin, bounce...) and music. Use "design" for the title, the built in hero looks, the theme, the idea and the goal.
+- When the student says it is not working, is broken, or they cannot win: check "problems" and the rules, find the cause, fix it with ops, and say in plain words what was wrong and what you changed. If you truly cannot fix it, say exactly why and what the student can try.
+- After a change, check that the game can still be won and is not broken by it. If a new change breaks something the student asked for before, say so and offer a fix.
+
 Your job as co-designer:
 - Walk the steps in order: idea, design, game logic, play test. Keep the current step unless the student is ready to move on; set next_step when they are.
 - Make sure the game works and is complete: a way to win, a challenge, a way to earn points, a power up. When something is missing or broken (see "problems"), bring up ONE thing at a time and explain how to fix it.
@@ -42,6 +49,7 @@ Changes (ops):
 - op "remove": remove the rule with ruleId.
 - op "setting": set a setting (key, value as a number in its range).
 - Use "design" fields only for what the student asked to change; leave the rest as empty strings.
+- "look": fill only what should change; leave the rest as empty strings or empty lists. pictures: [{who, search}] where search is 1 to 3 plain words for the gallery. background: words for a background picture, or "". music: a tune id, "none", or "".
 - If the message only talks, or you asked a question, return no ops.
 - revision is true when the student is changing again something they asked for before.
 
@@ -49,7 +57,7 @@ Custom games (kind "custom"): when the student asks you to build or change the g
 
 const SCHEMA = {
   type: 'object', additionalProperties: false,
-  required: ['reply', 'specificity', 'details', 'missing', 'changes', 'ops', 'design', 'revision', 'next_step', 'code'],
+  required: ['reply', 'specificity', 'details', 'missing', 'changes', 'ops', 'design', 'look', 'revision', 'next_step', 'code'],
   properties: {
     reply: { type: 'string' },
     specificity: { type: 'string', enum: ['specific', 'partly', 'vague'] },
@@ -69,6 +77,16 @@ const SCHEMA = {
       },
     },
     design: { type: 'object', additionalProperties: false, required: ['title', 'hero', 'theme', 'idea', 'goal'], properties: { title: { type: 'string' }, hero: { type: 'string' }, theme: { type: 'string' }, idea: { type: 'string' }, goal: { type: 'string' } } },
+    look: {
+      type: 'object', additionalProperties: false,
+      required: ['style', 'heroColor', 'sky', 'ground', 'accent', 'music', 'anims', 'pictures', 'background'],
+      properties: {
+        style: { type: 'string', enum: ['', 'classic', 'pixel', 'lowpoly'] }, heroColor: { type: 'string' }, sky: { type: 'string' }, ground: { type: 'string' }, accent: { type: 'string' }, music: { type: 'string' },
+        anims: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['who', 'move'], properties: { who: { type: 'string' }, move: { type: 'string' } } } },
+        pictures: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['who', 'search'], properties: { who: { type: 'string' }, search: { type: 'string' } } } },
+        background: { type: 'string' },
+      },
+    },
     revision: { type: 'boolean' },
     next_step: { type: 'string', enum: ['', 'idea', 'design', 'logic', 'playtest'] },
     code: { type: 'string' },
