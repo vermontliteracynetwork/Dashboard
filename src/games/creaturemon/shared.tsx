@@ -9,7 +9,7 @@ import { CreatureCard, Sprite } from './Card';
 import { ABILITIES, AB_GROW, FORMS, IMG, abName, abTier, displayName, form, freshSave, freshStats, giveXp, rollAbility, uid, xpToNext, type AbilityId, type Mon, type MonStats, type Save } from './data';
 import './creaturemon.css';
 
-export interface CmSave extends Save { active?: boolean }
+export interface CmSave extends Save { active?: boolean; gfx?: 'low' | 'medium' | 'high' }
 export interface Evo { uid: string; from: string; to: string }
 // Creaturemon is "on" in the live world (her words: "if they've clicked on the creaturemon app on their computer ...
 // they should see a border around their regular world view. then, they have activated the creaturemon").

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useBack } from '../../lib/navTrail';
 import LeaveButton from '../../components/LeaveButton';
 import { useAsk } from '../../games/mini/useAsk';
@@ -9,6 +8,7 @@ import { MyBest } from '../../components/MyBest';
 import { MenuItems } from '../../lib/mainMenu';
 import Battle from '../../games/creaturemon/Battle';
 import Versus from '../../games/creaturemon/Versus';
+import Explore from '../../games/creaturemon/Explore';
 import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
 import { AbilityScene, EvoScene, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
 import { ABILITIES, FORMS, abName, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
@@ -23,7 +23,7 @@ import { ABILITIES, FORMS, abName, HABITAT_NAME, IMG, LINES, STARTERS, TYPE_COLO
 const UI = `${IMG}ui/`;
 
 export default function Creaturemon() {
-  const back = useBack(); const navigate = useNavigate();
+  const back = useBack();
   const cm = useCmSave(); const S = cm.S; const team = cm.team; const student = cm.student;
   const { ask, element, pay, settingsPanel, learn } = useAsk('Creaturemon', '🐉', 'creaturemon', { startCard: false, perLabel: 'Questions for each move, orb or training' });
   const [panel, setPanel] = useState<'' | 'team' | 'cards' | 'train' | 'help' | 'gear' | 'battle' | 'versus'>('');
@@ -33,8 +33,9 @@ export default function Creaturemon() {
   const [trainRun, setTrainRun] = useState<{ uid: string; left: number; hits: number; spot: number } | null>(null);
   const say = (t: string) => { setToast(t); window.setTimeout(() => setToast((x) => (x === t ? '' : x)), 2600); };
 
-  const goCatch = () => { uiSound('popup-open-1'); cm.put({ active: true }); sfx.chime(); speak('Creaturemon is on! Walk around Town Square to find creatures.', student?.ttsSettings); navigate('/world/town'); };
-  const turnOff = () => { cm.put({ active: false }); sfx.click(); say('Creaturemon is off.'); };
+  // Build Queue 740: Creaturemon is back in its own 3D pixel world (no Town Square border any more).
+  const [explore, setExplore] = useState(false);
+  const goCatch = () => { uiSound('popup-open-1'); if (S.active) cm.put({ active: false }); sfx.chime(); setExplore(true); };
   const startTraining = (uid: string) => {
     setPanel(''); const m = S.mons.find((x) => x.uid === uid); if (!m) return;
     ask(`Creaturemon: answer to train ${displayName(m)}`, () => { setTrainRun({ uid, left: 12, hits: 0, spot: Math.floor(Math.random() * 9) }); sfx.pop(); });
@@ -56,9 +57,10 @@ export default function Creaturemon() {
     speak(`${form(formId).name} is your partner! Turn on Creaturemon and walk around Town Square to catch more.`, student?.ttsSettings);
   };
   const menu = useMemo(() => [{ id: 'cm-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setPanel('help') }], []);
-  const howTo = 'Tap Turn on Creaturemon. Town Square gets a Creaturemon border, and wild creatures appear on glowing rings near you. Walk up to one: tap Throw orb to catch it, or Battle it first. A creature tired out from a battle is easy to catch, and sneaking up behind one helps too. Battles take turns: tap a move, and in Learn mode answer a question to fuel it. Battles and training give XP. At the right level your creature evolves, and every evolution is a new card!';
+  const howTo = 'Tap Explore to walk around the Creaturemon world with the move pad (or the W A S D keys), and drag the screen to turn. Walk up to a wild creature: tap Throw orb to catch it, or Battle it first. A creature tired out from a battle is easy to catch, and sneaking up behind one helps too. Battles take turns: tap a move, and in Learn mode answer a question to fuel it. Battles and training give XP. At the right level your creature evolves, and every evolution is a new card!';
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
+  const gfx: 'low' | 'medium' | 'high' = S.gfx ?? 'medium';
   const caughtSet = new Set(S.caught); const seenSet = new Set(S.seen);
   const tiles: { id: string; icon: string; label: string; sub: string; on: () => void; off?: boolean }[] = [
     { id: 'cards', icon: 'card', label: 'My cards', sub: `${S.caught.length} of ${FORMS.length}`, on: () => setPanel('cards') },
@@ -86,11 +88,10 @@ export default function Creaturemon() {
         <div className={`cm-go${S.active ? ' on' : ''}`}>
           <div className="cm-go-art">{(team[0] ? [form(team[0].formId)] : STARTERS.map(form)).map((f) => <Sprite key={f.id} f={f} px={84} anim="move" />)}</div>
           <div className="cm-go-txt">
-            <h2>{S.active ? 'Creaturemon is on' : 'Catch creatures in Town Square'}</h2>
-            <p>{S.active ? 'Town Square has the Creaturemon border and wild creatures. Go find them!' : 'Turn it on, then walk around Town Square. Creatures appear on glowing rings near you.'}</p>
+            <h2>Explore the Creaturemon world</h2>
+            <p>Six places to explore in 3D pixel art. Find wild creatures, catch them, battle them, and sit with the calm ones.</p>
             <div className="cm-row" style={{ justifyContent: 'flex-start' }}>
-              <button type="button" className="cm-big orb" onClick={goCatch} disabled={!S.starterPicked}>{S.active ? 'Go to Town Square' : 'Turn on Creaturemon'}</button>
-              {S.active && <button type="button" className="btn btn-lg" onClick={turnOff}>Turn off</button>}
+              <button type="button" className="cm-big orb" onClick={goCatch} disabled={!S.starterPicked}>Explore</button>
             </div>
           </div>
         </div>
@@ -114,6 +115,7 @@ export default function Creaturemon() {
       </div>
 
       {panel === 'battle' && <div className="cmb-host"><Battle cm={cm} ask={ask} onClose={() => setPanel('')} /></div>}
+      {explore && <div className="cmb-host"><Explore cm={cm} ask={ask} gfx={gfx} onClose={() => setExplore(false)} /></div>}
       {panel === 'versus' && <div className="cmb-host"><Versus cm={cm} ask={ask} onClose={() => setPanel('')} /></div>}
 
       {trainRun && (
@@ -203,7 +205,7 @@ export default function Creaturemon() {
           <p className="cm-note">Types: {Object.keys(TYPE_COLOR).join(', ')}. A special move is extra strong against some types: Fire beats Leaf and Frost, Water beats Fire and Stone, Leaf beats Water and Stone, and Light and Shadow beat each other.</p>
         </Panel>
       )}
-      {panel === 'gear' && <Panel title="Settings" onClose={() => setPanel('')}>{settingsPanel}</Panel>}
+      {panel === 'gear' && <Panel title="Settings" onClose={() => setPanel('')}><GfxMeter value={gfx} onChange={(g) => cm.put({ gfx: g })} />{settingsPanel}</Panel>}
 
       {!S.starterPicked && !reveal && (
         <div className="cm-over">
@@ -279,5 +281,22 @@ function MonStatsLine({ m }: { m: Mon }) {
       <span>Trained</span><b>{st.trainings} times</b>
       <span>Joined</span><b>{how}, {new Date(m.caughtAt).toLocaleDateString()}</b>
     </span>
+  );
+}
+
+function GfxMeter({ value, onChange }: { value: 'low' | 'medium' | 'high'; onChange: (g: 'low' | 'medium' | 'high') => void }) {
+  const opts: { id: 'low' | 'medium' | 'high'; label: string; how: string }[] = [
+    { id: 'low', label: 'Big pixels', how: 'Chunky pixels. Fastest on older iPads.' },
+    { id: 'medium', label: 'Medium', how: 'The usual 3D pixel look.' },
+    { id: 'high', label: 'Small pixels', how: 'Sharper. Best on newer iPads.' },
+  ];
+  return (
+    <div className="rc-gfx" role="radiogroup" aria-label="Pixel size">
+      <span className="rc-gfx-label">World pixels</span>
+      <div className="rc-gfx-meter">
+        {opts.map((o, i) => <button key={o.id} type="button" role="radio" aria-checked={value === o.id} title={o.how} className={`rc-gfx-btn${opts.findIndex((x) => x.id === value) >= i ? ' on' : ''}${value === o.id ? ' sel' : ''}`} onClick={() => onChange(o.id)}>{o.label}</button>)}
+      </div>
+      <small>{opts.find((o) => o.id === value)?.how}</small>
+    </div>
   );
 }

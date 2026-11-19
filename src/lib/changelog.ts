@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-world-back",
+    date: "2026-11-19",
+    icon: "🌄",
+    title: "Creaturemon has its own world again",
+    body: "Creaturemon is back in its own 3D pixel world. Open Creaturemon on the Computer and tap Explore. Walk with the move pad, drag the screen to turn, and find creatures in six places: catch them, battle them, or sit with the calm ones that are meditating.",
+  },
+  {
     id: "2026-11-19-play-mode-done",
     date: "2026-11-19",
     icon: "▶️",
