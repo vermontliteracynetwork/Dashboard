@@ -46,7 +46,7 @@ function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: 
             <input
               type="number"
               min={1}
-              style={{ width: 70 }}
+              style={{ width: 150 }}
               placeholder={`whole set (${pool.length})`}
               value={task.targetQuestionCount ?? ''}
               onChange={(e) => onChange({ targetQuestionCount: e.target.value ? Math.max(1, Number(e.target.value)) : undefined })}
@@ -64,7 +64,7 @@ function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: 
           <input
             type="number"
             min={1}
-            style={{ width: 70 }}
+            style={{ width: 150 }}
             placeholder={`whole set (${pool.length})`}
             value={task.targetQuestionCount ?? ''}
             onChange={(e) => onChange({ targetQuestionCount: e.target.value ? Math.max(1, Number(e.target.value)) : undefined })}
@@ -76,12 +76,12 @@ function GameplayModePicker({ task, onChange }: { task: Task; onChange: (patch: 
           <span>🎮 Game settings for this assignment (students cannot change them):</span>
           <label className="row" style={{ gap: 4 }}>
             Rounds
-            <input type="number" min={1} max={20} style={{ width: 70 }} placeholder="game's own" value={task.gameRounds ?? ''}
+            <input type="number" min={1} max={20} style={{ width: 120 }} placeholder="game's own" value={task.gameRounds ?? ''}
               onChange={(e) => onChange({ gameRounds: e.target.value ? Math.min(20, Math.max(1, Number(e.target.value))) : undefined })} />
           </label>
           <label className="row" style={{ gap: 4 }}>
             Questions per round
-            <input type="number" min={1} max={10} style={{ width: 70 }} placeholder="game's own" value={task.gameQuestionsPerRound ?? ''}
+            <input type="number" min={1} max={10} style={{ width: 120 }} placeholder="game's own" value={task.gameQuestionsPerRound ?? ''}
               onChange={(e) => onChange({ gameQuestionsPerRound: e.target.value ? Math.min(10, Math.max(1, Number(e.target.value))) : undefined })} />
           </label>
           <label className="row" style={{ gap: 4 }}>

@@ -30,10 +30,12 @@ export const setLearnMode = (learn: boolean) => set({ ...mode, learn });
 
 export function useLearnPlayState() { return useSyncExternalStore(subscribe, snap, snap); }
 
-/** Turn the Learn/Play switch on for this game while it is open. `locked` (an assignment) keeps Learn on. */
-export function useLearnPlay(locked = false) {
+/** Turn the Learn/Play switch on for this game while it is open. `locked` (an assignment) keeps Learn on. `free`: a
+ * game where Play mode is allowed even during school time (Build Queue 721, her words: "allow play mode for
+ * creaturemon"). */
+export function useLearnPlay(locked = false, free = false) {
   useEffect(() => {
-    set({ active: mode.active + 1, learn: mode.active ? mode.learn : learnByDefault(), locked: mode.locked || locked, school: schoolHours() });
+    set({ active: mode.active + 1, learn: mode.active ? mode.learn : learnByDefault(), locked: mode.locked || locked, school: schoolHours() && !free });
     return () => set(mode.active <= 1 ? { active: 0, learn: true, locked: false, school: false } : { ...mode, active: mode.active - 1 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

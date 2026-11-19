@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-play-mode",
+    date: "2026-11-19",
+    icon: "🐉",
+    title: "Creaturemon: Play mode any time",
+    body: "In Creaturemon you can pick Learn mode or Play mode any time, even during school time. Open the settings to switch.",
+  },
+  {
     id: "2026-11-19-word-explorer-meanings",
     date: "2026-11-19",
     icon: "📖",
