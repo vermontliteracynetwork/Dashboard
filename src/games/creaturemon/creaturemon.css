@@ -458,3 +458,86 @@
   .fb-btn { width: 78px; height: 78px; } .fb-btn.tackle { width: 104px; height: 104px; } .fb-btn.berry { width: 66px; height: 66px; }
   .cmb-side.foe, .cmb-side.me { bottom: 40%; }
 }
+
+/* 745: no scrolling anywhere; everything sized to the screen */
+.cm-app { overflow: hidden; }
+.cm-app .cm-home { overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; gap: clamp(8px, 1.6vh, 16px); padding: clamp(8px, 1.6vh, 16px) 16px; align-items: stretch; justify-items: center; }
+.cm-app .cm-go { padding: clamp(8px, 1.6vh, 16px) 18px; gap: 14px; flex-wrap: nowrap; }
+.cm-app .cm-go-art { min-height: 0; }
+.cm-app .cm-go-txt h2 { font-size: clamp(1.2rem, 3vh, 1.8rem); margin-bottom: 2px; }
+.cm-app .cm-go-txt p { font-size: clamp(0.9rem, 2vh, 1.1rem); margin-bottom: 8px; }
+.cm-app .cm-go .cm-big { min-height: clamp(48px, 7vh, 72px); }
+.cm-app .cm-tiles { min-height: 0; height: 100%; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; align-content: stretch; }
+.cm-app .cm-tile { min-height: 0; padding: 4px; }
+.cm-app .cm-tile img { width: clamp(24px, 5vh, 40px); height: clamp(24px, 5vh, 40px); }
+.cm-app .cm-tile b { font-size: clamp(0.95rem, 2.6vh, 1.25rem); line-height: 1.1; text-align: center; }
+.cm-app .cm-tile small { font-size: clamp(0.75rem, 1.8vh, 0.95rem); text-align: center; }
+.cm-app .cm-teamstrip { overflow: hidden; flex-wrap: nowrap; justify-content: center; }
+.cm-app .cm-mini { min-width: 0; width: clamp(90px, 12vw, 130px); padding: 4px 6px; }
+@media (max-height: 640px) { .cm-app .cm-teamstrip { display: none; } .cm-app .cm-home { grid-template-rows: auto 1fr; } }
+.cm-panel { max-height: calc(100vh - 32px); overflow: hidden; }
+.cm-pager { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 10px; font-weight: 900; }
+
+/* the flashcard deck (745): the card on the left, its info page the same size on the right */
+.dk { position: absolute; inset: 0; display: flex; flex-direction: column; background: radial-gradient(circle at 50% 40%, #2f2860, #12142a 75%); color: #f4f0ff; overflow: hidden; }
+.dk-top { flex: none; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: 3px solid #ffd23f; background: #1d2238; }
+.dk-top .btn { min-height: 44px; }
+.dk-title { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.5rem; }
+.dk-count { font-weight: 900; color: #ffd23f; }
+.dk-prog { flex: 1; height: 14px; border-radius: 7px; background: #3a4166; overflow: hidden; }
+.dk-prog i { display: block; height: 100%; background: linear-gradient(90deg, #ffd23f, #f07a14); }
+.dk-stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px 12px; touch-action: pan-y; perspective: 1600px; }
+.dk-pair { display: flex; gap: 24px; align-items: stretch; transition: transform 0.18s ease, opacity 0.18s ease; transform-style: preserve-3d; }
+.dk-pair.next { transform: rotateY(-25deg) translateX(-40px); opacity: 0; }
+.dk-pair.prev { transform: rotateY(25deg) translateX(40px); opacity: 0; }
+.dk-flip { position: relative; transform-style: preserve-3d; transition: transform 0.5s ease; cursor: pointer; flex: none; }
+.dk-flip.on { transform: rotateY(180deg); }
+.dk-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+.dk-face.back { transform: rotateY(180deg); }
+.dk-face.back img { width: 100%; height: 100%; image-rendering: pixelated; }
+.dk-face .cm-card { cursor: pointer; }
+.dk-info { flex: none; box-sizing: border-box; overflow: hidden; background: linear-gradient(#262c4a, #1d2238); border: calc(4px * var(--k)) solid var(--tc); border-radius: calc(10px * var(--k)); padding: calc(9px * var(--k)) calc(10px * var(--k)); display: flex; flex-direction: column; gap: calc(4px * var(--k)); box-shadow: 0 10px 30px rgba(0,0,0,0.45); }
+.dk-info h2 { margin: 0; font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: calc(17px * var(--k)); line-height: 1.05; color: #fff; }
+.dk-tags { display: flex; flex-wrap: wrap; gap: calc(3px * var(--k)); margin: 0; font-size: calc(6.4px * var(--k)); font-weight: 800; }
+.dk-tags span { background: #3a4166; padding: calc(1px * var(--k)) calc(4px * var(--k)); border-radius: calc(3px * var(--k)); }
+.dk-tags .dk-type { background: var(--tc); color: #fff; text-transform: uppercase; letter-spacing: 0.04em; }
+.dk-desc { margin: 0; font-size: calc(7.6px * var(--k)); line-height: 1.35; }
+.dk-small { margin: 0; font-size: calc(6.2px * var(--k)); line-height: 1.3; color: #c9c3e8; }
+.dk-small b { color: #ffd23f; }
+.dk-stats { display: grid; gap: calc(2px * var(--k)); }
+.dk-stat { display: grid; grid-template-columns: calc(9px * var(--k)) calc(32px * var(--k)) 1fr calc(14px * var(--k)); align-items: center; gap: calc(3px * var(--k)); font-size: calc(6.4px * var(--k)); font-weight: 800; }
+.dk-stat img { width: calc(8px * var(--k)); height: calc(8px * var(--k)); image-rendering: pixelated; }
+.dk-stat i { height: calc(5px * var(--k)); border-radius: 99px; background: #3a4166; overflow: hidden; }
+.dk-stat i b { display: block; height: 100%; background: var(--tc); }
+.dk-stat em { font-style: normal; text-align: right; }
+.dk-chain { margin-top: auto; display: flex; justify-content: center; align-items: flex-end; gap: calc(6px * var(--k)); padding: calc(4px * var(--k)); border-radius: calc(6px * var(--k)); background: #1a1f38; }
+.dk-step { position: relative; display: flex; flex-direction: column; align-items: center; padding: calc(2px * var(--k)) calc(4px * var(--k)); border-radius: calc(5px * var(--k)); font-weight: 800; }
+.dk-step small { font-size: calc(5.4px * var(--k)); }
+.dk-step.on { outline: calc(1.5px * var(--k)) solid #ffd23f; background: #3a4166; }
+.dk-lv { position: absolute; left: calc(-8px * var(--k)); top: 0; background: #ffd23f; color: #1d2238; border-radius: calc(3px * var(--k)); padding: 0 calc(2px * var(--k)); font-size: calc(4.6px * var(--k)) !important; }
+.dk-nav { flex: none; display: flex; align-items: center; justify-content: center; gap: 18px; padding: 8px 16px max(10px, env(safe-area-inset-bottom)); }
+.dk-nav .btn { min-height: 48px; }
+.dk-arrow { width: 64px; height: 64px; border-radius: 50%; border: 4px solid #ffd23f; background: #3a4fb0; color: #fff; font-size: 1.6rem; cursor: pointer; box-shadow: 0 4px 0 rgba(0,0,0,0.4); }
+.dk-arrow:disabled { opacity: 0.4; }
+.dk-arrow:active { transform: translateY(2px); }
+.dk-pos { display: flex; flex-direction: column; align-items: center; min-width: 140px; font-weight: 800; color: #fff; }
+.dk-pos b { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.5rem; display: inline; }
+.dk-pos small { color: #c9c3e8; }
+@media (prefers-reduced-motion: reduce) { .dk-pair, .dk-flip { transition: none; } }
+
+/* 746: My team as tall cards, 4 to a page: picture on top, name, description, buttons, then abilities and stats */
+.cm-tms { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.cm-tm { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px; border-radius: 18px; background: #262c4a; border: 3px solid var(--tc); text-align: center; min-width: 0; }
+.cm-tm.boxed { background: #20253f; }
+.cm-tm-pic { position: relative; width: 100%; height: 120px; display: flex; align-items: flex-end; justify-content: center; border-radius: 12px; background: radial-gradient(ellipse at 50% 85%, #ffffff55 0 14%, var(--tc) 46%, #141830 100%); overflow: hidden; }
+.cm-tm-lead { position: absolute; top: 6px; left: 6px; background: #ffd23f; color: #1d2238; font-weight: 900; font-size: 0.75rem; padding: 2px 8px; border-radius: 8px; }
+.cm-tm-lead.box { background: #6b7a9a; color: #fff; }
+.cm-tm-name { font-family: 'Pixel Lorebook', system-ui, sans-serif; font-size: 1.3rem; color: #fff; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cm-tm-desc { margin: 0; font-size: 0.9rem !important; font-weight: 800; color: #c9c3e8; display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; }
+.cm-tm-xp { width: 100%; display: flex; align-items: center; gap: 6px; font-weight: 900; font-size: 0.75rem; color: #c9c3e8; }
+.cm-tm-xp .cm-xp { flex: 1; max-width: none; }
+.cm-tm-btns { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.cm-tm-btns .btn { min-height: 40px; padding: 4px 12px; }
+.cm-tm .cm-abs { justify-content: center; }
+.cm-tm .cm-statgrid { font-size: 0.78rem; grid-template-columns: auto auto; text-align: left; }
+@media (max-width: 1000px) { .cm-tms { grid-template-columns: repeat(2, 1fr); } .cm-tm-pic { height: 90px; } }

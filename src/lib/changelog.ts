@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-deck",
+    date: "2026-11-19",
+    icon: "📇",
+    title: "Creaturemon: a flashcard deck of every card",
+    body: "My cards is now a deck you flip through like flashcards. Tap the arrows or swipe to turn the page, and tap a card to flip it over. The info next to each card shows everything without scrolling. My team shows each creature as a tall card with its picture on top.",
+  },
+  {
     id: "2026-11-19-creaturemon-fight-look",
     date: "2026-11-19",
     icon: "🥊",

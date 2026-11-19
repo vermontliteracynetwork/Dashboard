@@ -9,9 +9,10 @@ import { MenuItems } from '../../lib/mainMenu';
 import Battle from '../../games/creaturemon/Battle';
 import Versus from '../../games/creaturemon/Versus';
 import Explore from '../../games/creaturemon/Explore';
+import Deck from '../../games/creaturemon/Deck';
 import { CreatureCard, Sprite } from '../../games/creaturemon/Card';
 import { AbilityScene, EvoScene, RevealScene, XpBar, uiSound, useCmSave } from '../../games/creaturemon/shared';
-import { ABILITIES, FORMS, abName, HABITAT_NAME, IMG, LINES, STARTERS, STRONG, TYPE_COLOR, displayName, form, line, nextForm, statsAt, xpToNext, type Form, type Mon } from '../../games/creaturemon/data';
+import { ABILITIES, FORMS, abName, IMG, STARTERS, TYPE_COLOR, displayName, form, line, nextForm, xpToNext, type Mon } from '../../games/creaturemon/data';
 
 // Creaturemon on the Computer (Build Queue 710 to 712, then 725 to 730, 2026-11-19). Her 725 words: "instead of
 // creating a new world, lets have it so the creaturemon is like a pokemon go style game ... if they've clicked on the
@@ -28,6 +29,7 @@ export default function Creaturemon() {
   const { ask, element, pay, settingsPanel, learn } = useAsk('Creaturemon', '🐉', 'creaturemon', { startCard: false, perLabel: 'Questions for each move, orb or training' });
   const [panel, setPanel] = useState<'' | 'team' | 'cards' | 'train' | 'help' | 'gear' | 'battle' | 'versus'>('');
   const [cardOpen, setCardOpen] = useState<string | null>(null);
+  const [teamPage, setTeamPage] = useState(0);
   const [reveal, setReveal] = useState<{ formId: string; isNew: boolean; title: string } | null>(null);
   const [toast, setToast] = useState('');
   const [trainRun, setTrainRun] = useState<{ uid: string; left: number; hits: number; spot: number } | null>(null);
@@ -61,7 +63,6 @@ export default function Creaturemon() {
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
   const gfx: 'low' | 'medium' | 'high' = S.gfx ?? 'medium';
-  const caughtSet = new Set(S.caught); const seenSet = new Set(S.seen);
   const tiles: { id: string; icon: string; label: string; sub: string; on: () => void; off?: boolean }[] = [
     { id: 'cards', icon: 'card', label: 'My cards', sub: `${S.caught.length} of ${FORMS.length}`, on: () => setPanel('cards') },
     { id: 'team', icon: 'bag', label: 'My team', sub: `${team.length} on the team`, on: () => setPanel('team') },
@@ -135,33 +136,39 @@ export default function Creaturemon() {
 
       {panel === 'team' && (
         <Panel title="My team" onClose={() => setPanel('')} wide>
-          <p className="cm-note">Your first creature is the leader. Up to 6 on your team; the rest wait in the box. Tap Follow me to have a creature walk with you in Town Square. Each creature can learn up to 3 abilities in battles, by evolving and by meditating.</p>
-          <div className="cm-team">
-            {[...team, ...S.mons.filter((m) => !S.team.includes(m.uid))].map((m) => {
-              const f = form(m.formId); const inTeam = S.team.includes(m.uid); const nx = nextForm(m.formId);
+          <p className="cm-note">Your first creature is the leader. Up to 6 on your team; the rest wait in the box. Follow me makes a creature walk behind you when you explore. Each creature can learn up to 3 abilities.</p>
+          {/* 746: each creature as a tall card: picture on top, name, description, buttons, then the rest */}
+          <div className="cm-tms">
+            {[...team, ...S.mons.filter((m) => !S.team.includes(m.uid))].slice(teamPage * 4, teamPage * 4 + 4).map((m) => {
+              const f = form(m.formId); const inTeam = S.team.includes(m.uid); const nx = nextForm(m.formId); const tc = TYPE_COLOR[line(f.id).type];
               return (
-                <div key={m.uid} className={`cm-mon${inTeam ? '' : ' boxed'}`} style={{ borderColor: TYPE_COLOR[line(f.id).type] }}>
-                  <Sprite f={f} px={56} />
-                  <div className="cm-mon-txt">
-                    <b>{displayName(m)}</b><small>Lv {m.level} · {line(f.id).type}{S.team[0] === m.uid ? ' · Leader' : ''}</small>
-                    <XpBar m={m} />
-                    <small>{nx ? `Evolves into ? ? ? at Lv ${f.evolvesAt}` : 'Final form'}</small>
-                    <Abilities m={m} />
-                    <MonStatsLine m={m} />
-                  </div>
-                  <div className="cm-mon-btns">
+                <div key={m.uid} className={`cm-tm${inTeam ? '' : ' boxed'}`} style={{ ['--tc' as string]: tc }}>
+                  <span className="cm-tm-pic"><Sprite f={f} px={84} fitW={150} anim="idle" />{S.team[0] === m.uid && <span className="cm-tm-lead">Leader</span>}{!inTeam && <span className="cm-tm-lead box">In the box</span>}</span>
+                  <b className="cm-tm-name">{displayName(m)}</b>
+                  <p className="cm-tm-desc"><span className="cm-line-type">{line(f.id).type}</span> Lv {m.level} · {nx ? `evolves at Lv ${f.evolvesAt}` : 'final form'}</p>
+                  <span className="cm-tm-xp"><small>XP</small><XpBar m={m} /></span>
+                  <div className="cm-tm-btns">
                     {inTeam && S.team[0] !== m.uid && <button type="button" className="btn" onClick={() => cm.put({ team: [m.uid, ...S.team.filter((u) => u !== m.uid)] })}>Lead</button>}
                     {inTeam && S.team.length > 1 && <button type="button" className="btn" onClick={() => cm.put({ team: S.team.filter((u) => u !== m.uid) })}>To box</button>}
                     {!inTeam && S.team.length < 6 && <button type="button" className="btn" onClick={() => cm.put({ team: [...S.team, m.uid] })}>To team</button>}
-                    {inTeam && <button type="button" className={`btn${m.follow ? ' btn-primary' : ''}`} title="Walk with you in Town Square (up to 2)"
+                    {inTeam && <button type="button" className={`btn${m.follow ? ' btn-primary' : ''}`} title="Walks behind you when you explore (up to 2)"
                       onClick={() => { const on = !m.follow; if (on && S.mons.filter((x) => x.follow).length >= 2) { say('Two creatures can follow you at a time.'); uiSound('error-1'); return; } cm.put({ mons: S.mons.map((x) => (x.uid === m.uid ? { ...x, follow: on } : x)) }); uiSound('select-1'); }}>{m.follow ? 'Following' : 'Follow me'}</button>}
                     <button type="button" className="btn" onClick={() => setCardOpen(m.formId)}>Card</button>
                   </div>
+                  <Abilities m={m} />
+                  <MonStatsLine m={m} />
                 </div>
               );
             })}
             {!S.mons.length && <p>No creatures yet.</p>}
           </div>
+          {S.mons.length > 4 && (
+            <div className="cm-pager">
+              <button type="button" className="dk-arrow" disabled={teamPage === 0} onClick={() => setTeamPage((p) => p - 1)} aria-label="Previous page">◀</button>
+              <span>Page {teamPage + 1} of {Math.ceil(S.mons.length / 4)}</span>
+              <button type="button" className="dk-arrow" disabled={(teamPage + 1) * 4 >= S.mons.length} onClick={() => setTeamPage((p) => p + 1)} aria-label="Next page">▶</button>
+            </div>
+          )}
         </Panel>
       )}
 
@@ -179,32 +186,7 @@ export default function Creaturemon() {
         </Panel>
       )}
 
-      {panel === 'cards' && (
-        <Panel title={`My cards: ${S.caught.length} of ${FORMS.length}`} onClose={() => setPanel('')} wide>
-          <div className="cm-progress"><span><i style={{ width: `${(S.caught.length / FORMS.length) * 100}%` }} /></span><b>{S.caught.length} of {FORMS.length} cards</b></div>
-          <p className="cm-note">Every evolution has its own card. Catch a creature or evolve one to fill its card. Tap a card to see it big.</p>
-          <div className="cm-lines">
-            {LINES.map((l) => {
-              const got = l.forms.filter((f) => caughtSet.has(f.id)).length;
-              return (
-                <section key={l.id} className="cm-line" style={{ ['--tc' as string]: TYPE_COLOR[l.type] }}>
-                  <header className="cm-line-head"><span className="cm-line-type">{l.type}</span><b>{caughtSet.has(l.forms[0].id) || seenSet.has(l.forms[0].id) ? `${l.forms[0].name} family` : 'Unknown family'}</b><small>{HABITAT_NAME[l.habitat]} · {got} of {l.forms.length}</small></header>
-                  <div className="cm-line-cards">
-                    {l.forms.map((f, i) => (
-                      <div key={f.id} className="cm-line-step">
-                        {i > 0 && <span className="cm-arrow" aria-label={`evolves at level ${l.forms[i - 1].evolvesAt}`}><small>Lv</small>{l.forms[i - 1].evolvesAt}</span>}
-                        <CreatureCard f={f} scale={0.7} state={caughtSet.has(f.id) ? 'caught' : seenSet.has(f.id) ? 'seen' : 'unknown'} onClick={() => caughtSet.has(f.id) && setCardOpen(f.id)} />
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
-          </div>
-        </Panel>
-      )}
-
-      {cardOpen && <CardView f={form(cardOpen)} onClose={() => setCardOpen(null)} tts={student.ttsSettings} level={S.mons.filter((m) => m.formId === cardOpen).reduce((a, m) => Math.max(a, m.level), 1)} />}
+      {(panel === 'cards' || cardOpen) && <div className="cmb-host"><Deck caught={S.caught} seen={S.seen} mons={S.mons} startId={cardOpen} tts={student.ttsSettings} onClose={() => { setPanel(''); setCardOpen(null); }} /></div>}
 
       {panel === 'help' && (
         <Panel title="How to play" onClose={() => setPanel('')}>
@@ -236,47 +218,6 @@ function Panel({ title, onClose, children, wide }: { title: string; onClose: () 
       <div className={`pf-panel cm-panel${wide ? ' wide' : ''}`} onClick={(e) => e.stopPropagation()} role="dialog" aria-label={title}>
         <div className="cm-panel-head"><h2>{title}</h2><button type="button" className="btn btn-primary" onClick={onClose}>Done</button></div>
         {children}
-      </div>
-    </div>
-  );
-}
-
-function CardView({ f, onClose, tts, level }: { f: Form; onClose: () => void; tts: Parameters<typeof speak>[1]; level: number }) {
-  const l = line(f.id); const st = statsAt(f, level); const top = statsAt(l.forms[l.forms.length - 1], 50);
-  const words = `${f.name}. ${l.type} type, stage ${f.stage} of ${l.forms.length}. ${f.desc} Its name comes from ${f.nameFrom}. Its special move is ${l.special.name}.`;
-  const bar = (label: string, icon: string, v: number, max: number) => (
-    <div className="cm-stat"><img src={`${IMG}cards/${icon}.png`} alt="" /><span>{label}</span><i><b style={{ width: `${Math.min(100, (v / max) * 100)}%` }} /></i><em>{v}</em></div>
-  );
-  return (
-    <div className="pf-overlay cm-dark-overlay" onClick={onClose}>
-      <div className="cm-cardview" onClick={(e) => e.stopPropagation()} role="dialog" aria-label={`${f.name} card`}>
-        <CreatureCard f={f} scale={1.45} level={level} />
-        <div className="cm-cv-info" style={{ ['--tc' as string]: TYPE_COLOR[l.type] }}>
-          <div className="cm-cv-head">
-            <h2>{f.name}</h2>
-            <button type="button" className="btn" onClick={() => speak(words, tts)} aria-label="Listen">🔊</button>
-          </div>
-          <p className="cm-cv-tags"><span className="cm-line-type">{l.type}</span><span>Stage {f.stage} of {l.forms.length}</span><span>{HABITAT_NAME[l.habitat]}</span><span>Lv {level}</span></p>
-          <p className="cm-cv-desc">{f.desc}</p>
-          <p className="cm-cv-name"><b>Its name:</b> {f.nameFrom}.</p>
-          <div className="cm-cv-stats">
-            {bar('Health', 'sym_heart', st.hp, top.hp)}
-            {bar('Attack', 'sym_sword', st.atk, top.atk)}
-            {bar('Defense', 'sym_shield', st.def, top.def)}
-            {bar('Speed', 'sym_energy', st.spd, top.spd)}
-          </div>
-          <p className="cm-cv-move"><b>Special move:</b> {l.special.name} <small>({l.type} move, strong against {STRONG[l.type].join(' and ')})</small></p>
-          <div className="cm-cv-chain" aria-label="Evolution line">
-            {l.forms.map((x, i) => (
-              <span key={x.id} className={`cm-cv-step${x.id === f.id ? ' on' : ''}`}>
-                {i > 0 && <small className="cm-cv-lv">Lv {l.forms[i - 1].evolvesAt}</small>}
-                <Sprite f={x} px={40} fitW={56} />
-                <small>{x.name}</small>
-              </span>
-            ))}
-          </div>
-          <button type="button" className="btn btn-primary btn-lg" onClick={onClose}>Done</button>
-        </div>
       </div>
     </div>
   );
