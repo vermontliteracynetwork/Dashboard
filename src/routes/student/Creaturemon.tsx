@@ -18,12 +18,12 @@ import {
 } from '../../games/creaturemon/data';
 import '../../games/creaturemon/creaturemon.css';
 
-// Creaturemon (Build Queue 703 to 705, 2026-11-19, her words in the dev plan): a creature catching game in the style
+// Creaturemon (Build Queue 710 to 712, 2026-11-19, her words in the dev plan): a creature catching game in the style
 // of the classic open world creature games and Smash style creature battles (her biggest influence), in 3D pixel art
 // seen from behind the player. Explore six habitats, throw orbs to catch wild creatures, battle them, train them, and
 // watch them evolve (her top priority for the students: evolutions and battles). 61 creatures in 20 evolution lines,
-// each named from its body shape (704), each evolution with its own card (705). Potions from harvested ingredients
-// are the next part (703b in the dev plan).
+// each named from its body shape (711), each evolution with its own card (712). Potions from harvested ingredients
+// are the next part (710b in the dev plan).
 
 type Gfx = 'low' | 'medium' | 'high';
 const PIXEL: Record<Gfx, number> = { low: 0.3, medium: 0.4, high: 0.55 };

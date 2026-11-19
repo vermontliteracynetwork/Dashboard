@@ -1,4 +1,4 @@
-// Creaturemon cards (Build Queue 705, her words: "make sure every evolution has its own card"). One card per form, on
+// Creaturemon cards (Build Queue 712, her words: "make sure every evolution has its own card"). One card per form, on
 // her NPC Quest TCG card frames: blue for a first stage, red for a second, purple for a third or fourth. The creature
 // stands in the card's window on its type color, its name on the ribbon, its facts on the parchment. Cards not caught
 // yet show as a dark shape (seen) or the card back (not seen yet).

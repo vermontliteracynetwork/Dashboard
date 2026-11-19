@@ -1,7 +1,7 @@
-// Creaturemon (Build Queue 703 to 705, 2026-11-19): the creature roster, types, levels, evolutions and the save.
+// Creaturemon (Build Queue 710 to 712, 2026-11-19): the creature roster, types, levels, evolutions and the save.
 // The roster lives in roster.json (one place, also read by scripts/creaturemon-table.mjs for the running table in
 // docs/CREATUREMON.md). Every name is built from the creature's body shape (her rule in 701), and every evolution
-// has its own card (705).
+// has its own card (712).
 import ROSTER from './roster.json';
 
 export type CType = 'Fire' | 'Water' | 'Leaf' | 'Frost' | 'Shadow' | 'Stone' | 'Light' | 'Spark' | 'Sky';

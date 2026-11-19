@@ -66,7 +66,7 @@ export const NATIVE_GAME_CARDS: NativeGameCard[] = [
   { id: 'mergeEm', added: '2026-11-12', title: "Merge 'Em", route: '/student/merge-em', cover: '/games/covers/merge-em.png', blurb: 'Drop number tiles. Two tiles with the same number merge into a bigger one. Chain merges and use power ups!', versus: false, cabinet: { marquee: '#3a4fb0', panel: '#5b7fe0', trim: '#ffd23f', icon: '🔢' } },
   // Build Queue 642 (2026-11-17): launch a rocket chicken from a farm cannon, with her Chicken Game Assets.
   { id: 'rocketChickens', added: '2026-11-17', title: 'Rocket Chickens', route: '/student/rocket-chickens', cover: '/games/covers/rocket-chickens.webp', blurb: 'Aim the farm cannon and launch a chicken with a rocket pack! Fly far, fly high and smash crates to earn coins for bigger cannons and more fuel.', versus: false, cabinet: { marquee: '#b0322a', panel: '#e0603a', trim: '#ffd23f', icon: '🐔' } },
-  // Build Queue 703 to 705 (2026-11-19): catch, battle, train and evolve creatures in a 3D pixel open world.
+  // Build Queue 710 to 712 (2026-11-19): catch, battle, train and evolve creatures in a 3D pixel open world.
   { id: 'creaturemon', added: '2026-11-19', title: 'Creaturemon', route: '/student/creaturemon', cover: '/games/covers/creaturemon.png', blurb: 'Explore a 3D pixel world, catch wild creatures, battle them Smash style, and evolve them to collect every card!', versus: false, cabinet: { marquee: '#2b1f5a', panel: '#3a4fb0', trim: '#ffd23f', icon: '🐉' } },
   { id: 'castleDefense', title: 'Castle Defense', route: '/student/castle-defense', cover: '/games/covers/castle-defense.jpg', blurb: 'Build towers, stop the attackers!', versus: false, cabinet: { marquee: '#5b6170', panel: '#7d8494', trim: '#d9b45a', icon: '🏰' } },
 ];
