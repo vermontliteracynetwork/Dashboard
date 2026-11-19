@@ -12934,8 +12934,3 @@ body.calm-games .me-burst { display: none; }
 @media print { .gbl-bar, .teacher-nav, .cm-inbox-head, .az-log-tabs { display: none !important; } .gbl th { position: static; } }
 .rc-world { display: block; font-size: 0.55em; opacity: 0.9; margin-top: 2px; }
 
-/* Build Queue 730: the Learn / Play switch on Live Class Overview, two halves joined */
-.mode-switch { display: inline-flex; }
-.mode-switch .btn { border-radius: 0; }
-.mode-switch .btn:first-child { border-radius: 10px 0 0 10px; }
-.mode-switch .btn:last-child { border-radius: 0 10px 10px 0; margin-left: -1px; }

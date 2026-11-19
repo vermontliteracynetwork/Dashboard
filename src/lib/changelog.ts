@@ -30,13 +30,6 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "Open Creaturemon on the Computer and tap Turn on Creaturemon. Town Square gets a rainbow border, and wild creatures show up near you on glowing rings. Walk up to one and tap Throw orb, or Battle it. Battles take turns: pick a move, answer a question to fuel it, and watch your hearts on the left. Your creature's XP bar fills up until it evolves!",
   },
   {
-    id: "2026-11-19-play-mode-done",
-    date: "2026-11-19",
-    icon: "▶️",
-    title: "Play mode when you are done",
-    body: "Finished all your work for today and saved your streak? Now you can switch any game to Play mode, even during school time.",
-  },
-  {
     id: "2026-11-19-creaturemon-play-mode",
     date: "2026-11-19",
     icon: "🐉",
