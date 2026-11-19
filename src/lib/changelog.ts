@@ -23,6 +23,13 @@ export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
     body: "Open Creaturemon on the Computer or in the Arcade. Pick your partner, then explore a 3D pixel world with six places to find creatures. Walk up to a wild creature and tap Throw orb to catch it, or Battle it first. In battles, knock the other creature off the island to win! Train your creatures to level up, and watch them evolve. Every evolution is a new card for your collection. There are 61 cards to find.",
   },
   {
+    id: "2026-11-19-game-builder-windows",
+    date: "2026-11-19",
+    icon: "🪟",
+    title: "Game Builder: set up your screen your way",
+    body: "In Game Builder every part is a window. Drag the top of a window to move it, drag its corner to make it bigger or smaller, and tap the arrow to fold it away. Your game saves by itself, and it asks before you leave. If something in your game stops working, Azalea tells you why and how to fix it.",
+  },
+  {
     id: "2026-11-19-game-builder-voice-mode",
     date: "2026-11-19",
     icon: "🎙️",

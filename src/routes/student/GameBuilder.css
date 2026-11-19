@@ -413,3 +413,25 @@ button.gbx-card:disabled { opacity: 0.55; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .gbx-vm-dot.on { animation: none; } }
 .gbx-vm-btn { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .gbp-head { flex-wrap: nowrap; white-space: nowrap; }
+.gbx-saved { font-size: 0.85rem; color: var(--soft); margin-left: 8px; } .gbx-leave h2 { margin: 0; } .gbx-leave p { margin: 4px 0 12px; font-size: 1.05rem; }
+/* 700: free layout windows */
+.gbx-free { position: relative; flex: 1; min-height: 0; margin: 8px; overflow: hidden; }
+.gbw { position: absolute; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06); overflow: hidden; min-width: 0; }
+.gbw-head { flex: none; height: 40px; display: flex; align-items: center; gap: 8px; padding: 0 4px 0 8px; border-bottom: 1px solid var(--line); cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; background: #fbfbfd; }
+.gbw.folded .gbw-head { border-bottom: 0; }
+.gbw-head b { font-size: 0.98rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gbw-grip { color: #a3a3b8; display: inline-flex; }
+.gbw-grow { flex: 1; }
+.gbw-btn { min-width: 40px; min-height: 36px; border: 0; background: none; color: var(--ink); cursor: pointer; display: inline-grid; place-items: center; border-radius: 8px; font: inherit; font-weight: 700; }
+.gbw-text { color: var(--accent); text-decoration: underline; padding: 0 6px; }
+.gbw-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.gbw-body > * { flex: 1; min-height: 0; }
+.gbw-size { position: absolute; right: 0; bottom: 0; width: 32px; height: 32px; cursor: nwse-resize; touch-action: none; background: linear-gradient(135deg, transparent 50%, #c9c9d8 50%, #c9c9d8 58%, transparent 58%, transparent 70%, #c9c9d8 70%, #c9c9d8 78%, transparent 78%); }
+.gbw .gbx-tools { height: 100%; }
+.gbw .gbp-bare { border: 0; border-radius: 0; }
+.gbw .gbx-chat { margin: 0; border: 0; border-radius: 0; flex: 1; overflow-y: auto; }
+.gbw .gbx-check-bare { border: 0; border-radius: 0; overflow-y: auto; }
+.gbx-az-win { width: 100%; height: 100%; object-fit: contain; }
+.gbw .gbx-allmsgs-list { overflow-y: auto; }
+.gbx-cardsize { display: flex; align-items: center; gap: 8px; margin-left: auto; font-weight: 700; color: var(--soft); }
+.gbx-cardsize input { accent-color: var(--accent); min-height: 40px; }

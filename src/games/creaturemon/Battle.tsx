@@ -1,4 +1,4 @@
-// Creaturemon battles (Build Queue 700): Smash style, her biggest influence. Two creatures on a floating island with two
+// Creaturemon battles (Build Queue 703): Smash style, her biggest influence. Two creatures on a floating island with two
 // small platforms. Every hit adds damage %, and the higher the %, the farther a hit knocks you. Knock the other
 // creature off the island to take one of its stars. Lose both stars and the battle is over. Nobody ever gets hurt:
 // a knocked out creature just pops back in a puff of sparkles (her No Blood rule).

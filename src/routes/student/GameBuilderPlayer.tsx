@@ -90,7 +90,7 @@ export function Player({ p, onClose }: { p: GameProject; onClose: (r: 'win' | 'l
 // newest version of the game, but (693, Claudia's review: no autoplay, low stimulation) it waits on a still picture
 // until the student taps Test it. After a change it goes back to the still picture with "Changed". A game that ends
 // counts as a play test.
-export function LivePreview({ p, onPlayed }: { p: GameProject; onPlayed?: (r: 'win' | 'lose') => void }) {
+export function LivePreview({ p, onPlayed, bare }: { p: GameProject; onPlayed?: (r: 'win' | 'lose') => void; bare?: boolean }) {
   const cv = useRef<HTMLCanvasElement>(null);
   const box = useRef<HTMLDivElement>(null);
   const h = useRef<RunHandle | null>(null);
@@ -123,11 +123,11 @@ export function LivePreview({ p, onPlayed }: { p: GameProject; onPlayed?: (r: 'w
     onPointerUp: () => h.current?.press(k, false), onPointerLeave: () => h.current?.press(k, false), onPointerCancel: () => h.current?.press(k, false),
   });
   return (
-    <div className="gbp" ref={box} tabIndex={0} aria-label="Live game"
+    <div className={`gbp ${bare ? 'gbp-bare' : ''}`} ref={box} tabIndex={0} aria-label="Live game"
       onKeyDown={(e) => { const k = keyMap[e.key]; if (k && running) { e.preventDefault(); h.current?.press(k, true); } }}
       onKeyUp={(e) => { const k = keyMap[e.key]; if (k) h.current?.press(k, false); }}>
       <div className="gbp-head">
-        <b>Live game</b>
+        {!bare && <b>Live game</b>}
         <span className="gbp-grow" />
         {running && pp.kind !== 'custom' && <button type="button" className="gbx-link" onClick={() => setSound((s) => !s)}>{sound ? 'Sound on' : 'Sound off'}</button>}
         {changed && running && <span className="gbp-updated">Updated</span>}

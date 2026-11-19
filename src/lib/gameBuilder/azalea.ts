@@ -209,8 +209,6 @@ export function guideAnswer(p: GameProject, said: string, history: { from: strin
   if (!next && p.step !== 'playtest') { ans.next_step = 'playtest'; say.push('Your game has everything it needs. Tap Play to test it!'); }
   else if (next && ['win', 'challenge', 'score', 'power'].includes(next.id) && stepIdx < 2 && p.design.idea && p.design.goal) ans.next_step = 'logic';
   else if (next?.id === 'design' && stepIdx < 1 && (p.design.idea || ans.design.idea)) ans.next_step = 'design';
-  if (p.kind === 'custom' && !ans.changes.length) ans.choices = undefined;
-  if (p.kind === 'custom' && !ans.changes.length) say.splice(0, say.length, 'For a game from blank, I need my thinking cap, and your teacher turns it on. Until then, tell me your idea, your hero and how you win, and I will save the plan.');
   // Short and helpful (697): 3 sentences at most, 2 in voice mode.
   ans.reply = say.slice(0, short ? 2 : 3).join(' ');
   return ans;

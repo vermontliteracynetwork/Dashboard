@@ -1,4 +1,4 @@
-/* Creaturemon (Build Queue 700 to 702). iPad first: big touch targets, nothing over the move pad or the buttons. */
+/* Creaturemon (Build Queue 703 to 705). iPad first: big touch targets, nothing over the move pad or the buttons. */
 @font-face { font-family: 'Pixel Lorebook'; src: url('/games/creaturemon/PixelLorebook.ttf') format('truetype'); font-display: swap; }
 .cm { position: fixed; inset: 0; display: flex; flex-direction: column; background: #1d2238; color: #1f2430; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 .cm-head { flex: none; }

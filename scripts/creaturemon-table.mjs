@@ -1,4 +1,4 @@
-// The running table of every Creaturemon creature (Build Queue 702, her words: "there should be a running table of
+// The running table of every Creaturemon creature (Build Queue 705, her words: "there should be a running table of
 // all information of our new monsters"). Reads src/games/creaturemon/roster.json (the one place the roster lives)
 // and writes docs/CREATUREMON.md, plus docs/creaturemon-table.pdf with every creature's picture when Playwright is
 // available. Run after any roster change: node scripts/creaturemon-table.mjs

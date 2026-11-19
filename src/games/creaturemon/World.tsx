@@ -1,4 +1,4 @@
-// Creaturemon's open world (Build Queue 700): a 3D pixel land seen from behind the player (third person), drawn at a
+// Creaturemon's open world (Build Queue 703): a 3D pixel land seen from behind the player (third person), drawn at a
 // low resolution and blown up with hard pixel edges so the whole world looks like 3D pixel art (the idea behind her
 // godot-3d-pixel-art kit, done here in three.js). Six habitats around Sunny Meadow, her Stamper trees, rocks and
 // mushrooms, a pixel sky from her Pixel Skies pack, wild creatures wandering, and the lead creature following you.
