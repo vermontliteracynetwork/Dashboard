@@ -61,7 +61,7 @@ export default function Creaturemon() {
     speak(`${form(formId).name} is your partner! Turn on Creaturemon and walk around Town Square to catch more.`, student?.ttsSettings);
   };
   const menu = useMemo(() => [{ id: 'cm-help', icon: '❓', label: 'How to play', bg: '#3a4fb0', order: 5, onSelect: () => setPanel('help') }], []);
-  const howTo = 'Tap Explore to walk around the Creaturemon world with the move pad (or the W A S D keys), and drag the screen to turn. Walk up to a wild creature: tap Throw orb to catch it, or Battle it first. A creature tired out from a battle is easy to catch, and sneaking up behind one helps too. Battles take turns: tap a move, and in Learn mode answer a question to fuel it. Battles and training give XP. At the right level your creature evolves, and every evolution is a new card!';
+  const howTo = 'Tap Explore to walk around the Creaturemon world with the move pad (or the W A S D keys), and drag the screen to turn. Walk up to a wild creature: tap Throw orb to catch it, or Battle it first. A creature tired out from a battle is easy to catch, and sneaking up behind one helps too. Battles are live: both creatures move at the same time. Tap a move when its ring is ready, and in Learn mode answer a question to charge your special move. Battles and training give XP. At the right level your creature evolves, and every evolution is a new card!';
   if (!student) return null;
   const leave = () => { pay(); back.go(); };
   const gfx: 'low' | 'medium' | 'high' = S.gfx ?? 'medium';

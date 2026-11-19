@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-19-creaturemon-live-battle",
+    date: "2026-11-19",
+    icon: "⚔️",
+    title: "Creaturemon: live battles",
+    body: "Creaturemon battles are live now, with no more waiting for your turn. Tap a move as soon as its ring is full. The other creature fights back at the same time. In Learn mode, answer a question to charge your special move 3 times.",
+  },
+  {
     id: "2026-11-19-azalea-game-logic",
     date: "2026-11-19",
     icon: "🐱",

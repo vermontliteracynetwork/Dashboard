@@ -606,3 +606,8 @@
 
 /* Merge 'Em styles a bare .me class (a full screen brick wall); Creaturemon names its sides side-me and side-foe so the
    two never clash (this was the blank blue battle screen). */
+
+/* 762: live battle: a recharge ring on each move button, and the special move's charges */
+.fb-btn::after { content: ''; position: absolute; inset: -4px; border-radius: 50%; pointer-events: none; background: conic-gradient(rgba(10,14,30,0.62) var(--cd, 0%), transparent 0); }
+.fb-btn[data-cooling] { cursor: default; }
+.fb-charge { position: absolute; top: -6px; right: -6px; min-width: 30px; height: 30px; border-radius: 15px; background: #ffd23f; color: #2b1d00; border: 3px solid #fff; font: 900 0.8rem/24px system-ui, sans-serif; text-shadow: none; z-index: 1; padding: 0 4px; }
