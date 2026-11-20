@@ -5,6 +5,7 @@ import { useStore } from '../store/store';
 import { findHint } from '../lib/hints';
 import HintCard from './HintCard';
 import { recordStreakCorrect } from '../lib/streak';
+import { countCorrectAnywhere } from '../lib/gameplayAssignment';
 import type { MadLibQuestion, SymbolQuestion, TTSSettings } from '../types';
 import SymbolSentenceAnswer from './SymbolSentenceAnswer';
 import MadLibAnswer from './MadLibAnswer';
@@ -281,6 +282,8 @@ function QuestionScreenInner({
       setAnsweredCorrectly(true);
       // Every right answer anywhere counts toward today's Daily Streak.
       recordStreakCorrect();
+      // 771: and toward an open "Student picks the game" assignment.
+      countCorrectAnywhere(`any:${keyOfQuestion({ prompt, typed })}`);
       setFeedback('correct');
       advanceTimer.current = window.setTimeout(() => onCorrectAnswer(), CORRECT_PAUSE_MS);
     } else {

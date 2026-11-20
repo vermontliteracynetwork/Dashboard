@@ -14,6 +14,7 @@ import { formatMoney } from './money';
 // Teacher-editable in Economy Settings (default $1).
 import { getEconomy } from './economy';
 import { reportPayout } from './gameReports';
+import { weekendDoubles } from './weekend';
 
 // perCents: a game with its own rate (Alchemy pays $0.50 a right answer, teacher 2026-10-08).
 export function payForAnswers(studentId: string, correct: number, game: string, icon: string, perCents?: number) {
@@ -23,7 +24,8 @@ export function payForAnswers(studentId: string, correct: number, game: string, 
   st.recordTransaction(studentId, cents, `${icon} ${game}: ${correct} right answer${correct === 1 ? '' : 's'}`, icon, 'game-answers');
   // A teacher Inbox report for the session (Build Queue 2026-10-09).
   reportPayout(studentId, game, icon, correct, cents);
+  const got = st.role === 'student' && weekendDoubles('game-answers', cents) ? cents * 2 : cents; // 772: the register doubled it
   useStore.setState((s) => ({
-    lastCoinEarn: s.lastCoinEarn ? { ...s.lastCoinEarn, message: `You earned ${formatMoney(cents)} for ${correct} right answer${correct === 1 ? '' : 's'} in ${game}!` } : s.lastCoinEarn,
+    lastCoinEarn: s.lastCoinEarn ? { ...s.lastCoinEarn, message: `You earned ${formatMoney(got)} for ${correct} right answer${correct === 1 ? '' : 's'} in ${game}!${got > cents ? ' Weekend 2x!' : ''}` } : s.lastCoinEarn,
   }));
 }

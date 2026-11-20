@@ -24,6 +24,7 @@ import QuizMode from './routes/student/QuizMode';
 import StreakLayer from './components/StreakLayer';
 import GameReportBubble from './components/GameReportBubble';
 import MainMenu from './components/MainMenu';
+import WeekendAlert from './components/WeekendAlert';
 import AssignmentAlert from './components/AssignmentAlert';
 import PetTrainedToast from './components/PetTrainedToast';
 import GymWatcher from './components/GymWatcher';
@@ -169,6 +170,7 @@ export default function App() {
         <GameReportBubble />
         <MainMenu />
         <AssignmentAlert />
+        <WeekendAlert />
         <PetTrainedToast />
         <GymWatcher />
         <CheckOnPetHost />

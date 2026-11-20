@@ -44,6 +44,22 @@ export function pickGameplayQuestion(task: Task, avoidId?: string): MCQuestion |
   return pickWeighted(usable);
 }
 
+// Build Queue 771 (her words: "if i select "Student picks the game ..." ALL questions students answer should continue
+// their count. this can be in many games throughout the dashboard. as long as they are correct, they count"): every
+// right answer on any question screen anywhere (every game, Town Square, quizzes) counts toward an open "Student picks
+// the game" assignment, even when the question came from another set. QuestionScreen calls this on every right answer;
+// the store skips a second count of the same answer when a game also reports it (submitGameplayAnswer).
+export function countCorrectAnywhere(questionKey: string) {
+  const st = useStore.getState(); const sid = st.currentStudentId; if (!sid || st.role !== 'student') return;
+  if (isAssignmentsPaused(sid)) return;
+  const subjects: Subject[] = ['math', 'literacy'];
+  for (const subject of subjects) {
+    const done = st.progress[sid]?.[subject]?.completedTaskIds ?? [];
+    const task = (st.rotations[sid]?.[subject] ?? []).find((t) => t.completionMode === 'anyGame' && gameplayQuestionPool(t).length > 0 && !done.includes(t.id));
+    if (task) { st.submitGameplayAnswer(sid, subject, task, questionKey, true); return; }
+  }
+}
+
 // Finds the one active, not-yet-completed gameplay-mode task (if any) a
 // student's answer in `nativeGameId` should count toward — a specific-game
 // match for this exact game wins over an any-game match, and only one task

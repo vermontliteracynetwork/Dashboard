@@ -1,3 +1,4 @@
+import { weekendDoubles } from '../lib/weekend';
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { makeId } from '../lib/id';
@@ -1113,6 +1114,8 @@ export const useStore = create<AppState>()(
       recordTransaction: (studentId, amountCents, description, icon, kind, silent, needsWants) => {
         const student = get().students.find((st) => st.id === studentId);
         if (!student) return;
+        // Build Queue 772: money a student earns on Saturday or Sunday is doubled (the register row says so).
+        if (get().role === 'student' && weekendDoubles(kind, amountCents)) { amountCents *= 2; description = `${description} (weekend 2x)`; }
         const tx: Transaction = {
           id: makeId(),
           studentId,
@@ -2669,6 +2672,10 @@ export const useStore = create<AppState>()(
       submitGameplayAnswer: (studentId, subject, task, questionId, correct) => {
         const before = gameplayProgress(get().ensureQuizState(studentId, subject, task));
         const state = get().progress[studentId][subject].quizState[task.id];
+        // 771: one right answer counts once. The question screen counts every right answer for "Student picks the game",
+        // and a game may report the same answer a moment later; a second right answer within 4 seconds is that same one.
+        const lastRight = [...state.log].reverse().find((l) => l.correct);
+        if (correct && lastRight && Date.now() - new Date(lastRight.timestamp).getTime() < 4000) return false;
         const log = [...state.log, { questionId, timestamp: new Date().toISOString(), correct }];
         const next: QuizRuntimeState = { ...state, log };
         set((s) => {
@@ -3445,9 +3452,18 @@ export const useStore = create<AppState>()(
         for (const row of rows) {
           const rot = get().rotations[row.studentId]?.[updated.subject];
           if (!rot?.length) continue;
+          // Build Queue 771 (her words: "when i save and edit them, it should apply but student progress should not be
+          // lost"): each edited activity keeps the student's own copy (and so its progress) when it is the same activity:
+          // same kind and name, or same kind and the same questions (a renamed activity), or same kind in the same place.
           const used = new Set<string>();
-          const next = updated.activities.map((a) => {
-            const m = rot.find((t) => !used.has(t.id) && t.type === a.type && t.title === a.title);
+          const ids = (t: Task) => new Set((t.quiz?.questions ?? []).map((q) => q.id));
+          const sameSet = (x: Task, y: Task) => { const a = ids(x), b = ids(y); if (!a.size || !b.size) return false; let n = 0; a.forEach((i) => { if (b.has(i)) n++; }); return n >= Math.min(a.size, b.size) / 2; };
+          const pick = (a: Task, i: number) =>
+            rot.find((t) => !used.has(t.id) && t.type === a.type && t.title === a.title)
+            ?? rot.find((t) => !used.has(t.id) && t.type === a.type && sameSet(t, a))
+            ?? (rot[i] && !used.has(rot[i].id) && rot[i].type === a.type ? rot[i] : undefined);
+          const next = updated.activities.map((a, i) => {
+            const m = pick(a, i);
             if (m) used.add(m.id);
             return m ? { ...a, id: m.id } : { ...a, id: makeId() };
           });
@@ -3455,6 +3471,17 @@ export const useStore = create<AppState>()(
           if (used.size === 0 || used.size < Math.ceil(rot.length / 2)) continue;
           set((s) => ({ rotations: { ...s.rotations, [row.studentId]: { ...(s.rotations[row.studentId] ?? { math: [], literacy: [] }), [updated.subject]: next } } }));
           pushRotation(row.studentId, updated.subject, next);
+          // 771 (her words: "make sure the settings i put in for the assignments are strickly followed and applied"): a
+          // changed "questions needed" count applies to work already done. Reaching a lowered count checks it off now;
+          // raising it above what a game run already finished opens it again, with every right answer still counted.
+          const sp = get().progress[row.studentId]?.[updated.subject];
+          if (sp) for (const t of next) {
+            if (t.completionMode !== 'anyGame' && t.completionMode !== 'specificGame') continue;
+            const st = sp.quizState?.[t.id]; if (!st) continue;
+            const have = gameplayProgress(st), need = gameplayTarget(t), done = sp.completedTaskIds.includes(t.id);
+            if (!done && need > 0 && have >= need) get().completeTask(row.studentId, updated.subject, t.id);
+            else if (done && have < need && get().quizAttempts.some((q) => q.studentId === row.studentId && q.taskId === t.id && q.totalCount < need)) get().uncompleteTask(row.studentId, updated.subject, t.id);
+          }
         }
       },
 

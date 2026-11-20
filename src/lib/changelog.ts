@@ -16,6 +16,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-20-weekend-2x",
+    date: "2026-11-20",
+    icon: "💰",
+    title: "Weekend 2x money",
+    body: "On Saturday and Sunday, all the money you earn is doubled! Assignments are optional on the weekend, so you can play, learn and earn.",
+  },
+  {
+    id: "2026-11-20-any-game-counts",
+    date: "2026-11-20",
+    icon: "📋",
+    title: "Every right answer counts",
+    body: "When your teacher lets you pick the game for an assignment, every right answer you give in any game counts toward it. Switch games as much as you like. Your count keeps going.",
+  },
+  {
     id: "2026-11-19-azalea-own-words",
     date: "2026-11-19",
     icon: "💬",

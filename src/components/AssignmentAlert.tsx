@@ -5,6 +5,7 @@ import { todayISO } from '../lib/dates';
 import { sfx } from '../lib/miniSfx';
 import { speak } from './ReadAloud';
 import { useAssignmentsPaused } from '../lib/assignmentPause';
+import { isWeekend } from '../lib/weekend';
 
 // Build Queue 530 (her words: "when an assignment is active, it should be very apprent, popping up in live mode, and
 // prioritzing over all other game play"). While today's assignment still has work, a big card pops up over whatever the
@@ -23,7 +24,8 @@ export function useDueAssignments() {
   const today = todayISO();
   const paused = useAssignmentsPaused(studentId);
   return useMemo(() => {
-    if (role !== 'student' || !studentId || paused) return [];
+    // 772: assignments are optional on weekends, so nothing pops up or waits at the top on Saturday and Sunday.
+    if (role !== 'student' || !studentId || paused || isWeekend()) return [];
     const live = assignments.filter((a) => a.studentId === studentId && !a.deletedAt && a.startDate <= today && a.endDate >= today);
     return (['math', 'literacy'] as const).filter((subj) => live.some((a) => a.subject === subj)).map((subj) => {
       const tasks = rotations[studentId]?.[subj] ?? [];
