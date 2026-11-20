@@ -16,7 +16,7 @@
 .xc-hurry { color: #ffd23f; font-size: 1.3rem !important; animation: xcPulse 0.6s ease-in-out infinite alternate; }
 @keyframes xcPulse { to { transform: scale(1.12); } }
 .xc-stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 8px 16px 16px; }
-.xc-canvas { max-width: 100%; max-height: 100%; min-height: 0; aspect-ratio: 19 / 21; image-rendering: pixelated; touch-action: none; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+.xc-canvas { max-width: 100%; max-height: 100%; min-height: 0; aspect-ratio: 27 / 16; image-rendering: pixelated; touch-action: none; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
 .xc-msg { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); background: rgba(10,16,34,0.88); padding: 8px 14px; border-radius: 12px; font-weight: 800; pointer-events: none; text-align: center; max-width: calc(100% - 32px); }
 .xc-center { position: absolute; inset: 0; display: grid; place-items: center; z-index: 20; background: rgba(8,12,28,0.45); }
 .xc-over { position: fixed; z-index: 60; }
@@ -30,3 +30,10 @@
 .xc-btn.up { grid-area: up; } .xc-btn.down { grid-area: down; } .xc-btn.left { grid-area: left; } .xc-btn.right { grid-area: right; }
 @media (max-width: 900px) and (orientation: portrait) { .xc-pad { position: relative; right: auto; bottom: auto; margin: 0 auto 16px; } }
 @media (prefers-reduced-motion: reduce) { .xc-santa-walk, .xc-hurry { animation: none; } }
+.xc-flash-wrap { position: absolute; inset: 0; z-index: 25; display: grid; place-items: center; background: rgba(8,12,28,0.35); }
+.xc-flash { aspect-ratio: 3 / 4; height: min(78%, 460px); background: #fff; color: #1d2238; border: 6px solid #e53935; border-radius: 22px; box-shadow: 0 12px 30px rgba(0,0,0,0.4); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 18px; text-align: center; animation: xcPop 0.25s ease-out; }
+.xc-flash img { width: 32px; height: 32px; object-fit: none; object-position: 0 0; image-rendering: pixelated; transform: scale(3.4); margin: 40px 0 44px; }
+.xc-flash p { font-size: 1.45rem; font-weight: 900; margin: 0; line-height: 1.25; }
+.xc-flash small { opacity: 0.7; font-weight: 700; }
+@keyframes xcPop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .xc-flash { animation: none; } }

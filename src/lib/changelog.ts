@@ -16,6 +16,13 @@ export interface ChangelogEntry {
 
 export const CHANGELOG_ENTRIES: ChangelogEntry[] = [
   {
+    id: "2026-11-20-cat-chase-bigger",
+    date: "2026-11-20",
+    icon: "🎄",
+    title: "Christmas Cat Chase: a bigger maze",
+    body: "The maze is wider now, so the cat, the mouse and the snowmen are bigger and easier to see. Snowflakes jingle when you grab them, and a music box plays We Wish You a Merry Christmas. Big messages show in the middle. Tap or press any key to keep going.",
+  },
+  {
     id: "2026-11-20-weekend-2x",
     date: "2026-11-20",
     icon: "💰",

@@ -20,29 +20,24 @@ import './ChristmasCatChase.css';
 // star, tree). Sounds: her Christmas SFX Lite and Christmas SFX packs.
 
 const A = '/games/christmas-cat-chase/';
-// The maze (our own layout). # wall, . snowflake, o candy cane, C cat, M mouse, S snowman fort, - fort door, space empty.
+// The maze (our own layout; 773: wide and short, so everything is bigger on the screen). # wall, . snowflake, o candy cane, C cat, M mouse, S snowman fort, - fort door, space empty.
 const MAZE = [
-  '###################',
-  '#o.......#.......o#',
-  '#.##.###.#.###.##.#',
-  '#.................#',
-  '#.##.#.#####.#.##.#',
-  '#....#...#...#....#',
-  '####.### # ###.####',
-  '   #.#   M   #.#   ',
-  '####.# ##-## #.####',
-  '    .  #SSS#  .    ',
-  '####.# ##### #.####',
-  '   #.#       #.#   ',
-  '####.# ##### #.####',
-  '#........#........#',
-  '#.##.###.#.###.##.#',
-  '#o.#.....C.....#.o#',
-  '##.#.#.#####.#.#.##',
-  '#....#...#...#....#',
-  '#.######.#.######.#',
-  '#.................#',
-  '###################',
+  '###########################',
+  '#o.........#####.........o#',
+  '#.###.###.........###.###.#',
+  '#.###.###.###-###.###.###.#',
+  '#.........#SSSSS#.........#',
+  '###.#.###.#######.###.#.###',
+  '   .#........M........#.   ',
+  '###.#.###.#######.###.#.###',
+  '#.........#.....#.........#',
+  '#.###.###...###...###.###.#',
+  '#o..#.......#C#.......#..o#',
+  '###.#.#.###.#.#.###.#.#.###',
+  '#.....#.............#.....#',
+  '#.#######.#######.#######.#',
+  '#.........................#',
+  '###########################',
 ];
 const COLS = MAZE[0].length, ROWS = MAZE.length;
 type Dir = 'up' | 'down' | 'left' | 'right' | '';
@@ -51,7 +46,7 @@ const OPP: Record<string, Dir> = { up: 'down', down: 'up', left: 'right', right:
 const wrapX = (x: number) => (x + COLS) % COLS;
 const wall = (x: number, y: number, door = false) => { if (y < 0 || y >= ROWS) return true; const c = MAZE[y][wrapX(x)]; return c === '#' || (!door && c === '-'); };
 const find = (ch: string) => { const out: [number, number][] = []; MAZE.forEach((r, y) => [...r].forEach((c, x) => { if (c === ch) out.push([x, y]); })); return out; };
-const CAT0 = find('C')[0], MOUSE0 = find('M')[0], FORT = find('S');
+const CAT0 = find('C')[0], MOUSE0 = find('M')[0], FORT = find('S'), DOOR_X = find('-')[0][0];
 
 // Every round is longer (her rule), and the mouse is a bit quicker each time.
 export const roundSecs = (r: number) => 40 + (r - 1) * 10;
@@ -106,8 +101,24 @@ export default function ChristmasCatChase() {
   const cv = useRef<HTMLCanvasElement>(null);
   const G = useRef({
     cat: mover(CAT0, CAT_SPEED), mouse: mover(MOUSE0, mouseSpeed(1)), snow: [] as Snow[], dots: new Set<string>(), canes: new Set<string>(),
-    super: 0, t: 0, left: roundSecs(1), warned: false, score: 0, face: 1, mface: 1, poofs: [] as { x: number; y: number; t: number }[], bonk: 0, round: 1, live: false,
+    super: 0, t: 0, left: roundSecs(1), warned: false, paused: false, score: 0, face: 1, mface: 1, poofs: [] as { x: number; y: number; t: number }[], bonk: 0, round: 1, live: false,
   });
+
+  // 773 (her words: "flash messages like getting bonked in a 3:4 message in the middle for 5 seconds or until clicked
+  // (message or anywhere/any key)"): a big card in the middle; the game (and Santa) waits while it shows.
+  const [flash, setFlash] = useState<{ text: string; pic: string } | null>(null);
+  const flashT = useRef(0);
+  const closeFlash = () => { window.clearTimeout(flashT.current); G.current.paused = false; setFlash(null); };
+  const showFlash = (text: string, pic: string) => { G.current.paused = true; setFlash({ text, pic }); say(text); window.clearTimeout(flashT.current); flashT.current = window.setTimeout(closeFlash, 5000); };
+  const flashRef = useRef(showFlash); flashRef.current = showFlash;
+  useEffect(() => {
+    if (!flash) return;
+    const shut = () => closeFlash();
+    const t = window.setTimeout(() => { window.addEventListener('keydown', shut); window.addEventListener('pointerdown', shut); }, 250);
+    return () => { window.clearTimeout(t); window.removeEventListener('keydown', shut); window.removeEventListener('pointerdown', shut); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flash]);
+  useEffect(() => () => window.clearTimeout(flashT.current), []);
 
   const persist = (s: Save) => { setSave(s); try { localStorage.setItem(key, JSON.stringify(s)); } catch { /* fine */ } };
 
@@ -116,7 +127,8 @@ export default function ChristmasCatChase() {
     g.cat = mover(CAT0, CAT_SPEED); g.mouse = mover(MOUSE0, mouseSpeed(r));
     g.snow = Array.from({ length: snowmenFor(r) }, (_, i) => ({ ...mover(FORT[i % FORT.length], SNOW_SPEED), home: FORT[i % FORT.length], out: 1.5 + i * 2.5 }));
     g.dots = new Set(); g.canes = new Set();
-    MAZE.forEach((row, y) => [...row].forEach((c, x) => { if (c === '.') g.dots.add(`${x},${y}`); if (c === 'o') g.canes.add(`${x},${y}`); }));
+    // 774 (her words: "further space out the dots that you collect so they are more sparse"): about one path tile in three.
+    MAZE.forEach((row, y) => [...row].forEach((c, x) => { if (c === '.' && (x + 2 * y) % 3 === 0) g.dots.add(`${x},${y}`); if (c === 'o') g.canes.add(`${x},${y}`); }));
     g.super = 0; g.t = 0; g.left = roundSecs(r); g.warned = false; g.poofs = []; g.bonk = 0; g.round = r;
     setLeft(g.left); setRound(r); setMsg('');
   };
@@ -130,7 +142,7 @@ export default function ChristmasCatChase() {
   const song = useRef<HTMLAudioElement | null>(null);
   useEffect(() => {
     if (!started || !music || phase !== 'play') { song.current?.pause(); return; }
-    if (!song.current) { song.current = registerGameMusic(new Audio(`${A}music.mp3`)); song.current.loop = true; song.current.volume = 0.22; }
+    if (!song.current) { song.current = registerGameMusic(new Audio(`${A}music.mp3`)); song.current.loop = true; song.current.volume = 0.35; }
     void song.current.play().catch(() => {});
   }, [started, music, phase]);
   useEffect(() => () => { song.current?.pause(); song.current = null; }, []);
@@ -175,7 +187,7 @@ export default function ChristmasCatChase() {
     };
     const catChoose = (m: Mover): Dir => { if (m.want && !wall(m.x + DV[m.want as Exclude<Dir, ''>][0], m.y + DV[m.want as Exclude<Dir, ''>][1])) return m.want; return m.dir; };
     const tick = (dt: number) => {
-      const g = G.current; if (!g.live) return;
+      const g = G.current; if (!g.live || g.paused) return;
       g.t += dt; g.left -= dt; if (g.super > 0) g.super -= dt; if (g.bonk > 0) g.bonk -= dt;
       if (!g.warned && g.left <= 10) { g.warned = true; play('buildup', 0.55); say("Santa's coming! Hurry!"); }
       if (g.left <= 0) { g.left = 0; endSanta(); return; }
@@ -185,8 +197,8 @@ export default function ChristmasCatChase() {
       if (g.bonk <= 0) step(cat, dt, catChoose);
       if (cat.dir === 'left') g.face = -1; if (cat.dir === 'right') g.face = 1;
       const cx = Math.round(cat.x), cy = Math.round(cat.y), ck = `${wrapX(cx)},${cy}`;
-      if (g.dots.delete(ck)) { g.score += 10; play('collect', 0.25); }
-      if (g.canes.delete(ck)) { g.super = calm ? 8 : 7; g.score += 50; play('star', 0.6); setMsg('Candy cane! The snowmen run away. Bump them to poof them home!'); window.setTimeout(() => setMsg(''), 2500); }
+      if (g.dots.delete(ck)) { g.score += 20; play('jingle', 0.5); } // 774: her jingle bells sound
+      if (g.canes.delete(ck)) { g.super = calm ? 8 : 7; g.score += 50; play('star', 0.6); flashRef.current('Candy cane! The snowmen run away. Bump them to poof them home!', 'candy'); }
       // mouse: runs to the open tile farthest from the cat, with a little wobble so it is catchable
       const dc = distMap(wrapX(cx), cy);
       step(g.mouse, dt, (m) => {
@@ -204,7 +216,7 @@ export default function ChristmasCatChase() {
         step(s, dt, (m) => {
           const opts = openDirs(m.x, m.y, true); const back = OPP[m.dir];
           const list = opts.filter((d) => d !== back).length ? opts.filter((d) => d !== back) : opts;
-          if (MAZE[m.y][m.x] === 'S' || MAZE[m.y][m.x] === '-') return m.x < 9 ? 'right' : m.x > 9 ? 'left' : 'up';
+          if (MAZE[m.y][m.x] === 'S' || MAZE[m.y][m.x] === '-') return m.x < DOOR_X ? 'right' : m.x > DOOR_X ? 'left' : 'up';
           if (Math.random() < 0.35) return list[Math.floor(Math.random() * list.length)];
           let best: Dir = list[0], bv = g.super > 0 ? -1 : 1e9;
           for (const d of list) { const v = dc[m.y + DV[d][1]][wrapX(m.x + DV[d][0])]; if (g.super > 0 ? v > bv : v < bv) { bv = v; best = d; } }
@@ -212,7 +224,7 @@ export default function ChristmasCatChase() {
         }, true);
         if (Math.abs(s.x - cat.x) + Math.abs(s.y - cat.y) < 0.7) {
           if (g.super > 0) { g.poofs.push({ x: s.x, y: s.y, t: 0.6 }); Object.assign(s, mover(s.home, SNOW_SPEED), { out: 3 }); g.score += 60; play('poof', 0.6); }
-          else if (g.bonk <= 0) { play('bonk', 0.6); g.poofs.push({ x: cat.x, y: cat.y, t: 0.6 }); Object.assign(cat, mover(CAT0, CAT_SPEED)); g.bonk = 0.8; setMsg('Bonk! A snowball! Back to the start.'); window.setTimeout(() => setMsg(''), 1800); }
+          else if (g.bonk <= 0) { play('bonk', 0.6); g.poofs.push({ x: cat.x, y: cat.y, t: 0.6 }); Object.assign(cat, mover(CAT0, CAT_SPEED)); g.bonk = 0.8; flashRef.current('Bonk! A snowman threw a snowball. Back to the start!', 'snowman'); }
         }
       }
       for (const p of g.poofs) p.t -= dt; g.poofs = g.poofs.filter((p) => p.t > 0);
@@ -311,6 +323,15 @@ export default function ChristmasCatChase() {
       <div className="xc-stage">
         <canvas ref={cv} className="xc-canvas" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={() => { swipe.current = null; }} onPointerCancel={() => { swipe.current = null; }} aria-label="The snowy maze" />
         {msg && phase === 'play' && <div className="xc-msg" role="status">{msg}</div>}
+        {flash && phase === 'play' && (
+          <div className="xc-flash-wrap" role="alertdialog" aria-label={flash.text}>
+            <div className="xc-flash">
+              <img src={`${A}${flash.pic}.png`} alt="" />
+              <p>{flash.text}</p>
+              <small>Tap anywhere or press any key</small>
+            </div>
+          </div>
+        )}
         {started && phase === 'ready' && !asking && (
           <div className="xc-center"><div className="xc-card">
             <h2>Round {round}</h2>
